@@ -28,26 +28,32 @@ try {
     $MetadataOut = Join-Path $Output "metadata"
     New-Item -ItemType Directory -Force -Path $MetadataOut | Out-Null
 
-    Write-Host "[1/5] Fingerprinting exact samples"
+    Write-Host "[1/6] Fingerprinting exact samples"
     Invoke-Python -m genshinre fingerprint $Exe $Metadata | Out-File -FilePath (Join-Path $Output "fingerprints.json") -Encoding utf8
 
-    Write-Host "[2/5] Decoding native 7.1 MHY metadata"
+    Write-Host "[2/6] Decoding native 7.1 MHY metadata"
     Invoke-Python -m genshinre decode-metadata-71 $Exe $Metadata $MetadataOut
 
-    Write-Host "[3/5] Verifying native 7.1 anchors"
+    Write-Host "[3/6] Verifying native 7.1 anchors"
     Invoke-Python -m genshinre verify-metadata `
         $MetadataOut `
         "versions/7.1.0-global/windows-x64/metadata/anchors-native.json" `
         | Out-File -FilePath (Join-Path $Output "metadata-anchor-check.json") -Encoding utf8
 
-    Write-Host "[4/5] Scanning conservative constant-return CmdId candidates"
+    Write-Host "[4/6] Scanning conservative constant-return CmdId candidates"
     Invoke-Python -m genshinre scan-constant-cmdids `
         $Exe `
         (Join-Path $MetadataOut "methods.csv") `
         (Join-Path $Output "getcmdid-candidates.csv") `
         --summary (Join-Path $Output "getcmdid-candidates.summary.json")
 
-    Write-Host "[5/5] Optional AstaPS control set"
+    Write-Host "[5/6] Probing preserved registry type-slot anchors"
+    Invoke-Python -m genshinre probe-registry-71 `
+        $Exe `
+        (Join-Path $Output "registry-probe-71.json") `
+        | Out-Null
+
+    Write-Host "[6/6] Optional AstaPS control set"
     if ($AstaPS) {
         $PacketOpcodes = Join-Path $AstaPS "src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"
         if (-not (Test-Path $PacketOpcodes)) {
@@ -59,7 +65,7 @@ try {
     }
 
     Write-Host "Done: $Output"
-    Write-Host "Next: inspect getcmdid-candidates.summary.json and continue Stage 2 registration-table recovery."
+    Write-Host "Next: inspect getcmdid-candidates.summary.json and registry-probe-71.json, then continue Stage 2 registration-table recovery."
 } finally {
     Pop-Location
 }
