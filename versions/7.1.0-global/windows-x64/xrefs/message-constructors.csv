@@ -1,0 +1,2 @@
+cmd_id,type_name,constructor_rva,context,status,evidence
+26105,HJDNCHODGOL,0x725CEF0,"constructs request, writes avatar id + nickname, sends",CONFIRMED,"client audit"

@@ -1,0 +1,2 @@
+cmd_id,type_name,sender_type,sender_method,sender_rva,context,status,evidence
+26105,HJDNCHODGOL,,,0x725CEF0,"GHAHAPOPLIH submit @ 0xBDEE770; selected Traveler + nickname",CONFIRMED,"constructor/write/send chain + GetCmdId 0x10587260"

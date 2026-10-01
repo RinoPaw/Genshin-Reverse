@@ -2,7 +2,7 @@
 
 Reusable sender/receiver and type/method relationships belong here.
 
-Preferred outputs:
+Canonical outputs:
 
 - `message-handlers.csv`
 - `message-senders.csv`
@@ -10,4 +10,6 @@ Preferred outputs:
 - `method-xrefs.csv`
 - `type-xrefs.csv`
 
-Store RVA rather than sample VA where possible, and keep context/status columns so a bare address does not become an unexplained fact.
+The currently committed handler/sender/constructor tables are partial seeds recovered from the 7.1 born audit. Blank identities mean the address/relation is supported while the original obfuscated type or method name has not yet been restored into the shared dataset.
+
+Store RVA rather than sample VA where possible, and keep context/status/evidence columns so a bare address never becomes an unexplained fact.

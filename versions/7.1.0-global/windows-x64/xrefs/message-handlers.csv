@@ -1,0 +1,4 @@
+cmd_id,type_name,direction,handler_type,handler_method,handler_rva,status,evidence,context
+22899,ONKOPMILDMF,S2C,LLCGIEDMIIG,MACAMCMOKOL,0xC227790,CONFIRMED,"metadata parameter + registry + UI call chain","Traveler selection / fresh born"
+3064,,S2C,,,0xC23BA20,HIGH_CONFIDENCE,"client handler address from born audit","nickname page synchronization"
+20824,,S2C,,,0xC2513A0,HIGH_CONFIDENCE,"client handler address from born audit","SetPlayerNameRsp / naming-page helper"
