@@ -4,6 +4,8 @@ SetPlayerBornDataReq,26105,C2S,CONFIRMED,"Observed fresh-account request with Tr
 SetPlayerBornDataRsp,4385,S2C,CONFIRMED,"GetCmdId=0x1121; parser field 7; isolated empty-success runtime validation"
 PlayerNicknameNotify,3064,S2C,CONFIRMED,"Static handler evidence; nickname field 12; runtime observed in born flow"
 PlayerEnterSceneNotify,9582,S2C,CONFIRMED,"Runtime scene-entry lifecycle"
+UnlockTransPointReq,9369,C2S,CONFIRMED,"Current AstaPS 7.1 handler; known local fields scene_id=12 point_id=1"
+UnlockTransPointRsp,,S2C,UNRESOLVED,"AstaPS play/rino opcode remains 0; historical 7.0 CmdId 1776 is not current-version evidence"
 UNKNOWN_186,186,C2S,UNRESOLVED,"Observed payload 7202d027 during born/intro login trace"
 CutSceneFinishNotify,21200,unknown,CANDIDATE,"Mapped in current working protocol table; not observed in the relevant intro trace"
 CutSceneEndNotify,472,unknown,CANDIDATE,"Mapped in current working protocol table; not observed in the relevant intro trace"
