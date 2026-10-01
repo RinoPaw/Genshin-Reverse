@@ -1,0 +1,61 @@
+{
+  "method_name_filter": "AEGNNPENLNM",
+  "candidate_type_count": 4923,
+  "verified_registry_slot_count": 4896,
+  "types_with_any_registry_slot_xref": 4896,
+  "types_with_unique_registry_slot_xref": 4891,
+  "types_with_dominant_registry_slot_xref": 4896,
+  "slots_with_owner_candidates": 4896,
+  "slots_with_single_owner_candidate": 4890,
+  "anchors": {
+    "9369": {
+      "type_name": "DMMJNICDOHM",
+      "expected_registry_index": 2232,
+      "expected_registry_slot_rva": "0x57E6498",
+      "expected_slot_referenced": true,
+      "top_slot_matches": true,
+      "top": {
+        "cmd_id": "9369",
+        "type_name": "DMMJNICDOHM",
+        "type_definition_index": "84249",
+        "get_cmd_id_rva": "0xC87EA60",
+        "registry_slot_rva": "0x57E6498",
+        "registry_index": "2232",
+        "xref_count": "1",
+        "xref_method_count": "1",
+        "xref_methods": "NKFCABIOGLE@0xC87E900",
+        "candidate_slot_count": "1",
+        "status": "UNIQUE_SLOT_XREF",
+        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot"
+      }
+    },
+    "22899": {
+      "type_name": "ONKOPMILDMF",
+      "expected_registry_index": 3118,
+      "expected_registry_slot_rva": "0x57F6F60",
+      "expected_slot_referenced": true,
+      "top_slot_matches": true,
+      "top": {
+        "cmd_id": "22899",
+        "type_name": "ONKOPMILDMF",
+        "type_definition_index": "87483",
+        "get_cmd_id_rva": "0x9FDADC0",
+        "registry_slot_rva": "0x57F6F60",
+        "registry_index": "3118",
+        "xref_count": "1",
+        "xref_method_count": "1",
+        "xref_methods": "NKFCABIOGLE@0x9FDAD20",
+        "candidate_slot_count": "1",
+        "status": "UNIQUE_SLOT_XREF",
+        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot"
+      }
+    }
+  },
+  "all_anchor_top_slots_match": true,
+  "status": "xref-diagnostic",
+  "notes": [
+    "constructor slots are independently verified; this artifact only asks whether methods declared on each GetCmdId candidate type reference those slots",
+    "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
+    "no row is promoted to canonical registry identity solely by this diagnostic"
+  ]
+}
