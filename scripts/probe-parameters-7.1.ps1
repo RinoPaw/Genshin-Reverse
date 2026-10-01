@@ -17,7 +17,12 @@ Set-StrictMode -Version Latest
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $RepoRoot
 try {
-    $Output = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Output))
+    $OutputArgument = $Output
+    if ([System.IO.Path]::IsPathRooted($OutputArgument)) {
+        $OutputRoot = [System.IO.Path]::GetFullPath($OutputArgument)
+    } else {
+        $OutputRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $OutputArgument))
+    }
 
     if (-not $SkipRegenerate) {
         $RegenerateArgs = @(
@@ -25,7 +30,7 @@ try {
             "-File", (Join-Path $PSScriptRoot "regenerate-7.1.ps1"),
             "-Exe", $Exe,
             "-Metadata", $Metadata,
-            "-Output", $Output,
+            "-Output", $OutputArgument,
             "-Python", $Python
         )
         if ($AstaPS) {
@@ -37,9 +42,9 @@ try {
         }
     }
 
-    $Methods = Join-Path $Output "metadata/methods.csv"
-    $RuntimeTypes = Join-Path $Output "metadata/runtime-types.csv"
-    $Probe = Join-Path $Output "parameter-probe-71.json"
+    $Methods = Join-Path $OutputRoot "metadata/methods.csv"
+    $RuntimeTypes = Join-Path $OutputRoot "metadata/runtime-types.csv"
+    $Probe = Join-Path $OutputRoot "parameter-probe-71.json"
 
     foreach ($Required in @($Methods, $RuntimeTypes)) {
         if (-not (Test-Path $Required)) {
