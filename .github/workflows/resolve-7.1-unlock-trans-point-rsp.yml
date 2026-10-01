@@ -28,34 +28,15 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Reconstruct usage-backed native registry
+      - name: Recover exact native CmdId and direction arrays
         run: |
-          python -m genshinre.metausage \
+          python -m genshinre.registryarrays \
             /tmp/gi71/GenshinImpact.exe \
-            /tmp/metadata-usage-slots.csv \
-            --summary /tmp/metadata-usage-slots.summary.json
-
-          python -m genshinre.usagejoin \
-            /tmp/gi71/GenshinImpact.exe \
-            /tmp/metadata-usage-slots.csv \
-            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
-            /tmp/metadata-usage-types.csv \
-            --summary /tmp/metadata-usage-types.summary.json
-
-          python -m genshinre.registryusagelayout \
-            /tmp/gi71/GenshinImpact.exe \
-            /tmp/metadata-usage-types.csv \
-            /tmp/registry-usage-layout-probe.json \
-            --max-results 1000 \
-            --require-strong
-
-          python -m genshinre.registryusageraw \
-            /tmp/gi71/GenshinImpact.exe \
-            /tmp/registry-usage-layout-probe.json \
-            /tmp/metadata-usage-types.csv \
-            /tmp/registry-native-usage.csv \
-            --summary /tmp/registry-native-usage.summary.json \
-            --require-4896-unique
+            versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
+            versions/7.1.0-global/windows-x64/proto/known-opcodes.csv \
+            /tmp/registry-native-arrays.csv \
+            --summary /tmp/registry-native-arrays.summary.json
+          cat /tmp/registry-native-arrays.summary.json
 
       - name: Correlate direction, external semantics and method references
         run: |
@@ -72,7 +53,7 @@ jobs:
                   return list(csv.DictReader(f))
 
           candidates = load(root / 'analyses/unlock-trans-point/retcode6-single-field-candidates.csv')
-          raw = {int(r['cmd_id']): r for r in load('/tmp/registry-native-usage.csv')}
+          raw = {int(r['cmd_id']): r for r in load('/tmp/registry-native-arrays.csv')}
           registry = {int(r['cmd_id']): r for r in load(root / 'registry/registry.csv')}
           methods = load(root / 'metadata/methods.csv')
 
@@ -110,7 +91,7 @@ jobs:
               rr = raw[cid]
               reg = registry.get(cid, {})
               flag = int(rr['registry_flag'])
-              direction = {0: 'S2C', 1: 'C2S'}.get(flag, f'flag-{flag}')
+              direction = rr['direction']
               names = luna_by_id.get(cid, [])
               conflict = any(name != 'UnlockTransPointRsp' for name in names)
               t = c['type_name']
@@ -119,7 +100,7 @@ jobs:
                   'type_name': t,
                   'registry_flag': flag,
                   'direction': direction,
-                  'direction_rejected': flag == 1,
+                  'direction_rejected': direction == 'C2S',
                   'luna_names': names,
                   'external_semantic_conflict': conflict,
                   'type_definition_index': reg.get('type_definition_index', ''),
@@ -140,7 +121,7 @@ jobs:
                   'semantic_name': reg.get('semantic_name', ''),
                   'type_name': t,
                   'registry_flag': int(rr['registry_flag']) if rr else None,
-                  'published_direction': reg.get('direction', ''),
+                  'direction': rr.get('direction', '') if rr else '',
                   'method_reference_count': len(refs.get(t, [])),
                   'method_references': refs.get(t, []),
               }
@@ -153,10 +134,12 @@ jobs:
               's2c_count': sum(r['direction'] == 'S2C' for r in result),
               'c2s_count': sum(r['direction'] == 'C2S' for r in result),
               'external_semantic_conflict_count': sum(r['external_semantic_conflict'] for r in result),
+              'survivor_count_after_direction_and_external_conflicts': sum(
+                  r['direction'] == 'S2C' and not r['external_semantic_conflict'] for r in result),
               'controls': control_rows,
               'candidates': result,
               'notes': [
-                  'registry_flag direction is current-client native evidence validated by independent Req/Rsp controls',
+                  'direction comes from the exact native byte[4896] flag array, independently checked against known Req/Rsp controls',
                   'LunaGC names are secondary exclusion evidence only',
                   'method parameter/return references are semantic-consumer leads only',
               ],
@@ -172,7 +155,10 @@ jobs:
               for r in result:
                   flat = {k:r.get(k,'') for k in cols}; flat['luna_names']='|'.join(r['luna_names']); w.writerow(flat)
 
-          print(json.dumps({k: report[k] for k in ('candidate_count','s2c_count','c2s_count','external_semantic_conflict_count','controls')}, indent=2))
+          print(json.dumps({k: report[k] for k in (
+              'candidate_count','s2c_count','c2s_count','external_semantic_conflict_count',
+              'survivor_count_after_direction_and_external_conflicts','controls')}, indent=2))
+          print('\n--- candidates ---')
           for r in result:
               print(r['cmd_id'], r['type_name'], r['direction'], r['luna_names'], 'refs=', r['method_reference_count'])
           PY
@@ -181,9 +167,6 @@ jobs:
         with:
           name: unlock-trans-point-rsp-resolution
           path: |
-            /tmp/metadata-usage-slots.summary.json
-            /tmp/metadata-usage-types.summary.json
-            /tmp/registry-usage-layout-probe.json
-            /tmp/registry-native-usage.summary.json
+            /tmp/registry-native-arrays.summary.json
             /tmp/unlock-trans-point-rsp-resolution.json
             /tmp/unlock-trans-point-rsp-resolution.csv
