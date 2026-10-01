@@ -44,7 +44,8 @@ try {
 
     $Methods = Join-Path $OutputRoot "metadata/methods.csv"
     $RuntimeTypes = Join-Path $OutputRoot "metadata/runtime-types.csv"
-    $Probe = Join-Path $OutputRoot "parameter-probe-71.json"
+    $ParameterProbe = Join-Path $OutputRoot "parameter-probe-71.json"
+    $RegistryLayout = Join-Path $OutputRoot "registry-layout-71.json"
 
     foreach ($Required in @($Methods, $RuntimeTypes)) {
         if (-not (Test-Path $Required)) {
@@ -57,14 +58,31 @@ try {
         $Metadata `
         $Methods `
         $RuntimeTypes `
-        $Probe `
+        $ParameterProbe `
         | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "parameter probe failed with exit code $LASTEXITCODE"
     }
 
-    Write-Host "Parameter probe written to: $Probe"
-    Write-Host "This file is small and contains only derived static-analysis records; keep raw game binaries out of Git."
+    & $Python -m genshinre.registrylayout `
+        $Exe `
+        $RegistryLayout `
+        | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "registry layout probe failed with exit code $LASTEXITCODE"
+    }
+
+    Write-Host "Parameter probe written to: $ParameterProbe"
+    Write-Host "Registry layout probe written to: $RegistryLayout"
+    $CandidateReport = Join-Path $OutputRoot "registry-candidate-report.md"
+    $StaticCandidates = Join-Path $OutputRoot "registry-static-candidates.csv"
+    if (Test-Path $CandidateReport) {
+        Write-Host "Registry convergence report: $CandidateReport"
+    }
+    if (Test-Path $StaticCandidates) {
+        Write-Host "Strict static candidates: $StaticCandidates"
+    }
+    Write-Host "These are derived static-analysis artifacts; keep raw game binaries out of Git."
 } finally {
     Pop-Location
 }
