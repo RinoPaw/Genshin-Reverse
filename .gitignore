@@ -1,0 +1,20 @@
+# Proprietary/raw inputs
+inputs/
+local/
+*.exe
+global-metadata.dat
+
+# Large raw dumps that should be deliberately reduced before commit
+raw/
+work/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
