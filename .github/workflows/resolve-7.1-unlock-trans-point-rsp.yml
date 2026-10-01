@@ -7,6 +7,7 @@ on:
       - 'tools/probe_registry_direction_flags_71.py'
       - 'tools/analyze_protocol_consumers_71.py'
       - 'tools/scan_protocol_method_callers_71.py'
+      - 'tools/inspect_parameter_decoder_constants_71.py'
       - 'genshinre/paramprobe.py'
   workflow_dispatch:
 
@@ -25,7 +26,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install tooling
-        run: python -m pip install -e . zstandard
+        run: python -m pip install -e . zstandard capstone
 
       - name: Compare protocol consumer patterns
         run: |
@@ -76,6 +77,13 @@ jobs:
             --control-cmd 9369 \
             --control-cmd 26105
 
+      - name: Locate metadata decoder constants
+        run: |
+          python tools/inspect_parameter_decoder_constants_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/parameter-decoder-constants-71.json
+
       - name: Probe native direction flags
         continue-on-error: true
         run: |
@@ -96,6 +104,7 @@ jobs:
             /tmp/unlock-trans-point-rsp-consumers.json
             /tmp/parameter-probe-71.json
             /tmp/unlock-trans-point-rsp-method-callers.json
+            /tmp/parameter-decoder-constants-71.json
             /tmp/registry-direction-flag-probe.json
             /tmp/registry-direction-flags.csv
           if-no-files-found: warn
