@@ -1,0 +1,96 @@
+name: Inspect exact 7.0 trans point native sample
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.0-trans-point-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Reconstruct exact official global 7.0 executable and metadata
+        continue-on-error: true
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
+            --manifest-md5 '29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --output /tmp/gi70 \
+            --expected-exe-sha256 '0000000000000000000000000000000000000000000000000000000000000000' \
+            --expected-metadata-sha256 '0000000000000000000000000000000000000000000000000000000000000000'
+
+      - name: Fingerprint exact 7.0 targets
+        run: |
+          test -f /tmp/gi70/GenshinImpact.exe
+          test -f /tmp/gi70/global-metadata.dat
+          sha256sum /tmp/gi70/GenshinImpact.exe /tmp/gi70/global-metadata.dat | tee /tmp/gi70-sha256.txt
+          stat --printf='%n %s bytes\n' /tmp/gi70/GenshinImpact.exe /tmp/gi70/global-metadata.dat | tee /tmp/gi70-sizes.txt
+          python - <<'PY'
+          from pathlib import Path
+          meta = Path('/tmp/gi70/global-metadata.dat').read_bytes()
+          for name in (b'CPKAHGFBBIH', b'CFBLHIJCOEN'):
+              hits=[]
+              pos=0
+              while True:
+                  pos=meta.find(name,pos)
+                  if pos<0: break
+                  hits.append(pos)
+                  pos += 1
+              print(name.decode(), 'metadata raw hits', [hex(x) for x in hits[:20]], 'count', len(hits))
+          PY
+
+      - name: Probe old CmdId immediates and response-shape code
+        run: |
+          python - <<'PY' > /tmp/gi70-native-probe.json
+          import json
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.pe import PEImage
+
+          exe=Path('/tmp/gi70/GenshinImpact.exe')
+          focus={1776:'UnlockTransPointRsp',8813:'UnlockTransPointReq',7929:'ScenePointUnlockNotify',6529:'GetScenePointRsp',4731:'SceneTransToPointRsp'}
+          md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+          rows={str(k):[] for k in focus}
+          with PEImage(exe) as image:
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  for insn in md.disasm(blob,image.image_base+sec.virtual_address):
+                      imms=[int(op.imm) for op in insn.operands if op.type==X86_OP_IMM]
+                      for cmd in focus:
+                          if cmd in imms:
+                              rva=insn.address-image.image_base
+                              rows[str(cmd)].append({'rva':f'0x{rva:X}','mnemonic':insn.mnemonic,'op_str':insn.op_str})
+          out={'focus':focus,'immediate_hits':{k:v[:500] for k,v in rows.items()},'counts':{k:len(v) for k,v in rows.items()}}
+          print(json.dumps(out,indent=2))
+          print('counts',out['counts'])
+          PY
+          cat /tmp/gi70-native-probe.json | tail -n 5
+
+      - name: Upload compact evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gi70-trans-point-native-probe
+          path: |
+            /tmp/gi70-sha256.txt
+            /tmp/gi70-sizes.txt
+            /tmp/gi70-native-probe.json
+          if-no-files-found: warn
