@@ -6,6 +6,7 @@ on:
       - '.github/workflows/resolve-7.1-unlock-trans-point-rsp.yml'
       - 'tools/probe_registry_direction_flags_71.py'
       - 'tools/analyze_protocol_consumers_71.py'
+      - 'genshinre/paramprobe.py'
   workflow_dispatch:
 
 permissions:
@@ -49,6 +50,15 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
+      - name: Probe confirmed handler parameter records
+        run: |
+          python -m genshinre.paramprobe \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/gi71/GenshinImpact_Data/Managed/Metadata/global-metadata.dat \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
+            /tmp/parameter-probe-71.json
+
       - name: Probe native direction flags
         continue-on-error: true
         run: |
@@ -67,6 +77,7 @@ jobs:
           name: unlock-trans-point-rsp-research
           path: |
             /tmp/unlock-trans-point-rsp-consumers.json
+            /tmp/parameter-probe-71.json
             /tmp/registry-direction-flag-probe.json
             /tmp/registry-direction-flags.csv
           if-no-files-found: warn
