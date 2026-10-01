@@ -1,0 +1,445 @@
+{
+  "exe": "/tmp/gi71/GenshinImpact.exe",
+  "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "image_base": "0x140000000",
+  "runtime_type_array": {
+    "pointer_source_rva": "0x2870AD0",
+    "va": "0x142E1EA20",
+    "rva": "0x2E1EA20"
+  },
+  "source_qword_window": [
+    {
+      "rva": "0x2870A90",
+      "relative_qword": -8,
+      "value": "0x142343960",
+      "decimal": 5405686112,
+      "pointer": {
+        "value": "0x142343960",
+        "rva": "0x2343960",
+        "mapped": true,
+        "section": ".rdata"
+      }
+    },
+    {
+      "rva": "0x2870A98",
+      "relative_qword": -7,
+      "value": "0x1B0C4FF6",
+      "decimal": 453791734,
+      "pointer": {
+        "value": "0x1B0C4FF6",
+        "rva": "0x-124F3B00A",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AA0",
+      "relative_qword": -6,
+      "value": "0x1457831F0",
+      "decimal": 5460472304,
+      "pointer": {
+        "value": "0x1457831F0",
+        "rva": "0x57831F0",
+        "mapped": false,
+        "section": ".data"
+      }
+    },
+    {
+      "rva": "0x2870AA8",
+      "relative_qword": -5,
+      "value": "0x3DCA54F626428D3A",
+      "decimal": 4452464597789740346,
+      "pointer": {
+        "value": "0x3DCA54F626428D3A",
+        "rva": "0x3DCA54F4E6428D3A",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AB0",
+      "relative_qword": -4,
+      "value": "0x6DFF4D56412FEF63",
+      "decimal": 7926138902051549027,
+      "pointer": {
+        "value": "0x6DFF4D56412FEF63",
+        "rva": "0x6DFF4D55012FEF63",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AB8",
+      "relative_qword": -3,
+      "value": "0x52E78495",
+      "decimal": 1390904469,
+      "pointer": {
+        "value": "0x52E78495",
+        "rva": "0x-ED187B6B",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AC0",
+      "relative_qword": -2,
+      "value": "0x0",
+      "decimal": 0,
+      "pointer": {
+        "value": "0x0",
+        "mapped": false
+      }
+    },
+    {
+      "rva": "0x2870AC8",
+      "relative_qword": -1,
+      "value": "0x0",
+      "decimal": 0,
+      "pointer": {
+        "value": "0x0",
+        "mapped": false
+      }
+    },
+    {
+      "rva": "0x2870AD0",
+      "relative_qword": 0,
+      "value": "0x142E1EA20",
+      "decimal": 5417069088,
+      "pointer": {
+        "value": "0x142E1EA20",
+        "rva": "0x2E1EA20",
+        "mapped": true,
+        "section": ".rdata"
+      }
+    },
+    {
+      "rva": "0x2870AD8",
+      "relative_qword": 1,
+      "value": "0x6628DD7864E5B501",
+      "decimal": 7361377100095665409,
+      "pointer": {
+        "value": "0x6628DD7864E5B501",
+        "rva": "0x6628DD7724E5B501",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AE0",
+      "relative_qword": 2,
+      "value": "0x142E093A0",
+      "decimal": 5416981408,
+      "pointer": {
+        "value": "0x142E093A0",
+        "rva": "0x2E093A0",
+        "mapped": true,
+        "section": ".rdata"
+      }
+    },
+    {
+      "rva": "0x2870AE8",
+      "relative_qword": 3,
+      "value": "0xF90D014",
+      "decimal": 261148692,
+      "pointer": {
+        "value": "0xF90D014",
+        "rva": "0x-1306F2FEC",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870AF0",
+      "relative_qword": 4,
+      "value": "0x142E1E540",
+      "decimal": 5417067840,
+      "pointer": {
+        "value": "0x142E1E540",
+        "rva": "0x2E1E540",
+        "mapped": true,
+        "section": ".rdata"
+      }
+    },
+    {
+      "rva": "0x2870AF8",
+      "relative_qword": 5,
+      "value": "0x0",
+      "decimal": 0,
+      "pointer": {
+        "value": "0x0",
+        "mapped": false
+      }
+    },
+    {
+      "rva": "0x2870B00",
+      "relative_qword": 6,
+      "value": "0x73188A40",
+      "decimal": 1930988096,
+      "pointer": {
+        "value": "0x73188A40",
+        "rva": "0x-CCE775C0",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870B08",
+      "relative_qword": 7,
+      "value": "0x1457831E8",
+      "decimal": 5460472296,
+      "pointer": {
+        "value": "0x1457831E8",
+        "rva": "0x57831E8",
+        "mapped": false,
+        "section": ".data"
+      }
+    },
+    {
+      "rva": "0x2870B10",
+      "relative_qword": 8,
+      "value": "0x5ACD0EEC00000358",
+      "decimal": 6542902240414270296,
+      "pointer": {
+        "value": "0x5ACD0EEC00000358",
+        "rva": "0x5ACD0EEAC0000358",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870B18",
+      "relative_qword": 9,
+      "value": "0x24375A4A",
+      "decimal": 607607370,
+      "pointer": {
+        "value": "0x24375A4A",
+        "rva": "0x-11BC8A5B6",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870B20",
+      "relative_qword": 10,
+      "value": "0x0",
+      "decimal": 0,
+      "pointer": {
+        "value": "0x0",
+        "mapped": false
+      }
+    },
+    {
+      "rva": "0x2870B28",
+      "relative_qword": 11,
+      "value": "0x2D5A324C4BD839FB",
+      "decimal": 3267979782882081275,
+      "pointer": {
+        "value": "0x2D5A324C4BD839FB",
+        "rva": "0x2D5A324B0BD839FB",
+        "mapped": false,
+        "section": null
+      }
+    },
+    {
+      "rva": "0x2870B30",
+      "relative_qword": 12,
+      "value": "0x26F2703D",
+      "decimal": 653422653,
+      "pointer": {
+        "value": "0x26F2703D",
+        "rva": "0x-1190D8FC3",
+        "mapped": false,
+        "section": null
+      }
+    }
+  ],
+  "occurrence_count": 1,
+  "candidates": [
+    {
+      "rva": "0x2870AD0",
+      "section": ".rdata",
+      "aligned_8": true,
+      "aligned_16": true,
+      "type_pair_rva": "0x2870AC8",
+      "preceding_count": 0,
+      "count_covers_preserved_type_index_405772": false,
+      "score": {
+        "mapped_pointers": 6,
+        "plausible_counts": 0,
+        "pair_count": 15,
+        "contains_runtime_type_array": true,
+        "score": 20
+      },
+      "pairs": [
+        {
+          "source_rva": "0x2870A68",
+          "count": 5373240016,
+          "pointer": {
+            "value": "0x140475080",
+            "rva": "0x475080",
+            "mapped": true,
+            "section": ".text"
+          },
+          "relative_pair": -6
+        },
+        {
+          "source_rva": "0x2870A78",
+          "count": 5373153552,
+          "pointer": {
+            "value": "0x140458C10",
+            "rva": "0x458C10",
+            "mapped": true,
+            "section": ".text"
+          },
+          "relative_pair": -5
+        },
+        {
+          "source_rva": "0x2870A88",
+          "count": 0,
+          "pointer": {
+            "value": "0x142343960",
+            "rva": "0x2343960",
+            "mapped": true,
+            "section": ".rdata"
+          },
+          "relative_pair": -4
+        },
+        {
+          "source_rva": "0x2870A98",
+          "count": 453791734,
+          "pointer": {
+            "value": "0x1457831F0",
+            "rva": "0x57831F0",
+            "mapped": false,
+            "section": ".data"
+          },
+          "relative_pair": -3
+        },
+        {
+          "source_rva": "0x2870AA8",
+          "count": 4452464597789740346,
+          "pointer": {
+            "value": "0x6DFF4D56412FEF63",
+            "rva": "0x6DFF4D55012FEF63",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": -2
+        },
+        {
+          "source_rva": "0x2870AB8",
+          "count": 1390904469,
+          "pointer": {
+            "value": "0x0",
+            "mapped": false
+          },
+          "relative_pair": -1
+        },
+        {
+          "source_rva": "0x2870AC8",
+          "count": 0,
+          "pointer": {
+            "value": "0x142E1EA20",
+            "rva": "0x2E1EA20",
+            "mapped": true,
+            "section": ".rdata"
+          },
+          "relative_pair": 0,
+          "role": "runtime-types-candidate"
+        },
+        {
+          "source_rva": "0x2870AD8",
+          "count": 7361377100095665409,
+          "pointer": {
+            "value": "0x142E093A0",
+            "rva": "0x2E093A0",
+            "mapped": true,
+            "section": ".rdata"
+          },
+          "relative_pair": 1
+        },
+        {
+          "source_rva": "0x2870AE8",
+          "count": 261148692,
+          "pointer": {
+            "value": "0x142E1E540",
+            "rva": "0x2E1E540",
+            "mapped": true,
+            "section": ".rdata"
+          },
+          "relative_pair": 2
+        },
+        {
+          "source_rva": "0x2870AF8",
+          "count": 0,
+          "pointer": {
+            "value": "0x73188A40",
+            "rva": "0x-CCE775C0",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": 3
+        },
+        {
+          "source_rva": "0x2870B08",
+          "count": 5460472296,
+          "pointer": {
+            "value": "0x5ACD0EEC00000358",
+            "rva": "0x5ACD0EEAC0000358",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": 4
+        },
+        {
+          "source_rva": "0x2870B18",
+          "count": 607607370,
+          "pointer": {
+            "value": "0x0",
+            "mapped": false
+          },
+          "relative_pair": 5
+        },
+        {
+          "source_rva": "0x2870B28",
+          "count": 3267979782882081275,
+          "pointer": {
+            "value": "0x26F2703D",
+            "rva": "0x-1190D8FC3",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": 6
+        },
+        {
+          "source_rva": "0x2870B38",
+          "count": 5461508096,
+          "pointer": {
+            "value": "0x6886A9C9",
+            "rva": "0x-D7795637",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": 7
+        },
+        {
+          "source_rva": "0x2870B48",
+          "count": 5462914352,
+          "pointer": {
+            "value": "0x47C32C57",
+            "rva": "0x-F83CD3A9",
+            "mapped": false,
+            "section": null
+          },
+          "relative_pair": 8
+        }
+      ]
+    }
+  ],
+  "status": "candidate-evidence",
+  "notes": [
+    "candidate runs are structural probes; no metadata-registration layout is asserted solely from score",
+    "a plausible typesCount should exceed the preserved runtime type index 405772 and have a mapped type-array pointer",
+    "neighbor count/pointer pairs should be independently identified before assigning semantic field names"
+  ]
+}

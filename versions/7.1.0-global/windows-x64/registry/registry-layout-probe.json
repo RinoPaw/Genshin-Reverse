@@ -1,0 +1,55 @@
+{
+  "exe": "/tmp/gi71/GenshinImpact.exe",
+  "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "historical_row_count_reference": 4896,
+  "anchors": [
+    {
+      "index": 2232,
+      "cmd_id": 9369,
+      "registry_flag": 1,
+      "type_slot_rva": "0x57E6498",
+      "name": "UnlockTransPointReq / DMMJNICDOHM"
+    },
+    {
+      "index_candidates": [
+        3118,
+        3117
+      ],
+      "cmd_id": 22899,
+      "registry_flag": 0,
+      "type_slot_rva": "0x57F6F60",
+      "name": "DoSetPlayerBornDataNotify / ONKOPMILDMF"
+    }
+  ],
+  "candidate_count": 1,
+  "strong_candidate_count": 0,
+  "candidates": [
+    {
+      "score": 38,
+      "cmd_width": 2,
+      "stride": 67,
+      "anchor_22899_index_interpretation": 3118,
+      "cmd_column_base_rva": "0xFEEEA41",
+      "anchor_9369_cmd_rva": "0xFF13269",
+      "anchor_22899_cmd_rva": "0xFF21A4B",
+      "section": "il2cpp",
+      "slot_field_matches": [],
+      "flag_field_matches": [],
+      "column_metrics": {
+        "readable_rows": 4896,
+        "nonzero_rows": 4597,
+        "protocol_range_rows": 4597,
+        "unique_nonzero_values": 2003,
+        "protocol_range_ratio": 0.9389297385620915,
+        "unique_ratio": 0.43571894713943876
+      },
+      "status": "cmd-spacing-candidate"
+    }
+  ],
+  "status": "candidate-evidence",
+  "notes": [
+    "the 22899 historical source says 'item 3118'; both zero/one-based interpretations are tested",
+    "4,896 is used only to measure candidate-column shape and is never used to fabricate rows",
+    "promotion requires a layout that simultaneously explains both CmdIds, both type slots and the preserved 1/0 direction flags"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "exe": "/tmp/gi71/GenshinImpact.exe",
+  "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "anchor": {
+    "usage_destination": 37523,
+    "type_slot_rva": "0x57E6498"
+  },
+  "candidate_pair_count": 0,
+  "anchor_match_count": 0,
+  "anchor_matches": [],
+  "status": "unresolved",
+  "notes": [
+    "expected exactly one count/pointer table whose entry 37523 points to the preserved 9369 type slot",
+    "increase the registration pair window or inspect protected-build layout before publishing a usage table"
+  ]
+}
