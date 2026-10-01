@@ -1,55 +1,92 @@
 # UnlockTransPoint protocol recovery
 
-Status: **UNRESOLVED**
+Status: **UNRESOLVED** for the response; request side is **CONFIRMED**.
 
-## Confirmed anchor
+## Confirmed request anchor
 
 ```text
 UnlockTransPointReq
-7.1 CmdId: 9369
-known request fields: scene_id = 12, point_id = 1
+7.1 CmdId:              9369 / 0x2499
+client type:            DMMJNICDOHM
+typeDefinition:         84249
+type slot RVA:          0x057E6498
+usage destination:      37523
+registry store RVA:     0x07F852AB
+field start/count:      417613 / 2
+GetCmdId:               DMMJNICDOHM.AEGNNPENLNM @ 0x0C87EA60
+parser-like method:     DMMJNICDOHM.IENGFLPCLNM @ 0x0C87E6A0
+constructor:            DMMJNICDOHM..ctor @ 0x0C87E8F0
 ```
 
-AstaPS `play/rino` registers `HandlerUnlockTransPointReq` on CmdId `9369`. The handler resolves the scene point and performs the server-side unlock through `TransPointUnlockHelper.unlock(...)`.
+The public 7.1 dumped proto independently agrees with the recovered type:
 
-`UnlockTransPointRsp` remains unresolved for the current 7.1 client. `PacketOpcodes.UnlockTransPointRsp` is still `0`. A local/generated `retcode = field 6` shape is only a clue until current-client parser/static evidence confirms it.
+```proto
+// CmdId: 9369
+message DMMJNICDOHM {
+    uint32 NEAFKBADNDA = 12;
+    uint32 GKPKNPFEPBF = 1;
+}
+```
+
+AstaPS interprets those fields as `scene_id = 12` and `point_id = 1`. The preserved registry row has flag `1`; together with the 22899 receive-side control this supports `1 = C2S` for this sample.
+
+The canonical request row is now stored in `../../registry/registry.csv`.
+
+## Unresolved response
+
+`UnlockTransPointRsp` remains unresolved for the current 7.1 client. AstaPS `play/rino` still has `UnlockTransPointRsp = 0`.
+
+The local/generated response proto says `int32 retcode = 6`. Current-client evidence has not yet proved that field number, so it remains a structural clue.
 
 ## Current AstaPS workaround
 
-After a successful unlock, the handler sends `GetScenePointRsp` so the client refreshes the scene-point list, then constructs `PacketUnlockTransPointRsp` using the unresolved opcode.
+After a successful unlock, `HandlerUnlockTransPointReq` sends `GetScenePointRsp` so the client refreshes the scene-point list, then constructs `PacketUnlockTransPointRsp` using the unresolved opcode.
 
-This is useful as a temporary gameplay workaround, but it does not identify the real 7.1 response. Runtime validation of a future candidate should initially remove or suppress the extra `GetScenePointRsp` refresh so the visible result can be attributed to the recovered response itself.
+Runtime validation of a future response candidate must initially suppress the extra `GetScenePointRsp` refresh. That isolates whether the recovered response itself completes the interaction and whether an additional point-state packet is genuinely required.
 
 ## Historical clue
 
-An older mapping recorded `UnlockTransPointRsp = 1776` for 7.0. Treat the numeric value as historical-only. It is tracked in `candidates.csv` and must not be promoted without current-client evidence.
-
-## Repository dependency exposed by this task
-
-`tools/query_registry.py` is already present, but the canonical 7.1 `registry/registry.csv` is not yet checked in. A previous static-analysis pass recovered 4,896 unique client CmdIds and cross-checked 1,540 then-known AstaPS opcodes successfully.
-
-Backfilling that registry is currently the highest-value dependency for this investigation. Once it exists, the first query is simply:
+Genshin 7.0 mapped:
 
 ```text
-9369 -> obfuscated request type
+UnlockTransPointRsp = 1776
+obfuscated type = CPKAHGFBBIH
+shape = int32 retcode field 6
 ```
 
-That type provides a stable starting node for sender, manager, handler and parser xrefs.
+The number `1776` is historical-only. It must not be copied into the 7.1 table.
+
+## 7.1 structural search
+
+The 7.1 dump uses the common obfuscated retcode field name `BLPJNJBFDJJ` on many responses. Use the repository shape filter to reproduce the old `find_retcode6_candidates.py` style search:
+
+```bash
+python -m genshinre.proto_shape \
+  path/to/7.1.0/Obfuscated.proto \
+  --field-type int32 \
+  --field-number 6 \
+  --field-name BLPJNJBFDJJ \
+  --single-field \
+  --translations path/to/7.1.0/nameTranslation.txt \
+  --output work/unlock-trans-point-retcode6.json
+```
+
+This is candidate generation only. Every candidate still needs receive-direction evidence plus a handler/state-machine relationship or equivalent static proof.
 
 ## Recovery path
 
-1. Resolve CmdId 9369 in `registry.csv` to its obfuscated request type.
-2. Use metadata/sender xrefs to locate the request call site and surrounding interaction state.
-3. Identify the client success consumer that clears the unlock interaction or updates map-point state.
-4. Trace that consumer back to a network handler and packet type.
-5. Recover that type's `GetCmdId` and protobuf parser shape.
-6. Validate the candidate with the smallest possible runtime response. If success is represented only by default `retcode = 0`, try an empty payload first.
-7. Record both accepted and rejected candidates in `candidates.csv`.
+1. Generate the exact single-field `int32 field #6` candidate set from the 7.1 proto dump.
+2. Remove candidates already translated or mapped to unrelated current messages.
+3. Resolve remaining types through the client registry / metadata indexes.
+4. Locate S2C handlers and identify the one tied to teleport-point interaction state.
+5. Confirm its `GetCmdId()` and parser field number directly in the 7.1 executable.
+6. Validate the smallest possible response at runtime, preferably empty payload for `retcode = 0`.
+7. Record rejected candidates and their rejection evidence in `candidates.csv`.
 8. Promote the mapping only after static identity and runtime behavior agree.
 
 ## Runtime validation target
 
-For a fresh locked waypoint, a successful mapping should produce this minimal sequence:
+For a fresh locked waypoint:
 
 ```text
 client sends 9369
@@ -59,15 +96,14 @@ client finishes the interaction without timeout/retry
 client shows the waypoint unlocked
 ```
 
-If the confirmed Rsp still requires a separate point-state notification or scene-point refresh, record that as a distinct lifecycle requirement rather than folding it into the response mapping.
+If a confirmed Rsp still requires a separate point-state Notify or scene-point refresh, record that as a distinct lifecycle requirement.
 
 ## Desired reusable outputs
 
-- request registry row;
-- request sender xref;
-- response candidate list;
+- full 7.1 registry row for the response;
 - response handler/type relation;
 - parser/message shape;
-- final CmdId mapping with runtime evidence.
+- accepted/rejected candidate table;
+- runtime trace proving interaction completion.
 
 The target sample identity is recorded in `../../hashes.json`.
