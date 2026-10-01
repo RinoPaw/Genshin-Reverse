@@ -41,10 +41,10 @@ printf '[1/18] Fingerprinting exact samples\n'
 printf '[2/18] Decoding native 7.1 MHY metadata\n'
 "$PYTHON" -m genshinre decode-metadata-71 "$EXE" "$METADATA" "$OUTPUT/metadata"
 
-printf '[3/18] Verifying native 7.1 anchors\n'
+printf '[3/18] Verifying full 7.1 metadata anchors\n'
 "$PYTHON" -m genshinre verify-metadata \
   "$OUTPUT/metadata" \
-  versions/7.1.0-global/windows-x64/metadata/anchors-native.json \
+  versions/7.1.0-global/windows-x64/metadata/anchors.json \
   > "$OUTPUT/metadata-anchor-check.json"
 
 printf '[4/18] Exporting IL2CPP runtime type index\n'
