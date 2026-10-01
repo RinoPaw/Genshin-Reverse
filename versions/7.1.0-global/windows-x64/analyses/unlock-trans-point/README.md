@@ -73,6 +73,23 @@ python -m genshinre.proto_shape \
 
 This is candidate generation only. Every candidate still needs receive-direction evidence plus a handler/state-machine relationship or equivalent static proof.
 
+## External type-slot xref checkpoint
+
+A 7.1 executable scan traced RIP-relative references to the request slot, the scene-point notify control, the born-point control pair, and every current single-field response candidate. The workflow artifact is from run `36869811621`, artifact `11166782212`, digest `sha256:0f7fb2f4629499127cd2edfb403837a8a8f683cc86a930c915e07d2e28c2563f`.
+
+The registry identity for CmdId `9369` is still `DMMJNICDOHM`. The external owner type `KLLNGCPBLMM` seen in the xref artifact is the declaring type of a method that references the `DMMJNICDOHM` type slot; it is not the message type. This resolves the apparent `DMMJNICDOHM` / `KLLNGCPBLMM` conflict.
+
+Control observations from that scan:
+
+```text
+26105 external owner types: EDKMMIPJHJA
+4385  external owner types: none
+9369  external owner types: KLLNGCPBLMM
+25567 external owner types: NHFPOGNBPPE
+```
+
+The born request/response control pair had no shared external owner type, and `9369` shared no external owner type with the scene-point notify control. None of the current single-field response candidates shared an external owner type with `9369`; all `shared_count` values were zero. The simple "same controller type references both request and response slots" heuristic therefore produced no response identity and should not be treated as positive evidence for any candidate.
+
 ## Recovery path
 
 1. Generate the exact single-field `int32 field #6` candidate set from the 7.1 proto dump.
