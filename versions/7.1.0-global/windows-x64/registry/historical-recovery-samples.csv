@@ -1,0 +1,2 @@
+index,cmd_id,cmd_hex,known_names,registry_flag,type_slot_rva,usage_destination,store_rva,type_index,type_kind,type_data,type_definition_index,type_name,name_token,field_start
+2232,9369,0x2499,UnlockTransPointReq,1,0x57e6498,37523,0x7f852ab,405772,18,84249,84249,DMMJNICDOHM,0xb8aeaf6,417613
