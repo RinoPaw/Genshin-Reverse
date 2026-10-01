@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/diagnose-7.1-usage-anchor.yml'
       - 'genshinre/usageanchordiag.py'
+      - 'genshinre/registrycorridordiag.py'
 
 permissions:
   contents: read
@@ -35,7 +36,7 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Diagnose UnlockTransPointReq usage initializer corridor
+      - name: Diagnose UnlockTransPointReq declaring-type xref method
         run: |
           ROOT=versions/7.1.0-global/windows-x64
           python -m genshinre.usageanchordiag \
@@ -47,3 +48,15 @@ jobs:
             --context-before 40 \
             --context-after 16
           cat /tmp/usage-anchor-9369.json
+
+      - name: Diagnose UnlockTransPointReq registry constructor corridor
+        run: |
+          python -m genshinre.registrycorridordiag \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/registry-corridor-9369.json \
+            --center-rva 0x7F852AB \
+            --before 0x500 \
+            --after 0x200 \
+            --slot-rva 0x57E6498 \
+            --expected-usage 37523
+          cat /tmp/registry-corridor-9369.json
