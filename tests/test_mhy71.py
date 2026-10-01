@@ -5,10 +5,12 @@ import unittest
 
 from genshinre.mhy71 import (
     MASK32,
+    _decode_parameter_span,
     decode_field_record,
     decode_method_record,
     decode_type_record,
 )
+from genshinre.param71 import parameter_key
 
 
 class Mhy71FormulaTests(unittest.TestCase):
@@ -71,6 +73,31 @@ class Mhy71FormulaTests(unittest.TestCase):
         self.assertEqual(parameter_start, decoded["parameter_start"])
         self.assertEqual(declaring_type, decoded["declaring_type_index"])
         self.assertEqual(parameter_count, decoded["parameter_count"])
+
+    def test_parameter_span_decodes_types_for_method_output(self) -> None:
+        parameter_base = 11
+        parameter_start = 23
+        wanted = [(248_305, 0x0B186E6D), (248_269, 0x0B18B3F4)]
+        blob = bytearray(parameter_base + (parameter_start + len(wanted)) * 8)
+
+        for ordinal, (type_index, name_token) in enumerate(wanted):
+            index = parameter_start + ordinal
+            key = parameter_key(index)
+            offset = parameter_base + index * 8
+            raw_type = type_index ^ key ^ 0x31BF59F3
+            raw_name = ((name_token ^ key ^ 0x4CDBD093) - 0x96D3F6A4) & MASK32
+            struct.pack_into("<II", blob, offset, raw_type, raw_name)
+
+        names = {248_305: "ONKOPMILDMF", 248_269: "PGAMFBPNNIC"}
+        indices, resolved = _decode_parameter_span(
+            bytes(blob),
+            parameter_base,
+            parameter_start,
+            len(wanted),
+            lambda index: names[index],
+        )
+        self.assertEqual([248_305, 248_269], indices)
+        self.assertEqual(["ONKOPMILDMF", "PGAMFBPNNIC"], resolved)
 
 
 if __name__ == "__main__":
