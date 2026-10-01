@@ -1,0 +1,204 @@
+name: Resolve 7.1 UnlockTransPointRsp candidates
+
+on:
+  push:
+    paths:
+      - '.github/workflows/resolve-7.1-unlock-trans-point-rsp.yml'
+  workflow_dispatch:
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . zstandard
+
+      - name: Fetch exact official global 7.1 sample
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+
+      - name: Re-export native registry flags
+        run: |
+          python -m genshinre.registryraw \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/registry/registry-layout-probe.json \
+            /tmp/registry-native-direct.csv \
+            --summary /tmp/registry-native-direct.summary.json \
+            --require-4896-unique
+
+      - name: Correlate direction, semantic controls and method references
+        run: |
+          curl -fsSL \
+            'https://raw.githubusercontent.com/capyb2222/LunaGC_7.1.0/7.1/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java' \
+            -o /tmp/LunaGC-PacketOpcodes.java
+
+          python - <<'PY'
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path('versions/7.1.0-global/windows-x64')
+          candidate_path = root / 'analyses/unlock-trans-point/retcode6-single-field-candidates.csv'
+          registry_path = root / 'registry/registry.csv'
+          methods_path = root / 'metadata/methods.csv'
+          raw_path = Path('/tmp/registry-native-direct.csv')
+
+          def rows(path):
+              with path.open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          candidates = rows(candidate_path)
+          candidate_ids = {int(r['cmd_id']) for r in candidates}
+          raw = {int(r['cmd_id']): r for r in rows(raw_path)}
+          registry = {int(r['cmd_id']): r for r in rows(registry_path)}
+          methods = rows(methods_path)
+
+          # Independent external semantic labels are secondary evidence only.
+          luna_text = Path('/tmp/LunaGC-PacketOpcodes.java').read_text(encoding='utf-8')
+          luna_by_id = {}
+          for name, value in re.findall(r'public static final int\s+(\w+)\s*=\s*(-?\d+)\s*;', luna_text):
+              value = int(value)
+              if value > 0:
+                  luna_by_id.setdefault(value, []).append(name)
+
+          control_ids = {9369, 22899, 26105, 4385, 25567}
+          focus_ids = candidate_ids | control_ids
+          focus_types = {
+              registry[cid]['type_name']
+              for cid in focus_ids
+              if cid in registry and registry[cid].get('type_name')
+          }
+
+          references = {t: [] for t in focus_types}
+          for row in methods:
+              params = row.get('parameter_types', '') or ''
+              ret = row.get('return_type', '') or ''
+              for t in focus_types:
+                  if t in params or t == ret:
+                      references[t].append({
+                          'declaring_type': row.get('type_name', ''),
+                          'method_name': row.get('method_name', ''),
+                          'rva': row.get('rva', ''),
+                          'return_type': ret,
+                          'parameter_types': params,
+                          'match': 'return' if t == ret else 'parameter',
+                      })
+
+          out_rows = []
+          for c in candidates:
+              cid = int(c['cmd_id'])
+              rr = raw.get(cid, {})
+              reg = registry.get(cid, {})
+              flag_text = rr.get('registry_flag', '')
+              flag = int(flag_text) if flag_text != '' else None
+              direction = {0: 'S2C', 1: 'C2S'}.get(flag, f'flag-{flag}' if flag is not None else 'unknown')
+              t = c['type_name']
+              luna_names = luna_by_id.get(cid, [])
+              unrelated = [n for n in luna_names if n != 'UnlockTransPointRsp']
+              status = 'S2C-candidate' if flag == 0 else 'direction-rejected' if flag == 1 else 'direction-unresolved'
+              if unrelated:
+                  status = 'external-semantic-conflict' if flag == 0 else status
+              out_rows.append({
+                  'cmd_id': cid,
+                  'type_name': t,
+                  'registry_flag': flag,
+                  'direction': direction,
+                  'status': status,
+                  'type_definition_index': reg.get('type_definition_index', ''),
+                  'type_slot_rva': reg.get('type_slot_rva', ''),
+                  'get_cmd_id_rva': reg.get('get_cmd_id_rva', ''),
+                  'xref_count': reg.get('xref_count', ''),
+                  'xref_method_count': reg.get('xref_method_count', ''),
+                  'luna_names': luna_names,
+                  'external_semantic_conflict': bool(unrelated),
+                  'method_reference_count': len(references.get(t, [])),
+                  'method_references': references.get(t, []),
+              })
+
+          summary = {
+              'sample': {
+                  'version': '7.1.0-global/windows-x64',
+                  'exe_sha256': '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d',
+              },
+              'direction_mapping': {
+                  '0': 'S2C',
+                  '1': 'C2S',
+                  'basis': 'Genshin-Reverse directionaudit Req/Rsp controls plus preserved 9369/22899 native anchors',
+              },
+              'controls': {},
+              'candidate_count': len(out_rows),
+              's2c_count': sum(r['direction'] == 'S2C' for r in out_rows),
+              'c2s_count': sum(r['direction'] == 'C2S' for r in out_rows),
+              'external_semantic_conflict_count': sum(r['external_semantic_conflict'] for r in out_rows),
+              'candidates': out_rows,
+              'notes': [
+                  'registry_flag direction is current-client native evidence',
+                  'LunaGC names are external secondary evidence and never promote a mapping by themselves',
+                  'method parameter/return references are leads for client semantic-consumer tracing, not identity proof by themselves',
+              ],
+          }
+
+          for cid in sorted(control_ids):
+              reg = registry.get(cid, {})
+              rr = raw.get(cid, {})
+              t = reg.get('type_name', '')
+              summary['controls'][str(cid)] = {
+                  'semantic_name': reg.get('semantic_name', ''),
+                  'type_name': t,
+                  'registry_flag': int(rr['registry_flag']) if rr.get('registry_flag', '') != '' else None,
+                  'published_direction': reg.get('direction', ''),
+                  'method_reference_count': len(references.get(t, [])),
+                  'method_references': references.get(t, []),
+              }
+
+          Path('/tmp/unlock-trans-point-rsp-resolution.json').write_text(
+              json.dumps(summary, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+          )
+
+          columns = [
+              'cmd_id','type_name','registry_flag','direction','status','type_definition_index',
+              'type_slot_rva','get_cmd_id_rva','xref_count','xref_method_count',
+              'luna_names','external_semantic_conflict','method_reference_count'
+          ]
+          with Path('/tmp/unlock-trans-point-rsp-resolution.csv').open('w', encoding='utf-8', newline='') as f:
+              w = csv.DictWriter(f, fieldnames=columns)
+              w.writeheader()
+              for row in out_rows:
+                  flat = {k: row.get(k, '') for k in columns}
+                  flat['luna_names'] = '|'.join(row['luna_names'])
+                  w.writerow(flat)
+
+          print(json.dumps({
+              'candidate_count': summary['candidate_count'],
+              's2c_count': summary['s2c_count'],
+              'c2s_count': summary['c2s_count'],
+              'external_semantic_conflict_count': summary['external_semantic_conflict_count'],
+              'controls': summary['controls'],
+          }, indent=2, ensure_ascii=False))
+          print('\n--- candidates ---')
+          for row in out_rows:
+              print(row['cmd_id'], row['type_name'], row['direction'], row['luna_names'], row['method_reference_count'])
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unlock-trans-point-rsp-resolution
+          path: |
+            /tmp/registry-native-direct.summary.json
+            /tmp/unlock-trans-point-rsp-resolution.json
+            /tmp/unlock-trans-point-rsp-resolution.csv
