@@ -7,6 +7,7 @@ on:
       - '.github/workflows/generate-7.1-artifacts.yml'
       - 'genshinre/usageslots.py'
       - 'genshinre/usagejoin.py'
+      - 'genshinre/usagesourcediag.py'
       - 'tools/fetch_sophon_targets.py'
       - 'tools/publish_generated_71.py'
 
@@ -131,6 +132,17 @@ jobs:
 
           echo '--- metadata-usage-slots.summary.json ---'
           cat "$OUT/metadata-usage-slots.summary.json"
+
+          test -s versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv
+          python -m genshinre.usagesourcediag \
+            "$EXE" \
+            "$OUT/metadata-usage-slots.csv" \
+            "$OUT/metadata/runtime-types.csv" \
+            "$OUT/getcmdid-candidates.csv" \
+            versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
+            "$OUT/metadata-usage-source-diagnostics.json"
+          echo '--- metadata-usage-source-diagnostics.json ---'
+          cat "$OUT/metadata-usage-source-diagnostics.json"
 
           set +e
           python -m genshinre.usagejoin \
