@@ -32,19 +32,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e . zstandard
 
-      - name: Handle anonymous 7.1 metadata string sentinel
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('genshinre/mhy71.py')
-          text = path.read_text(encoding='utf-8')
-          needle = 'def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: int) -> str:\n    length = (token >> 24) & 0xFF\n'
-          replacement = 'def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: int) -> str:\n    if token == MASK32:\n        return ""\n    length = (token >> 24) & 0xFF\n'
-          if needle not in text:
-              raise SystemExit('decode_string_token shape changed; refusing runtime patch')
-          path.write_text(text.replace(needle, replacement, 1), encoding='utf-8')
-          PY
-
       - name: Fetch exact official global 7.1 samples
         run: |
           python tools/fetch_sophon_targets.py \
@@ -237,7 +224,6 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -- genshinre/mhy71.py
           git add -A versions/7.1.0-global/windows-x64
           if git diff --cached --quiet; then
             echo 'No generated changes to commit.'
