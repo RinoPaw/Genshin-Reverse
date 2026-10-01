@@ -1,0 +1,87 @@
+{
+  "sample": "7.1.0-global/windows-x64",
+  "scope": "native decoder layers that do not require parameter-record decoding",
+  "types": [
+    {
+      "type_name": "DMMJNICDOHM",
+      "type_definition_index": 84249,
+      "field_start": 417613,
+      "field_count": 2,
+      "method_start": 696275,
+      "method_count": 8,
+      "evidence": "UnlockTransPointReq=9369 registry + metadata audit"
+    },
+    {
+      "type_name": "GHAHAPOPLIH",
+      "type_definition_index": 17932,
+      "evidence": "born naming page"
+    },
+    {
+      "type_name": "ONKOPMILDMF",
+      "type_definition_index": 87483,
+      "evidence": "DoSetPlayerBornDataNotify=22899"
+    },
+    {
+      "type_name": "PBOEJBOPIAN",
+      "type_definition_index": 87696,
+      "evidence": "Traveler selection page"
+    },
+    {
+      "type_name": "HJDNCHODGOL",
+      "evidence": "SetPlayerBornDataReq=26105"
+    }
+  ],
+  "fields": [
+    {
+      "field_index": 417613,
+      "type_definition_index": 84249,
+      "type_name": "DMMJNICDOHM",
+      "field_type": "uint32",
+      "field_type_index": 439246,
+      "evidence": "preserved metadata audit"
+    },
+    {
+      "field_index": 417614,
+      "type_definition_index": 84249,
+      "type_name": "DMMJNICDOHM",
+      "field_type": "uint32",
+      "field_type_index": 439246,
+      "evidence": "preserved metadata audit"
+    }
+  ],
+  "methods": [
+    {
+      "method_index": 322028,
+      "type_name": "LLCGIEDMIIG",
+      "method_name": "MACAMCMOKOL",
+      "rva": "0x0C227790",
+      "evidence": "born notify handler"
+    },
+    {
+      "type_name": "HJDNCHODGOL",
+      "rva": "0x10587260",
+      "evidence": "GetCmdId returns 26105"
+    },
+    {
+      "type_definition_index": 84249,
+      "type_name": "DMMJNICDOHM",
+      "method_name": "IENGFLPCLNM",
+      "rva": "0x0C87E6A0",
+      "evidence": "parser-like method from UnlockTransPoint audit"
+    },
+    {
+      "type_definition_index": 84249,
+      "type_name": "DMMJNICDOHM",
+      "method_name": "AEGNNPENLNM",
+      "rva": "0x0C87EA60",
+      "evidence": "GetCmdId returns 9369"
+    },
+    {
+      "type_definition_index": 84249,
+      "type_name": "DMMJNICDOHM",
+      "method_name": ".ctor",
+      "rva": "0x0C87E8F0",
+      "evidence": "constructor from UnlockTransPoint audit"
+    }
+  ]
+}
