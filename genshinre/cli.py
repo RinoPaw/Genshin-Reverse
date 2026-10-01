@@ -10,6 +10,7 @@ from .extractors import run_mhydump
 from .fingerprint import fingerprint
 from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_methods
+from .mhy71 import decode_metadata_71
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
 from .registry import normalize_registry, query_registry
 from .scaffold import scaffold
@@ -81,6 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--summary", type=Path)
     p.add_argument("--min-id", type=int, default=1)
     p.add_argument("--max-id", type=int, default=65535)
+
+    p = sub.add_parser("decode-metadata-71", help="decode the exact preserved 7.1 Global MHY metadata sample")
+    p.add_argument("exe", type=Path)
+    p.add_argument("metadata", type=Path)
+    p.add_argument("output_dir", type=Path)
+    p.add_argument("--allow-unknown-sample", action="store_true")
 
     p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into canonical metadata indexes")
     p.add_argument("dump_cs", type=Path)
@@ -161,6 +168,14 @@ def main() -> None:
             summary_json=args.summary,
             min_cmd_id=args.min_id,
             max_cmd_id=args.max_id,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "decode-metadata-71":
+        result = decode_metadata_71(
+            args.exe,
+            args.metadata,
+            args.output_dir,
+            allow_unknown_sample=args.allow_unknown_sample,
         )
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "import-dump-cs":
