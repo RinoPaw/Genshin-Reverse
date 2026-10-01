@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/inspect-7.1-trans-point-method-context.yml'
       - 'tools/inspect_method_context_71.py'
+      - 'tools/inspect_protocol_type_shape_71.py'
       - 'tools/decode_method_parameters_71.py'
       - 'genshinre/param71.py'
   workflow_dispatch:
@@ -74,6 +75,19 @@ jobs:
                   print(row)
           PY
 
+      - name: Inspect adjacent protocol wire shapes
+        run: |
+          python tools/inspect_protocol_type_shape_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/registry/registry.csv \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/adjacent-protocol-shapes.json \
+            --cmd 9369 \
+            --cmd 26552 \
+            --cmd 36641 \
+            --cmd 20290 \
+            --cmd 25567
+
       - name: Inspect scene method band
         run: |
           python tools/inspect_method_context_71.py \
@@ -101,4 +115,5 @@ jobs:
           path: |
             /tmp/trans-point-method-context.json
             /tmp/scene-method-band.json
+            /tmp/adjacent-protocol-shapes.json
             /tmp/methods-decoded.summary.json
