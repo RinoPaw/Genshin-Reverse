@@ -44,6 +44,37 @@ def _dedupe_field_matches(matches: list[dict[str, object]], kind: str) -> list[d
     return list(grouped.values())
 
 
+def _metric_signature(candidate: dict[str, object]) -> tuple[object, ...]:
+    metrics = dict(candidate.get("column_metrics", {}))
+    # Width aliases are only equivalent when scanning the preserved row span
+    # produced the same observable column shape. This prevents a real uint16
+    # field followed by meaningful upper bytes from being merged with uint32.
+    return (
+        metrics.get("readable_rows"),
+        metrics.get("nonzero_rows"),
+        metrics.get("protocol_range_rows"),
+        metrics.get("unique_nonzero_values"),
+    )
+
+
+def _physical_layout_key(candidate: dict[str, object]) -> tuple[object, ...]:
+    slot = dict(candidate["selected_slot_field"])
+    flag = dict(candidate["selected_flag_field"])
+    return (
+        int(candidate["stride"]),
+        int(candidate["anchor_22899_index_interpretation"]),
+        str(candidate["cmd_column_base_rva"]),
+        str(candidate.get("anchor_9369_cmd_rva", "")),
+        str(candidate.get("anchor_22899_cmd_rva", "")),
+        int(slot["relative_to_cmd"]),
+        str(slot["encoding"]),
+        int(slot["width"]),
+        int(flag["relative_to_cmd"]),
+        int(flag["width"]),
+        _metric_signature(candidate),
+    )
+
+
 def choose_closed_layout(probe: dict[str, object]) -> dict[str, object]:
     strong = [
         candidate
@@ -53,7 +84,7 @@ def choose_closed_layout(probe: dict[str, object]) -> dict[str, object]:
     if not strong:
         raise ValueError("registry layout probe contains no strong candidate")
 
-    closed: list[dict[str, object]] = []
+    prepared: list[dict[str, object]] = []
     for candidate in strong:
         slots = _dedupe_field_matches(list(candidate.get("slot_field_matches", [])), "slot")
         flags = _dedupe_field_matches(list(candidate.get("flag_field_matches", [])), "flag")
@@ -61,14 +92,26 @@ def choose_closed_layout(probe: dict[str, object]) -> dict[str, object]:
             item = dict(candidate)
             item["selected_slot_field"] = slots[0]
             item["selected_flag_field"] = flags[0]
-            closed.append(item)
+            prepared.append(item)
 
-    if len(closed) != 1:
+    grouped: dict[tuple[object, ...], list[dict[str, object]]] = {}
+    for candidate in prepared:
+        grouped.setdefault(_physical_layout_key(candidate), []).append(candidate)
+
+    if len(grouped) != 1:
         raise ValueError(
             f"registry layout is not closed: {len(strong)} strong candidates, "
-            f"{len(closed)} with unique slot+flag fields"
+            f"{len(prepared)} with unique slot+flag fields, {len(grouped)} physical layouts"
         )
-    return closed[0]
+
+    aliases = next(iter(grouped.values()))
+    # GetCmdId returns uint32. When uint16/uint32 scans are observationally
+    # identical across the entire preserved table, keep both as provenance and
+    # use the wider read as the deterministic export representation.
+    selected = max(aliases, key=lambda item: int(item["cmd_width"]))
+    result = dict(selected)
+    result["cmd_width_aliases"] = sorted({int(item["cmd_width"]) for item in aliases})
+    return result
 
 
 def _decode_slot(image: PEImage, cmd_rva: int, field: dict[str, object]) -> int | None:
@@ -184,6 +227,7 @@ def export_raw_registry_71(
         "layout": {
             "stride": stride,
             "cmd_width": cmd_width,
+            "cmd_width_aliases": list(layout.get("cmd_width_aliases", [cmd_width])),
             "cmd_column_base_rva": f"0x{cmd_column_base_rva:X}",
             "slot_field": slot_field,
             "flag_field": flag_field,
@@ -194,7 +238,8 @@ def export_raw_registry_71(
         "historical_unique_cmdid_reference": HISTORICAL_ROW_COUNT,
         "status": "native-registry-rows",
         "notes": [
-            "rows are exported only after one layout uniquely explains both preserved indexed CmdId/type-slot/direction anchors",
+            "rows are exported only after one physical layout uniquely explains both preserved indexed CmdId/type-slot/direction anchors",
+            "observationally equivalent CmdId read widths are retained as aliases; the widest equivalent read is used for export",
             "the 4,896 row count is a preserved sample invariant and is not used to alter decoded values",
             "semantic protobuf names and global direction-flag interpretation remain separate evidence layers",
         ],
