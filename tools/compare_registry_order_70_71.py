@@ -83,7 +83,7 @@ def main() -> None:
             "old_type_name": old_hits[0]["type_name"],
             "old_rank": old_hits[0]["rank"],
             "new_type_name": new_row.get("type_name", ""),
-            "new_registry_index": int(new_row["registry_index"], 0),
+            "new_registry_index": int(new_row["index"], 0),
             "status": "ok",
         })
 
@@ -106,7 +106,7 @@ def main() -> None:
         if row is None:
             candidates.append({"cmd_id": cmd, "status": "missing"})
             continue
-        idx = int(row["registry_index"], 0)
+        idx = int(row["index"], 0)
         candidates.append({
             "cmd_id": cmd,
             "type_name": row.get("type_name", ""),
