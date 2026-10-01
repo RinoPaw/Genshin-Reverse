@@ -69,11 +69,20 @@ class RegistryLayoutTests(unittest.TestCase):
         strong = [row for row in candidates if row["status"] == "strong-layout-candidate"]
 
         self.assertTrue(strong)
-        best = strong[0]
-        self.assertEqual(16, best["stride"])
-        self.assertEqual(4, best["cmd_width"])
-        self.assertEqual(3118, best["anchor_22899_index_interpretation"])
-        self.assertEqual("0x1000", best["cmd_column_base_rva"])
+        # A uint16 read and a uint32 read can both explain this synthetic fixture
+        # because every CmdId fits in 16 bits and the following bytes are zero.
+        # Preserve that ambiguity; assert that the expected uint32 interpretation
+        # exists and carries the correct structural fields.
+        matching = [
+            row
+            for row in strong
+            if row["stride"] == 16
+            and row["cmd_width"] == 4
+            and row["anchor_22899_index_interpretation"] == 3118
+            and row["cmd_column_base_rva"] == "0x1000"
+        ]
+        self.assertTrue(matching)
+        best = matching[0]
         self.assertTrue(
             any(
                 match["relative_to_cmd"] == 4 and match["encoding"] == "rva32"
