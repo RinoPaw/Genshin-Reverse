@@ -24,9 +24,10 @@ CANDIDATE_COLUMNS = (
 def decode_constant_return(code: bytes) -> tuple[int, str] | None:
     """Recognize deliberately narrow x86/x64 constant-return stubs.
 
-    The conservative pattern is useful for GetCmdId discovery without a disassembler.
-    It only accepts optional ENDBR64/NOP prefixes followed by `mov eax, imm32` and a
-    direct return. Broader instruction recovery belongs in a disassembler-backed stage.
+    Genshin 7.1 protocol GetCmdId methods commonly use `mov ax, imm16; ret`
+    (`66 B8 xx xx C3`), while other constant-return methods use
+    `mov eax, imm32; ret`.  Accept both forms, plus optional ENDBR64/NOP
+    prefixes and a small NOP run before the return.
     """
 
     offset = 0
@@ -35,16 +36,26 @@ def decode_constant_return(code: bytes) -> tuple[int, str] | None:
     while offset < len(code) and code[offset] == 0x90 and offset < 12:
         offset += 1
 
-    if offset + 6 > len(code) or code[offset] != 0xB8:
+    pattern: str
+    cursor: int
+    if offset + 4 <= len(code) and code[offset : offset + 2] == b"\x66\xB8":
+        value = int.from_bytes(code[offset + 2 : offset + 4], "little", signed=False)
+        cursor = offset + 4
+        pattern = "mov-ax-imm16"
+    elif offset + 5 <= len(code) and code[offset] == 0xB8:
+        value = int.from_bytes(code[offset + 1 : offset + 5], "little", signed=False)
+        cursor = offset + 5
+        pattern = "mov-eax-imm32"
+    else:
         return None
-    value = int.from_bytes(code[offset + 1 : offset + 5], "little", signed=False)
-    cursor = offset + 5
-    while cursor < len(code) and code[cursor] == 0x90 and cursor - (offset + 5) < 8:
+
+    nop_start = cursor
+    while cursor < len(code) and code[cursor] == 0x90 and cursor - nop_start < 8:
         cursor += 1
     if cursor < len(code) and code[cursor] == 0xC3:
-        return value, "mov-eax-imm32-ret"
+        return value, f"{pattern}-ret"
     if cursor + 2 < len(code) and code[cursor] == 0xC2:
-        return value, "mov-eax-imm32-ret-imm16"
+        return value, f"{pattern}-ret-imm16"
     return None
 
 
@@ -137,6 +148,7 @@ def scan_constant_cmdids(
         "status": "candidate-scan-only",
         "notes": [
             "constant-return methods include non-protocol code; this file is not a canonical registry",
+            "Genshin 7.1 GetCmdId controls include 16-bit AX immediate returns",
             "promote rows only after client registration-table/control-set evidence closes the identity",
         ],
     }
