@@ -19,10 +19,10 @@ type_definition_index,namespace,type_name,parent_type,field_start,field_count,me
 ## metadata/methods.csv
 
 ```text
-method_index,type_definition_index,type_name,method_name,rva,return_type,parameter_types
+method_index,type_definition_index,type_name,method_name,rva,return_type,parameter_types,parameter_type_indices,parameter_start,parameter_count
 ```
 
-`parameter_types` uses JSON array syntax inside CSV when possible. `genshinre query-methods` also accepts pipe-separated legacy values.
+`parameter_types` and `parameter_type_indices` use JSON array syntax inside CSV. The type-index array preserves the exact recovered IL2CPP identities while the parallel type-name array is convenient for queries and semantic work. `parameter_start` / `parameter_count` preserve the source metadata span. `genshinre query-methods` also accepts pipe-separated legacy `parameter_types` values.
 
 ## metadata/fields.csv
 
