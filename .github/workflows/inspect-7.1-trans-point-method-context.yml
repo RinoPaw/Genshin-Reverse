@@ -81,7 +81,10 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             /tmp/trans-point-method-context.json \
             --focus unlock_sender:0xF0452B0 \
+            --focus unlock_sender_helper:0xF045640 \
+            --focus adjacent_26552:0xF045720 \
             --focus rsp_36641:0xF045790 \
+            --focus pre_rsp_20290:0xF0460C0 \
             --focus rsp_20290:0xF0462A0 \
             --focus rsp_2666:0xF050780 \
             --focus get_scene_point_rsp_26:0xF058EF0 \
