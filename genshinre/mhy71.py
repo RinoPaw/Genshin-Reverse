@@ -6,9 +6,11 @@ import json
 import mmap
 import struct
 from array import array
+from collections.abc import Callable
 from pathlib import Path
 
 from .metadata import build_type_methods
+from .param71 import PARAMETER_RECORD_SIZE, decode_parameter_record
 from .pe import PEImage
 
 MASK32 = 0xFFFFFFFF
@@ -83,6 +85,7 @@ METHOD_COLUMNS = (
     "rva",
     "return_type",
     "parameter_types",
+    "parameter_type_indices",
     "parameter_start",
     "parameter_count",
     "name_token",
@@ -224,6 +227,31 @@ def _owner_array(count: int, types: list[dict[str, object]], start_key: str, cou
     return owners
 
 
+def _decode_parameter_span(
+    metadata: mmap.mmap | bytes,
+    parameter_base: int,
+    parameter_start: int,
+    parameter_count: int,
+    resolve_type: Callable[[int], str],
+) -> tuple[list[int], list[str]]:
+    type_indices: list[int] = []
+    type_names: list[str] = []
+    if parameter_start < 0 or parameter_count <= 0:
+        return type_indices, type_names
+
+    for ordinal in range(parameter_count):
+        index = parameter_start + ordinal
+        offset = parameter_base + index * PARAMETER_RECORD_SIZE
+        end = offset + PARAMETER_RECORD_SIZE
+        if offset < 0 or end > len(metadata):
+            raise ValueError(f"parameter record {index} exceeds metadata")
+        decoded = decode_parameter_record(metadata[offset:end], index)
+        type_index = int(decoded["type_index"])
+        type_indices.append(type_index)
+        type_names.append(resolve_type(type_index))
+    return type_indices, type_names
+
+
 def decode_metadata_71(
     exe: Path,
     metadata_path: Path,
@@ -258,6 +286,7 @@ def decode_metadata_71(
             type_base = BODY_SKIP + layout["type_offset"]
             field_base = BODY_SKIP + layout["field_offset"]
             method_base = BODY_SKIP + layout["method_offset"]
+            parameter_base = BODY_SKIP + layout["parameter_offset"]
             string_base = BODY_SKIP + layout["string_offset"]
 
             types: list[dict[str, object]] = []
@@ -365,9 +394,10 @@ def decode_metadata_71(
             if len(pointer_blob) < method_count * 8:
                 raise ValueError("method-pointer table is truncated")
             owner_mismatches = 0
+            decoded_parameter_count = 0
 
             def method_rows():
-                nonlocal owner_mismatches
+                nonlocal owner_mismatches, decoded_parameter_count
                 for index in range(method_count):
                     record_offset = method_base + index * 26
                     if record_offset + 26 > len(metadata):
@@ -379,6 +409,14 @@ def decode_metadata_71(
                         owner_mismatches += 1
                     pointer_va = _u64(pointer_blob, index * 8)
                     rva = pointer_va - image.image_base if pointer_va else 0
+                    parameter_type_indices, parameter_types = _decode_parameter_span(
+                        metadata,
+                        parameter_base,
+                        decoded["parameter_start"],
+                        decoded["parameter_count"],
+                        resolve_il2cpp_type,
+                    )
+                    decoded_parameter_count += len(parameter_type_indices)
                     yield {
                         "method_index": index,
                         "type_definition_index": declared_owner,
@@ -386,13 +424,14 @@ def decode_metadata_71(
                         "method_name": decode_string_token(metadata, string_base, decoded["name_token"]),
                         "rva": "" if rva <= 0 else f"0x{rva:X}",
                         "return_type": "",
-                        "parameter_types": "",
+                        "parameter_types": json.dumps(parameter_types, ensure_ascii=False, separators=(",", ":")),
+                        "parameter_type_indices": json.dumps(parameter_type_indices, separators=(",", ":")),
                         "parameter_start": decoded["parameter_start"],
                         "parameter_count": decoded["parameter_count"],
                         "name_token": f"0x{decoded['name_token']:08X}",
                         "record_file_offset": f"0x{record_offset:X}",
                         "status": "static-decoded",
-                        "evidence": "native 7.1 MHY metadata decoder; parameter-record formula pending",
+                        "evidence": "native 7.1 MHY metadata decoder; parameter records decoded",
                     }
 
             _write_csv(output_dir / "methods.csv", METHOD_COLUMNS, method_rows())
@@ -425,16 +464,22 @@ def decode_metadata_71(
             "types": len(types),
             "fields": field_count,
             "methods": method_count,
+            "parameters": decoded_parameter_count,
         },
         "type_array_rva": f"0x{type_array_rva:X}",
         "method_pointer_table_rva": f"0x{METHOD_POINTER_TABLE_RVA:X}",
+        "parameter_base_file_offset": f"0x{parameter_base:X}",
+        "parameter_record_size": PARAMETER_RECORD_SIZE,
         "method_owner_range_mismatches": owner_mismatches,
-        "parameter_records_decoded": False,
+        "parameter_records_decoded": True,
         "warnings": warnings,
         "provenance": {
             "embedded_header_rva": f"0x{EMBEDDED_HEADER_RVA:X}",
             "metadata_body_skip": f"0x{BODY_SKIP:X}",
-            "formula_source": "preserved 7.1 static-analysis intermediate notes",
+            "formula_source": (
+                "preserved 7.1 static-analysis formulas plus native parameter decoder "
+                "basic block at RVA 0x52881C..0x528867"
+            ),
         },
     }
     (output_dir / "native-decoder-summary.json").write_text(
