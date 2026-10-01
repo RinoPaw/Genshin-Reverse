@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
-import os
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -108,7 +107,7 @@ def download(url: str, attempts: int = 4) -> bytes:
             request = urllib.request.Request(url, headers={"User-Agent": "Genshin-Reverse/1.0"})
             with urllib.request.urlopen(request, timeout=90) as response:
                 return response.read()
-        except Exception as exc:  # network retry boundary
+        except Exception as exc:
             error = exc
             if attempt + 1 < attempts:
                 time.sleep(2 ** attempt)
@@ -138,11 +137,27 @@ def choose_file(manifest: list[dict[str, object]], target: str) -> dict[str, obj
     if len(exact) == 1:
         return exact[0]
     basename = target_lower.rsplit("/", 1)[-1]
-    suffix = [row for row in manifest if str(row.get("filename", "")).replace("\\", "/").lower().endswith("/" + basename) or str(row.get("filename", "")).lower() == basename]
+    suffix = [
+        row
+        for row in manifest
+        if str(row.get("filename", "")).replace("\\", "/").lower().endswith("/" + basename)
+        or str(row.get("filename", "")).lower() == basename
+    ]
     if len(suffix) != 1:
         names = [str(row.get("filename", "")) for row in suffix[:20]]
         raise ValueError(f"target {target!r} matched {len(suffix)} manifest files: {names}")
     return suffix[0]
+
+
+def choose_executable(manifest: list[dict[str, object]]) -> dict[str, object]:
+    errors = []
+    for name in ("GenshinImpact.exe", "YuanShen.exe"):
+        try:
+            return choose_file(manifest, name)
+        except ValueError as exc:
+            errors.append(str(exc))
+    exe_names = [str(row.get("filename", "")) for row in manifest if str(row.get("filename", "")).lower().endswith(".exe")]
+    raise ValueError(f"could not locate game executable; tried global/CN names; manifest executables={exe_names[:40]}; errors={errors}")
 
 
 def fetch_chunk(prefix: str, chunk: dict[str, object]) -> tuple[int, bytes]:
@@ -206,7 +221,7 @@ def main() -> None:
     manifest = parse_manifest(decoded)
     print(f"manifest files: {len(manifest)}")
 
-    exe_row = choose_file(manifest, "GenshinImpact.exe")
+    exe_row = choose_executable(manifest)
     metadata_row = choose_file(manifest, "global-metadata.dat")
     print("exe manifest path:", exe_row.get("filename"))
     print("metadata manifest path:", metadata_row.get("filename"))
