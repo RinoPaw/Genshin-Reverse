@@ -51,7 +51,7 @@ jobs:
             --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
             --output /tmp/gi71 \
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
-            --expected-metadata-sh256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
       - name: Fetch current AstaPS control set
         run: git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git /tmp/AstaPS
