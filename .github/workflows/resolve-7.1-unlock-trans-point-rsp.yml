@@ -54,7 +54,7 @@ jobs:
         run: |
           python -m genshinre.paramprobe \
             /tmp/gi71/GenshinImpact.exe \
-            /tmp/gi71/GenshinImpact_Data/Managed/Metadata/global-metadata.dat \
+            /tmp/gi71/global-metadata.dat \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
             /tmp/parameter-probe-71.json
