@@ -7,6 +7,7 @@ on:
       - '.github/workflows/diagnose-7.1-usage-anchor.yml'
       - 'genshinre/usageanchordiag.py'
       - 'genshinre/registrycorridordiag.py'
+      - 'genshinre/initializerflowdiag.py'
 
 permissions:
   contents: read
@@ -60,3 +61,11 @@ jobs:
             --slot-rva 0x57E6498 \
             --expected-usage 37523
           cat /tmp/registry-corridor-9369.json
+
+      - name: Decode metadata usage initializer flow
+        run: |
+          python -m genshinre.initializerflowdiag \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/initializer-flow.json \
+            --size 0x800
+          cat /tmp/initializer-flow.json
