@@ -1,3 +1,4 @@
 cmd_id,type_name,type_definition_index,type_cache_rva,direction,get_cmd_id_rva,semantic_name,status,evidence,notes
+9369,DMMJNICDOHM,84249,0x57E6498,C2S,0xC87EA60,UnlockTransPointReq,CONFIRMED,"preserved 7.1 registry row + GetCmdId + 7.1 proto shape","historical full-registry row 2232; store RVA 0x7F852AB; usage_destination 37523; fields 12/1"
 22899,ONKOPMILDMF,87483,0x57F6F60,S2C,,DoSetPlayerBornDataNotify,CONFIRMED,"recovered 7.1 registry row plus client handler/UI chain and runtime validation","historical full-registry row 3118"
 26105,HJDNCHODGOL,,,C2S,0x10587260,SetPlayerBornDataReq,CONFIRMED,"GetCmdId plus sender/UI chain and runtime observation","sender RVA 0x725CEF0"
