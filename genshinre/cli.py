@@ -17,6 +17,7 @@ from .scaffold import scaffold
 from .trace import import_trace
 from .validate import validate_version
 from .wire import parse_message
+from .xrefs import inspect_rva, probe_registry_71, scan_rip_xrefs, write_json
 
 
 def _direction_map(text: str | None) -> dict[str, str]:
@@ -27,6 +28,10 @@ def _direction_map(text: str | None) -> dict[str, str]:
         key, value = item.split("=", 1)
         result[key.strip()] = value.strip()
     return result
+
+
+def _rva(text: str) -> int:
+    return int(text, 0)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,6 +87,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--summary", type=Path)
     p.add_argument("--min-id", type=int, default=1)
     p.add_argument("--max-id", type=int, default=65535)
+
+    p = sub.add_parser("rip-xrefs", help="scan simple x86-64 RIP-relative MOV/LEA xrefs to target RVAs")
+    p.add_argument("exe", type=Path)
+    p.add_argument("target_rvas", nargs="+", type=_rva)
+    p.add_argument("--window", type=int, default=24)
+    p.add_argument("--all-sections", action="store_true")
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser("inspect-rva", help="dump bytes and simple RIP-relative instructions around an RVA")
+    p.add_argument("exe", type=Path)
+    p.add_argument("rva", type=_rva)
+    p.add_argument("--before", type=int, default=32)
+    p.add_argument("--after", type=int, default=64)
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser("probe-registry-71", help="probe preserved 7.1 type-slot/store-site registry anchors")
+    p.add_argument("exe", type=Path)
+    p.add_argument("output_json", type=Path)
 
     p = sub.add_parser("decode-metadata-71", help="decode the exact preserved 7.1 Global MHY metadata sample")
     p.add_argument("exe", type=Path)
@@ -169,6 +192,25 @@ def main() -> None:
             min_cmd_id=args.min_id,
             max_cmd_id=args.max_id,
         )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "rip-xrefs":
+        result = scan_rip_xrefs(
+            args.exe,
+            args.target_rvas,
+            window=args.window,
+            executable_sections_only=not args.all_sections,
+        )
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "inspect-rva":
+        result = inspect_rva(args.exe, args.rva, before=args.before, after=args.after)
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "probe-registry-71":
+        result = probe_registry_71(args.exe)
+        write_json(result, args.output_json)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "decode-metadata-71":
         result = decode_metadata_71(
