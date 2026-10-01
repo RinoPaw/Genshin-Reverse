@@ -105,7 +105,8 @@ jobs:
         run: |
           python tools/scan_owner_rpc_submit_layout_71.py \
             /tmp/gi71/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/methods-decoded.csv \
+            versions/7.1.0-global/windows-x64/registry/registry.csv \
             KLLNGCPBLMM \
             0x7246860 \
             /tmp/scene-rpc-submit-layout.json \
