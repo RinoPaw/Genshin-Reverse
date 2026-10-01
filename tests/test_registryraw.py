@@ -31,29 +31,42 @@ class FakeImage:
 
 
 class RegistryRawTests(unittest.TestCase):
-    def test_choose_layout_collapses_zero_extended_flag_widths(self) -> None:
-        probe = {
-            "candidates": [
-                {
-                    "status": "strong-layout-candidate",
-                    "stride": 16,
-                    "cmd_width": 4,
-                    "cmd_column_base_rva": "0x1000",
-                    "anchor_22899_index_interpretation": 3118,
-                    "slot_field_matches": [
-                        {"relative_to_cmd": 4, "encoding": "rva32", "width": 4}
-                    ],
-                    "flag_field_matches": [
-                        {"relative_to_cmd": 8, "width": 4},
-                        {"relative_to_cmd": 8, "width": 1},
-                        {"relative_to_cmd": 8, "width": 2},
-                    ],
-                }
-            ]
+    def _candidate(self, *, cmd_width: int = 4, base: str = "0x1000") -> dict[str, object]:
+        return {
+            "status": "strong-layout-candidate",
+            "stride": 16,
+            "cmd_width": cmd_width,
+            "cmd_column_base_rva": base,
+            "anchor_22899_index_interpretation": 3118,
+            "anchor_9369_cmd_rva": "0x9B80",
+            "anchor_22899_cmd_rva": "0xD2E0",
+            "slot_field_matches": [
+                {"relative_to_cmd": 4, "encoding": "rva32", "width": 4}
+            ],
+            "flag_field_matches": [
+                {"relative_to_cmd": 8, "width": 4},
+                {"relative_to_cmd": 8, "width": 1},
+                {"relative_to_cmd": 8, "width": 2},
+            ],
+            "column_metrics": {
+                "readable_rows": 4896,
+                "nonzero_rows": 4896,
+                "protocol_range_rows": 4896,
+                "unique_nonzero_values": 4896,
+            },
         }
-        selected = choose_closed_layout(probe)
+
+    def test_choose_layout_collapses_zero_extended_flag_widths(self) -> None:
+        selected = choose_closed_layout({"candidates": [self._candidate()]})
         self.assertEqual(1, selected["selected_flag_field"]["width"])
         self.assertEqual("rva32", selected["selected_slot_field"]["encoding"])
+
+    def test_choose_layout_collapses_equivalent_cmd_width_aliases(self) -> None:
+        selected = choose_closed_layout(
+            {"candidates": [self._candidate(cmd_width=2), self._candidate(cmd_width=4)]}
+        )
+        self.assertEqual(4, selected["cmd_width"])
+        self.assertEqual([2, 4], selected["cmd_width_aliases"])
 
     def test_export_preserves_native_rows_and_anchors(self) -> None:
         row_count = 4896
@@ -75,23 +88,7 @@ class RegistryRawTests(unittest.TestCase):
         set_row(2232, 9369, 0x057E6498, 1)
         set_row(3118, 22899, 0x057F6F60, 0)
 
-        probe = {
-            "candidates": [
-                {
-                    "status": "strong-layout-candidate",
-                    "stride": 16,
-                    "cmd_width": 4,
-                    "cmd_column_base_rva": "0x1000",
-                    "anchor_22899_index_interpretation": 3118,
-                    "slot_field_matches": [
-                        {"relative_to_cmd": 4, "encoding": "rva32", "width": 4}
-                    ],
-                    "flag_field_matches": [
-                        {"relative_to_cmd": 8, "width": 1}
-                    ],
-                }
-            ]
-        }
+        probe = {"candidates": [self._candidate(cmd_width=4)]}
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -120,8 +117,10 @@ class RegistryRawTests(unittest.TestCase):
             self.assertTrue(summary["all_anchor_checks_pass"])
             self.assertEqual(16, summary["layout"]["stride"])
             self.assertEqual(1, summary["layout"]["flag_field"]["width"])
+            self.assertEqual([4], summary["layout"]["cmd_width_aliases"])
 
-            rows = list(csv.DictReader(output.open("r", encoding="utf-8", newline="")))
+            with output.open("r", encoding="utf-8", newline="") as f:
+                rows = list(csv.DictReader(f))
             self.assertEqual("9369", rows[2232]["cmd_id"])
             self.assertEqual("1", rows[2232]["registry_flag"])
             self.assertEqual("0x57E6498", rows[2232]["type_slot_rva"])
@@ -129,18 +128,23 @@ class RegistryRawTests(unittest.TestCase):
             self.assertEqual("0", rows[3118]["registry_flag"])
             self.assertEqual("0x57F6F60", rows[3118]["type_slot_rva"])
 
-    def test_rejects_multiple_closed_layouts(self) -> None:
-        candidate = {
-            "status": "strong-layout-candidate",
-            "stride": 16,
-            "cmd_width": 4,
-            "cmd_column_base_rva": "0x1000",
-            "anchor_22899_index_interpretation": 3118,
-            "slot_field_matches": [{"relative_to_cmd": 4, "encoding": "rva32", "width": 4}],
-            "flag_field_matches": [{"relative_to_cmd": 8, "width": 1}],
+    def test_rejects_distinct_closed_layouts(self) -> None:
+        first = self._candidate(base="0x1000")
+        second = self._candidate(base="0x2000")
+        with self.assertRaises(ValueError):
+            choose_closed_layout({"candidates": [first, second]})
+
+    def test_does_not_merge_widths_with_different_column_metrics(self) -> None:
+        narrow = self._candidate(cmd_width=2)
+        wide = self._candidate(cmd_width=4)
+        wide["column_metrics"] = {
+            "readable_rows": 4896,
+            "nonzero_rows": 4896,
+            "protocol_range_rows": 4000,
+            "unique_nonzero_values": 4896,
         }
         with self.assertRaises(ValueError):
-            choose_closed_layout({"candidates": [candidate, dict(candidate)]})
+            choose_closed_layout({"candidates": [narrow, wide]})
 
 
 if __name__ == "__main__":
