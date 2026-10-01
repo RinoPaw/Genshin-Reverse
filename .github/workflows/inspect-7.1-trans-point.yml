@@ -1,0 +1,226 @@
+name: Inspect 7.1 trans point protocol
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.1-trans-point.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact official global 7.1 samples
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+
+      - name: Inspect response and notify candidates
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.pe import PEImage
+
+          root = Path('.')
+          base = root / 'versions/7.1.0-global/windows-x64'
+          graph_path = base / 'registry/registry-candidate-graph.csv'
+          rsp_path = base / 'analyses/unlock-trans-point/retcode6-single-field-candidates.csv'
+          methods_path = base / 'metadata/methods.csv'
+          registry_path = base / 'registry/registry.csv'
+          usage_path = base / 'registry/metadata-usage-types.csv'
+          cache_xref_path = base / 'registry/type-cache-xrefs.csv'
+          exe_path = Path('/tmp/gi71/GenshinImpact.exe')
+
+          with rsp_path.open(newline='', encoding='utf-8') as f:
+              rsp_rows = list(csv.DictReader(f))
+          rsp_ids = {int(r['cmd_id']) for r in rsp_rows}
+          target_ids = set(rsp_ids) | {25567}
+
+          with graph_path.open(newline='', encoding='utf-8') as f:
+              graph_rows = [r for r in csv.DictReader(f) if int(r['cmd_id']) in target_ids]
+
+          graph_by_id = {int(r['cmd_id']): r for r in graph_rows}
+          target_names = {r['type_name'] for r in graph_rows}
+          target_defs = {r['type_definition_index'] for r in graph_rows}
+
+          def row_matches(row):
+              vals = set(row.values())
+              if vals & target_names or vals & target_defs:
+                  return True
+              for v in row.values():
+                  if v and v.isdigit() and int(v) in target_ids:
+                      return True
+              return False
+
+          def filter_csv(path):
+              if not path.exists():
+                  return {'header': [], 'rows': [], 'missing': True}
+              with path.open(newline='', encoding='utf-8') as f:
+                  reader = csv.DictReader(f)
+                  rows = [r for r in reader if row_matches(r)]
+                  return {'header': reader.fieldnames or [], 'rows': rows}
+
+          methods = filter_csv(methods_path)
+          registry = filter_csv(registry_path)
+          usage = filter_csv(usage_path)
+          cache_xrefs = filter_csv(cache_xref_path)
+
+          # Group method rows by current 7.1 type. Keep protocol-interesting methods plus all notify methods.
+          methods_by_type = {name: [] for name in target_names}
+          for row in methods['rows']:
+              name = next((v for v in row.values() if v in target_names), None)
+              if name:
+                  methods_by_type[name].append(row)
+
+          def method_rva(row):
+              for key in ('rva', 'method_rva', 'address_rva', 'code_rva'):
+                  v = row.get(key)
+                  if v:
+                      try:
+                          return int(v, 0)
+                      except ValueError:
+                          pass
+              for k, v in row.items():
+                  if 'rva' in k.lower() and v:
+                      try:
+                          return int(v, 0)
+                      except ValueError:
+                          pass
+              return None
+
+          def method_name(row):
+              for key in ('method_name', 'name'):
+                  if row.get(key):
+                      return row[key]
+              return ''
+
+          interesting_names = {'AEGNNPENLNM', 'IENGFLPCLNM', '.ctor', 'ctor'}
+          selected_methods = {}
+          for t, rows in methods_by_type.items():
+              selected_methods[t] = [
+                  r for r in rows
+                  if method_name(r) in interesting_names
+                  or 'cmdid' in method_name(r).lower()
+                  or 'merge' in method_name(r).lower()
+                  or 'parse' in method_name(r).lower()
+              ]
+
+          # Parser scan: preserve immediates and compact disassembly around comparisons.
+          expected_tags = {
+              0x10: 'scene_id field 2 varint',
+              0x30: 'field 6 varint (retcode candidate)',
+              0x32: 'field 6 length-delimited (packed repeated candidate)',
+              0x7A: 'field 15 length-delimited (packed repeated candidate)',
+              400002: 'field 50000 length-delimited',
+              400010: 'field 50001 length-delimited',
+          }
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+          parser_scans = {}
+
+          with PEImage(exe_path) as image:
+              for t, rows in selected_methods.items():
+                  parsers = [r for r in rows if method_name(r) == 'IENGFLPCLNM']
+                  scans = []
+                  for row in parsers:
+                      rva = method_rva(row)
+                      if rva is None:
+                          continue
+                      blob = image.read_rva(rva, 1600)
+                      hits = []
+                      compact = []
+                      for insn in md.disasm(blob, image.image_base + rva):
+                          irva = insn.address - image.image_base
+                          imms = [op.imm for op in insn.operands if op.type == X86_OP_IMM]
+                          tag_hits = [expected_tags[x] for x in imms if x in expected_tags]
+                          # Keep control-flow/cmp instructions with small or expected immediates.
+                          if tag_hits or (insn.mnemonic in {'cmp', 'test'} and imms):
+                              compact.append({
+                                  'rva': f'0x{irva:X}',
+                                  'mnemonic': insn.mnemonic,
+                                  'op_str': insn.op_str,
+                                  'immediates': imms,
+                                  'tag_hits': tag_hits,
+                              })
+                              hits.extend(tag_hits)
+                          if insn.mnemonic == 'ret' and irva > rva + 32:
+                              break
+                      scans.append({'method': row, 'hits': sorted(set(hits)), 'compact': compact})
+                  parser_scans[t] = scans
+
+          notify_type = graph_by_id.get(25567, {}).get('type_name')
+          rsp_type_by_id = {cid: graph_by_id.get(cid, {}).get('type_name') for cid in sorted(rsp_ids)}
+
+          summary = {
+              'notify_candidate': {
+                  'external_hint_cmd_id': 25567,
+                  'current_graph': graph_by_id.get(25567),
+                  'type_name': notify_type,
+                  'expected_shape_from_external_7_1': [
+                      {'field': 2, 'wire': 0, 'semantic': 'scene_id'},
+                      {'field': 6, 'wire': 2, 'semantic': 'hide_point_list'},
+                      {'field': 15, 'wire': 2, 'semantic': 'point_list'},
+                      {'field': 50000, 'wire': 2, 'semantic': 'unhide_point_list'},
+                      {'field': 50001, 'wire': 2, 'semantic': 'locked_point_list'},
+                  ],
+              },
+              'response_candidates': rsp_rows,
+              'response_type_by_cmd_id': rsp_type_by_id,
+              'graph_rows': graph_rows,
+              'methods_header': methods['header'],
+              'selected_methods': selected_methods,
+              'registry_header': registry['header'],
+              'registry_rows': registry['rows'],
+              'usage_header': usage['header'],
+              'usage_rows': usage['rows'],
+              'cache_xref_header': cache_xrefs['header'],
+              'cache_xref_rows': cache_xrefs['rows'],
+              'parser_scans': parser_scans,
+          }
+
+          out = Path('/tmp/trans-point-analysis.json')
+          out.write_text(json.dumps(summary, indent=2), encoding='utf-8')
+
+          print('=== notify candidate ===')
+          print(json.dumps(summary['notify_candidate'], indent=2))
+          print('\n=== selected method rows for notify ===')
+          print(json.dumps(selected_methods.get(notify_type, []), indent=2))
+          print('\n=== parser scan for notify ===')
+          print(json.dumps(parser_scans.get(notify_type, []), indent=2))
+          print('\n=== registry rows for all targets ===')
+          print(json.dumps(registry['rows'], indent=2))
+          print('\n=== response parser tag hits ===')
+          for cid in sorted(rsp_ids):
+              t = rsp_type_by_id.get(cid)
+              scans = parser_scans.get(t, [])
+              hits = sorted({h for s in scans for h in s['hits']})
+              print(cid, t, hits)
+          PY
+
+      - name: Upload analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: trans-point-analysis
+          path: /tmp/trans-point-analysis.json
+          if-no-files-found: error
