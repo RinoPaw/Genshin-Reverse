@@ -34,10 +34,10 @@ try {
     Write-Host "[2/18] Decoding native 7.1 MHY metadata"
     Invoke-Python -m genshinre decode-metadata-71 $Exe $Metadata $MetadataOut
 
-    Write-Host "[3/18] Verifying native 7.1 anchors"
+    Write-Host "[3/18] Verifying full 7.1 metadata anchors"
     Invoke-Python -m genshinre verify-metadata `
         $MetadataOut `
-        "versions/7.1.0-global/windows-x64/metadata/anchors-native.json" `
+        "versions/7.1.0-global/windows-x64/metadata/anchors.json" `
         | Out-File -FilePath (Join-Path $Output "metadata-anchor-check.json") -Encoding utf8
 
     Write-Host "[4/18] Exporting IL2CPP runtime type index"
