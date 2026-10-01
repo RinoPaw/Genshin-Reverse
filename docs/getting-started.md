@@ -1,6 +1,6 @@
 # Getting started
 
-The base toolkit is intentionally standard-library only. Python 3.11+ is enough for querying and validating committed artifacts.
+The base toolkit is intentionally standard-library only. Python 3.11+ is enough for querying, decoding the pinned 7.1 sample, and validating committed artifacts.
 
 ```bash
 git clone https://github.com/RinoPaw/Genshin-Reverse.git
@@ -9,6 +9,42 @@ python -m venv .venv
 # activate the venv for your shell
 python -m pip install -e .
 ```
+
+## Rebuild the preserved 7.1 client indexes
+
+Raw game files stay outside Git. Put your own matching samples wherever convenient; the native decoder checks both SHA-256 values before decoding.
+
+Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`.
+
+Windows PowerShell:
+
+```powershell
+./scripts/regenerate-7.1.ps1 `
+  -Exe 'D:\path\to\GenshinImpact.exe' `
+  -Metadata 'D:\path\to\global-metadata.dat' `
+  -AstaPS 'D:\path\to\AstaPS'
+```
+
+Linux/macOS/WSL with locally accessible sample files:
+
+```bash
+./scripts/regenerate-7.1.sh \
+  --exe /path/to/GenshinImpact.exe \
+  --metadata /path/to/global-metadata.dat \
+  --astaps /path/to/AstaPS
+```
+
+The scripts write only under ignored `work/7.1.0-global/windows-x64/`. They perform this pipeline in order:
+
+1. fingerprint the executable and metadata;
+2. run the exact-sample native MHY metadata decoder;
+3. require `anchors-native.json` to pass;
+4. scan metadata method RVAs for conservative constant-return CmdId candidates;
+5. optionally extract a numeric AstaPS opcode control set.
+
+A successful run produces full type/field/method/method-pointer indexes plus `getcmdid-candidates.csv`. The candidate file is an intermediate discovery asset and must not be copied wholesale into canonical `registry.csv`: small constant-return functions exist outside the protocol layer. Continue with `docs/methods/registry-recovery.md` for the registration-table stage.
+
+The current native decoder intentionally leaves method `parameter_types` and `return_type` empty because the historical parameter-record formula has not yet been independently restored. `anchors-native.json` validates only layers that the native decoder actually recovers. `anchors.json` is the stronger check for extractors that also recover parameter types.
 
 ## Inspect an unknown runtime packet
 
@@ -66,7 +102,7 @@ The old 7.1 recovery passed this style of check for all 1,540 known AstaPS opcod
 
 ## Query metadata by handler parameter type
 
-Once `metadata/methods.csv` exists:
+When an extractor provides method parameter types:
 
 ```bash
 genshinre query-methods versions/7.1.0-global/windows-x64/metadata/methods.csv --parameter-type ONKOPMILDMF
@@ -79,14 +115,6 @@ genshinre build-type-methods \
 This supports the common path `CmdId -> obfuscated type -> methods whose parameters reference that type`.
 
 ## Fingerprint local samples
-
-Raw game files stay outside Git:
-
-```text
-inputs/
-  GenshinImpact.exe
-  global-metadata.dat
-```
 
 ```bash
 genshinre fingerprint inputs/GenshinImpact.exe inputs/global-metadata.dat
