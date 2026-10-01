@@ -8,6 +8,7 @@ from genshinre.mhy71 import (
     _decode_parameter_span,
     decode_field_record,
     decode_method_record,
+    decode_string_token,
     decode_type_record,
 )
 from genshinre.param71 import parameter_key
@@ -98,6 +99,9 @@ class Mhy71FormulaTests(unittest.TestCase):
         )
         self.assertEqual([248_305, 248_269], indices)
         self.assertEqual(["ONKOPMILDMF", "PGAMFBPNNIC"], resolved)
+
+    def test_anonymous_string_sentinel_is_empty(self) -> None:
+        self.assertEqual("", decode_string_token(b"", 0, MASK32))
 
 
 if __name__ == "__main__":
