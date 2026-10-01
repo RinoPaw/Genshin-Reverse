@@ -1,0 +1,7 @@
+semantic_name,cmd_id,direction,status,evidence,notes
+DoSetPlayerBornDataNotify,22899,S2C,CONFIRMED,"client static chain + runtime","empty message"
+SetPlayerBornDataReq,26105,C2S,CONFIRMED,"GetCmdId + sender + runtime","Traveler + nickname"
+SetPlayerBornDataRsp,4385,S2C,CONFIRMED,"GetCmdId + parser + isolated runtime","success may be empty; retcode field 7"
+PlayerNicknameNotify,3064,S2C,CONFIRMED,"client static + runtime","nickname field 12"
+PlayerEnterSceneNotify,9582,S2C,CONFIRMED,"runtime + client lifecycle","scene-entry lifecycle"
+UnlockTransPointReq,9369,C2S,CONFIRMED,"current AstaPS handler/runtime anchor","response remains unresolved"

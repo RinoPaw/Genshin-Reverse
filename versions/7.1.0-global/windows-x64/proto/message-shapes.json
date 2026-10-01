@@ -1,0 +1,36 @@
+{
+  "DoSetPlayerBornDataNotify": {
+    "cmd_id": 22899,
+    "direction": "S2C",
+    "fields": [],
+    "status": "CONFIRMED"
+  },
+  "SetPlayerBornDataRsp": {
+    "cmd_id": 4385,
+    "direction": "S2C",
+    "fields": [
+      {"number": 7, "wire_type": 0, "likely_type": "int32", "semantic": "retcode"}
+    ],
+    "status": "CONFIRMED",
+    "evidence": "client parser tag 0x38 plus isolated runtime success"
+  },
+  "PlayerNicknameNotify": {
+    "cmd_id": 3064,
+    "direction": "S2C",
+    "fields": [
+      {"number": 12, "wire_type": 2, "likely_type": "string", "semantic": "nickname"}
+    ],
+    "status": "CONFIRMED",
+    "evidence": "client parser tag 0x62"
+  },
+  "UNKNOWN_186": {
+    "cmd_id": 186,
+    "direction": "C2S",
+    "observed_payload_hex": "7202d027",
+    "fields": [
+      {"number": 14, "wire_type": 2, "observed_value_hex": "d027", "packed_varint_candidate": [5072]}
+    ],
+    "status": "UNRESOLVED",
+    "evidence": "runtime wire observation only"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "cmd_id": 22899,
+    "type_name": "ONKOPMILDMF",
+    "type_definition_index": 87483,
+    "type_cache_rva": "0x57F6F60",
+    "direction": "S2C",
+    "get_cmd_id_rva": null,
+    "semantic_name": "DoSetPlayerBornDataNotify",
+    "status": "CONFIRMED",
+    "evidence": "recovered 7.1 registry row plus client handler/UI chain and runtime validation",
+    "notes": "historical full-registry row 3118"
+  },
+  {
+    "cmd_id": 26105,
+    "type_name": "HJDNCHODGOL",
+    "type_definition_index": null,
+    "type_cache_rva": null,
+    "direction": "C2S",
+    "get_cmd_id_rva": "0x10587260",
+    "semantic_name": "SetPlayerBornDataReq",
+    "status": "CONFIRMED",
+    "evidence": "GetCmdId plus sender/UI chain and runtime observation",
+    "notes": "sender RVA 0x725CEF0"
+  }
+]

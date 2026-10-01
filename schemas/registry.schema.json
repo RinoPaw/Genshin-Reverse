@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canonical registry row",
+  "type": "object",
+  "required": ["cmd_id", "type_name", "type_definition_index", "type_cache_rva", "direction", "get_cmd_id_rva", "semantic_name", "status", "evidence", "notes"],
+  "properties": {
+    "cmd_id": {"type": "integer", "minimum": 0, "maximum": 65535},
+    "type_name": {"type": "string"},
+    "type_definition_index": {"type": ["integer", "null"]},
+    "type_cache_rva": {"type": ["string", "null"], "pattern": "^0x[0-9A-Fa-f]+$"},
+    "direction": {"enum": ["C2S", "S2C", "unknown", ""]},
+    "get_cmd_id_rva": {"type": ["string", "null"], "pattern": "^0x[0-9A-Fa-f]+$"},
+    "semantic_name": {"type": "string"},
+    "status": {"type": "string"},
+    "evidence": {"type": "string"},
+    "notes": {"type": "string"}
+  },
+  "additionalProperties": true
+}
