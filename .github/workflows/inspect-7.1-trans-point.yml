@@ -55,7 +55,8 @@ jobs:
           with rsp_path.open(newline='', encoding='utf-8') as f:
               rsp_rows = list(csv.DictReader(f))
           rsp_ids = {int(r['cmd_id']) for r in rsp_rows}
-          target_ids = set(rsp_ids) | {25567}
+          anchor_ids = {9369, 22899}
+          target_ids = set(rsp_ids) | {25567} | anchor_ids
 
           with graph_path.open(newline='', encoding='utf-8') as f:
               graph_rows = [r for r in csv.DictReader(f) if int(r['cmd_id']) in target_ids]
@@ -86,7 +87,6 @@ jobs:
           usage = filter_csv(usage_path)
           cache_xrefs = filter_csv(cache_xref_path)
 
-          # Group method rows by current 7.1 type. Keep protocol-interesting methods plus all notify methods.
           methods_by_type = {name: [] for name in target_names}
           for row in methods['rows']:
               name = next((v for v in row.values() if v in target_names), None)
@@ -110,23 +110,11 @@ jobs:
               return None
 
           def method_name(row):
-              for key in ('method_name', 'name'):
-                  if row.get(key):
-                      return row[key]
-              return ''
+              return row.get('method_name') or row.get('name') or ''
 
-          interesting_names = {'AEGNNPENLNM', 'IENGFLPCLNM', '.ctor', 'ctor'}
-          selected_methods = {}
-          for t, rows in methods_by_type.items():
-              selected_methods[t] = [
-                  r for r in rows
-                  if method_name(r) in interesting_names
-                  or 'cmdid' in method_name(r).lower()
-                  or 'merge' in method_name(r).lower()
-                  or 'parse' in method_name(r).lower()
-              ]
+          notify_type = graph_by_id.get(25567, {}).get('type_name')
+          rsp_type_by_id = {cid: graph_by_id.get(cid, {}).get('type_name') for cid in sorted(rsp_ids)}
 
-          # Parser scan: preserve immediates and compact disassembly around comparisons.
           expected_tags = {
               0x10: 'scene_id field 2 varint',
               0x30: 'field 6 varint (retcode candidate)',
@@ -135,47 +123,113 @@ jobs:
               400002: 'field 50000 length-delimited',
               400010: 'field 50001 length-delimited',
           }
+
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
-          parser_scans = {}
+
+          def scan_method(image, row, max_bytes=1800):
+              rva = method_rva(row)
+              if rva is None:
+                  return None
+              blob = image.read_rva(rva, max_bytes)
+              hits = []
+              compact = []
+              full = []
+              for insn in md.disasm(blob, image.image_base + rva):
+                  irva = insn.address - image.image_base
+                  imms = [op.imm for op in insn.operands if op.type == X86_OP_IMM]
+                  tag_hits = [expected_tags[x] for x in imms if x in expected_tags]
+                  if tag_hits:
+                      hits.extend(tag_hits)
+                  if tag_hits or (insn.mnemonic == 'cmp' and imms):
+                      compact.append({
+                          'rva': f'0x{irva:X}',
+                          'mnemonic': insn.mnemonic,
+                          'op_str': insn.op_str,
+                          'immediates': imms,
+                          'tag_hits': tag_hits,
+                      })
+                  if len(full) < 220:
+                      full.append(f'0x{irva:X}: {insn.mnemonic} {insn.op_str}')
+                  if insn.mnemonic == 'ret' and irva > rva + 32:
+                      break
+              return {
+                  'method': row,
+                  'hits': sorted(set(hits)),
+                  'compact': compact,
+                  'full_disasm': full,
+              }
+
+          all_tag_scans = {}
+          notify_all_methods = methods_by_type.get(notify_type, [])
+          xref_disasm = {}
+          store_disasm = {}
+
+          cache_by_type = {}
+          for row in cache_xrefs['rows']:
+              t = row.get('type_name')
+              if t in target_names:
+                  cache_by_type[t] = row
+
+          registry_by_id = {}
+          for row in registry['rows']:
+              try:
+                  registry_by_id[int(row.get('cmd_id', '-1'))] = row
+              except ValueError:
+                  pass
 
           with PEImage(exe_path) as image:
-              for t, rows in selected_methods.items():
-                  parsers = [r for r in rows if method_name(r) == 'IENGFLPCLNM']
-                  scans = []
-                  for row in parsers:
-                      rva = method_rva(row)
-                      if rva is None:
-                          continue
-                      blob = image.read_rva(rva, 1600)
-                      hits = []
-                      compact = []
-                      for insn in md.disasm(blob, image.image_base + rva):
-                          irva = insn.address - image.image_base
-                          imms = [op.imm for op in insn.operands if op.type == X86_OP_IMM]
-                          tag_hits = [expected_tags[x] for x in imms if x in expected_tags]
-                          # Keep control-flow/cmp instructions with small or expected immediates.
-                          if tag_hits or (insn.mnemonic in {'cmp', 'test'} and imms):
-                              compact.append({
-                                  'rva': f'0x{irva:X}',
-                                  'mnemonic': insn.mnemonic,
-                                  'op_str': insn.op_str,
-                                  'immediates': imms,
-                                  'tag_hits': tag_hits,
-                              })
-                              hits.extend(tag_hits)
-                          if insn.mnemonic == 'ret' and irva > rva + 32:
-                              break
-                      scans.append({'method': row, 'hits': sorted(set(hits)), 'compact': compact})
-                  parser_scans[t] = scans
+              # Scan every declared method, but retain only methods containing expected protobuf tag immediates.
+              for t, rows in methods_by_type.items():
+                  kept = []
+                  for row in rows:
+                      scan = scan_method(image, row, 1800)
+                      if scan and scan['hits']:
+                          kept.append(scan)
+                  all_tag_scans[t] = kept
 
-          notify_type = graph_by_id.get(25567, {}).get('type_name')
-          rsp_type_by_id = {cid: graph_by_id.get(cid, {}).get('type_name') for cid in sorted(rsp_ids)}
+              # Fully disassemble type-cache xref methods for the notify and direction anchors.
+              focus_types = {
+                  graph_by_id.get(cid, {}).get('type_name')
+                  for cid in (25567, 9369, 22899)
+              }
+              focus_types.discard(None)
+              for t in focus_types:
+                  row = cache_by_type.get(t, {})
+                  entries = []
+                  for token in (row.get('xref_methods') or '').split('|'):
+                      m = re.fullmatch(r'([^@]+)@(0x[0-9A-Fa-f]+)', token.strip())
+                      if not m:
+                          continue
+                      name, rva_s = m.groups()
+                      fake = {'type_name': t, 'method_name': name, 'rva': rva_s}
+                      scan = scan_method(image, fake, 2400)
+                      if scan:
+                          entries.append(scan)
+                  xref_disasm[t] = entries
+
+              # Compare native registry-constructor code at C2S, S2C, notify and all Rsp stores.
+              for cid, row in registry_by_id.items():
+                  if cid not in target_ids:
+                      continue
+                  s = row.get('store_rva')
+                  if not s:
+                      continue
+                  store_rva = int(s, 0)
+                  start = max(0, store_rva - 72)
+                  blob = image.read_rva(start, 176)
+                  insns = []
+                  for insn in md.disasm(blob, image.image_base + start):
+                      irva = insn.address - image.image_base
+                      marker = ' <STORE>' if irva == store_rva else ''
+                      insns.append(f'0x{irva:X}: {insn.mnemonic} {insn.op_str}{marker}')
+                  store_disasm[str(cid)] = insns
 
           summary = {
               'notify_candidate': {
                   'external_hint_cmd_id': 25567,
                   'current_graph': graph_by_id.get(25567),
+                  'current_registry': registry_by_id.get(25567),
                   'type_name': notify_type,
                   'expected_shape_from_external_7_1': [
                       {'field': 2, 'wire': 0, 'semantic': 'scene_id'},
@@ -185,18 +239,21 @@ jobs:
                       {'field': 50001, 'wire': 2, 'semantic': 'locked_point_list'},
                   ],
               },
+              'anchors': {str(cid): {'graph': graph_by_id.get(cid), 'registry': registry_by_id.get(cid)} for cid in sorted(anchor_ids)},
               'response_candidates': rsp_rows,
               'response_type_by_cmd_id': rsp_type_by_id,
               'graph_rows': graph_rows,
               'methods_header': methods['header'],
-              'selected_methods': selected_methods,
+              'notify_all_methods': notify_all_methods,
               'registry_header': registry['header'],
               'registry_rows': registry['rows'],
               'usage_header': usage['header'],
               'usage_rows': usage['rows'],
               'cache_xref_header': cache_xrefs['header'],
               'cache_xref_rows': cache_xrefs['rows'],
-              'parser_scans': parser_scans,
+              'all_tag_scans': all_tag_scans,
+              'xref_disasm': xref_disasm,
+              'store_disasm': store_disasm,
           }
 
           out = Path('/tmp/trans-point-analysis.json')
@@ -204,18 +261,21 @@ jobs:
 
           print('=== notify candidate ===')
           print(json.dumps(summary['notify_candidate'], indent=2))
-          print('\n=== selected method rows for notify ===')
-          print(json.dumps(selected_methods.get(notify_type, []), indent=2))
-          print('\n=== parser scan for notify ===')
-          print(json.dumps(parser_scans.get(notify_type, []), indent=2))
-          print('\n=== registry rows for all targets ===')
-          print(json.dumps(registry['rows'], indent=2))
-          print('\n=== response parser tag hits ===')
+          print('\n=== notify methods ===')
+          print(json.dumps(notify_all_methods, indent=2))
+          print('\n=== notify tag scans ===')
+          print(json.dumps(all_tag_scans.get(notify_type, []), indent=2))
+          print('\n=== notify/anchor xref disassembly ===')
+          print(json.dumps(xref_disasm, indent=2))
+          print('\n=== registry store windows: anchors + notify ===')
+          for cid in (9369, 22899, 25567):
+              print(cid)
+              print('\n'.join(store_disasm.get(str(cid), [])))
+          print('\n=== response methods containing expected tags ===')
           for cid in sorted(rsp_ids):
               t = rsp_type_by_id.get(cid)
-              scans = parser_scans.get(t, [])
-              hits = sorted({h for s in scans for h in s['hits']})
-              print(cid, t, hits)
+              scans = all_tag_scans.get(t, [])
+              print(cid, t, [(s['method'].get('method_name'), s['method'].get('rva'), s['hits']) for s in scans])
           PY
 
       - name: Upload analysis
