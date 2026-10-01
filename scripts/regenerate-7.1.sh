@@ -35,32 +35,39 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 mkdir -p "$OUTPUT/metadata"
 
-printf '[1/6] Fingerprinting exact samples\n'
+printf '[1/7] Fingerprinting exact samples\n'
 "$PYTHON" -m genshinre fingerprint "$EXE" "$METADATA" > "$OUTPUT/fingerprints.json"
 
-printf '[2/6] Decoding native 7.1 MHY metadata\n'
+printf '[2/7] Decoding native 7.1 MHY metadata\n'
 "$PYTHON" -m genshinre decode-metadata-71 "$EXE" "$METADATA" "$OUTPUT/metadata"
 
-printf '[3/6] Verifying native 7.1 anchors\n'
+printf '[3/7] Verifying native 7.1 anchors\n'
 "$PYTHON" -m genshinre verify-metadata \
   "$OUTPUT/metadata" \
   versions/7.1.0-global/windows-x64/metadata/anchors-native.json \
   > "$OUTPUT/metadata-anchor-check.json"
 
-printf '[4/6] Scanning conservative constant-return CmdId candidates\n'
+printf '[4/7] Scanning conservative constant-return CmdId candidates\n'
 "$PYTHON" -m genshinre scan-constant-cmdids \
   "$EXE" \
   "$OUTPUT/metadata/methods.csv" \
   "$OUTPUT/getcmdid-candidates.csv" \
   --summary "$OUTPUT/getcmdid-candidates.summary.json"
 
-printf '[5/6] Probing preserved registry type-slot anchors\n'
+printf '[5/7] Recovering metadata-usage initializer stores\n'
+"$PYTHON" -m genshinre.usage \
+  "$EXE" \
+  "$OUTPUT/metadata-usage-sites.csv" \
+  --summary "$OUTPUT/metadata-usage-sites.summary.json" \
+  > /dev/null
+
+printf '[6/7] Probing preserved registry type-slot anchors\n'
 "$PYTHON" -m genshinre probe-registry-71 \
   "$EXE" \
   "$OUTPUT/registry-probe-71.json" \
   > /dev/null
 
-printf '[6/6] Optional AstaPS control set\n'
+printf '[7/7] Optional AstaPS control set\n'
 if [[ -n "$ASTAPS" ]]; then
   PACKET_OPCODES="$ASTAPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"
   if [[ ! -f "$PACKET_OPCODES" ]]; then
@@ -73,4 +80,4 @@ else
 fi
 
 printf 'Done: %s\n' "$OUTPUT"
-printf 'Next: inspect getcmdid-candidates.summary.json and registry-probe-71.json, then continue Stage 2 registration-table recovery.\n'
+printf 'Next: inspect metadata-usage-sites.summary.json, getcmdid-candidates.summary.json and registry-probe-71.json before continuing Stage 2.\n'
