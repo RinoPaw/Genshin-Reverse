@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/resolve-7.1-unlock-trans-point-rsp.yml'
       - 'tools/probe_registry_direction_flags_71.py'
+      - 'tools/analyze_protocol_consumers_71.py'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,21 @@ jobs:
       - name: Install tooling
         run: python -m pip install -e . zstandard
 
+      - name: Compare protocol consumer patterns
+        run: |
+          python tools/analyze_protocol_consumers_71.py \
+            versions/7.1.0-global/windows-x64/registry/registry.csv \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/analyses/unlock-trans-point/retcode6-single-field-candidates.csv \
+            /tmp/unlock-trans-point-rsp-consumers.json \
+            --control-cmd 22899 \
+            --control-cmd 4385 \
+            --control-cmd 3064 \
+            --control-cmd 9582 \
+            --control-cmd 25567 \
+            --control-cmd 9369 \
+            --control-cmd 26105
+
       - name: Fetch exact official global 7.1 sample
         run: |
           python tools/fetch_sophon_targets.py \
@@ -34,6 +50,7 @@ jobs:
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
       - name: Probe native direction flags
+        continue-on-error: true
         run: |
           python tools/probe_registry_direction_flags_71.py \
             /tmp/gi71/GenshinImpact.exe \
@@ -47,8 +64,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unlock-trans-point-rsp-direction
+          name: unlock-trans-point-rsp-research
           path: |
+            /tmp/unlock-trans-point-rsp-consumers.json
             /tmp/registry-direction-flag-probe.json
             /tmp/registry-direction-flags.csv
           if-no-files-found: warn
