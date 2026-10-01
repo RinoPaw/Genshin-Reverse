@@ -1,0 +1,67 @@
+{
+  "row_count": 4896,
+  "unique_cmd_ids": 4896,
+  "unique_type_definition_indices": 4896,
+  "unique_registry_slots": 4896,
+  "index_range": [
+    0,
+    4895
+  ],
+  "direction_counts": {
+    "unresolved": 4890,
+    "S2C": 4,
+    "C2S": 2
+  },
+  "semantic_name_count": 6,
+  "anchors": {
+    "9369": {
+      "passed": true,
+      "observed": {
+        "index": "2232",
+        "cmd_id": "9369",
+        "type_name": "DMMJNICDOHM",
+        "type_definition_index": "84249",
+        "direction": "C2S",
+        "direction_status": "control-confirmed",
+        "semantic_name": "UnlockTransPointReq",
+        "type_slot_rva": "0x57E6498",
+        "get_cmd_id_rva": "0xC87EA60",
+        "get_cmd_id_method": "AEGNNPENLNM",
+        "load_rva": "0x7F852A4",
+        "store_rva": "0x7F852AB",
+        "xref_count": "1",
+        "xref_method_count": "1",
+        "status": "static-verified-identity",
+        "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+      }
+    },
+    "22899": {
+      "passed": true,
+      "observed": {
+        "index": "3118",
+        "cmd_id": "22899",
+        "type_name": "ONKOPMILDMF",
+        "type_definition_index": "87483",
+        "direction": "S2C",
+        "direction_status": "control-confirmed",
+        "semantic_name": "DoSetPlayerBornDataNotify",
+        "type_slot_rva": "0x57F6F60",
+        "get_cmd_id_rva": "0x9FDADC0",
+        "get_cmd_id_method": "AEGNNPENLNM",
+        "load_rva": "0x7F88318",
+        "store_rva": "0x7F8831F",
+        "xref_count": "1",
+        "xref_method_count": "1",
+        "status": "static-verified-identity",
+        "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+      }
+    }
+  },
+  "strict_slot_type_cmd_bijection": true,
+  "status": "canonical-static-identity-registry",
+  "notes": [
+    "all 4,896 identities are closed by a verified constructor slot and a unique dominant code-xref owner",
+    "the 27 AEGNNPENLNM constant-return candidate types with no verified registry-slot xref are excluded structurally",
+    "direction and semantic labels are supplemental control-set evidence and remain blank when unresolved"
+  ]
+}
