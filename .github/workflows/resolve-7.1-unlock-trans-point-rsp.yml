@@ -9,7 +9,11 @@ on:
       - 'tools/scan_protocol_method_callers_71.py'
       - 'tools/inspect_parameter_decoder_constants_71.py'
       - 'tools/decode_protocol_handler_parameters_71.py'
+      - 'tools/decode_method_parameters_71.py'
+      - 'tools/find_protocol_parameter_consumers_71.py'
       - 'genshinre/paramprobe.py'
+      - 'genshinre/param71.py'
+      - 'tests/test_param71.py'
   workflow_dispatch:
 
 permissions:
