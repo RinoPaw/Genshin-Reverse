@@ -7,6 +7,7 @@ on:
       - 'tools/inspect_method_context_71.py'
       - 'tools/inspect_protocol_type_shape_71.py'
       - 'tools/decode_method_parameters_71.py'
+      - 'tools/trace_protocol_delegate_slots_71.py'
       - 'genshinre/param71.py'
   workflow_dispatch:
 
@@ -89,6 +90,16 @@ jobs:
             --cmd 23366 \
             --cmd 25567
 
+      - name: Trace candidate delegate slots
+        run: |
+          python tools/trace_protocol_delegate_slots_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/trans-point-delegate-slots.json \
+            --slot 0x4b2a88 \
+            --slot 0x4b2a90 \
+            --slot 0x4b2ab0
+
       - name: Inspect scene method band
         run: |
           python tools/inspect_method_context_71.py \
@@ -119,6 +130,7 @@ jobs:
           name: trans-point-method-context
           path: |
             /tmp/trans-point-method-context.json
+            /tmp/trans-point-delegate-slots.json
             /tmp/scene-method-band.json
             /tmp/adjacent-protocol-shapes.json
             /tmp/methods-decoded.summary.json
