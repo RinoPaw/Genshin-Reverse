@@ -36,6 +36,7 @@ jobs:
           from capstone import Cs, CS_ARCH_X86, CS_MODE_64
           from genshinre.pe import PEImage
           from pathlib import Path
+          import struct
 
           exe = Path('/tmp/gi71/GenshinImpact.exe')
           md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -43,9 +44,9 @@ jobs:
           targets = {
               'registry constructor head': (0x07F7D8C0, 192, 256),
               'registry constructor tail': (0x07F8E44D, 160, 768),
+              'InitializeArray helper': (0x004C84D0, 32, 320),
               '9369 historical store': (0x07F852AB, 96, 160),
               '26105 GetCmdId': (0x10587260, 32, 128),
-              'metadata usage helper': (0x00523400, 32, 256),
           }
           with PEImage(exe) as image:
               print('image_base', hex(image.image_base))
@@ -53,22 +54,19 @@ jobs:
                   start = rva - before
                   blob = image.read_rva(start, before + after)
                   print(f'\n=== {name}: RVA 0x{rva:X}, window 0x{start:X} ===')
-                  print('raw:', blob.hex())
                   for insn in md.disasm(blob, image.image_base + start):
                       irva = insn.address - image.image_base
                       marker = ' <==' if irva == rva else ''
                       print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
-          PY
 
-      - name: Find usage 37523 call sites without requiring a store
-        run: |
-          python -m genshinre.usage \
-            /tmp/gi71/GenshinImpact.exe \
-            /tmp/usage-all.csv \
-            --summary /tmp/usage-all.summary.json \
-            --all-calls
-          cat /tmp/usage-all.summary.json
-          echo '--- usage 37523 ---'
-          grep '^37523,' /tmp/usage-all.csv || true
-          echo '--- historical store/slot ---'
-          grep -i -E '7F852AB|57E6498' /tmp/usage-all.csv || true
+              print('\n=== registry InitializeArray field refs ===')
+              for rva in (0x059D8B48, 0x059D8B50):
+                  blob = image.read_rva(rva, 32)
+                  print(f'RVA 0x{rva:X}: {blob.hex()}')
+                  if len(blob) >= 8:
+                      value = struct.unpack_from('<Q', blob)[0]
+                      print(' qword=', hex(value), 'as_rva=', hex(value-image.image_base) if value >= image.image_base else None)
+                      if image.image_base <= value < image.image_base + 0x20000000:
+                          rr = value - image.image_base
+                          print(' pointed:', image.read_rva(rr, 96).hex())
+          PY
