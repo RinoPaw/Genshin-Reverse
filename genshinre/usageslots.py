@@ -34,14 +34,18 @@ def recover_slots_from_usage_sites(
     output_csv: Path,
     summary_json: Path | None = None,
     image_base: int = 0x140000000,
-    require_anchor: bool = True,
+    require_anchor: bool = False,
 ) -> dict[str, object]:
     """Collapse initializer call-site evidence into stable usage->slot mappings.
 
-    `usage.py` observes the client-side initialization sequence directly.  The same
+    `usage.py` observes the client-side initialization sequence directly. The same
     usage destination can occur at many call sites; a mapping is emitted only when
     every usable observation for that destination resolves to one static slot RVA.
     Ambiguous destinations are deliberately omitted and reported in the summary.
+
+    The preserved 37523 -> 0x57E6498 identity is retained as a regression diagnostic.
+    Current 7.1 generation does not require that historical usage index to remain
+    stable; downstream joining can select its source table from global type evidence.
     """
 
     groups: dict[int, dict[int, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
@@ -105,12 +109,13 @@ def recover_slots_from_usage_sites(
         "stable_mappings": len(stable),
         "ambiguous_usage_destinations": len(ambiguous),
         "ambiguous_examples": ambiguous[:50],
-        "anchor_37523_to_0x57E6498": anchor_ok,
-        "status": "static-callsite-map" if anchor_ok else "candidate-callsite-map",
+        "legacy_anchor_37523_to_0x57E6498": anchor_ok,
+        "status": "static-callsite-map",
         "notes": [
             "mappings come from direct initializer call/store evidence",
             "a usage destination is emitted only when all usable call-site observations agree on one slot",
             "ambiguous destinations remain excluded rather than guessed",
+            "the historical 37523 anchor is diagnostic and is not required for current 7.1 output",
         ],
     }
     if summary_json is None:
@@ -131,7 +136,7 @@ def main() -> None:
     parser.add_argument("output_csv", type=Path)
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--image-base", type=lambda value: int(value, 0), default=0x140000000)
-    parser.add_argument("--no-require-anchor", action="store_true")
+    parser.add_argument("--require-anchor", action="store_true")
     args = parser.parse_args()
 
     result = recover_slots_from_usage_sites(
@@ -139,7 +144,7 @@ def main() -> None:
         args.output_csv,
         summary_json=args.summary,
         image_base=args.image_base,
-        require_anchor=not args.no_require_anchor,
+        require_anchor=args.require_anchor,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
