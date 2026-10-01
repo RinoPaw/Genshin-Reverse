@@ -10,11 +10,21 @@ python -m venv .venv
 python -m pip install -e .
 ```
 
-## Rebuild the preserved 7.1 client indexes
+## Three registry stages
 
-Raw game files stay outside Git. Put your own matching samples wherever convenient; the native decoder checks both SHA-256 values before decoding.
+The 7.1 registry workflow has three explicit stages:
 
-Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`.
+```text
+regenerate  -> discovery and independent evidence artifacts
+close       -> require two native recovery paths to agree across all 4,896 rows
+publish     -> require direction/control/type gates and project stable canonical fields
+```
+
+Do not skip stages by copying a candidate CSV into `versions/.../registry/registry.csv`.
+
+## 1. Regenerate the preserved 7.1 client evidence
+
+Raw game files stay outside Git. Put your own matching samples wherever convenient; the native decoder checks both SHA-256 values before decoding. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`.
 
 Windows PowerShell:
 
@@ -34,17 +44,118 @@ Linux/macOS/WSL with locally accessible sample files:
   --astaps /path/to/AstaPS
 ```
 
-The scripts write only under ignored `work/7.1.0-global/windows-x64/`. They perform this pipeline in order:
+The scripts write only under ignored `work/7.1.0-global/windows-x64/`. The current pipeline produces these evidence layers:
 
-1. fingerprint the executable and metadata;
-2. run the exact-sample native MHY metadata decoder;
-3. require `anchors-native.json` to pass;
-4. scan metadata method RVAs for conservative constant-return CmdId candidates;
-5. optionally extract a numeric AstaPS opcode control set.
+1. exact sample fingerprints;
+2. native 7.1 MHY metadata indexes and anchor verification;
+3. runtime IL2CPP type index;
+4. conservative constant-return `GetCmdId` candidates;
+5. `0x00523400` metadata-usage initializer call-site audit;
+6. metadata-registration structural probe;
+7. anchored metadata usage-destination -> static-slot recovery;
+8. metadata usage -> runtime/typeDefinition identity join;
+9. broad registry candidate graph;
+10. one-to-one strict static candidate subset;
+11. preserved type-slot xref probes;
+12. direct-slot native compact-registry layout probe;
+13. usage-backed native compact-registry layout probe;
+14. optional current AstaPS numeric control set;
+15. broad and strict control-set diagnostics;
+16. human-readable convergence report.
 
-A successful run produces full type/field/method/method-pointer indexes plus `getcmdid-candidates.csv`. The candidate file is an intermediate discovery asset and must not be copied wholesale into canonical `registry.csv`: small constant-return functions exist outside the protocol layer. Continue with `docs/methods/registry-recovery.md` for the registration-table stage.
+Read these first after a run:
 
-The current native decoder intentionally leaves method `parameter_types` and `return_type` empty because the historical parameter-record formula has not yet been independently restored. `anchors-native.json` validates only layers that the native decoder actually recovers. `anchors.json` is the stronger check for extractors that also recover parameter types.
+```text
+registry-candidate-report.md
+registry-layout-probe.json
+registry-usage-layout-probe.json
+registry-candidate-graph.diagnostic.json
+registry-static-candidates.diagnostic.json
+```
+
+Candidate graph output is discovery data. A small constant-return method, a historical numeric equality, or a candidate layout does not establish canonical protocol identity.
+
+## 2. Close the native registry structure
+
+After regeneration, run strict closure:
+
+PowerShell:
+
+```powershell
+./scripts/close-registry-7.1.ps1 `
+  -Exe 'D:\path\to\GenshinImpact.exe' `
+  -RequireDirectionPerfect
+```
+
+POSIX shell:
+
+```bash
+./scripts/close-registry-7.1.sh \
+  --exe /path/to/GenshinImpact.exe \
+  --require-direction-perfect
+```
+
+The closure command intentionally fails unless the following evidence closes:
+
+1. the direct-slot native layout exports 4,896 unique CmdIds;
+2. the usage-backed native layout exports 4,896 unique CmdIds;
+3. the two independent exports agree row-by-row on CmdId, registry flag and type slot across all 4,896 rows;
+4. if `known-opcodes.csv` is available, registry-flag semantics are audited against independent `Req`/`Rsp` controls;
+5. `--require-direction-perfect` / `-RequireDirectionPerfect` makes that direction audit a hard gate.
+
+The raw outputs stay build-specific evidence:
+
+```text
+registry-native-direct.csv
+registry-native-direct.summary.json
+registry-native-usage.csv
+registry-native-usage.summary.json
+registry-native-compare.json
+registry-direction-audit.json
+```
+
+The direction audit treats `Req` as a C2S control and `Rsp` as an S2C control and also checks matched Req/Rsp pairs. `Notify` names are deliberately excluded from this semantic direction control because notifications can be bidirectional in this protocol family. Any mismatch must be investigated before global flag semantics are published.
+
+## 3. Publish canonical registry artifacts
+
+Only after strict closure succeeds should stable fields be projected into canonical artifacts.
+
+PowerShell:
+
+```powershell
+./scripts/publish-registry-7.1.ps1
+```
+
+POSIX shell:
+
+```bash
+./scripts/publish-registry-7.1.sh
+```
+
+By default publication writes to:
+
+```text
+work/7.1.0-global/windows-x64/canonical-registry/
+```
+
+This avoids silently overwriting committed version data. Review the generated `summary.json`, unresolved semantic-name count and provenance before committing it to:
+
+```text
+versions/7.1.0-global/windows-x64/registry/
+```
+
+The publisher independently rechecks:
+
+- exact 4,896-row population and unique CmdIds;
+- full independent native-path agreement;
+- strongly validated direction mapping;
+- current AstaPS control-set coverage;
+- unique type identity for every row;
+- direct type-slot membership in the independently recovered usage-slot evidence;
+- ambiguity in `GetCmdId` RVA candidates;
+- exact sample hashes from `hashes.json`.
+
+If any publication gate fails, fix or document the underlying recovery evidence. Do not pad, trim, rename or manually patch rows to match historical counts.
 
 ## Inspect an unknown runtime packet
 
@@ -52,7 +163,7 @@ The current native decoder intentionally leaves method `parameter_types` and `re
 genshinre wire 7202d027
 ```
 
-For the current 7.1 observation this reports field 14, wire type 2, two payload bytes and the possible packed-varint interpretation `[5072]`.
+For the current 7.1 `CmdId 186` observation this reports field 14, wire type 2, two payload bytes and the possible packed-varint interpretation `[5072]`. The packed interpretation is only a structural candidate until the current client type/parser identity is recovered.
 
 ## Convert a server trace into reusable data
 
@@ -70,42 +181,26 @@ genshinre query-registry \
   --cmd-id 26105
 ```
 
-The committed 7.1 registry is currently a small seed reconstructed from preserved audit evidence. `summary.json` records that it is partial. The historical full dataset had 4,896 unique CmdIds and must be regenerated before completeness is claimed.
+Until the exact-sample closure/publication workflow has been completed and reviewed, the committed 7.1 registry remains a partial seed reconstructed from preserved audit evidence. Historical analysis recovered 4,896 unique CmdIds; that number is a regression reference and is never used to fabricate generated rows.
 
-## Build and verify a registry
-
-Normalize raw recovery output:
+## Build an independent control set
 
 ```bash
-genshinre normalize-registry work/registry-raw.csv \
-  versions/7.1.0-global/windows-x64/registry \
-  --direction-map 0=S2C,1=C2S \
-  --provenance versions/7.1.0-global/windows-x64/hashes.json
+genshinre import-opcodes-java \
+  ../AstaPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java \
+  work/known-opcodes.csv
 ```
 
-Build an independent numeric control set from AstaPS:
-
-```bash
-genshinre import-opcodes-java ../AstaPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java work/known-opcodes.csv
-```
-
-Then require every known CmdId to exist in the recovered client registry:
-
-```bash
-genshinre crosscheck-registry \
-  versions/7.1.0-global/windows-x64/registry/registry.csv \
-  work/known-opcodes.csv \
-  --output work/registry-crosscheck.json
-```
-
-The old 7.1 recovery passed this style of check for all 1,540 known AstaPS opcode values. A newly regenerated 4,896-entry registry should meet the same bar before publication.
+For generic imported registries, `genshinre normalize-registry` remains available. It does not prove that a direction map, type identity or protocol membership is correct. The pinned 7.1 workflow uses the stronger regenerate -> close -> publish path above.
 
 ## Query metadata by handler parameter type
 
 When an extractor provides method parameter types:
 
 ```bash
-genshinre query-methods versions/7.1.0-global/windows-x64/metadata/methods.csv --parameter-type ONKOPMILDMF
+genshinre query-methods \
+  versions/7.1.0-global/windows-x64/metadata/methods.csv \
+  --parameter-type ONKOPMILDMF
 
 genshinre build-type-methods \
   versions/7.1.0-global/windows-x64/metadata/methods.csv \
@@ -134,4 +229,4 @@ genshinre scaffold --version 7.2.0 --region global --platform windows-x64
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-Remove `--allow-partial` once all canonical high-value artifacts for a version are present.
+Remove `--allow-partial` only after the canonical high-value artifacts required by the artifact contract are present and their provenance gates have passed.
