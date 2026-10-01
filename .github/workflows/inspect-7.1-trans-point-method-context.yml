@@ -71,7 +71,7 @@ jobs:
               f.write('\n')
           print('scene method band rows:', len(rows))
           for row in rows:
-              if 0x0F045000 <= int(row['rva'], 0) <= 0x0F046400 or row['rva'] == '0xF050780':
+              if 0x0F045000 <= int(row['rva'], 0) <= 0x0F046C00 or row['rva'] == '0xF050780':
                   print(row)
           PY
 
@@ -86,6 +86,7 @@ jobs:
             --cmd 26552 \
             --cmd 36641 \
             --cmd 20290 \
+            --cmd 23366 \
             --cmd 25567
 
       - name: Inspect scene method band
@@ -96,10 +97,14 @@ jobs:
             /tmp/trans-point-method-context.json \
             --focus unlock_sender:0xF0452B0 \
             --focus unlock_sender_helper:0xF045640 \
+            --focus unlock_tiny_helper:0xF045710 \
             --focus adjacent_26552:0xF045720 \
             --focus rsp_36641:0xF045790 \
+            --focus post_36641:0xF045800 \
             --focus pre_rsp_20290:0xF0460C0 \
             --focus rsp_20290:0xF0462A0 \
+            --focus post_rsp_20290:0xF046310 \
+            --focus get_scene_area_rsp_23366:0xF046780 \
             --focus rsp_2666:0xF050780 \
             --focus get_scene_point_rsp_26:0xF058EF0 \
             --focus scene_point_unlock_notify_25567:0xF05F0F0 \
