@@ -63,10 +63,17 @@ def recover_registry_type_slots_71(
             blob = image.read_rva(section.virtual_address, section.raw_size)
             if not blob:
                 continue
-            end = len(blob) - 14
-            for off in range(max(0, end + 1)):
-                if blob[off : off + 3] != pattern_prefix:
-                    continue
+
+            # Jump directly between candidate MOV-load prefixes instead of walking
+            # every byte in the executable. This keeps the evidence rule identical
+            # while making the 400+ MB 7.1 client scan practical in CI.
+            cursor = 0
+            limit = len(blob) - 14
+            while cursor <= limit:
+                off = blob.find(pattern_prefix, cursor)
+                if off < 0 or off > limit:
+                    break
+                cursor = off + 1
                 if blob[off + 7 : off + 10] != pattern_store:
                     continue
                 dest = int.from_bytes(blob[off + 10 : off + 14], "little", signed=False)
@@ -100,8 +107,7 @@ def recover_registry_type_slots_71(
             for row in rows
         }
         if len(identities) == 1:
-            row = rows[0]
-            unique_rows.append(row)
+            unique_rows.append(rows[0])
         elif rows:
             ambiguous.append(
                 {
