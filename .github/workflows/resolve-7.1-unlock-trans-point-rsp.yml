@@ -12,6 +12,7 @@ on:
       - 'tools/decode_method_parameters_71.py'
       - 'tools/find_protocol_parameter_consumers_71.py'
       - 'tools/inspect_method_context_71.py'
+      - 'tools/map_owner_protocol_parameters_71.py'
       - 'genshinre/paramprobe.py'
       - 'genshinre/param71.py'
       - 'tests/test_param71.py'
@@ -89,6 +90,17 @@ jobs:
             --control-cmd 9369 \
             --control-cmd 26105
 
+      - name: Map KLLNGCPBLMM protocol parameters
+        run: |
+          python tools/map_owner_protocol_parameters_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/gi71/global-metadata.dat \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
+            versions/7.1.0-global/windows-x64/registry/registry.csv \
+            KLLNGCPBLMM \
+            /tmp/kllngcpblmm-protocol-parameters.json
+
       - name: Inspect narrowed KLLNGCPBLMM response handlers
         run: |
           python tools/inspect_method_context_71.py \
@@ -144,6 +156,7 @@ jobs:
             /tmp/unlock-trans-point-rsp-consumers.json
             /tmp/parameter-probe-71.json
             /tmp/unlock-trans-point-rsp-handler-parameters.json
+            /tmp/kllngcpblmm-protocol-parameters.json
             /tmp/unlock-trans-point-rsp-handler-context.json
             /tmp/unlock-trans-point-rsp-method-callers.json
             /tmp/parameter-decoder-constants-71.json
