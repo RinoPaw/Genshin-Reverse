@@ -131,18 +131,17 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def normalized_name(row: dict[str, object]) -> str:
+    return str(row.get("filename", "")).replace("\\", "/").lower()
+
+
 def choose_file(manifest: list[dict[str, object]], target: str) -> dict[str, object]:
     target_lower = target.replace("\\", "/").lower()
-    exact = [row for row in manifest if str(row.get("filename", "")).replace("\\", "/").lower() == target_lower]
+    exact = [row for row in manifest if normalized_name(row) == target_lower]
     if len(exact) == 1:
         return exact[0]
     basename = target_lower.rsplit("/", 1)[-1]
-    suffix = [
-        row
-        for row in manifest
-        if str(row.get("filename", "")).replace("\\", "/").lower().endswith("/" + basename)
-        or str(row.get("filename", "")).lower() == basename
-    ]
+    suffix = [row for row in manifest if normalized_name(row).endswith("/" + basename) or normalized_name(row) == basename]
     if len(suffix) != 1:
         names = [str(row.get("filename", "")) for row in suffix[:20]]
         raise ValueError(f"target {target!r} matched {len(suffix)} manifest files: {names}")
@@ -156,8 +155,16 @@ def choose_executable(manifest: list[dict[str, object]]) -> dict[str, object]:
             return choose_file(manifest, name)
         except ValueError as exc:
             errors.append(str(exc))
-    exe_names = [str(row.get("filename", "")) for row in manifest if str(row.get("filename", "")).lower().endswith(".exe")]
-    raise ValueError(f"could not locate game executable; tried global/CN names; manifest executables={exe_names[:40]}; errors={errors}")
+    exe_names = [str(row.get("filename", "")) for row in manifest if normalized_name(row).endswith(".exe")]
+    raise ValueError(f"could not locate game executable; manifest executables={exe_names[:40]}; errors={errors}")
+
+
+def choose_managed_metadata(manifest: list[dict[str, object]]) -> dict[str, object]:
+    candidates = [row for row in manifest if normalized_name(row).endswith("/managed/metadata/global-metadata.dat")]
+    if len(candidates) != 1:
+        names = [str(row.get("filename", "")) for row in candidates]
+        raise ValueError(f"Managed global-metadata.dat matched {len(candidates)} files: {names}")
+    return candidates[0]
 
 
 def fetch_chunk(prefix: str, chunk: dict[str, object]) -> tuple[int, bytes]:
@@ -222,7 +229,7 @@ def main() -> None:
     print(f"manifest files: {len(manifest)}")
 
     exe_row = choose_executable(manifest)
-    metadata_row = choose_file(manifest, "global-metadata.dat")
+    metadata_row = choose_managed_metadata(manifest)
     print("exe manifest path:", exe_row.get("filename"))
     print("metadata manifest path:", metadata_row.get("filename"))
 
