@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Genshin-Reverse analysis evidence",
+  "type": "object",
+  "required": ["topic", "state", "sample", "questions", "claims", "artifacts", "next_steps"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "enum": ["ACTIVE", "BLOCKED", "COMPLETE"]
+    },
+    "sample": {
+      "type": "object",
+      "required": ["game_version", "region", "platform", "hashes_ref"],
+      "properties": {
+        "game_version": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "platform": {"type": "string", "minLength": 1},
+        "hashes_ref": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "questions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "claims": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/claim"}
+    },
+    "rejected_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["statement", "reason"],
+        "properties": {
+          "statement": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/evidence"}
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"]
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["kind", "source"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "locator": {"type": "string"},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "status", "statement", "evidence"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/status"},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "notes": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

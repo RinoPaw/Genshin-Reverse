@@ -51,3 +51,7 @@ timestamp,offset_ms,direction,cmd_id,name,length,payload_hex,source
 ## proto/message-shapes.json
 
 Key by semantic name when confirmed and by stable obfuscated/unknown identity while unresolved. Each message may include `cmd_id`, parser-derived field numbers, wire types, likely semantic types and evidence/provenance.
+
+## analyses/<topic>/evidence.json
+
+Focused investigations may add a machine-readable evidence index alongside their narrative README. Use `analysis-evidence.schema.json`; keep investigation `state` separate from claim-level evidence `status`. See `docs/analysis-contract.md` for promotion and provenance rules.
