@@ -173,6 +173,8 @@ def decode_method_record(record: bytes, index: int) -> dict[str, int]:
 
 
 def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: int) -> str:
+    if token == MASK32:
+        return ""
     length = (token >> 24) & 0xFF
     index = token & 0xFFFFFF
     if length == 0:
