@@ -1,12 +1,19 @@
 # Registry artifacts
 
-This directory contains the client CmdId -> IL2CPP message identity dataset for the exact sample in `../hashes.json`.
+This directory contains protocol-registry artifacts for the exact 7.1 sample in `../hashes.json`.
 
-Canonical files:
+Canonical filenames are reserved for the complete, publication-gated 7.1 dataset:
 
-- `registry.csv`: primary query surface
-- `registry.json`: JSON equivalent for scripts
+- `registry.csv`: complete primary query surface
+- `registry.json`: complete JSON equivalent
 - `summary.json`: completeness and generation statistics
+
+They are intentionally absent until the native registry recovery closes and the publication gates pass. A small historical seed must never occupy these canonical filenames.
+
+Preserved historical evidence remains in:
+
+- `historical-recovery-samples.csv`
+- `historical-recovery-schema.md`
 
 Canonical columns:
 
@@ -14,14 +21,6 @@ Canonical columns:
 cmd_id,type_name,type_definition_index,type_cache_rva,direction,get_cmd_id_rva,semantic_name,status,evidence,notes
 ```
 
-The currently committed 7.1 registry is deliberately marked **partial**. Two rows were reconstructed from preserved audit evidence. Earlier analysis had recovered 4,896 unique CmdIds and cross-checked all 1,540 known AstaPS opcodes, but that original generated dataset was not preserved in an accessible repository.
+The earlier 7.1 analysis recovered 4,896 unique CmdIds and cross-checked all 1,540 then-known AstaPS numeric opcodes. The regenerated canonical files may be published only after the current native direct-slot and usage-backed recovery paths agree row-for-row, direction controls pass, and the current AstaPS control set is covered.
 
-Never silently present the seed as the full registry. Regenerated full output should replace these files only after sample hashes and control-set checks match.
-
-Normalize recovered raw output with:
-
-```bash
-genshinre normalize-registry work/registry-raw.csv . \
-  --direction-map 0=S2C,1=C2S \
-  --provenance ../hashes.json
-```
+Use `scripts/publish-registry-7.1.ps1` or `scripts/publish-registry-7.1.sh` after strict closure. The publisher rejects incomplete or ambiguous input.
