@@ -29,7 +29,6 @@ jobs:
           python tools/fetch_sophon_targets.py \
             --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
             --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
-            --manifest-md5 '29ad2bc6e42fe4af2086ae58c7e81b33' \
             --output /tmp/gi70 \
             --expected-exe-sha256 '0000000000000000000000000000000000000000000000000000000000000000' \
             --expected-metadata-sha256 '0000000000000000000000000000000000000000000000000000000000000000'
@@ -80,9 +79,8 @@ jobs:
                               rows[str(cmd)].append({'rva':f'0x{rva:X}','mnemonic':insn.mnemonic,'op_str':insn.op_str})
           out={'focus':focus,'immediate_hits':{k:v[:500] for k,v in rows.items()},'counts':{k:len(v) for k,v in rows.items()}}
           print(json.dumps(out,indent=2))
-          print('counts',out['counts'])
           PY
-          cat /tmp/gi70-native-probe.json | tail -n 5
+          tail -n 12 /tmp/gi70-native-probe.json
 
       - name: Upload compact evidence
         if: always()
