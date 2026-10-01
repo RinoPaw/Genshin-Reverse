@@ -52,6 +52,24 @@ class RegistryTests(unittest.TestCase):
             data = json.loads((target / "hashes.json").read_text(encoding="utf-8"))
             self.assertEqual("9.9.9", data["game_version"])
 
+    def test_validate_accepts_static_identity_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td)
+            (target / "registry").mkdir(parents=True)
+            (target / "hashes.json").write_text('{"samples": {}}\n', encoding="utf-8")
+            (target / "registry" / "registry.csv").write_text(
+                "index,cmd_id,type_name,type_definition_index,direction,direction_status,"
+                "semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,"
+                "store_rva,xref_count,xref_method_count,status,evidence\n"
+                "0,25567,DBNMIKBJIPE,66061,S2C,control-confirmed,ScenePointUnlockNotify,"
+                "0x57E0000,0x1252BA60,AEGNNPENLNM,0x7F00000,0x7F00007,7,3,"
+                "static-verified-identity,verified registry identity\n",
+                encoding="utf-8",
+            )
+            errors, warnings = validate_version(target, allow_partial=True)
+            self.assertEqual([], errors)
+            self.assertTrue(warnings)
+
 
 if __name__ == "__main__":
     unittest.main()
