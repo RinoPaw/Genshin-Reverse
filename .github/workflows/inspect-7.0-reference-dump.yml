@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/inspect-7.0-reference-dump.yml'
+      - 'tools/inspect_dumpcs_protocol_consumers.py'
   workflow_dispatch:
 
 permissions:
@@ -21,11 +22,25 @@ jobs:
           curl --fail --location \
             'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' \
             -o /tmp/data.7z
+          curl --fail --location \
+            'https://raw.githubusercontent.com/kuma-dayo/protos/main/7.0.0/packetIds.json' \
+            -o /tmp/packetIds-7.0.json
           sha256sum /tmp/data.7z | tee /tmp/data-sha256.txt
           7z l -slt /tmp/data.7z | tee /tmp/data-list.txt
           mkdir -p /tmp/data
           7z x -y /tmp/data.7z -o/tmp/data >/tmp/data-extract.log
           find /tmp/data -maxdepth 3 -type f -printf '%p %s bytes\n' | sort | tee /tmp/data-files.txt
+
+      - name: Resolve historical trans point consumer owners
+        run: |
+          python tools/inspect_dumpcs_protocol_consumers.py \
+            /tmp/data/data/dump.cs \
+            /tmp/trans-point-consumers-7.0.json \
+            --packet-ids /tmp/packetIds-7.0.json \
+            --target CPKAHGFBBIH \
+            --target CFBLHIJCOEN \
+            --neighbors 24 \
+            | tee /tmp/trans-point-consumers-7.0.txt
 
       - name: Locate historical trans point types
         run: |
@@ -67,5 +82,7 @@ jobs:
             /tmp/data-sha256.txt
             /tmp/data-list.txt
             /tmp/data-files.txt
+            /tmp/trans-point-consumers-7.0.json
+            /tmp/trans-point-consumers-7.0.txt
             /tmp/trans-point-reference-hits.txt
           if-no-files-found: warn
