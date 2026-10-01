@@ -4,22 +4,27 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/close-registry-7.1.sh --exe PATH [--output DIR] [--python PYTHON]
+  scripts/close-registry-7.1.sh --exe PATH [--output DIR] [--python PYTHON] [--require-direction-perfect]
 
 Run scripts/regenerate-7.1.sh first. This command intentionally fails unless
 both independent native layout paths close and agree across all 4,896 rows.
+If known-opcodes.csv exists, registry_flag semantics are also audited against
+independent Req/Rsp controls. Pass --require-direction-perfect to make that
+audit a hard publication gate.
 EOF
 }
 
 EXE=""
 OUTPUT="work/7.1.0-global/windows-x64"
 PYTHON="python3"
+REQUIRE_DIRECTION_PERFECT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --exe) EXE="$2"; shift 2 ;;
     --output) OUTPUT="$2"; shift 2 ;;
     --python) PYTHON="$2"; shift 2 ;;
+    --require-direction-perfect) REQUIRE_DIRECTION_PERFECT=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -44,7 +49,7 @@ for required in \
   fi
 done
 
-printf '[1/3] Exporting direct-slot native registry rows\n'
+printf '[1/4] Exporting direct-slot native registry rows\n'
 "$PYTHON" -m genshinre.registryraw \
   "$EXE" \
   "$OUTPUT/registry-layout-probe.json" \
@@ -53,7 +58,7 @@ printf '[1/3] Exporting direct-slot native registry rows\n'
   --require-4896-unique \
   > /dev/null
 
-printf '[2/3] Exporting usage-backed native registry rows\n'
+printf '[2/4] Exporting usage-backed native registry rows\n'
 "$PYTHON" -m genshinre.registryusageraw \
   "$EXE" \
   "$OUTPUT/registry-usage-layout-probe.json" \
@@ -63,7 +68,7 @@ printf '[2/3] Exporting usage-backed native registry rows\n'
   --require-4896-unique \
   > /dev/null
 
-printf '[3/3] Requiring independent row-by-row agreement\n'
+printf '[3/4] Requiring independent row-by-row agreement\n'
 "$PYTHON" -m genshinre.registrycompare \
   "$OUTPUT/registry-native-direct.csv" \
   "$OUTPUT/registry-native-usage.csv" \
@@ -71,8 +76,31 @@ printf '[3/3] Requiring independent row-by-row agreement\n'
   --require-full-agreement \
   > /dev/null
 
-printf 'Registry closure passed.\n'
+printf '[4/4] Auditing registry_flag direction semantics\n'
+if [[ -f "$OUTPUT/known-opcodes.csv" ]]; then
+  DIRECTION_ARGS=(
+    -m genshinre.directionaudit
+    "$OUTPUT/registry-native-usage.csv"
+    "$OUTPUT/known-opcodes.csv"
+    --output "$OUTPUT/registry-direction-audit.json"
+  )
+  if [[ "$REQUIRE_DIRECTION_PERFECT" -eq 1 ]]; then
+    DIRECTION_ARGS+=(--require-perfect)
+  fi
+  "$PYTHON" "${DIRECTION_ARGS[@]}" > /dev/null
+else
+  if [[ "$REQUIRE_DIRECTION_PERFECT" -eq 1 ]]; then
+    echo "known-opcodes.csv is required by --require-direction-perfect; rerun regeneration with --astaps DIR" >&2
+    exit 1
+  fi
+  echo '      skipped; known-opcodes.csv was not generated (pass --astaps DIR to regenerate-7.1.sh)'
+fi
+
+printf 'Registry structural closure passed.\n'
 printf 'Direct raw: %s\n' "$OUTPUT/registry-native-direct.csv"
 printf 'Usage raw:  %s\n' "$OUTPUT/registry-native-usage.csv"
 printf 'Comparison: %s\n' "$OUTPUT/registry-native-compare.json"
-printf 'Next evidence layer: independently audit registry_flag direction semantics, then project stable fields into canonical registry.csv.\n'
+if [[ -f "$OUTPUT/registry-direction-audit.json" ]]; then
+  printf 'Direction audit: %s\n' "$OUTPUT/registry-direction-audit.json"
+fi
+printf 'Canonical projection is allowed only after the direction audit and current control-set mismatches have been reviewed.\n'
