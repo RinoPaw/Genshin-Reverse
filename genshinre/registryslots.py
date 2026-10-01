@@ -13,6 +13,13 @@ HISTORICAL_ROW_COUNT = 4896
 DEST_BASE = 0x20
 ENTRY_SIZE = 8
 
+# Exact 7.1 global client protocol-registry construction corridor. The first
+# observed indexed stores begin immediately above 0x7F7D800 and the final row
+# (4895) stores at 0x7F8E44D. Restricting candidate loads to this constructor
+# removes unrelated [rbx+offset] stores elsewhere in il2cpp code.
+REGISTRY_CODE_MIN_RVA = 0x07F7D800
+REGISTRY_CODE_MAX_RVA = 0x07F8E500
+
 ANCHORS = {
     2232: {"type_slot_rva": 0x057E6498, "store_rva": 0x07F852AB, "name": "UnlockTransPointReq"},
     3118: {"type_slot_rva": 0x057F6F60, "store_rva": None, "name": "DoSetPlayerBornDataNotify"},
@@ -59,8 +66,8 @@ def recover_registry_type_slots_71(
     with PEImage(exe) as image:
         # IL2CPP type pointer slots frequently live in virtual-only tails of PE
         # sections (zero-filled at load time). rva_to_offset() intentionally
-        # rejects those RVAs, so registry recovery must validate against the
-        # section's virtual span instead of requiring raw-file backing.
+        # rejects those RVAs, so registry recovery validates against a section's
+        # virtual span without requiring raw-file backing.
         virtual_ranges = [
             (
                 section.virtual_address,
@@ -76,9 +83,6 @@ def recover_registry_type_slots_71(
             if not blob:
                 continue
 
-            # Jump directly between candidate MOV-load prefixes instead of walking
-            # every byte in the executable. This keeps the evidence rule identical
-            # while making the 400+ MB 7.1 client scan practical in CI.
             cursor = 0
             limit = len(blob) - 14
             while cursor <= limit:
@@ -88,6 +92,11 @@ def recover_registry_type_slots_71(
                 cursor = off + 1
                 if blob[off + 7 : off + 10] != pattern_store:
                     continue
+
+                load_rva = section.virtual_address + off
+                if not REGISTRY_CODE_MIN_RVA <= load_rva < REGISTRY_CODE_MAX_RVA:
+                    continue
+
                 dest = int.from_bytes(blob[off + 10 : off + 14], "little", signed=False)
                 if dest < DEST_BASE or (dest - DEST_BASE) % ENTRY_SIZE:
                     continue
@@ -95,7 +104,6 @@ def recover_registry_type_slots_71(
                 if not 0 <= index < HISTORICAL_ROW_COUNT:
                     continue
 
-                load_rva = section.virtual_address + off
                 disp = int.from_bytes(blob[off + 3 : off + 7], "little", signed=True)
                 type_slot_rva = load_rva + 7 + disp
                 if not any(start <= type_slot_rva < end for start, end in virtual_ranges):
@@ -174,7 +182,7 @@ def recover_registry_type_slots_71(
                     "destination_offset": f"0x{int(row['destination_offset']):X}",
                     "section": row["section"],
                     "status": "static-verified" if complete else "static-observed",
-                    "evidence": "7.1 bulk registry type-slot construction sequence",
+                    "evidence": "7.1 protocol registry constructor type-slot sequence",
                 }
             )
 
@@ -194,6 +202,7 @@ def recover_registry_type_slots_71(
             "load_pattern": "48 8B 05 disp32",
             "store_pattern": "48 89 83 disp32",
             "type_slot_validation": "PE virtual section span; raw backing not required",
+            "registry_code_rva_range": [f"0x{REGISTRY_CODE_MIN_RVA:X}", f"0x{REGISTRY_CODE_MAX_RVA:X}"],
         },
     }
     if summary_json is None:
