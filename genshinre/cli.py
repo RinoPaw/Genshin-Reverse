@@ -8,6 +8,7 @@ from .anchors import verify_metadata_anchors
 from .dumpcs import import_dump_cs
 from .extractors import run_mhydump
 from .fingerprint import fingerprint
+from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_methods
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
 from .registry import normalize_registry, query_registry
@@ -72,6 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--type")
     p.add_argument("--parameter-type")
     p.add_argument("--method-name")
+
+    p = sub.add_parser("scan-constant-cmdids", help="scan method RVAs for conservative constant-return CmdId candidates")
+    p.add_argument("exe", type=Path)
+    p.add_argument("methods_csv", type=Path)
+    p.add_argument("output_csv", type=Path)
+    p.add_argument("--summary", type=Path)
+    p.add_argument("--min-id", type=int, default=1)
+    p.add_argument("--max-id", type=int, default=65535)
 
     p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into canonical metadata indexes")
     p.add_argument("dump_cs", type=Path)
@@ -144,6 +153,16 @@ def main() -> None:
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
             raise SystemExit(1)
+    elif args.command == "scan-constant-cmdids":
+        result = scan_constant_cmdids(
+            args.exe,
+            args.methods_csv,
+            args.output_csv,
+            summary_json=args.summary,
+            min_cmd_id=args.min_id,
+            max_cmd_id=args.max_id,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "import-dump-cs":
         result = import_dump_cs(args.dump_cs, args.output_dir, args.source_tool, args.tool_revision)
         print(json.dumps(result, indent=2, ensure_ascii=False))
