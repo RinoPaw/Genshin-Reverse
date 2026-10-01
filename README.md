@@ -23,7 +23,26 @@ genshinre query-registry versions/7.1.0-global/windows-x64/registry/registry.csv
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-See `docs/getting-started.md` for trace import, sample fingerprinting, metadata queries, version scaffolding and registry/control-set verification.
+For the pinned 7.1 client, the reproducible full-registry path is deliberately staged:
+
+```text
+regenerate
+  -> metadata / usage / GetCmdId / native-layout evidence
+close
+  -> two independent native exports must agree across all 4,896 rows
+publish
+  -> direction, control-set and type-identity gates must pass
+```
+
+Entry points:
+
+```text
+scripts/regenerate-7.1.{sh,ps1}
+scripts/close-registry-7.1.{sh,ps1}
+scripts/publish-registry-7.1.{sh,ps1}
+```
+
+See `docs/getting-started.md` for the exact workflow and `docs/methods/native-registry-layout-71.md` for the current structural evidence.
 
 ## Layout
 
@@ -33,6 +52,7 @@ genshinre/                    standard-library CLI/package
 schemas/                      canonical artifact schemas
 tools/                        focused/legacy helper scripts
 tests/                        synthetic regression tests
+scripts/                      reproducible target-version workflows
 versions/
   7.1.0-global/windows-x64/
     hashes.json
@@ -58,7 +78,22 @@ runtime observation
 → confirmed semantic mapping
 ```
 
-The CLI supports each reusable boundary: `import-trace`, `wire`, `query-registry`, `normalize-registry`, `import-opcodes-java`, `crosscheck-registry`, `query-methods`, `build-type-methods`, `fingerprint`, `scaffold`, and `validate`.
+For registry reconstruction itself, independent evidence paths are kept separate until the final gate:
+
+```text
+MHY metadata → metadata usage → runtime type identity ┐
+                                                     ├→ usage-backed native registry
+native compact table → CmdId/flag/type-slot         ┘
+
+independent direct-slot native registry ─────────────┐
+                                                     ├→ row-by-row comparison
+usage-backed native registry ────────────────────────┘
+
+comparison + Req/Rsp direction audit + AstaPS controls
+→ canonical static registry projection
+```
+
+A target count is never used to pad or trim generated output. Historical counts are regression evidence only.
 
 ## Highest-value artifacts
 
@@ -70,13 +105,13 @@ The long-term priority order is:
 4. `xrefs/message-handlers.csv` and `message-senders.csv`.
 5. `analyses/<topic>/`: evidence, candidates, rejected paths and current state.
 
-The committed 7.1 registry is currently a **partial seed** reconstructed from preserved audit evidence. Historical analysis recovered 4,896 unique CmdIds and matched all 1,540 known AstaPS opcodes; regenerating and preserving that full dataset is the highest-priority data task.
+The committed 7.1 registry is currently a **partial seed** reconstructed from preserved audit evidence. Historical analysis recovered 4,896 unique CmdIds and matched all 1,540 then-known AstaPS opcodes. The repository now contains the generators, independent layout probes, raw exporters, cross-path comparison, direction audit and publication gates needed to regenerate the full dataset, but the full exact-sample output is not claimed until that pipeline is actually run and reviewed.
 
-## Evidence states
+## Evidence boundaries
 
 Use `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED`, and `UNRESOLVED`. More specific machine-readable provenance states (`runtime-verified`, `static-verified`, `historical-only`, etc.) may be used where useful.
 
-Historical numeric CmdId equality is never enough to establish a current mapping.
+Historical numeric CmdId equality is never enough to establish a current mapping. Candidate graphs and layout probes never overwrite canonical registry data. `registry_flag` direction semantics stay provisional until independent Req/Rsp controls validate them. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed.
 
 ## Current target
 
