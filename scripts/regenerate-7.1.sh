@@ -35,19 +35,19 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 mkdir -p "$OUTPUT/metadata"
 
-printf '[1/17] Fingerprinting exact samples\n'
+printf '[1/18] Fingerprinting exact samples\n'
 "$PYTHON" -m genshinre fingerprint "$EXE" "$METADATA" > "$OUTPUT/fingerprints.json"
 
-printf '[2/17] Decoding native 7.1 MHY metadata\n'
+printf '[2/18] Decoding native 7.1 MHY metadata\n'
 "$PYTHON" -m genshinre decode-metadata-71 "$EXE" "$METADATA" "$OUTPUT/metadata"
 
-printf '[3/17] Verifying native 7.1 anchors\n'
+printf '[3/18] Verifying native 7.1 anchors\n'
 "$PYTHON" -m genshinre verify-metadata \
   "$OUTPUT/metadata" \
   versions/7.1.0-global/windows-x64/metadata/anchors-native.json \
   > "$OUTPUT/metadata-anchor-check.json"
 
-printf '[4/17] Exporting IL2CPP runtime type index\n'
+printf '[4/18] Exporting IL2CPP runtime type index\n'
 "$PYTHON" -m genshinre.typearray \
   "$EXE" \
   "$OUTPUT/metadata/types.csv" \
@@ -55,14 +55,14 @@ printf '[4/17] Exporting IL2CPP runtime type index\n'
   --summary "$OUTPUT/metadata/runtime-types.summary.json" \
   > /dev/null
 
-printf '[5/17] Scanning conservative constant-return CmdId candidates\n'
+printf '[5/18] Scanning conservative constant-return CmdId candidates\n'
 "$PYTHON" -m genshinre scan-constant-cmdids \
   "$EXE" \
   "$OUTPUT/metadata/methods.csv" \
   "$OUTPUT/getcmdid-candidates.csv" \
   --summary "$OUTPUT/getcmdid-candidates.summary.json"
 
-printf '[6/17] Auditing metadata-usage initializer call sites\n'
+printf '[6/18] Auditing metadata-usage initializer call sites\n'
 "$PYTHON" -m genshinre.usage \
   "$EXE" \
   "$OUTPUT/metadata-usage-sites.csv" \
@@ -70,20 +70,20 @@ printf '[6/17] Auditing metadata-usage initializer call sites\n'
   --require-9369-anchor \
   > /dev/null
 
-printf '[7/17] Probing metadata registration structure\n'
+printf '[7/18] Probing metadata registration structure\n'
 "$PYTHON" -m genshinre.metareg \
   "$EXE" \
   "$OUTPUT/metadata-registration-probe.json" \
   > /dev/null
 
-printf '[8/17] Recovering anchored metadata usage destination table\n'
+printf '[8/18] Recovering anchored metadata usage destination table\n'
 "$PYTHON" -m genshinre.metausage \
   "$EXE" \
   "$OUTPUT/metadata-usage-slots.csv" \
   --summary "$OUTPUT/metadata-usage-slots.summary.json" \
   > /dev/null
 
-printf '[9/17] Joining metadata usages to runtime types\n'
+printf '[9/18] Joining metadata usages to runtime types\n'
 "$PYTHON" -m genshinre.usagejoin \
   "$EXE" \
   "$OUTPUT/metadata-usage-slots.csv" \
@@ -92,7 +92,7 @@ printf '[9/17] Joining metadata usages to runtime types\n'
   --summary "$OUTPUT/metadata-usage-types.summary.json" \
   > /dev/null
 
-printf '[10/17] Building registry candidate graph\n'
+printf '[10/18] Building registry candidate graph\n'
 "$PYTHON" -m genshinre.registrygraph \
   "$OUTPUT/metadata-usage-types.csv" \
   "$OUTPUT/getcmdid-candidates.csv" \
@@ -101,26 +101,33 @@ printf '[10/17] Building registry candidate graph\n'
   --require-anchors \
   > /dev/null
 
-printf '[11/17] Refining one-to-one static registry candidates\n'
+printf '[11/18] Refining one-to-one static registry candidates\n'
 "$PYTHON" -m genshinre.registryselect \
   "$OUTPUT/registry-candidate-graph.csv" \
   "$OUTPUT/registry-static-candidates.csv" \
   --summary "$OUTPUT/registry-static-candidates.summary.json" \
   > /dev/null
 
-printf '[12/17] Probing preserved registry type-slot anchors\n'
+printf '[12/18] Probing preserved registry type-slot anchors\n'
 "$PYTHON" -m genshinre probe-registry-71 \
   "$EXE" \
   "$OUTPUT/registry-probe-71.json" \
   > /dev/null
 
-printf '[13/17] Inferring indexed native protocol-registry layout\n'
+printf '[13/18] Inferring direct-slot native protocol-registry layout\n'
 "$PYTHON" -m genshinre.registrylayout \
   "$EXE" \
   "$OUTPUT/registry-layout-probe.json" \
   > /dev/null
 
-printf '[14/17] Optional AstaPS control set\n'
+printf '[14/18] Inferring usage-backed native protocol-registry layout\n'
+"$PYTHON" -m genshinre.registryusagelayout \
+  "$EXE" \
+  "$OUTPUT/metadata-usage-types.csv" \
+  "$OUTPUT/registry-usage-layout-probe.json" \
+  > /dev/null
+
+printf '[15/18] Optional AstaPS control set\n'
 if [[ -n "$ASTAPS" ]]; then
   PACKET_OPCODES="$ASTAPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"
   if [[ ! -f "$PACKET_OPCODES" ]]; then
@@ -132,7 +139,7 @@ else
   echo '      skipped; pass --astaps DIR to generate known-opcodes.csv'
 fi
 
-printf '[15/17] Candidate graph diagnostics\n'
+printf '[16/18] Candidate graph diagnostics\n'
 if [[ -n "$ASTAPS" ]]; then
   "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-candidate-graph.csv" \
@@ -143,7 +150,7 @@ else
   echo '      skipped; AstaPS control set unavailable'
 fi
 
-printf '[16/17] Strict candidate diagnostics\n'
+printf '[17/18] Strict candidate diagnostics\n'
 if [[ -n "$ASTAPS" ]]; then
   "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-static-candidates.csv" \
@@ -154,7 +161,7 @@ else
   echo '      skipped; AstaPS control set unavailable'
 fi
 
-printf '[17/17] Human-readable registry convergence report\n'
+printf '[18/18] Human-readable registry convergence report\n'
 if [[ -n "$ASTAPS" ]]; then
   "$PYTHON" -m genshinre.registryreport \
     "$OUTPUT/registry-candidate-graph.csv" \
@@ -173,4 +180,4 @@ else
 fi
 
 printf 'Done: %s\n' "$OUTPUT"
-printf 'Read registry-candidate-report.md and registry-layout-probe.json first. A strong layout candidate must explain both preserved indexed CmdIds, both type slots and both direction flags.\n'
+printf 'Read registry-candidate-report.md, registry-layout-probe.json and registry-usage-layout-probe.json first. Agreement between the two native-layout paths is stronger evidence than either path alone.\n'
