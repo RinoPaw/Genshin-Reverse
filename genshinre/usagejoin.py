@@ -74,8 +74,10 @@ def _select_anchor_match(matches: list[dict[str, object]]) -> tuple[dict[str, ob
         (str(item[0]["table_rva"]), int(item[0]["stride"]), int(item[0]["width"]), item[1])
         for item in normalized
     }
-    if len(unique) != 1:
+    if not unique:
         return None
+    if len(unique) != 1:
+        raise ValueError("metadata usage anchor matches multiple source tables or encodings")
     table_rva, stride, width, encoding = next(iter(unique))
     selected = next(
         item
@@ -162,6 +164,37 @@ def _score_source_candidates(
     return scores
 
 
+def _physical_source_identity(row: dict[str, object]) -> tuple[str, int, int]:
+    return str(row["table_rva"]), int(row["stride"]), int(row["width"])
+
+
+def _decoded_signature(
+    image: PEImage,
+    probe: dict[str, object],
+    slots: list[dict[str, str]],
+    score: dict[str, object],
+) -> tuple[tuple[int, int | None], ...]:
+    table_rva = int(str(score["table_rva"]), 0)
+    stride = int(score["stride"])
+    width = int(score["width"])
+    encoding = str(score["encoding"])
+    type_array_va = int(str(probe["runtime_type_array_va"]), 0)
+    result: list[tuple[int, int | None]] = []
+    for slot in slots:
+        try:
+            usage_destination = int(slot["usage_destination"])
+        except (KeyError, ValueError):
+            continue
+        blob = image.read_rva(table_rva + usage_destination * stride, width)
+        if len(blob) != width:
+            result.append((usage_destination, None))
+            continue
+        raw = int.from_bytes(blob, "little", signed=False)
+        type_index, _ = decode_source_value(raw, encoding, type_array_va)
+        result.append((usage_destination, type_index))
+    return tuple(result)
+
+
 def _select_globally_scored_source(
     image: PEImage,
     probe: dict[str, object],
@@ -174,14 +207,30 @@ def _select_globally_scored_source(
     best = scores[0]
     if int(best["resolved_runtime_type_rows"]) == 0:
         raise ValueError("metadata usage source candidates resolved zero runtime types")
-    if len(scores) > 1:
-        second = scores[1]
+
+    best_rank = (
+        int(best["resolved_runtime_type_rows"]),
+        int(best["distinct_resolved_types"]),
+        float(best["resolved_ratio"]),
+    )
+    tied = [
+        row
+        for row in scores
         if (
-            int(best["resolved_runtime_type_rows"]) == int(second["resolved_runtime_type_rows"])
-            and int(best["distinct_resolved_types"]) == int(second["distinct_resolved_types"])
-            and str(best["encoding"]) != str(second["encoding"])
-        ):
+            int(row["resolved_runtime_type_rows"]),
+            int(row["distinct_resolved_types"]),
+            float(row["resolved_ratio"]),
+        )
+        == best_rank
+    ]
+    if len(tied) > 1:
+        physical_sources = {_physical_source_identity(row) for row in tied}
+        if len(physical_sources) != 1:
             raise ValueError("metadata usage source global scoring produced an unresolved tie")
+        signatures = {_decoded_signature(image, probe, slots, row) for row in tied}
+        if len(signatures) != 1:
+            raise ValueError("metadata usage source global scoring produced an unresolved tie")
+
     selected = {
         "table_rva": str(best["table_rva"]),
         "stride": int(best["stride"]),
@@ -306,6 +355,7 @@ def join_usage_sources_71(
         "status": "static-joined" if resolved_type_rows else "candidate-joined",
         "notes": [
             "the historical 37523 anchor is diagnostic only; current artifacts can select a source table by global runtime-type resolution",
+            "equivalent encoding labels are accepted only when they describe the same physical table and decode every observed usage destination to the same type index",
             "rows without a runtime type name may represent other metadata usage kinds or unresolved runtime type entries",
             "this artifact establishes metadata-usage/type identity and still does not by itself prove protocol registration",
         ],
