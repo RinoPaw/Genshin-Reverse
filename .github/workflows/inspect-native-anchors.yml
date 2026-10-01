@@ -30,7 +30,7 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Disassemble hard anchors and registry constructor head
+      - name: Disassemble hard anchors and registry constructor
         run: |
           python - <<'PY'
           from capstone import Cs, CS_ARCH_X86, CS_MODE_64
@@ -42,6 +42,7 @@ jobs:
           md.detail = False
           targets = {
               'registry constructor head': (0x07F7D8C0, 192, 256),
+              'registry constructor tail': (0x07F8E44D, 160, 768),
               '9369 historical store': (0x07F852AB, 96, 160),
               '26105 GetCmdId': (0x10587260, 32, 128),
               'metadata usage helper': (0x00523400, 32, 256),
