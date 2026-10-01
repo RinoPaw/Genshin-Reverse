@@ -1,21 +1,8 @@
 {
   "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
   "historical_row_count": 4896,
-  "matched_unique_indices": 4884,
-  "missing_indices": [
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11
-  ],
+  "matched_unique_indices": 4896,
+  "missing_indices": [],
   "ambiguous_indices": [],
   "anchors": {
     "2232": {
@@ -42,13 +29,16 @@
     }
   },
   "all_anchors_pass": true,
-  "complete_4896_indexed_type_slots": false,
-  "status": "partial-static-evidence",
+  "complete_4896_indexed_type_slots": true,
+  "status": "static-verified",
   "layout": {
     "destination_base": "0x20",
     "entry_size": 8,
     "load_pattern": "48 8B 05 disp32",
-    "store_pattern": "48 89 83 disp32",
+    "store_patterns": [
+      "48 89 43 disp8",
+      "48 89 83 disp32"
+    ],
     "type_slot_validation": "PE virtual section span; raw backing not required",
     "registry_code_rva_range": [
       "0x7F7D800",
