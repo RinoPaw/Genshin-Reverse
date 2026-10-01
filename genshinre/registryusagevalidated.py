@@ -20,8 +20,16 @@ def _is_strong(candidate: dict[str, object]) -> bool:
     )
 
 
+def _freeze_metric_value(value: object) -> object:
+    if isinstance(value, dict):
+        return tuple(sorted((str(key), _freeze_metric_value(item)) for key, item in value.items()))
+    if isinstance(value, list):
+        return tuple(_freeze_metric_value(item) for item in value)
+    return value
+
+
 def _metric_signature(metrics: dict[str, object], keys: tuple[str, ...]) -> tuple[object, ...]:
-    return tuple(metrics.get(key) for key in keys)
+    return tuple(_freeze_metric_value(metrics.get(key)) for key in keys)
 
 
 def _physical_layout_key(candidate: dict[str, object]) -> tuple[object, ...]:
@@ -138,7 +146,7 @@ def export_validated_usage_registry_71(
     }
     if observed != expected:
         raise ValueError(
-            "legacy usage exporter selected a different layout after strict validation: "
+            "usage exporter selected a different layout after strict validation: "
             f"expected={expected!r} observed={observed!r}"
         )
 
