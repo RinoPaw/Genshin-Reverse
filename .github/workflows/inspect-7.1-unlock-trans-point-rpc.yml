@@ -1,0 +1,187 @@
+name: Inspect 7.1 UnlockTransPoint RPC lifecycle
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.1-unlock-trans-point-rpc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact official global 7.1 sample
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+
+      - name: Trace submit methods and callers
+        run: |
+          python - <<'PY'
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from genshinre.pe import PEImage
+
+          exe = Path('/tmp/gi71/GenshinImpact.exe')
+          methods_path = Path('versions/7.1.0-global/windows-x64/metadata/methods.csv')
+
+          # Known current-client anchors. Absolute addresses from earlier audits are
+          # normalized to RVAs using the 0x140000000 image base.
+          focus = {
+              'unlock_trans_point_owner_method': 0x0F0452B0,
+              'unlock_trans_point_submit_target': 0x07246860,
+              'born_request_sender_control': 0x0725CEF0,
+              'born_page_submit_control': 0x0BDEE770,
+          }
+          call_targets = {
+              focus['unlock_trans_point_submit_target'],
+              focus['born_request_sender_control'],
+          }
+
+          methods = []
+          with methods_path.open('r', encoding='utf-8-sig', newline='') as f:
+              for row in csv.DictReader(f):
+                  text = row.get('rva') or row.get('method_rva') or ''
+                  if not text:
+                      continue
+                  try:
+                      rva = int(text, 0)
+                  except ValueError:
+                      continue
+                  methods.append((rva, {
+                      'type_name': row.get('type_name', ''),
+                      'method_name': row.get('method_name', ''),
+                      'rva': text,
+                      'return_type': row.get('return_type', ''),
+                      'parameter_types': row.get('parameter_types', ''),
+                      'method_index': row.get('method_index', ''),
+                      'type_definition_index': row.get('type_definition_index', ''),
+                  }))
+          methods.sort(key=lambda x: x[0])
+          starts = [x[0] for x in methods]
+
+          def owner_for(rva):
+              i = bisect.bisect_right(starts, rva) - 1
+              if i < 0:
+                  return None
+              start, row = methods[i]
+              end = starts[i + 1] if i + 1 < len(starts) else start + 0x10000
+              if not (start <= rva < end):
+                  return None
+              return {**row, 'start_rva': f'0x{start:X}', 'offset': rva - start,
+                      'next_method_rva': f'0x{end:X}'}
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+
+          def disassemble(image, rva, size=0x900, limit=360):
+              blob = image.read_rva(rva, size)
+              out = []
+              for insn in md.disasm(blob, image.image_base + rva):
+                  irva = insn.address - image.image_base
+                  target_rva = None
+                  if insn.mnemonic == 'call' and insn.op_str.startswith('0x'):
+                      try:
+                          absolute = int(insn.op_str, 16)
+                          if absolute >= image.image_base:
+                              target_rva = absolute - image.image_base
+                      except ValueError:
+                          pass
+                  out.append({
+                      'rva': f'0x{irva:X}',
+                      'mnemonic': insn.mnemonic,
+                      'op_str': insn.op_str,
+                      'direct_call_target_rva': None if target_rva is None else f'0x{target_rva:X}',
+                      'direct_call_target_owner': None if target_rva is None else owner_for(target_rva),
+                  })
+                  if len(out) >= limit:
+                      break
+              return out
+
+          direct_callers = {f'0x{x:X}': [] for x in sorted(call_targets)}
+          with PEImage(exe) as image:
+              # E8 rel32 is sufficient for the direct calls seen at the known sender sites.
+              for section in image.sections:
+                  if not (section.characteristics & 0x20000000):
+                      continue
+                  blob = image.read_rva(section.virtual_address, section.raw_size)
+                  if not blob:
+                      continue
+                  pos = 0
+                  while True:
+                      pos = blob.find(b'\xE8', pos)
+                      if pos < 0 or pos + 5 > len(blob):
+                          break
+                      insn_rva = section.virtual_address + pos
+                      disp = int.from_bytes(blob[pos + 1:pos + 5], 'little', signed=True)
+                      target = insn_rva + 5 + disp
+                      if target in call_targets:
+                          before = 96
+                          start = max(section.virtual_address, insn_rva - before)
+                          direct_callers[f'0x{target:X}'].append({
+                              'call_rva': f'0x{insn_rva:X}',
+                              'caller_owner': owner_for(insn_rva),
+                              'context_disasm': disassemble(image, start, size=224, limit=80),
+                          })
+                      pos += 1
+
+              focus_report = {}
+              for name, rva in focus.items():
+                  focus_report[name] = {
+                      'rva': f'0x{rva:X}',
+                      'owner': owner_for(rva),
+                      'disasm': disassemble(image, rva),
+                  }
+
+          report = {
+              'sample': {
+                  'version': '7.1.0-global/windows-x64',
+                  'exe_sha256': '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d',
+                  'image_base': '0x140000000',
+              },
+              'focus': focus_report,
+              'direct_callers': direct_callers,
+              'notes': [
+                  'UnlockTransPointReq is DMMJNICDOHM / CmdId 9369; KLLNGCPBLMM.OIFANGMCKNJ constructs it and directly calls RVA 0x7246860.',
+                  'Born-flow addresses are controls from the already runtime-validated 26105 -> 4385 case study.',
+                  'Direct caller discovery scans E8 rel32 calls only; indirect/interface calls require a later probe.',
+              ],
+          }
+          out = Path('/tmp/unlock-trans-point-rpc-lifecycle.json')
+          out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+          print('=== focus owners ===')
+          for name, item in focus_report.items():
+              print(name, item['rva'], item['owner'])
+          print('=== direct caller counts ===')
+          for target, callers in direct_callers.items():
+              print(target, len(callers))
+              for caller in callers[:30]:
+                  print(' ', caller['call_rva'], caller['caller_owner'])
+          PY
+
+      - name: Upload RPC lifecycle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: unlock-trans-point-rpc-lifecycle
+          path: /tmp/unlock-trans-point-rpc-lifecycle.json
+          if-no-files-found: error
