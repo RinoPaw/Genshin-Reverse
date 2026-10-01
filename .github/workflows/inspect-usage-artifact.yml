@@ -1,0 +1,41 @@
+name: Inspect 7.1 usage evidence
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-usage-artifact.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download preserved failed-work artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/work
+          gh run download 36828347611 \
+            --name genshin-7.1-reverse-work \
+            --dir /tmp/work
+          find /tmp/work -maxdepth 2 -type f -printf '%s %p\n' | sort -nr | head -30
+
+      - name: Inspect usage-site evidence
+        run: |
+          echo '--- summary ---'
+          cat /tmp/work/metadata-usage-sites.summary.json || true
+          echo '--- file size / rows ---'
+          ls -lh /tmp/work/metadata-usage-sites.csv || true
+          wc -l /tmp/work/metadata-usage-sites.csv || true
+          echo '--- usage 37523 rows ---'
+          grep '^37523,' /tmp/work/metadata-usage-sites.csv || true
+          echo '--- known store/slot strings ---'
+          grep -i -E '7F852AB|57E6498' /tmp/work/metadata-usage-sites.csv || true
+          echo '--- nearby usage ids 37518..37528 ---'
+          awk -F, 'NR==1 || ($1 ~ /^[0-9]+$/ && $1 >= 37518 && $1 <= 37528)' /tmp/work/metadata-usage-sites.csv | head -100 || true
