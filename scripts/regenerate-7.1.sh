@@ -35,19 +35,19 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 mkdir -p "$OUTPUT/metadata"
 
-printf '[1/13] Fingerprinting exact samples\n'
+printf '[1/14] Fingerprinting exact samples\n'
 "$PYTHON" -m genshinre fingerprint "$EXE" "$METADATA" > "$OUTPUT/fingerprints.json"
 
-printf '[2/13] Decoding native 7.1 MHY metadata\n'
+printf '[2/14] Decoding native 7.1 MHY metadata\n'
 "$PYTHON" -m genshinre decode-metadata-71 "$EXE" "$METADATA" "$OUTPUT/metadata"
 
-printf '[3/13] Verifying native 7.1 anchors\n'
+printf '[3/14] Verifying native 7.1 anchors\n'
 "$PYTHON" -m genshinre verify-metadata \
   "$OUTPUT/metadata" \
   versions/7.1.0-global/windows-x64/metadata/anchors-native.json \
   > "$OUTPUT/metadata-anchor-check.json"
 
-printf '[4/13] Exporting IL2CPP runtime type index\n'
+printf '[4/14] Exporting IL2CPP runtime type index\n'
 "$PYTHON" -m genshinre.typearray \
   "$EXE" \
   "$OUTPUT/metadata/types.csv" \
@@ -55,14 +55,14 @@ printf '[4/13] Exporting IL2CPP runtime type index\n'
   --summary "$OUTPUT/metadata/runtime-types.summary.json" \
   > /dev/null
 
-printf '[5/13] Scanning conservative constant-return CmdId candidates\n'
+printf '[5/14] Scanning conservative constant-return CmdId candidates\n'
 "$PYTHON" -m genshinre scan-constant-cmdids \
   "$EXE" \
   "$OUTPUT/metadata/methods.csv" \
   "$OUTPUT/getcmdid-candidates.csv" \
   --summary "$OUTPUT/getcmdid-candidates.summary.json"
 
-printf '[6/13] Auditing metadata-usage initializer call sites\n'
+printf '[6/14] Auditing metadata-usage initializer call sites\n'
 "$PYTHON" -m genshinre.usage \
   "$EXE" \
   "$OUTPUT/metadata-usage-sites.csv" \
@@ -70,20 +70,20 @@ printf '[6/13] Auditing metadata-usage initializer call sites\n'
   --require-9369-anchor \
   > /dev/null
 
-printf '[7/13] Probing metadata registration structure\n'
+printf '[7/14] Probing metadata registration structure\n'
 "$PYTHON" -m genshinre.metareg \
   "$EXE" \
   "$OUTPUT/metadata-registration-probe.json" \
   > /dev/null
 
-printf '[8/13] Recovering anchored metadata usage destination table\n'
+printf '[8/14] Recovering anchored metadata usage destination table\n'
 "$PYTHON" -m genshinre.metausage \
   "$EXE" \
   "$OUTPUT/metadata-usage-slots.csv" \
   --summary "$OUTPUT/metadata-usage-slots.summary.json" \
   > /dev/null
 
-printf '[9/13] Joining metadata usages to runtime types\n'
+printf '[9/14] Joining metadata usages to runtime types\n'
 "$PYTHON" -m genshinre.usagejoin \
   "$EXE" \
   "$OUTPUT/metadata-usage-slots.csv" \
@@ -92,7 +92,7 @@ printf '[9/13] Joining metadata usages to runtime types\n'
   --summary "$OUTPUT/metadata-usage-types.summary.json" \
   > /dev/null
 
-printf '[10/13] Building registry candidate graph\n'
+printf '[10/14] Building registry candidate graph\n'
 "$PYTHON" -m genshinre.registrygraph \
   "$OUTPUT/metadata-usage-types.csv" \
   "$OUTPUT/getcmdid-candidates.csv" \
@@ -101,13 +101,13 @@ printf '[10/13] Building registry candidate graph\n'
   --require-anchors \
   > /dev/null
 
-printf '[11/13] Probing preserved registry type-slot anchors\n'
+printf '[11/14] Probing preserved registry type-slot anchors\n'
 "$PYTHON" -m genshinre probe-registry-71 \
   "$EXE" \
   "$OUTPUT/registry-probe-71.json" \
   > /dev/null
 
-printf '[12/13] Optional AstaPS control set\n'
+printf '[12/14] Optional AstaPS control set\n'
 if [[ -n "$ASTAPS" ]]; then
   PACKET_OPCODES="$ASTAPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"
   if [[ ! -f "$PACKET_OPCODES" ]]; then
@@ -119,7 +119,7 @@ else
   echo '      skipped; pass --astaps DIR to generate known-opcodes.csv'
 fi
 
-printf '[13/13] Candidate graph diagnostics\n'
+printf '[13/14] Candidate graph diagnostics\n'
 if [[ -n "$ASTAPS" ]]; then
   "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-candidate-graph.csv" \
@@ -130,5 +130,23 @@ else
   echo '      skipped; AstaPS control set unavailable'
 fi
 
+printf '[14/14] Human-readable registry convergence report\n'
+if [[ -n "$ASTAPS" ]]; then
+  "$PYTHON" -m genshinre.registryreport \
+    "$OUTPUT/registry-candidate-graph.csv" \
+    "$OUTPUT/registry-candidate-graph.summary.json" \
+    "$OUTPUT/registry-candidate-report.md" \
+    --known-opcodes "$OUTPUT/known-opcodes.csv" \
+    --focus 186,9369,22899,26105 \
+    > "$OUTPUT/registry-candidate-report.summary.json"
+else
+  "$PYTHON" -m genshinre.registryreport \
+    "$OUTPUT/registry-candidate-graph.csv" \
+    "$OUTPUT/registry-candidate-graph.summary.json" \
+    "$OUTPUT/registry-candidate-report.md" \
+    --focus 186,9369,22899,26105 \
+    > "$OUTPUT/registry-candidate-report.summary.json"
+fi
+
 printf 'Done: %s\n' "$OUTPUT"
-printf 'Inspect registry-candidate-graph.summary.json and registry-candidate-graph.diagnostic.json first. metadata-usage-sites.csv is call-site audit evidence; metadata-usage-slots.csv is the anchored destination-to-slot table used by the join.\n'
+printf 'Read registry-candidate-report.md first; use registry-candidate-graph.diagnostic.json for machine-readable control-set gaps.\n'
