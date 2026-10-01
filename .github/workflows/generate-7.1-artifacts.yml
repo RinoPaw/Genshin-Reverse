@@ -78,6 +78,48 @@ jobs:
             /tmp/AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java \
             work/7.1.0-global/windows-x64/known-opcodes.csv
 
+      - name: Complete independent recovery paths after audit heuristics
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT=work/7.1.0-global/windows-x64
+          EXE=/tmp/gi71/GenshinImpact.exe
+          test -s "$OUT/metadata/types.csv"
+          test -s "$OUT/metadata/methods.csv"
+          test -s "$OUT/metadata/runtime-types.csv"
+          test -s "$OUT/getcmdid-candidates.csv"
+
+          python -m genshinre.metareg \
+            "$EXE" "$OUT/metadata-registration-probe.json" > /dev/null
+
+          python -m genshinre.metausage \
+            "$EXE" "$OUT/metadata-usage-slots.csv" \
+            --summary "$OUT/metadata-usage-slots.summary.json" > /dev/null
+
+          python -m genshinre.usagejoin \
+            "$EXE" "$OUT/metadata-usage-slots.csv" \
+            "$OUT/metadata/runtime-types.csv" \
+            "$OUT/metadata-usage-types.csv" \
+            --summary "$OUT/metadata-usage-types.summary.json" > /dev/null
+
+          python -m genshinre.registrygraph \
+            "$OUT/metadata-usage-types.csv" \
+            "$OUT/getcmdid-candidates.csv" \
+            "$OUT/registry-candidate-graph.csv" \
+            --summary "$OUT/registry-candidate-graph.summary.json" > /dev/null
+
+          python -m genshinre.registryselect \
+            "$OUT/registry-candidate-graph.csv" \
+            "$OUT/registry-static-candidates.csv" \
+            --summary "$OUT/registry-static-candidates.summary.json" > /dev/null
+
+          python -m genshinre.registrylayout \
+            "$EXE" "$OUT/registry-layout-probe.json" > /dev/null
+
+          python -m genshinre.registryusagelayout \
+            "$EXE" "$OUT/metadata-usage-types.csv" \
+            "$OUT/registry-usage-layout-probe.json" > /dev/null
+
       - name: Attempt strict 4,896-row registry closure
         if: always()
         id: closure
