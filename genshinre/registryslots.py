@@ -55,13 +55,15 @@ def recover_registry_type_slots_71(
     if not allow_unknown_sample and exe_sha != EXPECTED_EXE_SHA256:
         raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
 
-    # Observed 7.1 bulk registry construction form:
+    # Observed 7.1 bulk registry construction forms:
     #   48 8B 05 disp32        mov rax, qword ptr [rip + type_slot]
-    #   48 89 83 disp32        mov qword ptr [rbx + 0x20 + index*8], rax
+    #   48 89 43 disp8         mov qword ptr [rbx + offset], rax   (indices 0..11)
+    #   48 89 83 disp32        mov qword ptr [rbx + offset], rax   (indices 12..4895)
     # The historical row 2232 is exactly load@0x7F852A4/store@0x7F852AB.
     matches: dict[int, list[dict[str, object]]] = {}
     pattern_prefix = b"\x48\x8B\x05"
-    pattern_store = b"\x48\x89\x83"
+    pattern_store8 = b"\x48\x89\x43"
+    pattern_store32 = b"\x48\x89\x83"
 
     with PEImage(exe) as image:
         # IL2CPP type pointer slots frequently live in virtual-only tails of PE
@@ -84,20 +86,27 @@ def recover_registry_type_slots_71(
                 continue
 
             cursor = 0
-            limit = len(blob) - 14
+            limit = len(blob) - 11
             while cursor <= limit:
                 off = blob.find(pattern_prefix, cursor)
                 if off < 0 or off > limit:
                     break
                 cursor = off + 1
-                if blob[off + 7 : off + 10] != pattern_store:
-                    continue
 
                 load_rva = section.virtual_address + off
                 if not REGISTRY_CODE_MIN_RVA <= load_rva < REGISTRY_CODE_MAX_RVA:
                     continue
 
-                dest = int.from_bytes(blob[off + 10 : off + 14], "little", signed=False)
+                store_prefix = blob[off + 7 : off + 10]
+                if store_prefix == pattern_store8:
+                    dest = blob[off + 10]
+                elif store_prefix == pattern_store32:
+                    if off + 14 > len(blob):
+                        continue
+                    dest = int.from_bytes(blob[off + 10 : off + 14], "little", signed=False)
+                else:
+                    continue
+
                 if dest < DEST_BASE or (dest - DEST_BASE) % ENTRY_SIZE:
                     continue
                 index = (dest - DEST_BASE) // ENTRY_SIZE
@@ -200,7 +209,7 @@ def recover_registry_type_slots_71(
             "destination_base": f"0x{DEST_BASE:X}",
             "entry_size": ENTRY_SIZE,
             "load_pattern": "48 8B 05 disp32",
-            "store_pattern": "48 89 83 disp32",
+            "store_patterns": ["48 89 43 disp8", "48 89 83 disp32"],
             "type_slot_validation": "PE virtual section span; raw backing not required",
             "registry_code_rva_range": [f"0x{REGISTRY_CODE_MIN_RVA:X}", f"0x{REGISTRY_CODE_MAX_RVA:X}"],
         },
