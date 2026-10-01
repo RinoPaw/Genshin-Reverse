@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/generate-7.1-artifacts.yml'
       - 'genshinre/usageslots.py'
+      - 'genshinre/usagejoin.py'
       - 'tools/fetch_sophon_targets.py'
       - 'tools/publish_generated_71.py'
 
@@ -50,7 +51,7 @@ jobs:
             --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
             --output /tmp/gi71 \
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
-            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+            --expected-metadata-sh256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
       - name: Fetch current AstaPS control set
         run: git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git /tmp/AstaPS
@@ -224,6 +225,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -- genshinre/mhy71.py
           git add -A versions/7.1.0-global/windows-x64
           if git diff --cached --quiet; then
             echo 'No generated changes to commit.'
