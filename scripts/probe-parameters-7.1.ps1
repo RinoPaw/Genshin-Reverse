@@ -44,10 +44,12 @@ try {
 
     $Methods = Join-Path $OutputRoot "metadata/methods.csv"
     $RuntimeTypes = Join-Path $OutputRoot "metadata/runtime-types.csv"
+    $UsageTypes = Join-Path $OutputRoot "metadata-usage-types.csv"
     $ParameterProbe = Join-Path $OutputRoot "parameter-probe-71.json"
     $RegistryLayout = Join-Path $OutputRoot "registry-layout-71.json"
+    $UsageRegistryLayout = Join-Path $OutputRoot "registry-usage-layout-71.json"
 
-    foreach ($Required in @($Methods, $RuntimeTypes)) {
+    foreach ($Required in @($Methods, $RuntimeTypes, $UsageTypes)) {
         if (-not (Test-Path $Required)) {
             throw "required generated artifact missing: $Required"
         }
@@ -72,8 +74,18 @@ try {
         throw "registry layout probe failed with exit code $LASTEXITCODE"
     }
 
+    & $Python -m genshinre.registryusagelayout `
+        $Exe `
+        $UsageTypes `
+        $UsageRegistryLayout `
+        | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "usage-backed registry layout probe failed with exit code $LASTEXITCODE"
+    }
+
     Write-Host "Parameter probe written to: $ParameterProbe"
     Write-Host "Registry layout probe written to: $RegistryLayout"
+    Write-Host "Usage-backed registry layout probe written to: $UsageRegistryLayout"
     $CandidateReport = Join-Path $OutputRoot "registry-candidate-report.md"
     $StaticCandidates = Join-Path $OutputRoot "registry-static-candidates.csv"
     if (Test-Path $CandidateReport) {
