@@ -1,7 +1,7 @@
 {
   "partial": true,
-  "row_count": 2,
-  "unique_cmd_ids": 2,
+  "row_count": 3,
+  "unique_cmd_ids": 3,
   "historical_full_registry_count": 4896,
   "historical_control_set_match_count": 1540,
   "note": "Only rows recoverable from preserved audit evidence are committed so far. Do not treat this seed as the full 7.1 registry.",
