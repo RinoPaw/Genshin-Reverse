@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/inspect-7.1-trans-point-method-context.yml'
       - 'tools/inspect_method_context_71.py'
+      - 'tools/decode_method_parameters_71.py'
+      - 'genshinre/param71.py'
   workflow_dispatch:
 
 permissions:
@@ -33,6 +35,45 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
+      - name: Decode exact method parameter types
+        run: |
+          python tools/decode_method_parameters_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/gi71/global-metadata.dat \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
+            /tmp/methods-decoded.csv \
+            --summary /tmp/methods-decoded.summary.json
+          python - <<'PY'
+          import csv, json
+          src = '/tmp/methods-decoded.csv'
+          out = '/tmp/scene-method-band.json'
+          rows = []
+          with open(src, encoding='utf-8-sig', newline='') as f:
+              for row in csv.DictReader(f):
+                  try:
+                      rva = int(row.get('rva') or '0', 0)
+                  except ValueError:
+                      continue
+                  if row.get('type_name') == 'KLLNGCPBLMM' and 0x0F044000 <= rva <= 0x0F052000:
+                      rows.append({
+                          'rva': row.get('rva', ''),
+                          'method_index': row.get('method_index', ''),
+                          'method_name': row.get('method_name', ''),
+                          'return_type': row.get('return_type', ''),
+                          'parameter_types': json.loads(row.get('parameter_types') or '[]'),
+                          'parameter_start': row.get('parameter_start', ''),
+                          'parameter_count': row.get('parameter_count', ''),
+                      })
+          with open(out, 'w', encoding='utf-8') as f:
+              json.dump(rows, f, indent=2, ensure_ascii=False)
+              f.write('\n')
+          print('scene method band rows:', len(rows))
+          for row in rows:
+              if 0x0F045000 <= int(row['rva'], 0) <= 0x0F046400 or row['rva'] == '0xF050780':
+                  print(row)
+          PY
+
       - name: Inspect scene method band
         run: |
           python tools/inspect_method_context_71.py \
@@ -54,4 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trans-point-method-context
-          path: /tmp/trans-point-method-context.json
+          path: |
+            /tmp/trans-point-method-context.json
+            /tmp/scene-method-band.json
+            /tmp/methods-decoded.summary.json
