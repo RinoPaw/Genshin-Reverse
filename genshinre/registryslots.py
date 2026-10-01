@@ -57,6 +57,18 @@ def recover_registry_type_slots_71(
     pattern_store = b"\x48\x89\x83"
 
     with PEImage(exe) as image:
+        # IL2CPP type pointer slots frequently live in virtual-only tails of PE
+        # sections (zero-filled at load time). rva_to_offset() intentionally
+        # rejects those RVAs, so registry recovery must validate against the
+        # section's virtual span instead of requiring raw-file backing.
+        virtual_ranges = [
+            (
+                section.virtual_address,
+                section.virtual_address + max(section.virtual_size, section.raw_size),
+            )
+            for section in image.sections
+        ]
+
         for section in image.sections:
             if not (section.characteristics & 0x20000000):
                 continue
@@ -86,7 +98,7 @@ def recover_registry_type_slots_71(
                 load_rva = section.virtual_address + off
                 disp = int.from_bytes(blob[off + 3 : off + 7], "little", signed=True)
                 type_slot_rva = load_rva + 7 + disp
-                if image.rva_to_offset(type_slot_rva) is None:
+                if not any(start <= type_slot_rva < end for start, end in virtual_ranges):
                     continue
                 row = {
                     "index": index,
@@ -181,6 +193,7 @@ def recover_registry_type_slots_71(
             "entry_size": ENTRY_SIZE,
             "load_pattern": "48 8B 05 disp32",
             "store_pattern": "48 89 83 disp32",
+            "type_slot_validation": "PE virtual section span; raw backing not required",
         },
     }
     if summary_json is None:
