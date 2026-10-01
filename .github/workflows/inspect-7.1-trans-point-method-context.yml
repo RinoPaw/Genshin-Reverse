@@ -1,0 +1,57 @@
+name: Inspect 7.1 trans point scene method context
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.1-trans-point-method-context.yml'
+      - 'tools/inspect_method_context_71.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact official global 7.1 sample
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+
+      - name: Inspect scene method band
+        run: |
+          python tools/inspect_method_context_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/trans-point-method-context.json \
+            --focus unlock_sender:0xF0452B0 \
+            --focus rsp_36641:0xF045790 \
+            --focus rsp_20290:0xF0462A0 \
+            --focus rsp_2666:0xF050780 \
+            --focus get_scene_point_rsp_26:0xF058EF0 \
+            --focus scene_point_unlock_notify_25567:0xF05F0F0 \
+            --focus scene_trans_to_point_rsp_23515:0xF063210 \
+            --focus scene_area_unlock_notify_27420:0xF0633D0 \
+            --neighbor-count 16 \
+            --max-body 0x2000
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: trans-point-method-context
+          path: /tmp/trans-point-method-context.json
