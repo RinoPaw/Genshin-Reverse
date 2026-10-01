@@ -1,16 +1,91 @@
 {
-  "exe": "/tmp/gi71/GenshinImpact.exe",
-  "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
-  "anchor": {
-    "usage_destination": 37523,
-    "type_slot_rva": "0x57E6498"
-  },
-  "candidate_pair_count": 0,
-  "anchor_match_count": 0,
-  "anchor_matches": [],
-  "status": "unresolved",
+  "source": "work/7.1.0-global/windows-x64/metadata-usage-sites.csv",
+  "input_rows": 392,
+  "usable_rows": 275,
+  "unique_usage_destinations_with_slots": 244,
+  "stable_mappings": 236,
+  "ambiguous_usage_destinations": 8,
+  "ambiguous_examples": [
+    {
+      "usage_destination": 2100,
+      "slots": [
+        "0x5788B70",
+        "0x5788C20",
+        "0x5790ED0",
+        "0x5795DF0"
+      ],
+      "observations": 4
+    },
+    {
+      "usage_destination": 3168,
+      "slots": [
+        "0x3B2E2157",
+        "0x5615342D",
+        "0x56214C21",
+        "0x8262AED1",
+        "0x82C4AE6F",
+        "0x830D9E26"
+      ],
+      "observations": 6
+    },
+    {
+      "usage_destination": 3178,
+      "slots": [
+        "0x55AE5C9E",
+        "0x55F65456",
+        "0x7A94D1D0"
+      ],
+      "observations": 3
+    },
+    {
+      "usage_destination": 6266,
+      "slots": [
+        "0x578B770",
+        "0x1EFFFD92",
+        "0x516A3D79"
+      ],
+      "observations": 3
+    },
+    {
+      "usage_destination": 17110,
+      "slots": [
+        "0x38D8352",
+        "0x38D8403"
+      ],
+      "observations": 2
+    },
+    {
+      "usage_destination": 291614,
+      "slots": [
+        "0x1C6A0DEF",
+        "0x3164F703"
+      ],
+      "observations": 2
+    },
+    {
+      "usage_destination": 291771,
+      "slots": [
+        "0x1C6A1179",
+        "0x3164FA93"
+      ],
+      "observations": 2
+    },
+    {
+      "usage_destination": 293589,
+      "slots": [
+        "0x1C6A189A",
+        "0x1C6A19A2",
+        "0x316501B3"
+      ],
+      "observations": 3
+    }
+  ],
+  "legacy_anchor_37523_to_0x57E6498": false,
+  "status": "static-callsite-map",
   "notes": [
-    "expected exactly one count/pointer table whose entry 37523 points to the preserved 9369 type slot",
-    "increase the registration pair window or inspect protected-build layout before publishing a usage table"
+    "mappings come from direct initializer call/store evidence",
+    "a usage destination is emitted only when all usable call-site observations agree on one slot",
+    "ambiguous destinations remain excluded rather than guessed",
+    "the historical 37523 anchor is diagnostic and is not required for current 7.1 output"
   ]
 }
