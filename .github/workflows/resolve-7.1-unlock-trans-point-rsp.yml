@@ -28,16 +28,33 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Reconstruct and export native registry flags
+      - name: Reconstruct usage-backed native registry
         run: |
-          python -m genshinre.registrylayout \
+          python -m genshinre.metausage \
             /tmp/gi71/GenshinImpact.exe \
-            /tmp/registry-layout-probe.json
-          python -m genshinre.registryraw \
+            /tmp/metadata-usage-slots.csv \
+            --summary /tmp/metadata-usage-slots.summary.json
+
+          python -m genshinre.usagejoin \
             /tmp/gi71/GenshinImpact.exe \
-            /tmp/registry-layout-probe.json \
-            /tmp/registry-native-direct.csv \
-            --summary /tmp/registry-native-direct.summary.json \
+            /tmp/metadata-usage-slots.csv \
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
+            /tmp/metadata-usage-types.csv \
+            --summary /tmp/metadata-usage-types.summary.json
+
+          python -m genshinre.registryusagelayout \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/metadata-usage-types.csv \
+            /tmp/registry-usage-layout-probe.json \
+            --max-results 1000 \
+            --require-strong
+
+          python -m genshinre.registryusageraw \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/registry-usage-layout-probe.json \
+            /tmp/metadata-usage-types.csv \
+            /tmp/registry-native-usage.csv \
+            --summary /tmp/registry-native-usage.summary.json \
             --require-4896-unique
 
       - name: Correlate direction, external semantics and method references
@@ -55,7 +72,7 @@ jobs:
                   return list(csv.DictReader(f))
 
           candidates = load(root / 'analyses/unlock-trans-point/retcode6-single-field-candidates.csv')
-          raw = {int(r['cmd_id']): r for r in load('/tmp/registry-native-direct.csv')}
+          raw = {int(r['cmd_id']): r for r in load('/tmp/registry-native-usage.csv')}
           registry = {int(r['cmd_id']): r for r in load(root / 'registry/registry.csv')}
           methods = load(root / 'metadata/methods.csv')
 
@@ -164,7 +181,9 @@ jobs:
         with:
           name: unlock-trans-point-rsp-resolution
           path: |
-            /tmp/registry-layout-probe.json
-            /tmp/registry-native-direct.summary.json
+            /tmp/metadata-usage-slots.summary.json
+            /tmp/metadata-usage-types.summary.json
+            /tmp/registry-usage-layout-probe.json
+            /tmp/registry-native-usage.summary.json
             /tmp/unlock-trans-point-rsp-resolution.json
             /tmp/unlock-trans-point-rsp-resolution.csv
