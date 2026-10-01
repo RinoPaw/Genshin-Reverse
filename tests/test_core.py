@@ -28,9 +28,9 @@ class RegistryTests(unittest.TestCase):
             root = Path(td)
             raw = root / "raw.csv"
             raw.write_text(
-                "cmdid,type,typedef,type_cache,direction,get_cmd_id,confidence\\n"
-                "26105,HJDNCHODGOL,123,0x57f0000,1,0x10587260,CONFIRMED\\n"
-                "22899,ONKOPMILDMF,87483,0x057F6F60,0,,HIGH_CONFIDENCE\\n",
+                "cmdid,type,typedef,type_cache,direction,get_cmd_id,confidence\n"
+                "26105,HJDNCHODGOL,123,0x57f0000,1,0x10587260,CONFIRMED\n"
+                "22899,ONKOPMILDMF,87483,0x057F6F60,0,,HIGH_CONFIDENCE\n",
                 encoding="utf-8",
             )
             out = root / "registry"
