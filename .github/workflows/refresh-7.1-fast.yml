@@ -6,6 +6,7 @@ on:
       - '.github/workflows/refresh-7.1-fast.yml'
       - 'genshinre/getcmdid.py'
       - 'genshinre/registryslots.py'
+      - 'genshinre/registryarrays.py'
   workflow_dispatch:
 
 permissions:
@@ -44,14 +45,7 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             "$OUT/getcmdid-candidates.csv" \
             --summary "$OUT/getcmdid-candidates.summary.json"
-          echo '--- summary ---'
           cat "$OUT/getcmdid-candidates.summary.json"
-          echo '--- 26105 anchor ---'
-          grep '^26105,' "$OUT/getcmdid-candidates.csv"
-          echo '--- 9369 candidates ---'
-          grep '^9369,' "$OUT/getcmdid-candidates.csv" || true
-          echo '--- 22899 candidates ---'
-          grep '^22899,' "$OUT/getcmdid-candidates.csv" || true
 
       - name: Recover indexed registry type slots
         run: |
@@ -60,12 +54,24 @@ jobs:
             /tmp/gi71/GenshinImpact.exe \
             "$OUT/registry-type-slots.csv" \
             --summary "$OUT/registry-type-slots.summary.json"
-          echo '--- summary ---'
           cat "$OUT/registry-type-slots.summary.json"
-          echo '--- index 2232 ---'
-          grep '^2232,' "$OUT/registry-type-slots.csv" || true
-          echo '--- index 3118 ---'
-          grep '^3118,' "$OUT/registry-type-slots.csv" || true
+
+      - name: Recover exact native CmdId and direction arrays
+        run: |
+          OUT=versions/7.1.0-global/windows-x64/registry
+          python -m genshinre.registryarrays \
+            /tmp/gi71/GenshinImpact.exe \
+            "$OUT/registry-type-slots.csv" \
+            versions/7.1.0-global/windows-x64/proto/known-opcodes.csv \
+            "$OUT/registry-native-arrays.csv" \
+            --summary "$OUT/registry-native-arrays.summary.json"
+          cat "$OUT/registry-native-arrays.summary.json"
+          echo '--- 9369 ---'
+          grep ',9369,' "$OUT/registry-native-arrays.csv"
+          echo '--- 22899 ---'
+          grep ',22899,' "$OUT/registry-native-arrays.csv"
+          echo '--- 26105 ---'
+          grep ',26105,' "$OUT/registry-native-arrays.csv"
 
       - name: Commit refreshed artifacts
         run: |
@@ -74,11 +80,13 @@ jobs:
           git add versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv \
                   versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.summary.json \
                   versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
-                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json
+                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json \
+                  versions/7.1.0-global/windows-x64/registry/registry-native-arrays.csv \
+                  versions/7.1.0-global/windows-x64/registry/registry-native-arrays.summary.json
           if git diff --cached --quiet; then
             echo 'No artifact changes.'
             exit 0
           fi
-          git commit -m 'data: refresh 7.1 CmdId and registry slot artifacts'
+          git commit -m 'data: publish native 7.1 registry arrays'
           git pull --rebase origin main
           git push origin HEAD:main
