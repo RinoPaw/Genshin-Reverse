@@ -1,0 +1,71 @@
+name: Inspect published 7.0 reference dump
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.0-reference-dump.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and inspect published 7.0 dump archive
+        run: |
+          curl --fail --location \
+            'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' \
+            -o /tmp/data.7z
+          sha256sum /tmp/data.7z | tee /tmp/data-sha256.txt
+          7z l -slt /tmp/data.7z | tee /tmp/data-list.txt
+          mkdir -p /tmp/data
+          7z x -y /tmp/data.7z -o/tmp/data >/tmp/data-extract.log
+          find /tmp/data -maxdepth 3 -type f -printf '%p %s bytes\n' | sort | tee /tmp/data-files.txt
+
+      - name: Locate historical trans point types
+        run: |
+          python - <<'PY' | tee /tmp/trans-point-reference-hits.txt
+          from pathlib import Path
+          roots=list(Path('/tmp/data').rglob('*'))
+          needles=['CPKAHGFBBIH','CFBLHIJCOEN']
+          for needle in needles:
+              print('===', needle, '===')
+              total=0
+              for path in roots:
+                  if not path.is_file():
+                      continue
+                  try:
+                      text=path.read_text(encoding='utf-8',errors='ignore')
+                  except Exception:
+                      continue
+                  if needle not in text:
+                      continue
+                  total+=1
+                  print('FILE', path, 'size', path.stat().st_size)
+                  lines=text.splitlines()
+                  for i,line in enumerate(lines):
+                      if needle in line:
+                          lo=max(0,i-8); hi=min(len(lines),i+30)
+                          print('--- lines',lo+1,'..',hi,'---')
+                          for n in range(lo,hi):
+                              print(f'{n+1}: {lines[n]}')
+                  print()
+              print('files_with_hits',total)
+          PY
+
+      - name: Upload compact reference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gi70-reference-dump-inspection
+          path: |
+            /tmp/data-sha256.txt
+            /tmp/data-list.txt
+            /tmp/data-files.txt
+            /tmp/trans-point-reference-hits.txt
+          if-no-files-found: warn
