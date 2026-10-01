@@ -34,12 +34,12 @@ jobs:
           python tools/fetch_sophon_targets.py \
             --manifest-url 'https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/dJsUs1m2gLGR/manifest_f3c70e565732550c_0a9e60a100ceda023ea7b7e276f96186' \
             --chunk-prefix 'https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/dJsUs1m2gLGR' \
-            --manifest-md5 '0a9e60a100ceda023ea7b7e276f96186' \
             --output /tmp/gi71 \
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
       - name: Fetch current AstaPS control set
+        if: always()
         run: git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git /tmp/AstaPS
 
       - name: Regenerate 7.1 intermediate artifacts
@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          scripts/regenerate-7.1.sh \
+          bash scripts/regenerate-7.1.sh \
             --exe /tmp/gi71/GenshinImpact.exe \
             --metadata /tmp/gi71/global-metadata.dat \
             --output work/7.1.0-global/windows-x64
@@ -60,6 +60,7 @@ jobs:
         if: always()
         run: |
           test -f /tmp/AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java
+          mkdir -p work/7.1.0-global/windows-x64
           python -m genshinre import-opcodes-java \
             /tmp/AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java \
             work/7.1.0-global/windows-x64/known-opcodes.csv
@@ -70,13 +71,13 @@ jobs:
         shell: bash
         run: |
           set +e
-          scripts/close-registry-7.1.sh \
+          bash scripts/close-registry-7.1.sh \
             --exe /tmp/gi71/GenshinImpact.exe \
             --output work/7.1.0-global/windows-x64 \
             --require-direction-perfect
           status=$?
           if [ "$status" -eq 0 ]; then
-            scripts/publish-registry-7.1.sh \
+            bash scripts/publish-registry-7.1.sh \
               --work work/7.1.0-global/windows-x64 \
               --destination work/7.1.0-global/windows-x64/canonical-registry
             status=$?
