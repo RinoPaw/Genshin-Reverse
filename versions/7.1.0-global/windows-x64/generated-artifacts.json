@@ -1,7 +1,7 @@
 {
   "source": "tools/publish_generated_71.py",
   "work": "work/7.1.0-global/windows-x64",
-  "canonical_registry_published": false,
+  "canonical_registry_published": true,
   "optional_registry_artifacts_published": [
     "getcmdid-candidates.csv",
     "getcmdid-candidates.summary.json",
@@ -11,6 +11,8 @@
     "metadata-registration-probe.json"
   ],
   "artifacts": [
+    "analyses/barbara-c6-revive/README.md",
+    "analyses/barbara-c6-revive/evidence.json",
     "analyses/cmdid-186/README.md",
     "analyses/unlock-trans-point/README.md",
     "analyses/unlock-trans-point/candidates.csv",
@@ -40,11 +42,17 @@
     "registry/metadata-registration-probe.json",
     "registry/metadata-usage-slots.csv",
     "registry/metadata-usage-slots.summary.json",
+    "registry/metadata-usage-types.csv",
+    "registry/metadata-usage-types.summary.json",
     "registry/registry-candidate-graph.csv",
     "registry/registry-candidate-graph.summary.json",
     "registry/registry-layout-probe.json",
     "registry/registry-type-slots.csv",
     "registry/registry-type-slots.summary.json",
+    "registry/registry.csv",
+    "registry/registry.summary.json",
+    "registry/type-cache-xrefs.csv",
+    "registry/type-cache-xrefs.summary.json",
     "reports/protocol-map.md",
     "reports/unresolved.md",
     "xrefs/README.md",
