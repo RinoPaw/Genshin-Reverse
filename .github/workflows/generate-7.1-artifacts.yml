@@ -29,11 +29,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e . zstandard
 
-      - name: Fetch exact official 7.1 samples
+      - name: Fetch exact official global 7.1 samples
         run: |
           python tools/fetch_sophon_targets.py \
-            --manifest-url 'https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/dJsUs1m2gLGR/manifest_f3c70e565732550c_0a9e60a100ceda023ea7b7e276f96186' \
-            --chunk-prefix 'https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/dJsUs1m2gLGR' \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
             --output /tmp/gi71 \
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
