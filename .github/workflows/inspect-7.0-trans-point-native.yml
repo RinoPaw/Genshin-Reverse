@@ -82,6 +82,45 @@ jobs:
           PY
           tail -n 12 /tmp/gi70-native-probe.json
 
+      - name: Disassemble historical trans point handlers from dump.cs RVAs
+        run: |
+          python - <<'PY' > /tmp/gi70-trans-point-handlers.json
+          import json
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from genshinre.pe import PEImage
+
+          targets = {
+              # dump.cs: KGCKOFPFBLA.NDKDCLAKKIG(CPKAHGFBBIH), next method at 0xB6F1940.
+              'unlock_trans_point_rsp_1776': (0xB6F18D0, 0xB6F1940),
+              # dump.cs anchor for the historical ScenePointUnlockNotify consumer.
+              'scene_point_unlock_notify_7929': (0xB6F2870, 0xB6F2970),
+              # dump.cs anchor for the historical EnterWorldAreaRsp consumer.
+              'enter_world_area_rsp_24557': (0xB6F4D20, 0xB6F4E20),
+          }
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          out = {}
+          with PEImage(Path('/tmp/gi70/GenshinImpact.exe')) as image:
+              for name, (start, end) in targets.items():
+                  blob = image.read_rva(start, end - start)
+                  rows = []
+                  for insn in md.disasm(blob, image.image_base + start):
+                      rows.append({
+                          'rva': f'0x{insn.address - image.image_base:X}',
+                          'mnemonic': insn.mnemonic,
+                          'op_str': insn.op_str,
+                          'bytes': insn.bytes.hex(),
+                      })
+                  out[name] = {
+                      'start_rva': f'0x{start:X}',
+                      'end_rva': f'0x{end:X}',
+                      'size': end - start,
+                      'instructions': rows,
+                  }
+          print(json.dumps(out, indent=2))
+          PY
+          cat /tmp/gi70-trans-point-handlers.json
+
       - name: Upload compact evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -91,4 +130,5 @@ jobs:
             /tmp/gi70-sha256.txt
             /tmp/gi70-sizes.txt
             /tmp/gi70-native-probe.json
+            /tmp/gi70-trans-point-handlers.json
           if-no-files-found: warn
