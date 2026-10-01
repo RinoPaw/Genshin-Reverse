@@ -52,11 +52,9 @@ jobs:
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
       - name: Fetch current AstaPS control set
-        if: always()
         run: git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git /tmp/AstaPS
 
-      - name: Regenerate 7.1 intermediate artifacts
-        id: regenerate
+      - name: Regenerate metadata and early 7.1 intermediates
         shell: bash
         run: |
           set +e
@@ -64,13 +62,10 @@ jobs:
             --exe /tmp/gi71/GenshinImpact.exe \
             --metadata /tmp/gi71/global-metadata.dat \
             --output work/7.1.0-global/windows-x64
-          status=$?
-          set -e
-          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "regenerate exit=$? (later recovery paths continue independently)"
           exit 0
 
       - name: Import current AstaPS opcodes from the real path
-        if: always()
         run: |
           test -f /tmp/AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java
           mkdir -p work/7.1.0-global/windows-x64
@@ -78,10 +73,10 @@ jobs:
             /tmp/AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java \
             work/7.1.0-global/windows-x64/known-opcodes.csv
 
-      - name: Complete independent recovery paths after audit heuristics
-        if: always()
+      - name: Probe direct native 4,896-row registry layout first
+        shell: bash
         run: |
-          set -euo pipefail
+          set -u
           OUT=work/7.1.0-global/windows-x64
           EXE=/tmp/gi71/GenshinImpact.exe
           test -s "$OUT/metadata/types.csv"
@@ -89,69 +84,100 @@ jobs:
           test -s "$OUT/metadata/runtime-types.csv"
           test -s "$OUT/getcmdid-candidates.csv"
 
-          python -m genshinre.metareg \
-            "$EXE" "$OUT/metadata-registration-probe.json" > /dev/null
+          python -m genshinre.registrylayout \
+            "$EXE" "$OUT/registry-layout-probe.json"
+          echo '--- registry-layout-probe.json ---'
+          cat "$OUT/registry-layout-probe.json"
 
+          set +e
+          python -m genshinre.registryraw \
+            "$EXE" "$OUT/registry-layout-probe.json" \
+            "$OUT/registry-native-direct.csv" \
+            --summary "$OUT/registry-native-direct.summary.json" \
+            --require-4896-unique
+          direct_status=$?
+          set -e
+          echo "direct raw registry exit=$direct_status"
+          test ! -f "$OUT/registry-native-direct.summary.json" || cat "$OUT/registry-native-direct.summary.json"
+
+      - name: Probe metadata registration and usage mapping
+        shell: bash
+        run: |
+          set -u
+          OUT=work/7.1.0-global/windows-x64
+          EXE=/tmp/gi71/GenshinImpact.exe
+
+          python -m genshinre.metareg \
+            "$EXE" "$OUT/metadata-registration-probe.json"
+          echo '--- metadata-registration-probe.json ---'
+          cat "$OUT/metadata-registration-probe.json"
+
+          set +e
           python -m genshinre.metausage \
             "$EXE" "$OUT/metadata-usage-slots.csv" \
-            --summary "$OUT/metadata-usage-slots.summary.json" > /dev/null
+            --summary "$OUT/metadata-usage-slots.summary.json"
+          usage_status=$?
+          set -e
+          echo "metadata usage recovery exit=$usage_status"
+          test ! -f "$OUT/metadata-usage-slots.summary.json" || cat "$OUT/metadata-usage-slots.summary.json"
 
-          python -m genshinre.usagejoin \
-            "$EXE" "$OUT/metadata-usage-slots.csv" \
-            "$OUT/metadata/runtime-types.csv" \
-            "$OUT/metadata-usage-types.csv" \
-            --summary "$OUT/metadata-usage-types.summary.json" > /dev/null
+          if [ "$usage_status" -eq 0 ]; then
+            python -m genshinre.usagejoin \
+              "$EXE" "$OUT/metadata-usage-slots.csv" \
+              "$OUT/metadata/runtime-types.csv" \
+              "$OUT/metadata-usage-types.csv" \
+              --summary "$OUT/metadata-usage-types.summary.json"
 
-          python -m genshinre.registrygraph \
-            "$OUT/metadata-usage-types.csv" \
-            "$OUT/getcmdid-candidates.csv" \
-            "$OUT/registry-candidate-graph.csv" \
-            --summary "$OUT/registry-candidate-graph.summary.json" > /dev/null
+            python -m genshinre.registrygraph \
+              "$OUT/metadata-usage-types.csv" \
+              "$OUT/getcmdid-candidates.csv" \
+              "$OUT/registry-candidate-graph.csv" \
+              --summary "$OUT/registry-candidate-graph.summary.json"
 
-          python -m genshinre.registryselect \
-            "$OUT/registry-candidate-graph.csv" \
-            "$OUT/registry-static-candidates.csv" \
-            --summary "$OUT/registry-static-candidates.summary.json" > /dev/null
+            python -m genshinre.registryselect \
+              "$OUT/registry-candidate-graph.csv" \
+              "$OUT/registry-static-candidates.csv" \
+              --summary "$OUT/registry-static-candidates.summary.json"
 
-          python -m genshinre.registrylayout \
-            "$EXE" "$OUT/registry-layout-probe.json" > /dev/null
+            python -m genshinre.registryusagelayout \
+              "$EXE" "$OUT/metadata-usage-types.csv" \
+              "$OUT/registry-usage-layout-probe.json"
+            echo '--- registry-usage-layout-probe.json ---'
+            cat "$OUT/registry-usage-layout-probe.json"
+          fi
 
-          python -m genshinre.registryusagelayout \
-            "$EXE" "$OUT/metadata-usage-types.csv" \
-            "$OUT/registry-usage-layout-probe.json" > /dev/null
-
-      - name: Attempt strict 4,896-row registry closure
-        if: always()
-        id: closure
+      - name: Attempt strict canonical registry closure
         shell: bash
         run: |
           set +e
-          bash scripts/close-registry-7.1.sh \
-            --exe /tmp/gi71/GenshinImpact.exe \
-            --output work/7.1.0-global/windows-x64 \
-            --require-direction-perfect
-          status=$?
-          if [ "$status" -eq 0 ]; then
-            bash scripts/publish-registry-7.1.sh \
-              --work work/7.1.0-global/windows-x64 \
-              --destination work/7.1.0-global/windows-x64/canonical-registry
+          OUT=work/7.1.0-global/windows-x64
+          if [ -f "$OUT/registry-layout-probe.json" ] && [ -f "$OUT/registry-usage-layout-probe.json" ]; then
+            bash scripts/close-registry-7.1.sh \
+              --exe /tmp/gi71/GenshinImpact.exe \
+              --output "$OUT" \
+              --require-direction-perfect
             status=$?
+            if [ "$status" -eq 0 ]; then
+              bash scripts/publish-registry-7.1.sh \
+                --work "$OUT" \
+                --destination "$OUT/canonical-registry"
+              status=$?
+            fi
+          else
+            status=3
+            echo 'canonical closure skipped: one or both native layout paths are still unresolved'
           fi
-          set -e
-          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "canonical registry exit=$status"
           exit 0
 
-      - name: Publish requested computation-friendly artifacts
-        if: always()
+      - name: Publish available computation-friendly artifacts
         run: |
           python tools/publish_generated_71.py \
             work/7.1.0-global/windows-x64 \
             versions/7.1.0-global/windows-x64
 
-      - name: Validate requested artifacts
+      - name: Validate minimum useful artifact set
         run: |
-          test -s versions/7.1.0-global/windows-x64/registry/registry-candidate-graph.csv
-          test -s versions/7.1.0-global/windows-x64/registry/metadata-usage-types.csv
           test -s versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv
           test -s versions/7.1.0-global/windows-x64/metadata/runtime-types.csv
           test -s versions/7.1.0-global/windows-x64/metadata/types.csv
@@ -166,28 +192,25 @@ jobs:
                   raise SystemExit(f'GitHub hard-limit risk: {path} = {path.stat().st_size} bytes')
           PY
 
-      - name: Commit derived artifacts only
+      - name: Preserve full work directory for follow-up analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: genshin-7.1-reverse-work
+          path: work/7.1.0-global/windows-x64
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 6
+
+      - name: Commit derived CSV and JSON artifacts
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            versions/7.1.0-global/windows-x64/generated-artifacts.json \
-            versions/7.1.0-global/windows-x64/registry/registry-candidate-graph.csv \
-            versions/7.1.0-global/windows-x64/registry/metadata-usage-types.csv \
-            versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv \
-            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
-            versions/7.1.0-global/windows-x64/metadata/types.csv \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            versions/7.1.0-global/windows-x64/metadata/type-methods.json
-          if test -f versions/7.1.0-global/windows-x64/registry/registry.csv; then
-            git add versions/7.1.0-global/windows-x64/registry/registry.csv
-            test ! -f versions/7.1.0-global/windows-x64/registry/registry.json || git add versions/7.1.0-global/windows-x64/registry/registry.json
-            test ! -f versions/7.1.0-global/windows-x64/registry/summary.json || git add versions/7.1.0-global/windows-x64/registry/summary.json
-          fi
+          git add -A versions/7.1.0-global/windows-x64
           if git diff --cached --quiet; then
             echo 'No generated changes to commit.'
             exit 0
           fi
-          git commit -m 'data: publish generated 7.1 reverse artifacts'
+          git commit -m 'data: publish generated global 7.1 reverse artifacts'
           git pull --rebase origin main
           git push origin HEAD:main
