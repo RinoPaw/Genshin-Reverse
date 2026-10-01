@@ -11,6 +11,7 @@ on:
       - 'tools/decode_protocol_handler_parameters_71.py'
       - 'tools/decode_method_parameters_71.py'
       - 'tools/find_protocol_parameter_consumers_71.py'
+      - 'tools/inspect_method_context_71.py'
       - 'genshinre/paramprobe.py'
       - 'genshinre/param71.py'
       - 'tests/test_param71.py'
@@ -88,6 +89,18 @@ jobs:
             --control-cmd 9369 \
             --control-cmd 26105
 
+      - name: Inspect narrowed KLLNGCPBLMM response handlers
+        run: |
+          python tools/inspect_method_context_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/unlock-trans-point-rsp-handler-context.json \
+            --focus unlock_req_sender:0xF0452B0 \
+            --focus candidate_36641:0xF045790 \
+            --focus candidate_20290:0xF0462A0 \
+            --focus candidate_2666:0xF050780 \
+            --neighbor-count 12
+
       - name: Scan direct callers of protocol methods
         run: |
           python tools/scan_protocol_method_callers_71.py \
@@ -131,6 +144,7 @@ jobs:
             /tmp/unlock-trans-point-rsp-consumers.json
             /tmp/parameter-probe-71.json
             /tmp/unlock-trans-point-rsp-handler-parameters.json
+            /tmp/unlock-trans-point-rsp-handler-context.json
             /tmp/unlock-trans-point-rsp-method-callers.json
             /tmp/parameter-decoder-constants-71.json
             /tmp/registry-direction-flag-probe.json
