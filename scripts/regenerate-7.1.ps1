@@ -28,39 +28,47 @@ try {
     $MetadataOut = Join-Path $Output "metadata"
     New-Item -ItemType Directory -Force -Path $MetadataOut | Out-Null
 
-    Write-Host "[1/7] Fingerprinting exact samples"
+    Write-Host "[1/8] Fingerprinting exact samples"
     Invoke-Python -m genshinre fingerprint $Exe $Metadata | Out-File -FilePath (Join-Path $Output "fingerprints.json") -Encoding utf8
 
-    Write-Host "[2/7] Decoding native 7.1 MHY metadata"
+    Write-Host "[2/8] Decoding native 7.1 MHY metadata"
     Invoke-Python -m genshinre decode-metadata-71 $Exe $Metadata $MetadataOut
 
-    Write-Host "[3/7] Verifying native 7.1 anchors"
+    Write-Host "[3/8] Verifying native 7.1 anchors"
     Invoke-Python -m genshinre verify-metadata `
         $MetadataOut `
         "versions/7.1.0-global/windows-x64/metadata/anchors-native.json" `
         | Out-File -FilePath (Join-Path $Output "metadata-anchor-check.json") -Encoding utf8
 
-    Write-Host "[4/7] Scanning conservative constant-return CmdId candidates"
+    Write-Host "[4/8] Exporting IL2CPP runtime type index"
+    Invoke-Python -m genshinre.typearray `
+        $Exe `
+        (Join-Path $MetadataOut "types.csv") `
+        (Join-Path $MetadataOut "runtime-types.csv") `
+        --summary (Join-Path $MetadataOut "runtime-types.summary.json") `
+        | Out-Null
+
+    Write-Host "[5/8] Scanning conservative constant-return CmdId candidates"
     Invoke-Python -m genshinre scan-constant-cmdids `
         $Exe `
         (Join-Path $MetadataOut "methods.csv") `
         (Join-Path $Output "getcmdid-candidates.csv") `
         --summary (Join-Path $Output "getcmdid-candidates.summary.json")
 
-    Write-Host "[5/7] Recovering metadata-usage initializer stores"
+    Write-Host "[6/8] Recovering metadata-usage initializer stores"
     Invoke-Python -m genshinre.usage `
         $Exe `
         (Join-Path $Output "metadata-usage-sites.csv") `
         --summary (Join-Path $Output "metadata-usage-sites.summary.json") `
         | Out-Null
 
-    Write-Host "[6/7] Probing preserved registry type-slot anchors"
+    Write-Host "[7/8] Probing preserved registry type-slot anchors"
     Invoke-Python -m genshinre probe-registry-71 `
         $Exe `
         (Join-Path $Output "registry-probe-71.json") `
         | Out-Null
 
-    Write-Host "[7/7] Optional AstaPS control set"
+    Write-Host "[8/8] Optional AstaPS control set"
     if ($AstaPS) {
         $PacketOpcodes = Join-Path $AstaPS "src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"
         if (-not (Test-Path $PacketOpcodes)) {
@@ -72,7 +80,7 @@ try {
     }
 
     Write-Host "Done: $Output"
-    Write-Host "Next: inspect metadata-usage-sites.summary.json, getcmdid-candidates.summary.json and registry-probe-71.json before continuing Stage 2."
+    Write-Host "Next: inspect runtime-types.summary.json, metadata-usage-sites.summary.json, getcmdid-candidates.summary.json and registry-probe-71.json before continuing Stage 2."
 } finally {
     Pop-Location
 }
