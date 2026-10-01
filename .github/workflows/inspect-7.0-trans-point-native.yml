@@ -91,11 +91,9 @@ jobs:
           from genshinre.pe import PEImage
 
           targets = {
-              # dump.cs: KGCKOFPFBLA.NDKDCLAKKIG(CPKAHGFBBIH), next method at 0xB6F1940.
+              # dump.cs: KGCKOFPFBLA.NDKDCLAKKIG(CPKAHGFBBIH), next native method at 0xB6F1940.
               'unlock_trans_point_rsp_1776': (0xB6F18D0, 0xB6F1940),
-              # dump.cs anchor for the historical ScenePointUnlockNotify consumer.
               'scene_point_unlock_notify_7929': (0xB6F2870, 0xB6F2970),
-              # dump.cs anchor for the historical EnterWorldAreaRsp consumer.
               'enter_world_area_rsp_24557': (0xB6F4D20, 0xB6F4E20),
           }
           md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -121,6 +119,69 @@ jobs:
           PY
           cat /tmp/gi70-trans-point-handlers.json
 
+      - name: Trace historical response handler function-pointer xrefs
+        run: |
+          python - <<'PY' > /tmp/gi70-trans-point-handler-xrefs.json
+          import json
+          from collections import deque
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_RIP
+          from genshinre.pe import PEImage
+
+          target_rva = 0xB6F18D0
+          before_count = 24
+          after_count = 24
+          report = {'target_rva': f'0x{target_rva:X}', 'xrefs': []}
+          with PEImage(Path('/tmp/gi70/GenshinImpact.exe')) as image:
+              target_abs = image.image_base + target_rva
+              md = Cs(CS_ARCH_X86, CS_MODE_64)
+              md.detail = True
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  prev = deque(maxlen=before_count)
+                  active = []
+                  for insn in md.disasm(blob, image.image_base + sec.virtual_address):
+                      row = {
+                          'rva': f'0x{insn.address - image.image_base:X}',
+                          'mnemonic': insn.mnemonic,
+                          'op_str': insn.op_str,
+                          'bytes': insn.bytes.hex(),
+                      }
+                      for item in list(active):
+                          item['context'].append(row)
+                          item['remaining'] -= 1
+                          if item['remaining'] <= 0:
+                              active.remove(item)
+                      matched = False
+                      for operand in insn.operands:
+                          if operand.type == X86_OP_IMM and int(operand.imm) == target_abs:
+                              matched = True
+                          elif operand.type == X86_OP_MEM and operand.mem.base == X86_REG_RIP:
+                              effective = insn.address + insn.size + operand.mem.disp
+                              if int(effective) == target_abs:
+                                  matched = True
+                      if matched:
+                          item = {
+                              'xref_rva': row['rva'],
+                              'mnemonic': row['mnemonic'],
+                              'op_str': row['op_str'],
+                              'bytes': row['bytes'],
+                              'context': list(prev) + [row],
+                              'remaining': after_count,
+                          }
+                          report['xrefs'].append(item)
+                          active.append(item)
+                      prev.append(row)
+          for item in report['xrefs']:
+              item.pop('remaining', None)
+          report['xref_count'] = len(report['xrefs'])
+          print(json.dumps(report, indent=2))
+          PY
+          cat /tmp/gi70-trans-point-handler-xrefs.json
+
       - name: Upload compact evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -131,4 +192,5 @@ jobs:
             /tmp/gi70-sizes.txt
             /tmp/gi70-native-probe.json
             /tmp/gi70-trans-point-handlers.json
+            /tmp/gi70-trans-point-handler-xrefs.json
           if-no-files-found: warn
