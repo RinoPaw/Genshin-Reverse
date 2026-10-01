@@ -234,12 +234,17 @@ def infer_layout_candidates(
                         }
                     )
 
+    # CmdIds are uint32 at the client GetCmdId boundary. A uint16 read can be an
+    # observationally equivalent prefix when all values happen to fit <= 65535,
+    # so prefer the full-width interpretation only as a deterministic tie-breaker;
+    # it does not add evidence or change the candidate score.
     candidates.sort(
         key=lambda item: (
             int(item["score"]),
             bool(item["slot_field_matches"]),
             bool(item["flag_field_matches"]),
             float(item["column_metrics"]["unique_ratio"]),
+            int(item["cmd_width"]),
         ),
         reverse=True,
     )
