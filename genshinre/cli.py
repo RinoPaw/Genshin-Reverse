@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .analysis import research_status
 from .anchors import verify_metadata_anchors
 from .dumpcs import import_dump_cs
 from .extractors import run_mhydump
@@ -137,6 +138,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--region", default="global")
     p.add_argument("--platform", default="windows-x64")
 
+    p = sub.add_parser("research-status", help="summarize machine-readable analysis state and open claims")
+    p.add_argument("path", type=Path)
+
     p = sub.add_parser("validate", help="validate a version/platform artifact directory")
     p.add_argument("path", type=Path)
     p.add_argument("--allow-partial", action="store_true")
@@ -242,6 +246,8 @@ def main() -> None:
             raise SystemExit(1)
     elif args.command == "scaffold":
         print(scaffold(args.root, args.version, args.region, args.platform))
+    elif args.command == "research-status":
+        print(json.dumps(research_status(args.path), indent=2, ensure_ascii=False))
     elif args.command == "validate":
         errors, warnings = validate_version(args.path, allow_partial=args.allow_partial)
         for warning in warnings:
