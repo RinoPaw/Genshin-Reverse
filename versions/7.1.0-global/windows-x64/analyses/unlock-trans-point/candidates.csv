@@ -1,0 +1,3 @@
+candidate_cmd_id,status,source,reason,rejection_or_limit
+1776,historical-only,Genshin 7.0 mapping,Historical UnlockTransPointRsp CmdId,CmdIds are remapped between releases; no 7.1 evidence
+,unresolved,AstaPS play/rino,7.1 response mapping still unknown,Requires current-client GetCmdId/handler evidence
