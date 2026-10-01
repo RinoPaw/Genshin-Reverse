@@ -1,0 +1,591 @@
+{
+  "protocol_type_count": 4896,
+  "scanned_xref_method_count": 7492,
+  "qualifying_call_slot_evidence_rows": 1072,
+  "stable_usage_type_rows": 463,
+  "ambiguous_type_count": 297,
+  "types_without_qualifying_usage_xref": 4136,
+  "duplicate_usage_destinations_across_stable_types": {},
+  "ambiguous_examples": [
+    {
+      "type_definition_index": 51755,
+      "type_name": "OIDOFCABGOK",
+      "cmd_id": 74,
+      "type_slot_rva": "0x57F37E0",
+      "usage_candidates": [
+        {
+          "usage_destination": 190095,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 190108,
+          "observations": 1,
+          "best_slot_distance": 120
+        }
+      ]
+    },
+    {
+      "type_definition_index": 85440,
+      "type_name": "PHJNHGKDFOF",
+      "cmd_id": 133,
+      "type_slot_rva": "0x57F3838",
+      "usage_candidates": [
+        {
+          "usage_destination": 165774,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 165784,
+          "observations": 1,
+          "best_slot_distance": 101
+        }
+      ]
+    },
+    {
+      "type_definition_index": 35048,
+      "type_name": "AMMAKOBMKEE",
+      "cmd_id": 329,
+      "type_slot_rva": "0x57C67C8",
+      "usage_candidates": [
+        {
+          "usage_destination": 24007,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 23946,
+          "observations": 1,
+          "best_slot_distance": 95
+        }
+      ]
+    },
+    {
+      "type_definition_index": 64273,
+      "type_name": "IDNKIAHGAED",
+      "cmd_id": 354,
+      "type_slot_rva": "0x57F3940",
+      "usage_candidates": [
+        {
+          "usage_destination": 89297,
+          "observations": 1,
+          "best_slot_distance": 29
+        },
+        {
+          "usage_destination": 89292,
+          "observations": 1,
+          "best_slot_distance": 101
+        }
+      ]
+    },
+    {
+      "type_definition_index": 64532,
+      "type_name": "FJGMJNGPPBL",
+      "cmd_id": 406,
+      "type_slot_rva": "0x57F3968",
+      "usage_candidates": [
+        {
+          "usage_destination": 68374,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 68369,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 22800,
+      "type_name": "BHBEFMNPDHL",
+      "cmd_id": 478,
+      "type_slot_rva": "0x57CEF00",
+      "usage_candidates": [
+        {
+          "usage_destination": 31428,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 31426,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    },
+    {
+      "type_definition_index": 87230,
+      "type_name": "PDMCOMAOFFC",
+      "cmd_id": 541,
+      "type_slot_rva": "0x57F39F8",
+      "usage_candidates": [
+        {
+          "usage_destination": 190828,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 190823,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 59544,
+      "type_name": "LPCFPHNLNCC",
+      "cmd_id": 557,
+      "type_slot_rva": "0x57F3A28",
+      "usage_candidates": [
+        {
+          "usage_destination": 147581,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 147586,
+          "observations": 1,
+          "best_slot_distance": 86
+        }
+      ]
+    },
+    {
+      "type_definition_index": 38211,
+      "type_name": "EBNEKOJNDAM",
+      "cmd_id": 577,
+      "type_slot_rva": "0x57E2598",
+      "usage_candidates": [
+        {
+          "usage_destination": 49836,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 49763,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    },
+    {
+      "type_definition_index": 43665,
+      "type_name": "JPNFGKLPIJC",
+      "cmd_id": 592,
+      "type_slot_rva": "0x57F3A68",
+      "usage_candidates": [
+        {
+          "usage_destination": 102128,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 102094,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 86791,
+      "type_name": "MFPLPHDIDCJ",
+      "cmd_id": 672,
+      "type_slot_rva": "0x57F3AA8",
+      "usage_candidates": [
+        {
+          "usage_destination": 123038,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 123048,
+          "observations": 1,
+          "best_slot_distance": 12
+        },
+        {
+          "usage_destination": 123030,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 44858,
+      "type_name": "JDAIKJOPLKE",
+      "cmd_id": 706,
+      "type_slot_rva": "0x57F3AC0",
+      "usage_candidates": [
+        {
+          "usage_destination": 108577,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 108564,
+          "observations": 1,
+          "best_slot_distance": 109
+        }
+      ]
+    },
+    {
+      "type_definition_index": 51692,
+      "type_name": "LMAODAOCFAI",
+      "cmd_id": 764,
+      "type_slot_rva": "0x57C8A28",
+      "usage_candidates": [
+        {
+          "usage_destination": 117888,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 117928,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    },
+    {
+      "type_definition_index": 81130,
+      "type_name": "BLGBALKKLNP",
+      "cmd_id": 871,
+      "type_slot_rva": "0x57CED30",
+      "usage_candidates": [
+        {
+          "usage_destination": 31384,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 31326,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    },
+    {
+      "type_definition_index": 67490,
+      "type_name": "HJCNHOLKCFK",
+      "cmd_id": 912,
+      "type_slot_rva": "0x57F3BA8",
+      "usage_candidates": [
+        {
+          "usage_destination": 88473,
+          "observations": 1,
+          "best_slot_distance": 29
+        },
+        {
+          "usage_destination": 88492,
+          "observations": 1,
+          "best_slot_distance": 86
+        }
+      ]
+    },
+    {
+      "type_definition_index": 56564,
+      "type_name": "GKOPCGACCLM",
+      "cmd_id": 942,
+      "type_slot_rva": "0x57F3BC8",
+      "usage_candidates": [
+        {
+          "usage_destination": 90530,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 90485,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 90526,
+          "observations": 1,
+          "best_slot_distance": 12
+        }
+      ]
+    },
+    {
+      "type_definition_index": 66842,
+      "type_name": "BMDEKIKHMHO",
+      "cmd_id": 945,
+      "type_slot_rva": "0x57D3A20",
+      "usage_candidates": [
+        {
+          "usage_destination": 35652,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 35655,
+          "observations": 1,
+          "best_slot_distance": 12
+        },
+        {
+          "usage_destination": 35669,
+          "observations": 1,
+          "best_slot_distance": 88
+        }
+      ]
+    },
+    {
+      "type_definition_index": 42106,
+      "type_name": "JFOFJCOBKEA",
+      "cmd_id": 962,
+      "type_slot_rva": "0x57F3BF0",
+      "usage_candidates": [
+        {
+          "usage_destination": 104706,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 104699,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 65856,
+      "type_name": "HDGNNPBCAKD",
+      "cmd_id": 971,
+      "type_slot_rva": "0x57F3C00",
+      "usage_candidates": [
+        {
+          "usage_destination": 86167,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 86161,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 87759,
+      "type_name": "JLNBDGLBGAK",
+      "cmd_id": 977,
+      "type_slot_rva": "0x57F3C20",
+      "usage_candidates": [
+        {
+          "usage_destination": 125193,
+          "observations": 1,
+          "best_slot_distance": 115
+        },
+        {
+          "usage_destination": 125146,
+          "observations": 1,
+          "best_slot_distance": 12
+        },
+        {
+          "usage_destination": 125142,
+          "observations": 1,
+          "best_slot_distance": 97
+        }
+      ]
+    },
+    {
+      "type_definition_index": 77177,
+      "type_name": "MJLAICPENJF",
+      "cmd_id": 1108,
+      "type_slot_rva": "0x57E2718",
+      "usage_candidates": [
+        {
+          "usage_destination": 152872,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 152864,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    },
+    {
+      "type_definition_index": 46617,
+      "type_name": "KAFOCOOFAJN",
+      "cmd_id": 1174,
+      "type_slot_rva": "0x57F3D18",
+      "usage_candidates": [
+        {
+          "usage_destination": 113337,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 113328,
+          "observations": 1,
+          "best_slot_distance": 109
+        }
+      ]
+    },
+    {
+      "type_definition_index": 87329,
+      "type_name": "JHEOBBCJOOF",
+      "cmd_id": 1203,
+      "type_slot_rva": "0x57F3D48",
+      "usage_candidates": [
+        {
+          "usage_destination": 93384,
+          "observations": 1,
+          "best_slot_distance": 29
+        },
+        {
+          "usage_destination": 93462,
+          "observations": 1,
+          "best_slot_distance": 12
+        },
+        {
+          "usage_destination": 93394,
+          "observations": 1,
+          "best_slot_distance": 73
+        }
+      ]
+    },
+    {
+      "type_definition_index": 86378,
+      "type_name": "DADGKGCKPJB",
+      "cmd_id": 1345,
+      "type_slot_rva": "0x57DF340",
+      "usage_candidates": [
+        {
+          "usage_destination": 46247,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 46238,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 52920,
+      "type_name": "MOFGOFAKOOA",
+      "cmd_id": 1412,
+      "type_slot_rva": "0x57F3E18",
+      "usage_candidates": [
+        {
+          "usage_destination": 127064,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 127070,
+          "observations": 1,
+          "best_slot_distance": 101
+        }
+      ]
+    },
+    {
+      "type_definition_index": 47416,
+      "type_name": "AGHOIJBCMGN",
+      "cmd_id": 1500,
+      "type_slot_rva": "0x57B1458",
+      "usage_candidates": [
+        {
+          "usage_destination": 19118,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 19125,
+          "observations": 1,
+          "best_slot_distance": 106
+        }
+      ]
+    },
+    {
+      "type_definition_index": 16225,
+      "type_name": "MEIDKNGDAFK",
+      "cmd_id": 1584,
+      "type_slot_rva": "0x57F3ED0",
+      "usage_candidates": [
+        {
+          "usage_destination": 139605,
+          "observations": 1,
+          "best_slot_distance": 25
+        },
+        {
+          "usage_destination": 139610,
+          "observations": 1,
+          "best_slot_distance": 101
+        },
+        {
+          "usage_destination": 139622,
+          "observations": 1,
+          "best_slot_distance": 64
+        }
+      ]
+    },
+    {
+      "type_definition_index": 37937,
+      "type_name": "JGELIMKCLMP",
+      "cmd_id": 1633,
+      "type_slot_rva": "0x57F3EF0",
+      "usage_candidates": [
+        {
+          "usage_destination": 126294,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 126329,
+          "observations": 1,
+          "best_slot_distance": 69
+        }
+      ]
+    },
+    {
+      "type_definition_index": 79122,
+      "type_name": "NJDIFMMLLOE",
+      "cmd_id": 1636,
+      "type_slot_rva": "0x57EB5B0",
+      "usage_candidates": [
+        {
+          "usage_destination": 169618,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 169627,
+          "observations": 1,
+          "best_slot_distance": 128
+        }
+      ]
+    },
+    {
+      "type_definition_index": 68441,
+      "type_name": "ADGHNEDNPKA",
+      "cmd_id": 1640,
+      "type_slot_rva": "0x57AF8F0",
+      "usage_candidates": [
+        {
+          "usage_destination": 18082,
+          "observations": 1,
+          "best_slot_distance": 16
+        },
+        {
+          "usage_destination": 18045,
+          "observations": 1,
+          "best_slot_distance": 16
+        }
+      ]
+    }
+  ],
+  "anchors": {
+    "9369": [],
+    "22899": []
+  },
+  "status": "static-xref-usage-map",
+  "notes": [
+    "this recovery does not use the legacy 37523 anchor as a selection rule",
+    "a stable row requires the same managed method corridor to contain a verified type slot reference, direct initializer call, and immediate usage id",
+    "ambiguous types are excluded rather than guessed"
+  ]
+}
