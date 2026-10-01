@@ -1,0 +1,4 @@
+type_definition_index,namespace,type_name,parent_type,field_start,field_count,method_start,method_count,type_cache_rva,status,evidence
+17932,,GHAHAPOPLIH,,,,,,,CONFIRMED,"born naming page type recovered from client audit"
+87483,,ONKOPMILDMF,,,,,,,CONFIRMED,"DoSetPlayerBornDataNotify message type; registry/type-cache evidence"
+87696,,PBOEJBOPIAN,,,,,,,HIGH_CONFIDENCE,"Traveler selection page type recovered from client audit"
