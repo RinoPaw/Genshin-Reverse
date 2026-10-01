@@ -21,6 +21,115 @@ REGISTRY_REQUIRED_COLUMNS = (
     "evidence",
 )
 REGISTRY_SLOT_COLUMNS = ("type_cache_rva", "type_slot_rva")
+ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
+ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
+
+
+def _validate_string_list(value: object, label: str, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        errors.append(f"{label}: must be an array")
+        return
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            errors.append(f"{label}[{index}]: must be a non-empty string")
+
+
+def _validate_evidence_refs(value: object, label: str, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        errors.append(f"{label}: must be an array")
+        return
+    for index, item in enumerate(value):
+        prefix = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{prefix}: must be an object")
+            continue
+        for key in ("kind", "source"):
+            field = item.get(key)
+            if not isinstance(field, str) or not field.strip():
+                errors.append(f"{prefix}.{key}: must be a non-empty string")
+
+
+def _validate_analysis_evidence(evidence_path: Path, errors: list[str]) -> None:
+    label = evidence_path.as_posix()
+    try:
+        data = json.loads(evidence_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"{label}: {exc}")
+        return
+    if not isinstance(data, dict):
+        errors.append(f"{label}: root must be an object")
+        return
+
+    topic = data.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        errors.append(f"{label}: topic must be a non-empty string")
+    elif topic != evidence_path.parent.name:
+        errors.append(f"{label}: topic {topic!r} does not match directory {evidence_path.parent.name!r}")
+
+    state = data.get("state")
+    if state not in ANALYSIS_STATES:
+        errors.append(f"{label}: bad state {state}")
+
+    sample = data.get("sample")
+    if not isinstance(sample, dict):
+        errors.append(f"{label}: sample must be an object")
+    else:
+        for key in ("game_version", "region", "platform", "hashes_ref"):
+            value = sample.get(key)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{label}: sample.{key} must be a non-empty string")
+        hashes_ref = sample.get("hashes_ref")
+        if isinstance(hashes_ref, str) and hashes_ref.strip():
+            referenced = evidence_path.parent / hashes_ref
+            if not referenced.exists():
+                errors.append(f"{label}: sample.hashes_ref does not exist: {hashes_ref}")
+
+    for key in ("questions", "artifacts", "next_steps"):
+        if key not in data:
+            errors.append(f"{label}: missing {key}")
+        else:
+            _validate_string_list(data[key], f"{label}:{key}", errors)
+
+    claims = data.get("claims")
+    if not isinstance(claims, list):
+        errors.append(f"{label}: claims must be an array")
+    else:
+        seen_ids: set[str] = set()
+        for index, claim in enumerate(claims):
+            prefix = f"{label}:claims[{index}]"
+            if not isinstance(claim, dict):
+                errors.append(f"{prefix}: must be an object")
+                continue
+            claim_id = claim.get("id")
+            if not isinstance(claim_id, str) or not claim_id.strip():
+                errors.append(f"{prefix}.id: must be a non-empty string")
+            elif claim_id in seen_ids:
+                errors.append(f"{prefix}.id: duplicate claim id {claim_id}")
+            else:
+                seen_ids.add(claim_id)
+            status = claim.get("status")
+            if status not in ANALYSIS_STATUSES:
+                errors.append(f"{prefix}: bad status {status}")
+            statement = claim.get("statement")
+            if not isinstance(statement, str) or not statement.strip():
+                errors.append(f"{prefix}.statement: must be a non-empty string")
+            _validate_evidence_refs(claim.get("evidence"), f"{prefix}.evidence", errors)
+
+    rejected = data.get("rejected_paths", [])
+    if not isinstance(rejected, list):
+        errors.append(f"{label}: rejected_paths must be an array")
+    else:
+        for index, item in enumerate(rejected):
+            prefix = f"{label}:rejected_paths[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{prefix}: must be an object")
+                continue
+            for key in ("statement", "reason"):
+                value = item.get(key)
+                if not isinstance(value, str) or not value.strip():
+                    errors.append(f"{prefix}.{key}: must be a non-empty string")
+            if "evidence" in item:
+                _validate_evidence_refs(item["evidence"], f"{prefix}.evidence", errors)
 
 
 def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str], list[str]]:
@@ -100,6 +209,11 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
         warnings.append("proto/message-shapes.json is not generated yet")
     else:
         errors.append("missing proto/message-shapes.json")
+
+    analyses_path = path / "analyses"
+    if analyses_path.exists():
+        for evidence_path in sorted(analyses_path.glob("*/evidence.json")):
+            _validate_analysis_evidence(evidence_path, errors)
 
     for rel in ("metadata/types.csv", "metadata/methods.csv", "metadata/fields.csv", "xrefs/message-handlers.csv", "xrefs/message-senders.csv"):
         if not (path / rel).exists():

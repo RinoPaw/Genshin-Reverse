@@ -70,6 +70,43 @@ class RegistryTests(unittest.TestCase):
             self.assertEqual([], errors)
             self.assertTrue(warnings)
 
+    def test_validate_checks_analysis_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = scaffold(Path(td), "9.9.9", "global", "windows-x64")
+            analysis = target / "analyses" / "example"
+            analysis.mkdir(parents=True)
+            evidence = {
+                "topic": "example",
+                "state": "ACTIVE",
+                "sample": {
+                    "game_version": "9.9.9",
+                    "region": "global",
+                    "platform": "windows-x64",
+                    "hashes_ref": "../../hashes.json",
+                },
+                "questions": ["What happens?"],
+                "claims": [
+                    {
+                        "id": "example-claim",
+                        "status": "CANDIDATE",
+                        "statement": "A candidate statement.",
+                        "evidence": [{"kind": "synthetic", "source": "unit-test"}],
+                    }
+                ],
+                "artifacts": ["README.md"],
+                "next_steps": ["Collect stronger evidence."],
+            }
+            evidence_path = analysis / "evidence.json"
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+            errors, _ = validate_version(target, allow_partial=True)
+            self.assertEqual([], errors)
+
+            evidence["claims"][0]["status"] = "PROBABLE"
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            errors, _ = validate_version(target, allow_partial=True)
+            self.assertTrue(any("bad status PROBABLE" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()
