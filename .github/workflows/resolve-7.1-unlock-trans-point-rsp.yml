@@ -76,6 +76,10 @@ jobs:
             --control-cmd 3064 \
             --control-cmd 20824 \
             --control-cmd 4385 \
+            --control-cmd 26 \
+            --control-cmd 23515 \
+            --control-cmd 6774 \
+            --control-cmd 27420 \
             --control-cmd 25567 \
             --control-cmd 9369 \
             --control-cmd 26105
