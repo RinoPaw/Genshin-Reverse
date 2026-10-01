@@ -4,6 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
+from .anchors import verify_metadata_anchors
+from .dumpcs import import_dump_cs
+from .extractors import run_mhydump
 from .fingerprint import fingerprint
 from .metadata import build_type_methods, query_methods
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
@@ -70,6 +73,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--parameter-type")
     p.add_argument("--method-name")
 
+    p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into canonical metadata indexes")
+    p.add_argument("dump_cs", type=Path)
+    p.add_argument("output_dir", type=Path)
+    p.add_argument("--source-tool", default="Il2CppDumper-style dump.cs")
+    p.add_argument("--tool-revision", default="")
+
+    p = sub.add_parser("extract-metadata", help="run a supported external MHY metadata extractor and index its dump.cs")
+    p.add_argument("exe", type=Path)
+    p.add_argument("metadata", type=Path)
+    p.add_argument("output_dir", type=Path)
+    p.add_argument("--backend", choices=["mhydump"], default="mhydump")
+    p.add_argument("--tool", default="mhydump")
+    p.add_argument("--tool-revision", default="")
+    p.add_argument("--keep-dump-cs", type=Path)
+
+    p = sub.add_parser("verify-metadata", help="verify metadata indexes against preserved target-version anchors")
+    p.add_argument("metadata_dir", type=Path)
+    p.add_argument("anchors_json", type=Path)
+
     p = sub.add_parser("scaffold", help="create a canonical version/platform artifact tree")
     p.add_argument("--root", type=Path, default=Path("."))
     p.add_argument("--version", required=True)
@@ -121,6 +143,26 @@ def main() -> None:
         rows = query_methods(args.methods_csv, args.type, args.parameter_type, args.method_name)
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
+            raise SystemExit(1)
+    elif args.command == "import-dump-cs":
+        result = import_dump_cs(args.dump_cs, args.output_dir, args.source_tool, args.tool_revision)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "extract-metadata":
+        if args.backend != "mhydump":
+            raise SystemExit(f"unsupported backend: {args.backend}")
+        result = run_mhydump(
+            args.exe,
+            args.metadata,
+            args.output_dir,
+            executable=args.tool,
+            tool_revision=args.tool_revision,
+            keep_dump_cs=args.keep_dump_cs,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "verify-metadata":
+        result = verify_metadata_anchors(args.metadata_dir, args.anchors_json)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        if not result["passed"]:
             raise SystemExit(1)
     elif args.command == "scaffold":
         print(scaffold(args.root, args.version, args.region, args.platform))

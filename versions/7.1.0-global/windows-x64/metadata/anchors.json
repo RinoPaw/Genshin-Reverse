@@ -1,0 +1,38 @@
+{
+  "sample": "7.1.0-global/windows-x64",
+  "types": [
+    {
+      "type_name": "GHAHAPOPLIH",
+      "type_definition_index": 17932,
+      "evidence": "born naming-page client audit"
+    },
+    {
+      "type_name": "ONKOPMILDMF",
+      "type_definition_index": 87483,
+      "evidence": "CmdId 22899 registry/client audit"
+    },
+    {
+      "type_name": "PBOEJBOPIAN",
+      "type_definition_index": 87696,
+      "evidence": "Traveler selection-page client audit"
+    },
+    {
+      "type_name": "HJDNCHODGOL",
+      "evidence": "SetPlayerBornDataReq client audit"
+    }
+  ],
+  "methods": [
+    {
+      "type_name": "LLCGIEDMIIG",
+      "method_name": "MACAMCMOKOL",
+      "rva": "0x0C227790",
+      "parameter_types": ["ONKOPMILDMF"],
+      "evidence": "method 322028; born notify handler"
+    },
+    {
+      "type_name": "HJDNCHODGOL",
+      "rva": "0x10587260",
+      "evidence": "GetCmdId method returns 26105"
+    }
+  ]
+}
