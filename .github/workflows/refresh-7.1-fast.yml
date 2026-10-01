@@ -1,0 +1,84 @@
+name: Refresh 7.1 CmdId and registry slots
+
+on:
+  push:
+    paths:
+      - '.github/workflows/refresh-7.1-fast.yml'
+      - 'genshinre/getcmdid.py'
+      - 'genshinre/registryslots.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard
+
+      - name: Fetch exact official global 7.1 executable
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+
+      - name: Refresh GetCmdId candidates with 16-bit AX stubs
+        run: |
+          OUT=versions/7.1.0-global/windows-x64/registry
+          python -m genshinre scan-constant-cmdids \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            "$OUT/getcmdid-candidates.csv" \
+            --summary "$OUT/getcmdid-candidates.summary.json"
+          echo '--- summary ---'
+          cat "$OUT/getcmdid-candidates.summary.json"
+          echo '--- 26105 anchor ---'
+          grep '^26105,' "$OUT/getcmdid-candidates.csv"
+          echo '--- 9369 candidates ---'
+          grep '^9369,' "$OUT/getcmdid-candidates.csv" || true
+          echo '--- 22899 candidates ---'
+          grep '^22899,' "$OUT/getcmdid-candidates.csv" || true
+
+      - name: Recover indexed registry type slots
+        run: |
+          OUT=versions/7.1.0-global/windows-x64/registry
+          python -m genshinre.registryslots \
+            /tmp/gi71/GenshinImpact.exe \
+            "$OUT/registry-type-slots.csv" \
+            --summary "$OUT/registry-type-slots.summary.json"
+          echo '--- summary ---'
+          cat "$OUT/registry-type-slots.summary.json"
+          echo '--- index 2232 ---'
+          grep '^2232,' "$OUT/registry-type-slots.csv" || true
+          echo '--- index 3118 ---'
+          grep '^3118,' "$OUT/registry-type-slots.csv" || true
+
+      - name: Commit refreshed artifacts
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv \
+                  versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.summary.json \
+                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
+                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json
+          if git diff --cached --quiet; then
+            echo 'No artifact changes.'
+            exit 0
+          fi
+          git commit -m 'data: refresh 7.1 CmdId and registry slot artifacts'
+          git pull --rebase origin main
+          git push origin HEAD:main
