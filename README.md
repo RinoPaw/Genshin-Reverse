@@ -23,16 +23,16 @@ genshinre query-registry versions/7.1.0-global/windows-x64/registry/registry.csv
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-See `docs/getting-started.md` for sample fingerprinting, version scaffolding and registry normalization.
+See `docs/getting-started.md` for trace import, sample fingerprinting, metadata queries, version scaffolding and registry/control-set verification.
 
 ## Layout
 
 ```text
 docs/                         methods, case studies, artifact contract
-enshinre/                     standard-library CLI/package
+genshinre/                    standard-library CLI/package
 schemas/                      canonical artifact schemas
 tools/                        focused/legacy helper scripts
-tests/                        synthetic regression fixtures/tests
+tests/                        synthetic regression tests
 versions/
   7.1.0-global/windows-x64/
     hashes.json
@@ -45,6 +45,21 @@ versions/
 .github/ISSUE_TEMPLATE/        structured evidence submissions
 ```
 
+## Core workflow
+
+```text
+runtime observation
+→ registry lookup
+→ obfuscated type
+→ metadata parameter/method lookup
+→ handler/sender xrefs
+→ protobuf parser shape
+→ minimal runtime validation
+→ confirmed semantic mapping
+```
+
+The CLI supports each reusable boundary: `import-trace`, `wire`, `query-registry`, `normalize-registry`, `import-opcodes-java`, `crosscheck-registry`, `query-methods`, `build-type-methods`, `fingerprint`, `scaffold`, and `validate`.
+
 ## Highest-value artifacts
 
 The long-term priority order is:
@@ -55,7 +70,7 @@ The long-term priority order is:
 4. `xrefs/message-handlers.csv` and `message-senders.csv`.
 5. `analyses/<topic>/`: evidence, candidates, rejected paths and current state.
 
-The committed 7.1 registry is currently a **partial seed** reconstructed from preserved audit evidence. Historical analysis recovered 4,896 unique CmdIds and matched all 1,540 known AstaPS opcodes; regenerating and preserving that full dataset is the highest-priority infrastructure task.
+The committed 7.1 registry is currently a **partial seed** reconstructed from preserved audit evidence. Historical analysis recovered 4,896 unique CmdIds and matched all 1,540 known AstaPS opcodes; regenerating and preserving that full dataset is the highest-priority data task.
 
 ## Evidence states
 
