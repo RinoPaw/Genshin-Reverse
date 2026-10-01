@@ -8,6 +8,7 @@ on:
       - 'tools/inspect_protocol_type_shape_71.py'
       - 'tools/decode_method_parameters_71.py'
       - 'tools/trace_protocol_delegate_slots_71.py'
+      - 'tools/scan_owner_rpc_submit_layout_71.py'
       - 'genshinre/param71.py'
   workflow_dispatch:
 
@@ -100,6 +101,22 @@ jobs:
             --slot 0x4b2a90 \
             --slot 0x4b2ab0
 
+      - name: Compare scene RPC sender-handler layout
+        run: |
+          python tools/scan_owner_rpc_submit_layout_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            KLLNGCPBLMM \
+            0x7246860 \
+            /tmp/scene-rpc-submit-layout.json \
+            --focus unlock_rsp_36641:0xF045790 \
+            --focus unlock_rsp_20290:0xF0462A0 \
+            --focus get_scene_area_rsp_23366:0xF046780 \
+            --focus rsp_2666:0xF050780 \
+            --focus enter_world_area_rsp_6774:0xF054180 \
+            --focus get_scene_point_rsp_26:0xF058EF0 \
+            --focus scene_trans_to_point_rsp_23515:0xF063210
+
       - name: Inspect scene method band
         run: |
           python tools/inspect_method_context_71.py \
@@ -131,6 +148,7 @@ jobs:
           path: |
             /tmp/trans-point-method-context.json
             /tmp/trans-point-delegate-slots.json
+            /tmp/scene-rpc-submit-layout.json
             /tmp/scene-method-band.json
             /tmp/adjacent-protocol-shapes.json
             /tmp/methods-decoded.summary.json
