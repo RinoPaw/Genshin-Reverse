@@ -12,23 +12,25 @@ Push-Location $RepoRoot
 try {
     $Work = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Work))
     if (-not $Destination) {
-        $Destination = Join-Path $Work "canonical-registry"
+        $Destination = Join-Path $Work "historical-native-registry"
     } else {
         $Destination = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Destination))
     }
+
+    Write-Host "Historical native-layout projection helper; current canonical registry is xref-published."
 
     $Required = @(
         (Join-Path $Work "registry-native-direct.csv"),
         (Join-Path $Work "registry-native-usage.csv"),
         (Join-Path $Work "registry-native-compare.json"),
         (Join-Path $Work "registry-direction-audit.json"),
-        (Join-Path $Work "known-opcodes.csv"),
+        (Join-Path $Work "control-set.csv"),
         (Join-Path $Work "getcmdid-candidates.csv"),
         (Join-Path $RepoRoot "versions/7.1.0-global/windows-x64/hashes.json")
     )
     foreach ($Path in $Required) {
         if (-not (Test-Path $Path)) {
-            throw "Required publication artifact is missing: $Path. Run regeneration and strict registry closure first."
+            throw "Required historical projection artifact is missing: $Path. Run regeneration and strict native registry closure first."
         }
     }
 
@@ -37,17 +39,17 @@ try {
         (Join-Path $Work "registry-native-usage.csv") `
         (Join-Path $Work "registry-native-compare.json") `
         (Join-Path $Work "registry-direction-audit.json") `
-        (Join-Path $Work "known-opcodes.csv") `
+        (Join-Path $Work "control-set.csv") `
         (Join-Path $Work "getcmdid-candidates.csv") `
         (Join-Path $RepoRoot "versions/7.1.0-global/windows-x64/hashes.json") `
         $Destination
     if ($LASTEXITCODE -ne 0) {
-        throw "Canonical registry publication failed with exit code $LASTEXITCODE"
+        throw "Historical native registry projection failed with exit code $LASTEXITCODE"
     }
 
-    Write-Host "Canonical registry publication gates passed."
+    Write-Host "Historical native registry projection gates passed."
     Write-Host "Output: $Destination"
-    Write-Host "Review summary.json and the semantic-name gaps before committing generated artifacts."
+    Write-Host "This output is comparison evidence only; current canonical registry publication remains genshinre.registryxrefpublish."
 } finally {
     Pop-Location
 }
