@@ -173,13 +173,13 @@ try {
             $ControlSetOk = Invoke-OptionalPython -Name "astaps-control-set" `
                 -m genshinre import-opcodes-java `
                 $PacketOpcodes `
-                (Join-Path $Output "known-opcodes.csv")
+                (Join-Path $Output "control-set.csv")
         } else {
             $OptionalFailures.Add("astaps-packet-opcodes-not-found")
             Write-Warning "PacketOpcodes.java not found under current or historical AstaPS paths"
         }
     } else {
-        Write-Host "      skipped; pass -AstaPS <path> to generate known-opcodes.csv"
+        Write-Host "      skipped; pass -AstaPS <path> to generate control-set.csv"
     }
 
     Write-Host "[optional 11/13] Candidate graph diagnostics"
@@ -187,7 +187,7 @@ try {
         $null = Invoke-OptionalPython -Name "registry-candidate-diagnostics" `
             -m genshinre.graphdiag `
             (Join-Path $Output "registry-candidate-graph.csv") `
-            (Join-Path $Output "known-opcodes.csv") `
+            (Join-Path $Output "control-set.csv") `
             --output (Join-Path $Output "registry-candidate-graph.diagnostic.json")
     } else {
         Write-Host "      skipped; candidate graph or control set unavailable"
@@ -198,7 +198,7 @@ try {
         $null = Invoke-OptionalPython -Name "registry-static-diagnostics" `
             -m genshinre.graphdiag `
             (Join-Path $Output "registry-static-candidates.csv") `
-            (Join-Path $Output "known-opcodes.csv") `
+            (Join-Path $Output "control-set.csv") `
             --output (Join-Path $Output "registry-static-candidates.diagnostic.json")
     } else {
         Write-Host "      skipped; static candidates or control set unavailable"
@@ -214,7 +214,7 @@ try {
             "--focus", "186,9369,22899,26105"
         )
         if ($ControlSetOk) {
-            $ReportArguments += @("--known-opcodes", (Join-Path $Output "known-opcodes.csv"))
+            $ReportArguments += @("--known-opcodes", (Join-Path $Output "control-set.csv"))
         }
         & $Python @ReportArguments | Out-File -FilePath (Join-Path $Output "registry-candidate-report.summary.json") -Encoding utf8
         if ($LASTEXITCODE -ne 0) {
