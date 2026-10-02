@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from genshinre.fingerprint import fingerprint
-from genshinre.registry import CANONICAL_COLUMNS, normalize_registry, query_registry
+from genshinre.registry import NORMALIZED_REGISTRY_COLUMNS, normalize_registry, query_registry
 from genshinre.scaffold import scaffold
 from genshinre.validate import validate_version
 from genshinre.wire import parse_message
@@ -50,12 +50,14 @@ class RegistryTests(unittest.TestCase):
             out = root / "registry"
             summary = normalize_registry(raw, out, {"0": "S2C", "1": "C2S"})
             self.assertEqual(2, summary["row_count"])
+            self.assertEqual("generic-normalized-registry", summary["format"])
+            self.assertFalse(summary["canonical_publication"])
             rows = query_registry(out / "registry.csv", cmd_id=26105)
             self.assertEqual("HJDNCHODGOL", rows[0]["type_name"])
             self.assertEqual("C2S", rows[0]["direction"])
 
             with (out / "registry.csv").open("r", encoding="utf-8", newline="") as f:
-                self.assertEqual(tuple(csv.DictReader(f).fieldnames or ()), CANONICAL_COLUMNS)
+                self.assertEqual(tuple(csv.DictReader(f).fieldnames or ()), NORMALIZED_REGISTRY_COLUMNS)
 
     def test_scaffold_validates_as_partial(self) -> None:
         with tempfile.TemporaryDirectory() as td:
