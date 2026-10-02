@@ -22,7 +22,7 @@ The canonical 7.1 metadata index set is published:
 - `method-pointers.csv`
 - `runtime-types.csv`
 
-Historical hand-recovered evidence remains under `historical-seed/` and must not be treated as a complete client index.
+The early hand-recovered seed files were retired after the exact-sample native decoder and validated canonical indexes became available. Git history preserves those seed snapshots for provenance; they are not part of the current metadata contract.
 
 The decoder and publication path are bound to the exact 7.1 sample hashes. The regenerated exact-sample counts are:
 
@@ -32,6 +32,8 @@ The decoder and publication path are bound to the exact 7.1 sample hashes. The r
 - 733,442 method-pointer rows
 
 These counts are regression evidence. They are not used to pad or trim generated output. Publication validates the exact sample hashes, native decoder counts, CSV row counts and the complete method-pointer table before copying canonical metadata artifacts into this version directory.
+
+Canonical published CSVs are compact query indexes. Full decoder provenance columns remain in the regeneration work output and short-lived Actions artifact rather than being duplicated into Git.
 
 Common query:
 
