@@ -6,29 +6,17 @@ from pathlib import Path
 
 from .analysis import research_status
 from .anchors import verify_metadata_anchors
-from .dumpcs import import_dump_cs
-from .extractors import run_mhydump
 from .fingerprint import fingerprint
 from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_fields, query_methods
 from .mhy71 import decode_metadata_71
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
-from .registry import normalize_registry, query_registry
+from .registry import query_registry
 from .scaffold import scaffold
 from .trace import import_trace
 from .validate import validate_version
 from .wire import parse_message
 from .xrefs import inspect_rva, probe_registry_71, scan_rip_xrefs, write_json
-
-
-def _direction_map(text: str | None) -> dict[str, str]:
-    if not text:
-        return {}
-    result: dict[str, str] = {}
-    for item in text.split(","):
-        key, value = item.split("=", 1)
-        result[key.strip()] = value.strip()
-    return result
 
 
 def _rva(text: str) -> int:
@@ -52,15 +40,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--type-definition-index", type=int)
     p.add_argument("--index", type=int, dest="registry_index")
 
-    p = sub.add_parser(
-        "normalize-registry",
-        help="normalize a registry-like CSV into a generic interchange CSV/JSON/summary",
-    )
-    p.add_argument("input_csv", type=Path)
-    p.add_argument("output_dir", type=Path)
-    p.add_argument("--direction-map", help="raw-to-normalized mapping, e.g. 0=S2C,1=C2S")
-    p.add_argument("--provenance", type=Path, help="JSON file copied into summary provenance")
-
     p = sub.add_parser("import-opcodes-java", help="extract a numeric opcode control set from PacketOpcodes.java")
     p.add_argument("java_file", type=Path)
     p.add_argument("output_csv", type=Path)
@@ -70,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("control_set", type=Path)
     p.add_argument("--output", type=Path)
 
-    p = sub.add_parser("import-trace", help="turn server RECV/SEND trace lines into observations CSV")
+    p = sub.add_parser("import-trace", help="turn server RECV/SEND trace lines into packet trace CSV")
     p.add_argument("input_log", type=Path)
     p.add_argument("output_csv", type=Path)
     p.add_argument("--source", default="")
@@ -124,22 +103,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("exe", type=Path)
     p.add_argument("metadata", type=Path)
     p.add_argument("output_dir", type=Path)
-    p.add_argument("--allow-unknown-sample", action="store_true")
-
-    p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into metadata indexes")
-    p.add_argument("dump_cs", type=Path)
-    p.add_argument("output_dir", type=Path)
-    p.add_argument("--source-tool", default="Il2CppDumper-style dump.cs")
-    p.add_argument("--tool-revision", default="")
-
-    p = sub.add_parser("extract-metadata", help="run a supported external MHY metadata extractor and index its dump.cs")
-    p.add_argument("exe", type=Path)
-    p.add_argument("metadata", type=Path)
-    p.add_argument("output_dir", type=Path)
-    p.add_argument("--backend", choices=["mhydump"], default="mhydump")
-    p.add_argument("--tool", default="mhydump")
-    p.add_argument("--tool-revision", default="")
-    p.add_argument("--keep-dump-cs", type=Path)
 
     p = sub.add_parser("verify-metadata", help="verify metadata indexes against preserved target-version anchors")
     p.add_argument("metadata_dir", type=Path)
@@ -188,12 +151,6 @@ def main() -> None:
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
             raise SystemExit(1)
-    elif args.command == "normalize-registry":
-        provenance = None
-        if args.provenance:
-            provenance = json.loads(args.provenance.read_text(encoding="utf-8"))
-        summary = normalize_registry(args.input_csv, args.output_dir, _direction_map(args.direction_map), provenance)
-        print(json.dumps(summary, indent=2, ensure_ascii=False))
     elif args.command == "import-opcodes-java":
         print(import_java_opcodes(args.java_file, args.output_csv))
     elif args.command == "crosscheck-registry":
@@ -275,27 +232,7 @@ def main() -> None:
         write_json(result, args.output_json)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "decode-metadata-71":
-        result = decode_metadata_71(
-            args.exe,
-            args.metadata,
-            args.output_dir,
-            allow_unknown_sample=args.allow_unknown_sample,
-        )
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    elif args.command == "import-dump-cs":
-        result = import_dump_cs(args.dump_cs, args.output_dir, args.source_tool, args.tool_revision)
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    elif args.command == "extract-metadata":
-        if args.backend != "mhydump":
-            raise SystemExit(f"unsupported backend: {args.backend}")
-        result = run_mhydump(
-            args.exe,
-            args.metadata,
-            args.output_dir,
-            executable=args.tool,
-            tool_revision=args.tool_revision,
-            keep_dump_cs=args.keep_dump_cs,
-        )
+        result = decode_metadata_71(args.exe, args.metadata, args.output_dir)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "verify-metadata":
         result = verify_metadata_anchors(args.metadata_dir, args.anchors_json)
