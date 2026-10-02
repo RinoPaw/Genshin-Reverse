@@ -12,7 +12,7 @@ from .mhy71 import (
     EXPECTED_METHOD_COUNT,
     EXPECTED_TYPE_COUNT,
 )
-from .registry import EXPECTED_REGISTRY_ROW_COUNT
+from .registry import CANONICAL_REGISTRY_COLUMNS, EXPECTED_REGISTRY_ROW_COUNT
 
 
 REQUIRED_WORK_FILES = (
@@ -152,14 +152,12 @@ def _sample_hashes(version_dir: Path) -> tuple[str, str]:
     return exe_sha, metadata_sha
 
 
-def _canonical_registry_published(version_dir: Path) -> bool:
+def _require_canonical_registry(version_dir: Path) -> None:
     registry_csv = version_dir / "registry" / "registry.csv"
     summary_json = version_dir / "registry" / "registry.summary.json"
-    if not registry_csv.exists() and not summary_json.exists():
-        return False
     if not registry_csv.is_file() or not summary_json.is_file():
         raise ValueError(
-            "canonical registry publication is incomplete: registry.csv and registry.summary.json must coexist"
+            "current canonical registry is required: registry.csv and registry.summary.json must coexist"
         )
 
     summary = _load_json(summary_json)
@@ -169,11 +167,27 @@ def _canonical_registry_published(version_dir: Path) -> bool:
         raise ValueError("canonical registry summary does not contain exactly 4,896 rows")
     if int(summary.get("unique_cmd_ids", -1)) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry summary does not contain 4,896 unique CmdIds")
-    if not bool(summary.get("strict_slot_type_cmd_bijection")):
+    if summary.get("strict_slot_type_cmd_bijection") is not True:
         raise ValueError("canonical registry summary lacks the strict slot/type/CmdId bijection gate")
-    if _csv_row_count(registry_csv) != EXPECTED_REGISTRY_ROW_COUNT:
+
+    with registry_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = tuple(reader.fieldnames or ())
+        if fields != CANONICAL_REGISTRY_COLUMNS:
+            raise ValueError(
+                "canonical registry CSV header mismatch: "
+                f"expected {','.join(CANONICAL_REGISTRY_COLUMNS)}; got {','.join(fields)}"
+            )
+        rows = list(reader)
+
+    if len(rows) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry CSV does not contain exactly 4,896 rows")
-    return True
+    try:
+        cmd_ids = [int(row["cmd_id"]) for row in rows]
+    except (KeyError, ValueError) as exc:
+        raise ValueError("canonical registry CSV contains an invalid CmdId") from exc
+    if len(set(cmd_ids)) != EXPECTED_REGISTRY_ROW_COUNT:
+        raise ValueError("canonical registry CSV does not contain 4,896 unique CmdIds")
 
 
 def validate_generated_artifacts_71(
@@ -188,6 +202,7 @@ def validate_generated_artifacts_71(
     for source in REQUIRED_WORK_FILES:
         _require(work_dir / source)
     _require(version_dir / "hashes.json")
+    _require_canonical_registry(version_dir)
 
     _, _, expected_methods = expected_counts
     native = _load_json(work_dir / "metadata/native-decoder-summary.json")
@@ -330,7 +345,6 @@ def publish_generated_artifacts_71(
     optional_files = _copy_map(work_dir, version_dir, OPTIONAL_FILES)
     published_files.extend(direct_files)
     published_files.extend(optional_files)
-    canonical_published = _canonical_registry_published(version_dir)
 
     published_files = sorted(set(published_files))
     optional_files = sorted(set(optional_files))
@@ -344,14 +358,13 @@ def publish_generated_artifacts_71(
             "metadata_format": "compact-query-indexes",
             "metadata_rows": compact_counts,
         },
-        "canonical_registry_published": canonical_published,
+        "canonical_registry_published": True,
         "artifacts": published_files,
         "optional_artifacts_published": optional_files,
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
-            "metadata publication is gated independently from experimental registry heuristics",
-            "the existing canonical registry is validated and preserved; this publisher does not replace it",
-            "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings",
+            "publication requires the current canonical 7.1 registry and exact sample identities",
+            "optional research intermediates are published only when they exist and never replace canonical identity",
         ],
     }
     (version_dir / "generated-artifacts.json").write_text(
@@ -364,7 +377,7 @@ def publish_generated_artifacts_71(
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.artifactpublish",
-        description="Publish validated compact 7.1 research artifacts into the version directory.",
+        description="Publish validated current 7.1 artifacts into the version directory.",
     )
     parser.add_argument("work_dir", type=Path)
     parser.add_argument("version_dir", type=Path)
