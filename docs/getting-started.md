@@ -35,6 +35,8 @@ General artifact publication validates and preserves these files. It does not re
 
 Raw game files stay outside Git. Put your matching samples wherever convenient; the native decoder checks both SHA-256 values before decoding. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`.
 
+For automated or repeatable sample acquisition, use `scripts/fetch-7.1-samples.sh` or `scripts/fetch-7.1-samples.ps1`; those entry points pin the maintained Sophon manifest and expected sample hashes.
+
 Windows PowerShell:
 
 ```powershell
@@ -116,7 +118,7 @@ The older `scripts/close-registry-7.1.*` and `scripts/publish-registry-7.1.*` co
 
 ## Automated exact-sample regeneration
 
-`.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and uses a pinned Sophon manifest plus expected SHA-256 hashes so a moving launcher/live-version endpoint cannot silently select another game version.
+`.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and uses a pinned Sophon manifest plus expected SHA-256 hashes so a moving launcher/live-version endpoint cannot silently select another game version. Stale runs in the same heavy-generation concurrency group are cancelled when a newer relevant change arrives.
 
 Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, the wire smoke test and cheap shell/PowerShell syntax checks.
 
@@ -151,8 +153,10 @@ The committed 7.1 registry is the current complete static identity dataset. Dire
 ```bash
 genshinre import-opcodes-java \
   ../AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java \
-  work/known-opcodes.csv
+  work/control-set.csv
 ```
+
+When published by the maintained 7.1 generation path this becomes `registry/control-set.csv`. It is a broad comparison/control surface imported from AstaPS; evidence-gated target-client semantic mappings live in `proto/known-opcodes.csv`.
 
 For generic imported registries, `genshinre normalize-registry` remains available. It normalizes data; it does not prove that a direction map, type identity or protocol membership is correct.
 
