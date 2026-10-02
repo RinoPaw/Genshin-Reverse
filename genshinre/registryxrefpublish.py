@@ -39,6 +39,39 @@ def _int(value: object) -> int | None:
         return None
 
 
+def _validated_known_opcodes(rows: list[dict[str, str]]) -> dict[int, dict[str, str]]:
+    known_by_cmd: dict[int, dict[str, str]] = {}
+    for line_no, row in enumerate(rows, start=2):
+        cmd_id = _int(row.get("cmd_id"))
+        if cmd_id is None or not 0 <= cmd_id <= 65535:
+            raise ValueError(f"known-opcodes row {line_no} has invalid CmdId")
+        if cmd_id in known_by_cmd:
+            raise ValueError(f"known-opcodes contains duplicate CmdId {cmd_id}")
+
+        semantic_name = str(row.get("semantic_name", "")).strip()
+        if not semantic_name:
+            raise ValueError(f"known-opcodes CmdId {cmd_id} lacks semantic_name")
+
+        direction = str(row.get("direction", "")).strip()
+        if direction not in {"C2S", "S2C"}:
+            raise ValueError(
+                f"known-opcodes CmdId {cmd_id} has non-confirmed direction {direction!r}"
+            )
+
+        status = str(row.get("status", "")).strip()
+        if status != "CONFIRMED":
+            raise ValueError(
+                f"known-opcodes CmdId {cmd_id} must be CONFIRMED before canonical enrichment; got {status!r}"
+            )
+
+        evidence = str(row.get("evidence", "")).strip()
+        if not evidence:
+            raise ValueError(f"known-opcodes CmdId {cmd_id} lacks evidence")
+
+        known_by_cmd[cmd_id] = row
+    return known_by_cmd
+
+
 def publish_registry_from_xrefs_71(
     xrefs_csv: Path,
     slots_csv: Path,
@@ -115,14 +148,7 @@ def publish_registry_from_xrefs_71(
             f"missing_slots={[f'0x{x:X}' for x in missing_slots[:10]]}"
         )
 
-    known_by_cmd: dict[int, dict[str, str]] = {}
-    for row in known_rows:
-        cmd_id = _int(row.get("cmd_id"))
-        if cmd_id is None:
-            continue
-        if cmd_id in known_by_cmd and known_by_cmd[cmd_id].get("semantic_name") != row.get("semantic_name"):
-            raise ValueError(f"known opcode controls contain conflicting CmdId {cmd_id}")
-        known_by_cmd[cmd_id] = row
+    known_by_cmd = _validated_known_opcodes(known_rows)
 
     selected_by_slot = {_int(row["registry_slot_rva"]): row for row in primary_rows}
     output: list[dict[str, str]] = []
