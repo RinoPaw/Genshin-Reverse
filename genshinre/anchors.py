@@ -20,9 +20,6 @@ def _type_matches(row: dict[str, str], anchor: dict[str, object]) -> bool:
     expected_index = str(anchor.get("type_definition_index", ""))
     if expected_index and row.get("type_definition_index") != expected_index:
         return False
-    expected_cache = _norm_address(str(anchor.get("type_cache_rva", "")))
-    if expected_cache and _norm_address(row.get("type_cache_rva", "")) != expected_cache:
-        return False
     for key in ("field_start", "field_count", "method_start", "method_count"):
         expected = str(anchor.get(key, ""))
         if expected and row.get(key) != expected:
@@ -77,8 +74,10 @@ def _count_matches(
     matcher,
 ) -> list[int]:
     counts = [0] * len(anchors)
-    if not anchors or not path.is_file():
+    if not anchors:
         return counts
+    if not path.is_file():
+        raise ValueError(f"required metadata anchor table is missing: {path}")
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             for index, anchor in enumerate(anchors):
@@ -105,6 +104,8 @@ def _checks(
 
 def verify_metadata_anchors(metadata_dir: Path, anchors_json: Path) -> dict[str, object]:
     anchors = json.loads(anchors_json.read_text(encoding="utf-8"))
+    if not isinstance(anchors, dict):
+        raise ValueError("metadata anchors root must be an object")
     type_anchors = list(anchors.get("types", []))
     field_anchors = list(anchors.get("fields", []))
     method_anchors = list(anchors.get("methods", []))
