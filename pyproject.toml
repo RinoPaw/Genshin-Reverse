@@ -12,7 +12,7 @@ authors = [{name = "RinoPaw"}]
 dependencies = []
 
 [project.scripts]
-genshinre = "genshinre.cli:main"
+genshinre = "genshinre.entrypoint:main"
 
 [tool.setuptools.packages.find]
 include = ["genshinre*"]
