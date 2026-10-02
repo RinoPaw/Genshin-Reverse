@@ -42,12 +42,6 @@ OPTIONAL_FILES = {
     "xrefs/message-constructors.csv": "xrefs/message-constructors.csv",
 }
 
-CANONICAL_FILES = {
-    "registry.csv": "registry/registry.csv",
-    "registry.json": "registry/registry.json",
-    "summary.json": "registry/summary.json",
-}
-
 
 def _load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -76,6 +70,30 @@ def _sample_hashes(version_dir: Path) -> tuple[str, str]:
     if not exe_sha or not metadata_sha:
         raise ValueError("version hashes.json is missing the exact sample hashes")
     return exe_sha, metadata_sha
+
+
+def _canonical_registry_published(version_dir: Path) -> bool:
+    registry_csv = version_dir / "registry" / "registry.csv"
+    summary_json = version_dir / "registry" / "registry.summary.json"
+    if not registry_csv.exists() and not summary_json.exists():
+        return False
+    if not registry_csv.is_file() or not summary_json.is_file():
+        raise ValueError(
+            "canonical registry publication is incomplete: registry.csv and registry.summary.json must coexist"
+        )
+
+    summary = _load_json(summary_json)
+    if summary.get("status") != "canonical-static-identity-registry":
+        raise ValueError("registry.summary.json does not describe the current canonical identity registry")
+    if int(summary.get("row_count", -1)) != HISTORICAL_ROW_COUNT:
+        raise ValueError("canonical registry summary does not contain exactly 4,896 rows")
+    if int(summary.get("unique_cmd_ids", -1)) != HISTORICAL_ROW_COUNT:
+        raise ValueError("canonical registry summary does not contain 4,896 unique CmdIds")
+    if not bool(summary.get("strict_slot_type_cmd_bijection")):
+        raise ValueError("canonical registry summary lacks the strict slot/type/CmdId bijection gate")
+    if _csv_row_count(registry_csv) != HISTORICAL_ROW_COUNT:
+        raise ValueError("canonical registry CSV does not contain exactly 4,896 rows")
+    return True
 
 
 def validate_generated_artifacts_71(
@@ -196,7 +214,6 @@ def _copy_map(source_root: Path, destination_root: Path, mapping: dict[str, str]
 def publish_generated_artifacts_71(
     work_dir: Path,
     version_dir: Path,
-    canonical_registry_dir: Path | None = None,
     expected_counts: tuple[int, int, int] = (
         EXPECTED_TYPE_COUNT,
         EXPECTED_FIELD_COUNT,
@@ -211,23 +228,7 @@ def publish_generated_artifacts_71(
 
     copied = _copy_map(work_dir, version_dir, CORE_FILES)
     copied.extend(_copy_map(work_dir, version_dir, OPTIONAL_FILES))
-
-    canonical_published = False
-    if canonical_registry_dir is None:
-        candidate = work_dir / "canonical-registry"
-        canonical_registry_dir = candidate if candidate.is_dir() else None
-    if canonical_registry_dir is not None:
-        for source in CANONICAL_FILES:
-            _require(canonical_registry_dir / source)
-        canonical_summary = _load_json(canonical_registry_dir / "summary.json")
-        if canonical_summary.get("status") != "canonical-static-registry":
-            raise ValueError("canonical registry directory did not pass the publication gate")
-        if int(canonical_summary.get("row_count", -1)) != HISTORICAL_ROW_COUNT:
-            raise ValueError("canonical registry does not contain exactly 4,896 rows")
-        if int(canonical_summary.get("unique_cmd_ids", -1)) != HISTORICAL_ROW_COUNT:
-            raise ValueError("canonical registry does not contain 4,896 unique CmdIds")
-        copied.extend(_copy_map(canonical_registry_dir, version_dir, CANONICAL_FILES))
-        canonical_published = True
+    canonical_published = _canonical_registry_published(version_dir)
 
     published_files = sorted(copied)
     manifest: dict[str, object] = {
@@ -243,7 +244,7 @@ def publish_generated_artifacts_71(
         "optional_registry_artifacts_published": [],
         "notes": [
             "metadata publication is gated independently from experimental registry heuristics",
-            "the complete registry canonical filenames are emitted only by the stricter registry publication gate",
+            "the existing canonical registry is validated and preserved; this publisher does not replace it",
             "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings",
         ],
     }
@@ -261,14 +262,9 @@ def main() -> None:
     )
     parser.add_argument("work_dir", type=Path)
     parser.add_argument("version_dir", type=Path)
-    parser.add_argument("--canonical-registry", type=Path)
     args = parser.parse_args()
 
-    result = publish_generated_artifacts_71(
-        args.work_dir,
-        args.version_dir,
-        canonical_registry_dir=args.canonical_registry,
-    )
+    result = publish_generated_artifacts_71(args.work_dir, args.version_dir)
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
