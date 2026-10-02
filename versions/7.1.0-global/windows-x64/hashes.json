@@ -5,7 +5,7 @@
   "samples": {
     "GenshinImpact.exe": {
       "sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
-      "status": "recorded-from-prior-static-analysis"
+      "status": "fingerprinted"
     },
     "global-metadata.dat": {
       "sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
