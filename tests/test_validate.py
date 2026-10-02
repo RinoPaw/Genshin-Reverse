@@ -34,18 +34,19 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
-            (root / "registry" / "probe.json").write_text("{}\n", encoding="utf-8")
+            (root / "registry" / "control-set.csv").write_text("cmd_id\n1\n", encoding="utf-8")
             (root / "metadata").mkdir()
             (root / "metadata" / "types.csv").write_text("type_name\n", encoding="utf-8")
             self._write_manifest(
                 root,
                 {
                     "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": ["probe.json"],
+                    "optional_registry_artifacts_published": ["registry/control-set.csv"],
                     "artifacts": [
                         "generated-artifacts.json",
                         "registry/registry.csv",
                         "registry/registry.summary.json",
+                        "registry/control-set.csv",
                         "metadata/types.csv",
                     ],
                 },
@@ -75,6 +76,25 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
 
             self.assertTrue(
                 any("listed artifact does not exist: missing.csv" in error for error in errors)
+            )
+
+    def test_missing_optional_artifact_uses_version_root_relative_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_manifest(
+                root,
+                {
+                    "canonical_registry_published": False,
+                    "optional_registry_artifacts_published": ["registry/missing.csv"],
+                    "artifacts": [],
+                },
+            )
+
+            errors: list[str] = []
+            _validate_generated_artifacts(root, errors, [])
+
+            self.assertTrue(
+                any("listed artifact does not exist: registry/missing.csv" in error for error in errors)
             )
 
     def test_duplicate_and_parent_paths_are_rejected(self) -> None:
