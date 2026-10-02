@@ -151,7 +151,6 @@ jobs:
                   size_ratio = min(size, current_end-current_start) / max(size, current_end-current_start)
                   param_count = len(method.get('params') or [])
                   ret = method.get('ret', '')
-                  # Body structure dominates; size and one-parameter/void signature are independent tiebreakers.
                   score = token_ratio * 0.58 + mnemonic_ratio * 0.27 + size_ratio * 0.10
                   if param_count == 1:
                       score += 0.03
@@ -174,7 +173,6 @@ jobs:
                   })
           scores.sort(key=lambda x: x['score'], reverse=True)
           top = scores[:40]
-
           candidate = next((x for x in scores if x['rva'] == '0xB6EA6B0'), None)
           result = {
               'current': {
@@ -199,6 +197,50 @@ jobs:
           print(json.dumps(result, indent=2))
           PY
 
+      - name: Compare sender static-field displacements
+        run: |
+          python - <<'PY' > /tmp/unlock-sender-static-displacements.json
+          import json
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_MEM, X86_REG_RIP
+          from genshinre.pe import PEImage
+
+          targets = {
+              '7.0_sender': (Path('/tmp/gi70/GenshinImpact.exe'), 0xB6EA6B0, 0xB6EAA40),
+              '7.1_sender': (Path('/tmp/gi71/GenshinImpact.exe'), 0xF0452B0, 0xF045640),
+              '7.0_unlock_rsp': (Path('/tmp/gi70/GenshinImpact.exe'), 0xB6F18D0, 0xB6F1940),
+              '7.1_rsp_36641': (Path('/tmp/gi71/GenshinImpact.exe'), 0xF045790, 0xF045800),
+              '7.1_rsp_20290': (Path('/tmp/gi71/GenshinImpact.exe'), 0xF0462A0, 0xF046310),
+          }
+          md = Cs(CS_ARCH_X86, CS_MODE_64); md.detail = True
+          out = {}
+          for label,(exe,start,end) in targets.items():
+              rows=[]
+              with PEImage(exe) as image:
+                  blob=image.read_rva(start,end-start)
+                  for insn in md.disasm(blob,image.image_base+start):
+                      for op in insn.operands:
+                          if op.type != X86_OP_MEM:
+                              continue
+                          disp=int(op.mem.disp)
+                          # Large positive object/static-field offsets are the scene controller's generated delegate slots.
+                          if 0x10000 <= disp <= 0x800000:
+                              rows.append({
+                                  'rva': f'0x{insn.address-image.image_base:X}',
+                                  'mnemonic': insn.mnemonic,
+                                  'op_str': insn.op_str,
+                                  'disp': f'0x{disp:X}',
+                                  'base_reg': int(op.mem.base),
+                                  'rip_relative': op.mem.base == X86_REG_RIP,
+                              })
+              out[label]={'start':f'0x{start:X}','end':f'0x{end:X}','large_memory_displacements':rows}
+          print(json.dumps(out,indent=2))
+          PY
+          cat /tmp/unlock-sender-static-displacements.json
+
+      - name: Show summary
+        run: |
           python - <<'PY'
           import json
           d=json.load(open('/tmp/unlock-sender-fingerprint.json'))
@@ -213,4 +255,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unlock-sender-fingerprint-70-71
-          path: /tmp/unlock-sender-fingerprint.json
+          path: |
+            /tmp/unlock-sender-fingerprint.json
+            /tmp/unlock-sender-static-displacements.json
