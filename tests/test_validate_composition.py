@@ -9,14 +9,14 @@ from genshinre.validate import validate_version
 
 
 class ValidatorCompositionTests(unittest.TestCase):
-    def test_composes_manifest_v2_contract(self) -> None:
+    def test_manifest_v3_contract_runs_through_validator(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
-                        "manifest_version": 1,
-                        "canonical_registry_published": False,
+                        "manifest_version": 2,
+                        "canonical_registry_published": True,
                         "artifacts": [],
                         "optional_artifacts_published": [],
                     }
@@ -24,9 +24,10 @@ class ValidatorCompositionTests(unittest.TestCase):
                 encoding="utf-8",
             )
             errors, _ = validate_version(root, allow_partial=True)
-            self.assertTrue(any("manifest_version must be 2" in error for error in errors))
+            self.assertTrue(any("manifest_version must be 3" in error for error in errors))
+            self.assertTrue(any("optional_artifacts_published" in error for error in errors))
 
-    def test_composes_cmd_observation_contract(self) -> None:
+    def test_cmd_observation_contract_runs_through_validator(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             observations = root / "cmdids" / "observations.csv"
@@ -39,7 +40,7 @@ class ValidatorCompositionTests(unittest.TestCase):
             errors, _ = validate_version(root, allow_partial=True)
             self.assertTrue(any("bad direction SERVERBOUND" in error for error in errors))
 
-    def test_composes_xref_contract(self) -> None:
+    def test_xref_contract_runs_through_validator(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             table = root / "xrefs" / "message-senders.csv"
