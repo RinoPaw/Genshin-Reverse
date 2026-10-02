@@ -104,6 +104,20 @@ class ProtocolQueryTests(unittest.TestCase):
             )
             (root / "proto" / "message-shapes.json").write_text("{}\n", encoding="utf-8")
 
+            case = root / "analyses" / "cmdid-186"
+            case.mkdir(parents=True)
+            (case / "README.md").write_text("# CmdId 186\n", encoding="utf-8")
+            (case / "evidence.json").write_text(
+                json.dumps(
+                    {
+                        "topic": "cmdid-186",
+                        "state": "ACTIVE",
+                        "claims": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
             result = query_protocol(root, cmd_id=186)
 
             self.assertEqual(result["result_count"], 1)
@@ -113,6 +127,8 @@ class ProtocolQueryTests(unittest.TestCase):
             self.assertEqual(item["counts"]["methods"], 1)
             self.assertEqual(item["counts"]["senders"], 1)
             self.assertEqual(item["counts"]["runtime_observations"], 1)
+            self.assertEqual(item["counts"]["analyses"], 1)
+            self.assertEqual(item["analyses"][0]["evidence"]["topic"], "cmdid-186")
             self.assertEqual(item["metadata"]["methods"][0]["parameter_types"], ["EIBJNHDPEMB"])
 
     def test_supports_type_definition_lookup(self) -> None:
