@@ -6,6 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
+from .metadata import build_type_methods
 from .mhy71 import (
     EXPECTED_FIELD_COUNT,
     EXPECTED_METHOD_COUNT,
@@ -14,14 +15,72 @@ from .mhy71 import (
 from .registrylayout import HISTORICAL_ROW_COUNT
 
 
-CORE_FILES = {
-    "metadata/types.csv": "metadata/types.csv",
-    "metadata/fields.csv": "metadata/fields.csv",
-    "metadata/methods.csv": "metadata/methods.csv",
-    "metadata/method-pointers.csv": "metadata/method-pointers.csv",
-    "metadata/type-methods.json": "metadata/type-methods.json",
+REQUIRED_WORK_FILES = (
+    "metadata/types.csv",
+    "metadata/fields.csv",
+    "metadata/methods.csv",
+    "metadata/method-pointers.csv",
+    "metadata/native-decoder-summary.json",
+    "metadata/runtime-types.csv",
+    "metadata/runtime-types.summary.json",
+    "getcmdid-candidates.csv",
+    "getcmdid-candidates.summary.json",
+)
+
+COMPACT_METADATA = {
+    "metadata/types.csv": (
+        "type_definition_index",
+        "namespace",
+        "type_name",
+        "parent_type",
+        "field_start",
+        "field_count",
+        "method_start",
+        "method_count",
+        "name_token",
+        "record_file_offset",
+    ),
+    "metadata/fields.csv": (
+        "field_index",
+        "type_definition_index",
+        "type_name",
+        "field_name",
+        "field_type",
+        "field_type_index",
+        "name_token",
+        "offset",
+        "record_file_offset",
+    ),
+    "metadata/methods.csv": (
+        "method_index",
+        "type_definition_index",
+        "type_name",
+        "method_name",
+        "rva",
+        "return_type",
+        "parameter_types",
+        "parameter_start",
+        "parameter_count",
+        "name_token",
+    ),
+    "metadata/method-pointers.csv": (
+        "method_index",
+        "rva",
+        "va",
+    ),
+    "metadata/runtime-types.csv": (
+        "type_index",
+        "kind",
+        "kind_name",
+        "data_u32",
+        "type_definition_index",
+        "type_name",
+        "entry_rva",
+    ),
+}
+
+DIRECT_FILES = {
     "metadata/native-decoder-summary.json": "metadata/native-decoder-summary.json",
-    "metadata/runtime-types.csv": "metadata/runtime-types.csv",
     "metadata/runtime-types.summary.json": "metadata/runtime-types.summary.json",
     "getcmdid-candidates.csv": "registry/getcmdid-candidates.csv",
     "getcmdid-candidates.summary.json": "registry/getcmdid-candidates.summary.json",
@@ -60,6 +119,27 @@ def _csv_row_count(path: Path) -> int:
 def _require(path: Path) -> None:
     if not path.is_file():
         raise ValueError(f"required generated artifact is missing: {path}")
+
+
+def _compact_csv(source: Path, destination: Path, columns: tuple[str, ...]) -> int:
+    _require(source)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with source.open("r", encoding="utf-8-sig", newline="") as src:
+        reader = csv.DictReader(src)
+        available = set(reader.fieldnames or ())
+        missing = [column for column in columns if column not in available]
+        if missing:
+            raise ValueError(
+                f"{source} missing canonical publication columns: {', '.join(missing)}"
+            )
+        with destination.open("w", encoding="utf-8", newline="") as dst:
+            writer = csv.DictWriter(dst, fieldnames=columns)
+            writer.writeheader()
+            count = 0
+            for row in reader:
+                writer.writerow({column: row.get(column, "") for column in columns})
+                count += 1
+    return count
 
 
 def _sample_hashes(version_dir: Path) -> tuple[str, str]:
@@ -105,7 +185,7 @@ def validate_generated_artifacts_71(
         EXPECTED_METHOD_COUNT,
     ),
 ) -> dict[str, object]:
-    for source in CORE_FILES:
+    for source in REQUIRED_WORK_FILES:
         _require(work_dir / source)
     _require(version_dir / "hashes.json")
 
@@ -161,10 +241,6 @@ def validate_generated_artifacts_71(
         raise ValueError("GetCmdId candidate scan failed the preserved 26105 anchor")
     if int(getcmd.get("method_rows", -1)) != expected_methods:
         raise ValueError("GetCmdId scan did not consume the complete decoded methods table")
-
-    type_methods = _load_json(work_dir / "metadata/type-methods.json")
-    if not type_methods:
-        raise ValueError("type-methods.json is empty")
 
     optional_checks: dict[str, object] = {}
     usage_summary = work_dir / "metadata-usage-types.summary.json"
@@ -226,23 +302,50 @@ def publish_generated_artifacts_71(
         expected_counts=expected_counts,
     )
 
-    copied = _copy_map(work_dir, version_dir, CORE_FILES)
-    copied.extend(_copy_map(work_dir, version_dir, OPTIONAL_FILES))
+    published_files: list[str] = []
+    compact_counts: dict[str, int] = {}
+    for rel, columns in COMPACT_METADATA.items():
+        count = _compact_csv(work_dir / rel, version_dir / rel, columns)
+        compact_counts[rel] = count
+        published_files.append(rel)
+
+    expected_by_rel = {
+        "metadata/types.csv": expected_counts[0],
+        "metadata/fields.csv": expected_counts[1],
+        "metadata/methods.csv": expected_counts[2],
+        "metadata/method-pointers.csv": expected_counts[2],
+    }
+    for rel, expected in expected_by_rel.items():
+        if compact_counts[rel] != expected:
+            raise ValueError(
+                f"canonical compact publication row count mismatch for {rel}: "
+                f"{compact_counts[rel]} != {expected}"
+            )
+
+    type_methods_path = version_dir / "metadata/type-methods.json"
+    build_type_methods(version_dir / "metadata/methods.csv", type_methods_path)
+    published_files.append("metadata/type-methods.json")
+
+    published_files.extend(_copy_map(work_dir, version_dir, DIRECT_FILES))
+    published_files.extend(_copy_map(work_dir, version_dir, OPTIONAL_FILES))
     canonical_published = _canonical_registry_published(version_dir)
 
-    published_files = sorted(copied)
+    published_files = sorted(set(published_files))
     manifest: dict[str, object] = {
         "source": "genshinre.artifactpublish",
         "work": str(work_dir),
         "status": "generated-artifacts-published",
         "validation": validation,
+        "publication": {
+            "metadata_format": "compact-query-indexes",
+            "metadata_rows": compact_counts,
+        },
         "canonical_registry_published": canonical_published,
         "files": published_files,
-        # Compatibility alias for the repository-wide version validator while
-        # older publication manifests are still present in Git history.
         "artifacts": published_files,
         "optional_registry_artifacts_published": [],
         "notes": [
+            "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "metadata publication is gated independently from experimental registry heuristics",
             "the existing canonical registry is validated and preserved; this publisher does not replace it",
             "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings",
@@ -258,7 +361,7 @@ def publish_generated_artifacts_71(
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.artifactpublish",
-        description="Publish validated 7.1 generated research artifacts into the version directory.",
+        description="Publish validated compact 7.1 research artifacts into the version directory.",
     )
     parser.add_argument("work_dir", type=Path)
     parser.add_argument("version_dir", type=Path)
