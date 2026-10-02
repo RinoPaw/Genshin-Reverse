@@ -58,14 +58,22 @@ It deliberately does not duplicate complete method rows.
 ## xrefs/message-handlers.csv
 
 ```text
-cmd_id,type_name,direction,handler_type,handler_method,handler_rva,status
+cmd_id,type_name,direction,handler_type,handler_method,handler_rva,status,evidence,context
 ```
 
 ## xrefs/message-senders.csv
 
 ```text
-cmd_id,type_name,sender_type,sender_method,sender_rva,context,status
+cmd_id,type_name,sender_type,sender_method,sender_rva,context,status,evidence
 ```
+
+## xrefs/message-constructors.csv
+
+```text
+cmd_id,type_name,constructor_rva,context,status,evidence
+```
+
+These three currently published xref tables are partial evidence seeds. Their maintained CSV contracts live in `genshinre.xrefartifacts`; blank recovered type/method names are allowed, while CmdId/RVA/status/evidence/context structure is validated by ordinary CI. Broader `method-xrefs.csv` and `type-xrefs.csv` are reserved future surfaces and are not currently published artifacts.
 
 ## runtime observations
 
@@ -76,6 +84,8 @@ timestamp,offset_ms,direction,cmd_id,name,length,payload_hex,source
 ## proto/message-shapes.json
 
 Key by semantic name when confirmed and by stable obfuscated/unknown identity while unresolved. Each message may include `cmd_id`, parser-derived field numbers, wire types, likely semantic types and evidence/provenance.
+
+`schemas/message-shapes.schema.json` describes the machine-readable JSON shape. The standard-library validator enforces the core contract; ordinary CI locks its direction/status/wire-type enums to the schema so the two representations cannot silently drift.
 
 ## analyses/<topic>/evidence.json
 
