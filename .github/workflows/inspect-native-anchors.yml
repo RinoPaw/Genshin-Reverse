@@ -24,189 +24,7 @@ jobs:
       - name: Fetch pinned global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output /tmp/gi71 --python python
 
-      - name: Disassemble hard anchors and registry constructor
-        run: |
-          python - <<'PY'
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-          from genshinre.pe import PEImage
-          from pathlib import Path
-          import struct
-
-          exe = Path('/tmp/gi71/GenshinImpact.exe')
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = False
-          targets = {
-              'registry constructor head': (0x07F7D8C0, 192, 256),
-              'registry constructor tail': (0x07F8E44D, 160, 768),
-              'InitializeArray helper': (0x004C84D0, 32, 320),
-              '9369 historical store': (0x07F852AB, 96, 160),
-              '26105 GetCmdId': (0x10587260, 32, 128),
-          }
-          with PEImage(exe) as image:
-              print('image_base', hex(image.image_base))
-              for name, (rva, before, after) in targets.items():
-                  start = rva - before
-                  blob = image.read_rva(start, before + after)
-                  print(f'\n=== {name}: RVA 0x{rva:X}, window 0x{start:X} ===')
-                  for insn in md.disasm(blob, image.image_base + start):
-                      irva = insn.address - image.image_base
-                      marker = ' <==' if irva == rva else ''
-                      print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
-
-              print('\n=== registry InitializeArray field refs ===')
-              for rva in (0x059D8B48, 0x059D8B50):
-                  blob = image.read_rva(rva, 32)
-                  print(f'RVA 0x{rva:X}: {blob.hex()}')
-                  if len(blob) >= 8:
-                      value = struct.unpack_from('<Q', blob)[0]
-                      print(' qword=', hex(value), 'as_rva=', hex(value-image.image_base) if value >= image.image_base else None)
-                      if image.image_base <= value < image.image_base + 0x20000000:
-                          rr = value - image.image_base
-                          print(' pointed:', image.read_rva(rr, 96).hex())
-          PY
-
-      - name: Inspect runtime type registration slot xrefs
-        run: |
-          python - <<'PY'
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-          from genshinre.mhy71 import TYPE_ARRAY_POINTER_RVA
-          from genshinre.pe import PEImage
-          from genshinre.xrefs import scan_rip_xrefs
-          from pathlib import Path
-          import json
-          import struct
-
-          exe = Path('/tmp/gi71/GenshinImpact.exe')
-          targets = [TYPE_ARRAY_POINTER_RVA + delta for delta in range(-0x40, 0x49, 8)]
-          scan = scan_rip_xrefs(exe, targets, window=64)
-          print('=== direct RIP xrefs to registration neighborhood ===')
-          print(json.dumps(scan['matches'], indent=2))
-
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = False
-          seen = set()
-          with PEImage(exe) as image:
-              print('\n=== registration neighborhood qwords ===')
-              for target in targets:
-                  blob = image.read_rva(target, 8)
-                  if len(blob) != 8:
-                      print(hex(target), '<unreadable>')
-                      continue
-                  value = struct.unpack('<Q', blob)[0]
-                  as_rva = value - image.image_base if image.image_base <= value < image.image_base + 0x40000000 else None
-                  print(hex(target), hex(value), 'as_rva', None if as_rva is None else hex(as_rva))
-
-              print('\n=== code around direct xrefs ===')
-              for rows in scan['matches'].values():
-                  for row in rows:
-                      rva = int(row['instruction_rva'], 0)
-                      if rva in seen:
-                          continue
-                      seen.add(rva)
-                      start = max(0, rva - 64)
-                      blob = image.read_rva(start, 192)
-                      print(f'\n--- xref RVA 0x{rva:X}, target {row["target_rva"]} ---')
-                      for insn in md.disasm(blob, image.image_base + start):
-                          irva = insn.address - image.image_base
-                          marker = ' <==' if irva == rva else ''
-                          print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
-          PY
-
-      - name: Follow runtime type registration pointer holders
-        run: |
-          python -m genshinre.pointerxref \
-            /tmp/gi71/GenshinImpact.exe \
-            0x2870A90 \
-            0x2870B20 \
-            --window 96 \
-            --output /tmp/runtime-type-registration-pointer-xrefs.json
-          cat /tmp/runtime-type-registration-pointer-xrefs.json
-
-      - name: Inspect registration layout and known count identities
-        run: |
-          python - <<'PY'
-          from genshinre.mhy71 import (
-              EXPECTED_FIELD_COUNT,
-              EXPECTED_METHOD_COUNT,
-              EXPECTED_TYPE_COUNT,
-              METHOD_POINTER_TABLE_RVA,
-              TYPE_ARRAY_POINTER_RVA,
-          )
-          from genshinre.pe import PEImage
-          from pathlib import Path
-          import struct
-
-          exe = Path('/tmp/gi71/GenshinImpact.exe')
-          identities = {
-              'type_definition_count': EXPECTED_TYPE_COUNT,
-              'field_count': EXPECTED_FIELD_COUNT,
-              'method_count': EXPECTED_METHOD_COUNT,
-              'method_pointer_bytes': EXPECTED_METHOD_COUNT * 8,
-          }
-          with PEImage(exe) as image:
-              method_table_end = METHOD_POINTER_TABLE_RVA + EXPECTED_METHOD_COUNT * 8
-              type_array_va = struct.unpack('<Q', image.read_rva(TYPE_ARRAY_POINTER_RVA, 8))[0]
-              type_array_rva = type_array_va - image.image_base
-              print('=== derived table identities ===')
-              print('method_pointer_table_start', hex(METHOD_POINTER_TABLE_RVA))
-              print('method_pointer_table_end', hex(method_table_end))
-              print('type_array_rva', hex(type_array_rva))
-              print('known_counts', {k: (v, hex(v)) for k, v in identities.items()})
-
-              print('\n=== expanded registration neighborhood ===')
-              for rva in range(0x2870A40, 0x2870BC0, 8):
-                  blob = image.read_rva(rva, 8)
-                  if len(blob) != 8:
-                      continue
-                  qword = struct.unpack('<Q', blob)[0]
-                  lo, hi = struct.unpack('<II', blob)
-                  as_rva = qword - image.image_base if image.image_base <= qword < image.image_base + 0x50000000 else None
-                  marks = []
-                  if rva == TYPE_ARRAY_POINTER_RVA:
-                      marks.append('TYPE_ARRAY_POINTER_SOURCE')
-                  if rva == METHOD_POINTER_TABLE_RVA:
-                      marks.append('METHOD_POINTER_TABLE_START')
-                  if as_rva == method_table_end:
-                      marks.append('POINTS_TO_METHOD_TABLE_END')
-                  if as_rva == type_array_rva:
-                      marks.append('POINTS_TO_TYPE_ARRAY')
-                  for name, value in identities.items():
-                      if lo == value:
-                          marks.append('LO32=' + name)
-                      if hi == value:
-                          marks.append('HI32=' + name)
-                      if qword == value:
-                          marks.append('QWORD=' + name)
-                  print(
-                      f'0x{rva:08X} q=0x{qword:016X} lo=0x{lo:08X} hi=0x{hi:08X} '
-                      f'as_rva={None if as_rva is None else hex(as_rva)} marks={marks}'
-                  )
-
-              print('\n=== exact little-endian identity hits across file-backed sections ===')
-              for name, value in identities.items():
-                  needle4 = struct.pack('<I', value)
-                  needle8 = struct.pack('<Q', value)
-                  hits = []
-                  for section in image.sections:
-                      data = image.read_rva(section.virtual_address, section.raw_size)
-                      for width, needle in ((4, needle4), (8, needle8)):
-                          start = 0
-                          while True:
-                              off = data.find(needle, start)
-                              if off < 0:
-                                  break
-                              hits.append((section.name, section.virtual_address + off, width))
-                              start = off + 1
-                              if len(hits) >= 80:
-                                  break
-                          if len(hits) >= 80:
-                              break
-                      if len(hits) >= 80:
-                          break
-                  print(name, value, hex(value), 'hits', len(hits), hits[:80])
-          PY
-
-      - name: Profile runtime type-array boundary
+      - name: Pinpoint runtime type-array structural boundary
         run: |
           python - <<'PY'
           from genshinre.mhy71 import EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
@@ -215,75 +33,158 @@ jobs:
           import struct
 
           exe = Path('/tmp/gi71/GenshinImpact.exe')
-          VALID_KINDS = {
-              0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-              0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-              0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x18,
-              0x19, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21,
-              0x40, 0x41, 0x45, 0x55,
-          }
           ENTRY_SIZE = 16
-          BLOCK = 4096
-          LIMIT = 1_200_000
+          START = 640_000
+          END = 700_000
+          BLOCK = 512
+          TYPE_KINDS = {
+              0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+              0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+              0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
+              0x18, 0x19, 0x1B, 0x1C, 0x1D, 0x1E,
+              0x41, 0x45, 0x55,
+          }
+
+          def shape(entry: bytes):
+              data64 = struct.unpack_from('<Q', entry, 0)[0]
+              data32 = data64 & 0xFFFFFFFF
+              kind = entry[0x0A]
+              padding_zero = entry[0x0C:0x10] == b'\0' * 4
+              definition_ok = True
+              definition_upper_zero = True
+              if kind in (0x11, 0x12):
+                  definition_ok = data32 < EXPECTED_TYPE_COUNT
+                  definition_upper_zero = (data64 >> 32) == 0
+              valid = (
+                  kind in TYPE_KINDS
+                  and padding_zero
+                  and definition_ok
+                  and definition_upper_zero
+              )
+              return {
+                  'kind': kind,
+                  'data64': data64,
+                  'data32': data32,
+                  'padding_zero': padding_zero,
+                  'definition_ok': definition_ok,
+                  'definition_upper_zero': definition_upper_zero,
+                  'valid': valid,
+              }
+
           with PEImage(exe) as image:
-              ptr = image.read_rva(TYPE_ARRAY_POINTER_RVA, 8)
-              type_array_rva = struct.unpack('<Q', ptr)[0] - image.image_base
-              data = image.read_rva(type_array_rva, LIMIT * ENTRY_SIZE)
-              count = len(data) // ENTRY_SIZE
-              blocks = []
-              for start in range(0, count, BLOCK):
-                  end = min(count, start + BLOCK)
-                  valid_kind = 0
-                  definition_kind = 0
-                  valid_definition = 0
-                  for index in range(start, end):
-                      entry = data[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
-                      kind = entry[0x0A]
-                      if kind in VALID_KINDS:
-                          valid_kind += 1
-                      if kind in (0x11, 0x12):
-                          definition_kind += 1
-                          definition = struct.unpack_from('<I', entry, 0)[0]
-                          if definition < EXPECTED_TYPE_COUNT:
-                              valid_definition += 1
-                  total = end - start
-                  blocks.append({
-                      'start': start,
-                      'end': end,
-                      'valid_kind_ratio': valid_kind / total,
-                      'definition_kind': definition_kind,
-                      'valid_definition_ratio': (valid_definition / definition_kind) if definition_kind else 1.0,
+              type_array_va = struct.unpack('<Q', image.read_rva(TYPE_ARRAY_POINTER_RVA, 8))[0]
+              type_array_rva = type_array_va - image.image_base
+              data = image.read_rva(type_array_rva + START * ENTRY_SIZE, (END - START) * ENTRY_SIZE)
+              if len(data) != (END - START) * ENTRY_SIZE:
+                  raise SystemExit('truncated boundary window')
+
+              rows = []
+              for index in range(START, END):
+                  off = (index - START) * ENTRY_SIZE
+                  entry = data[off:off + ENTRY_SIZE]
+                  rows.append((index, entry, shape(entry)))
+
+              print('type_array_rva', hex(type_array_rva))
+              print('window', START, END)
+              print('=== 512-entry structural blocks ===')
+              for block_start in range(START, END, BLOCK):
+                  block = rows[block_start - START : min(END, block_start + BLOCK) - START]
+                  valid = sum(item[2]['valid'] for item in block)
+                  known_kind = sum(item[2]['kind'] in TYPE_KINDS for item in block)
+                  padding_zero = sum(item[2]['padding_zero'] for item in block)
+                  definition_rows = [item for item in block if item[2]['kind'] in (0x11, 0x12)]
+                  definition_ok = sum(item[2]['definition_ok'] and item[2]['definition_upper_zero'] for item in definition_rows)
+                  print({
+                      'start': block_start,
+                      'end': block_start + len(block),
+                      'valid': valid,
+                      'known_kind': known_kind,
+                      'padding_zero': padding_zero,
+                      'definition_rows': len(definition_rows),
+                      'definition_ok': definition_ok,
                   })
 
-              first_bad = next((i for i, b in enumerate(blocks) if b['valid_kind_ratio'] < 0.95), None)
-              sustained_bad = None
-              for i in range(len(blocks) - 3):
-                  if all(blocks[j]['valid_kind_ratio'] < 0.95 for j in range(i, i + 4)):
-                      sustained_bad = i
+              first_invalid_after_670k = next((item[0] for item in rows if item[0] >= 670_000 and not item[2]['valid']), None)
+              sustained = None
+              RUN = 64
+              for pos in range(max(670_000, START), END - RUN):
+                  rel = pos - START
+                  if all(not rows[rel + j][2]['valid'] for j in range(RUN)):
+                      sustained = pos
                       break
-              print('type_array_rva', hex(type_array_rva), 'entries_profiled', count)
-              print('first_block_below_95pct', first_bad, None if first_bad is None else blocks[first_bad])
-              print('first_four_block_sustained_below_95pct', sustained_bad, None if sustained_bad is None else blocks[sustained_bad])
-              focus = sustained_bad if sustained_bad is not None else first_bad
-              if focus is None:
-                  focus = len(blocks) - 1
-              lo = max(0, focus - 8)
-              hi = min(len(blocks), focus + 12)
-              print('=== boundary neighborhood blocks ===')
-              for row in blocks[lo:hi]:
-                  print(row)
+              print('first_invalid_after_670k', first_invalid_after_670k)
+              print('first_64_entry_invalid_run', sustained)
 
-              max_valid_definition_index = -1
-              last_high_quality_index = -1
-              for index in range(count):
-                  entry = data[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
-                  kind = entry[0x0A]
-                  if kind in VALID_KINDS:
-                      last_high_quality_index = index
-                  if kind in (0x11, 0x12):
-                      definition = struct.unpack_from('<I', entry, 0)[0]
-                      if definition < EXPECTED_TYPE_COUNT:
-                          max_valid_definition_index = index
-              print('last_valid_kind_index_within_profile', last_high_quality_index)
-              print('last_class_or_valuetype_with_valid_definition_index', max_valid_definition_index)
+              focus = sustained if sustained is not None else first_invalid_after_670k
+              if focus is not None:
+                  print('=== exact transition neighborhood ===')
+                  for index in range(max(START, focus - 48), min(END, focus + 96)):
+                      _, entry, decoded = rows[index - START]
+                      print(
+                          index,
+                          f'rva=0x{type_array_rva + index * ENTRY_SIZE:X}',
+                          entry.hex(),
+                          f'kind=0x{decoded["kind"]:02X}',
+                          f'data64=0x{decoded["data64"]:016X}',
+                          f'padding_zero={decoded["padding_zero"]}',
+                          f'definition_ok={decoded["definition_ok"]}',
+                          f'valid={decoded["valid"]}',
+                      )
+          PY
+
+      - name: Trace the 88904 type-definition-count controls
+        run: |
+          python - <<'PY'
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from genshinre.mhy71 import EXPECTED_TYPE_COUNT
+          from genshinre.pe import PEImage
+          from genshinre.xrefs import scan_rip_xrefs
+          from pathlib import Path
+          import json
+          import struct
+
+          exe = Path('/tmp/gi71/GenshinImpact.exe')
+          needle = struct.pack('<I', EXPECTED_TYPE_COUNT)
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = False
+          hits = []
+
+          with PEImage(exe) as image:
+              for section in image.sections:
+                  data = image.read_rva(section.virtual_address, section.raw_size)
+                  start = 0
+                  while True:
+                      off = data.find(needle, start)
+                      if off < 0:
+                          break
+                      hits.append((section.name, section.characteristics, section.virtual_address + off))
+                      start = off + 1
+
+              print('count_hits', [(name, hex(rva), hex(chars)) for name, chars, rva in hits])
+              rdata_hit = next((rva for name, _, rva in hits if name == '.rdata'), None)
+              if rdata_hit is not None:
+                  print('rdata_count_hit', hex(rdata_hit))
+                  print('direct_rip_xrefs', json.dumps(scan_rip_xrefs(exe, [rdata_hit], window=96)['matches'], indent=2))
+                  print('=== qwords around .rdata count hit ===')
+                  start = rdata_hit - 0x80
+                  for rva in range(start, rdata_hit + 0x88, 8):
+                      blob = image.read_rva(rva, 8)
+                      if len(blob) != 8:
+                          continue
+                      qword = struct.unpack('<Q', blob)[0]
+                      as_rva = qword - image.image_base if image.image_base <= qword < image.image_base + 0x50000000 else None
+                      marker = ' <== COUNT' if rva == rdata_hit else ''
+                      print(hex(rva), hex(qword), 'as_rva', None if as_rva is None else hex(as_rva), marker)
+
+              print('=== executable hit disassembly ===')
+              for name, chars, hit in hits:
+                  if not (chars & 0x20000000):
+                      continue
+                  start = max(0, hit - 64)
+                  blob = image.read_rva(start, 160)
+                  print(f'--- {name} hit 0x{hit:X} ---')
+                  for insn in md.disasm(blob, image.image_base + start):
+                      irva = insn.address - image.image_base
+                      marker = ' <== contains count bytes' if irva <= hit < irva + insn.size else ''
+                      print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
           PY
