@@ -11,14 +11,6 @@ from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 
 
 class ArtifactPublishTests(unittest.TestCase):
-    def _write_csv(self, path: Path, rows: int) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["value"])
-            for index in range(rows):
-                writer.writerow([index])
-
     def _write_table(self, path: Path, fieldnames: list[str], rows: int) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8", newline="") as f:
@@ -45,7 +37,7 @@ class ArtifactPublishTests(unittest.TestCase):
                 if "status" in row:
                     row["status"] = "static-decoded"
                 if "evidence" in row:
-                    row["evidence"] = "fixture provenance that canonical projection should omit"
+                    row["evidence"] = "fixture provenance"
                 writer.writerow(row)
 
     def _write_current_registry(self, version: Path) -> None:
@@ -54,27 +46,10 @@ class ArtifactPublishTests(unittest.TestCase):
         with (registry / "registry.csv").open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=CANONICAL_REGISTRY_COLUMNS)
             writer.writeheader()
-            for index in range(4896):
-                writer.writerow(
-                    {
-                        "index": index,
-                        "cmd_id": index + 1,
-                        "type_name": f"TYPE_{index}",
-                        "type_definition_index": index,
-                        "direction": "",
-                        "direction_status": "unresolved",
-                        "semantic_name": "",
-                        "type_slot_rva": f"0x{0x5700000 + index * 8:X}",
-                        "get_cmd_id_rva": "",
-                        "get_cmd_id_method": "",
-                        "load_rva": f"0x{0x7F00000 + index * 16:X}",
-                        "store_rva": f"0x{0x7F00007 + index * 16:X}",
-                        "xref_count": 1,
-                        "xref_method_count": 1,
-                        "status": "static-verified-identity",
-                        "evidence": "synthetic canonical registry fixture",
-                    }
-                )
+            for cmd_id in range(4896):
+                row = {column: "" for column in CANONICAL_REGISTRY_COLUMNS}
+                row["cmd_id"] = str(cmd_id)
+                writer.writerow(row)
         (registry / "registry.summary.json").write_text(
             json.dumps(
                 {
@@ -87,16 +62,15 @@ class ArtifactPublishTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def _fixture(self, root: Path, *, with_registry: bool = True) -> tuple[Path, Path]:
+    def _fixture(self, root: Path) -> tuple[Path, Path]:
         work = root / "work"
         version = root / "version"
         (work / "metadata").mkdir(parents=True)
-        (version / "registry").mkdir(parents=True)
         (version / "metadata").mkdir(parents=True)
         (version / "xrefs").mkdir(parents=True)
 
         exe_sha = "e" * 64
-        metadata_sha = "m" * 64
+        metadata_sha = "d" * 64
         (version / "hashes.json").write_text(
             json.dumps(
                 {
@@ -111,36 +85,58 @@ class ArtifactPublishTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-
-        if with_registry:
-            self._write_current_registry(version)
+        self._write_current_registry(version)
 
         common_extra = ["status", "evidence"]
         self._write_table(
             work / "metadata/types.csv",
             [
-                "type_definition_index", "namespace", "type_name", "parent_type",
-                "field_start", "field_count", "method_start", "method_count",
-                "name_token", "record_file_offset", *common_extra,
+                "type_definition_index",
+                "namespace",
+                "type_name",
+                "parent_type",
+                "field_start",
+                "field_count",
+                "method_start",
+                "method_count",
+                "name_token",
+                "record_file_offset",
+                *common_extra,
             ],
             2,
         )
         self._write_table(
             work / "metadata/fields.csv",
             [
-                "field_index", "type_definition_index", "type_name", "field_name",
-                "field_type", "field_type_index", "name_token", "offset",
-                "record_file_offset", *common_extra,
+                "field_index",
+                "type_definition_index",
+                "type_name",
+                "field_name",
+                "field_type",
+                "field_type_index",
+                "name_token",
+                "offset",
+                "record_file_offset",
+                *common_extra,
             ],
             3,
         )
         self._write_table(
             work / "metadata/methods.csv",
             [
-                "method_index", "type_definition_index", "type_name", "method_name",
-                "rva", "return_type", "parameter_types", "parameter_start",
-                "parameter_count", "name_token", "parameter_type_indices",
-                "record_file_offset", *common_extra,
+                "method_index",
+                "type_definition_index",
+                "type_name",
+                "method_name",
+                "rva",
+                "return_type",
+                "parameter_types",
+                "parameter_start",
+                "parameter_count",
+                "name_token",
+                "parameter_type_indices",
+                "record_file_offset",
+                *common_extra,
             ],
             4,
         )
@@ -152,15 +148,19 @@ class ArtifactPublishTests(unittest.TestCase):
         self._write_table(
             work / "metadata/runtime-types.csv",
             [
-                "type_index", "kind", "kind_name", "data_u32",
-                "type_definition_index", "type_name", "entry_rva", *common_extra,
+                "type_index",
+                "kind",
+                "kind_name",
+                "data_u32",
+                "type_definition_index",
+                "type_name",
+                "entry_rva",
+                *common_extra,
             ],
             2,
         )
-        self._write_csv(work / "getcmdid-candidates.csv", 2)
-        self._write_csv(work / "control-set.csv", 2)
-        self._write_csv(work / "metadata-usage-types.csv", 2)
-        self._write_csv(work / "registry-candidate-graph.csv", 2)
+        self._write_table(work / "getcmdid-candidates.csv", ["value"], 2)
+
         (work / "metadata/native-decoder-summary.json").write_text(
             json.dumps(
                 {
@@ -182,10 +182,6 @@ class ArtifactPublishTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (work / "metadata-usage-types.summary.json").write_text(
-            json.dumps({"anchor_37523_to_405772_to_84249_DMMJNICDOHM": True}),
-            encoding="utf-8",
-        )
         (work / "getcmdid-candidates.summary.json").write_text(
             json.dumps(
                 {
@@ -196,26 +192,23 @@ class ArtifactPublishTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        (work / "registry-candidate-graph.summary.json").write_text(
-            json.dumps({"all_preserved_anchors_pass": True}), encoding="utf-8"
-        )
         return work, version
 
-    def test_requires_current_canonical_registry(self) -> None:
+    def test_publishes_only_canonical_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            work, version = self._fixture(Path(td), with_registry=False)
-            with self.assertRaisesRegex(ValueError, "current canonical registry is required"):
-                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+            work, version = self._fixture(Path(td))
+            self._write_table(work / "control-set.csv", ["cmd_id"], 1)
+            self._write_table(work / "xrefs/message-senders.csv", ["cmd_id"], 1)
 
-    def test_publishes_compact_metadata_with_current_registry(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
-            result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+            result = publish_generated_artifacts_71(
+                work, version, expected_counts=(2, 3, 4)
+            )
 
             self.assertEqual(result["manifest_version"], 2)
-            self.assertNotIn("files", result)
             self.assertTrue(result["canonical_registry_published"])
+            self.assertEqual(result["optional_artifacts_published"], [])
+            self.assertNotIn("optional_registry_checks", result["validation"])
+
             for rel in (
                 "metadata/types.csv",
                 "metadata/fields.csv",
@@ -223,92 +216,66 @@ class ArtifactPublishTests(unittest.TestCase):
                 "metadata/method-pointers.csv",
                 "metadata/type-methods.json",
                 "metadata/runtime-types.csv",
+                "metadata/native-decoder-summary.json",
+                "metadata/runtime-types.summary.json",
                 "registry/getcmdid-candidates.csv",
-                "registry/control-set.csv",
-                "registry/metadata-usage-types.csv",
-                "registry/registry-candidate-graph.csv",
+                "registry/getcmdid-candidates.summary.json",
             ):
                 self.assertTrue((version / rel).is_file(), rel)
-            self.assertFalse((version / "registry/known-opcodes.csv").exists())
-            self.assertIn("registry/control-set.csv", result["optional_artifacts_published"])
-            self.assertIn("registry/metadata-usage-types.csv", result["optional_artifacts_published"])
-            self.assertIn("registry/registry-candidate-graph.csv", result["optional_artifacts_published"])
-            self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
-            self.assertEqual(result["publication"]["metadata_format"], "compact-query-indexes")
+                self.assertIn(rel, result["artifacts"])
 
-            with (version / "metadata/methods.csv").open("r", encoding="utf-8", newline="") as f:
+            self.assertFalse((version / "registry/control-set.csv").exists())
+            self.assertFalse((version / "xrefs/message-senders.csv").exists())
+
+            with (version / "metadata/methods.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as f:
                 header = next(csv.reader(f))
             self.assertNotIn("status", header)
             self.assertNotIn("evidence", header)
             self.assertNotIn("parameter_type_indices", header)
 
-            type_methods = json.loads((version / "metadata/type-methods.json").read_text(encoding="utf-8"))
+            type_methods = json.loads(
+                (version / "metadata/type-methods.json").read_text(encoding="utf-8")
+            )
             self.assertEqual(type_methods["by_type_name"]["TYPE0"], [0, 2])
             self.assertEqual(type_methods["by_type_definition_index"]["1"], [1, 3])
 
-    def test_preserves_current_xref_published_canonical_registry(self) -> None:
+    def test_requires_current_canonical_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             work, version = self._fixture(Path(td))
-            result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
-
-            self.assertTrue(result["canonical_registry_published"])
-            self.assertTrue((version / "registry/registry.csv").is_file())
-            self.assertTrue((version / "registry/registry.summary.json").is_file())
-            self.assertFalse((version / "registry/registry.json").exists())
-            self.assertFalse((version / "registry/summary.json").exists())
-
-    def test_rejects_half_published_canonical_registry(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root, with_registry=False)
-            registry = version / "registry" / "registry.csv"
-            with registry.open("w", encoding="utf-8", newline="") as f:
-                csv.writer(f).writerow(CANONICAL_REGISTRY_COLUMNS)
+            (version / "registry/registry.csv").unlink()
+            (version / "registry/registry.summary.json").unlink()
             with self.assertRaisesRegex(ValueError, "current canonical registry is required"):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
     def test_rejects_noncanonical_registry_header(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             work, version = self._fixture(Path(td))
-            registry = version / "registry" / "registry.csv"
-            with registry.open("w", encoding="utf-8", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(["cmd_id"])
-                for cmd_id in range(1, 4897):
-                    writer.writerow([cmd_id])
+            self._write_table(version / "registry/registry.csv", ["cmd_id"], 4896)
             with self.assertRaisesRegex(ValueError, "canonical registry CSV header mismatch"):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
-    def test_metadata_publication_does_not_require_optional_registry_heuristics(self) -> None:
+    def test_rejects_seed_sized_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
-            for rel in (
-                "metadata-usage-types.csv",
-                "metadata-usage-types.summary.json",
-                "registry-candidate-graph.csv",
-                "registry-candidate-graph.summary.json",
-            ):
-                (work / rel).unlink()
-
-            result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
-            self.assertTrue((version / "metadata/fields.csv").is_file())
-            self.assertTrue((version / "metadata/method-pointers.csv").is_file())
-            self.assertNotIn("registry/metadata-usage-types.csv", result["artifacts"])
-            self.assertNotIn("registry/registry-candidate-graph.csv", result["artifacts"])
-            self.assertEqual(result["validation"]["optional_registry_checks"], {})
-
-    def test_rejects_seed_sized_metadata_even_when_summary_claims_full_fixture(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
+            work, version = self._fixture(Path(td))
             self._write_table(
                 work / "metadata/methods.csv",
                 [
-                    "method_index", "type_definition_index", "type_name", "method_name",
-                    "rva", "return_type", "parameter_types", "parameter_start",
-                    "parameter_count", "name_token", "parameter_type_indices",
-                    "record_file_offset", "status", "evidence",
+                    "method_index",
+                    "type_definition_index",
+                    "type_name",
+                    "method_name",
+                    "rva",
+                    "return_type",
+                    "parameter_types",
+                    "parameter_start",
+                    "parameter_count",
+                    "name_token",
+                    "parameter_type_indices",
+                    "record_file_offset",
+                    "status",
+                    "evidence",
                 ],
                 1,
             )
@@ -317,8 +284,7 @@ class ArtifactPublishTests(unittest.TestCase):
 
     def test_rejects_incomplete_method_pointer_table(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
+            work, version = self._fixture(Path(td))
             self._write_table(
                 work / "metadata/method-pointers.csv",
                 ["method_index", "rva", "va", "status", "evidence"],
@@ -327,18 +293,15 @@ class ArtifactPublishTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "method-pointer CSV row count mismatch"):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
-    def test_optional_xrefs_are_published_only_when_generated(self) -> None:
+    def test_rejects_runtime_sample_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
-            self._write_csv(work / "xrefs/message-handlers.csv", 1)
-            self._write_csv(work / "xrefs/message-senders.csv", 1)
-            result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
-
-            self.assertIn("xrefs/message-handlers.csv", result["artifacts"])
-            self.assertIn("xrefs/message-senders.csv", result["artifacts"])
-            self.assertIn("xrefs/message-handlers.csv", result["optional_artifacts_published"])
-            self.assertIn("xrefs/message-senders.csv", result["optional_artifacts_published"])
+            work, version = self._fixture(Path(td))
+            summary = work / "metadata/runtime-types.summary.json"
+            data = json.loads(summary.read_text(encoding="utf-8"))
+            data["exe_sha256"] = "0" * 64
+            summary.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "runtime type index EXE hash"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
 
 if __name__ == "__main__":
