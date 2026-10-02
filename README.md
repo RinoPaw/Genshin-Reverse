@@ -23,26 +23,29 @@ genshinre query-registry versions/7.1.0-global/windows-x64/registry/registry.csv
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-For the pinned 7.1 client, the reproducible full-registry path is deliberately staged:
+For the pinned 7.1 client, the maintained data path is deliberately split by responsibility:
 
 ```text
 regenerate
-  -> metadata / usage / GetCmdId / native-layout evidence
-close
-  -> two independent native exports must agree across all 4,896 rows
-publish
-  -> direction, control-set and type-identity gates must pass
+  -> exact-sample metadata, runtime types and GetCmdId evidence
+  -> optional registry/research probes are best-effort
+publish artifacts
+  -> validate and publish canonical metadata + reusable intermediates
+canonical registry
+  -> independently published from verified slot/xref identity evidence
 ```
 
 Entry points:
 
 ```text
 scripts/regenerate-7.1.{sh,ps1}
-scripts/close-registry-7.1.{sh,ps1}
-scripts/publish-registry-7.1.{sh,ps1}
+scripts/publish-artifacts-7.1.{sh,ps1}
+genshinre.registryxrefpublish
 ```
 
-See `docs/getting-started.md` for the exact workflow and `docs/methods/native-registry-layout-71.md` for the current structural evidence.
+The older `close-registry-7.1.*` / `publish-registry-7.1.*` native-layout path remains research tooling and historical evidence. It is not the current canonical registry publication path.
+
+See `docs/getting-started.md` for the maintained workflow.
 
 ## Layout
 
@@ -78,30 +81,15 @@ runtime observation
 → confirmed semantic mapping
 ```
 
-For registry reconstruction itself, independent evidence paths are kept separate until the final gate:
-
-```text
-MHY metadata → metadata usage → runtime type identity ┐
-                                                     ├→ usage-backed native registry
-native compact table → CmdId/flag/type-slot         ┘
-
-independent direct-slot native registry ─────────────┐
-                                                     ├→ row-by-row comparison
-usage-backed native registry ────────────────────────┘
-
-comparison + Req/Rsp direction audit + control anchors
-→ canonical static registry projection
-```
-
 A target count is never used to pad or trim generated output. Historical counts are regression evidence only.
 
 ## Current 7.1 artifact status
 
-The canonical 7.1 registry is published and statically closed at **4,896 unique CmdIds**, with a strict one-to-one mapping between CmdId, IL2CPP type definition and registry slot. Direction and semantic identity are separate evidence layers and remain unresolved for most rows.
+The canonical 7.1 registry is published and statically closed at **4,896 unique CmdIds**, with a strict one-to-one mapping between CmdId, IL2CPP type definition and registry slot. Its canonical files are `registry/registry.csv` and `registry/registry.summary.json`. Direction and semantic identity are separate evidence layers and remain unresolved for most rows.
 
-Published metadata currently includes `types.csv`, `methods.csv`, `type-methods.json` and `runtime-types.csv`. Remaining canonical metadata targets, including `fields.csv` and `method-pointers.csv`, should be published only when they pass the same exact-sample provenance and validation requirements.
+The canonical metadata index set is also published: `types.csv`, `methods.csv`, `fields.csv`, `type-methods.json`, `method-pointers.csv` and `runtime-types.csv`. Exact-sample regeneration reproduces **88,904 types, 440,172 fields and 733,442 methods / method pointers** and validates those counts before publication.
 
-The repository therefore treats registry identity recovery as infrastructure that is already available to focused investigations. New investigations should begin from the canonical registry and metadata artifacts before adding executable-specific probes.
+The repository therefore treats registry identity and metadata recovery as available infrastructure for focused investigations. New investigations should begin from the canonical artifacts before adding executable-specific probes.
 
 ## Highest-value artifacts
 
