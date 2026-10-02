@@ -86,14 +86,11 @@ class ValidatorIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
-            (root / "registry" / "control-set.csv").write_text(
-                "cmd_id\n1\n", encoding="utf-8"
-            )
             self._write_manifest(
                 root,
                 canonical_registry_published=True,
-                artifacts=["registry/control-set.csv"],
-                optional_artifacts_published=["registry/control-set.csv"],
+                artifacts=[],
+                optional_artifacts_published=[],
             )
 
             errors: list[str] = []
