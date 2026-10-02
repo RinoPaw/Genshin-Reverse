@@ -8,9 +8,15 @@ on:
       - 'scripts/fetch-7.1-samples.sh'
       - 'scripts/regenerate-7.1.sh'
       - 'scripts/publish-artifacts-7.1.sh'
+      - 'genshinre/anchors.py'
       - 'genshinre/artifactpublish.py'
+      - 'genshinre/fingerprint.py'
+      - 'genshinre/getcmdid.py'
       - 'genshinre/metadata.py'
       - 'genshinre/mhy71.py'
+      - 'genshinre/param71.py'
+      - 'genshinre/pe.py'
+      - 'genshinre/typearray.py'
   workflow_dispatch:
 
 permissions:
