@@ -18,6 +18,10 @@ NORMALIZED_REGISTRY_COLUMNS = (
     "notes",
 )
 
+# Historical native-layout projector compatibility only. The current canonical
+# 7.1 registry schema is the xref-published 16-column registry/registry.csv.
+CANONICAL_COLUMNS = NORMALIZED_REGISTRY_COLUMNS
+
 ALLOWED_STATUS = {
     "",
     "CONFIRMED",
