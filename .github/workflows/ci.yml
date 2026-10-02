@@ -23,6 +23,19 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
       - run: genshinre wire 7202d027
+      - name: Smoke-test protocol evidence query
+        if: matrix.python-version == '3.12'
+        run: |
+          genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 186 > /tmp/protocol-186.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/protocol-186.json', encoding='utf-8'))
+          assert data['result_count'] == 1
+          row=data['results'][0]['registry']
+          assert row['cmd_id'] == '186'
+          assert row['type_name'] == 'NLOMEGMJDGJ'
+          assert row['type_definition_index'] == '61556'
+          PY
       - name: Syntax-check shell scripts
         if: matrix.python-version == '3.12'
         run: bash -n scripts/*.sh
