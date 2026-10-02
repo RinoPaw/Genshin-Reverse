@@ -10,7 +10,7 @@ This report summarizes only mappings with current 7.1 evidence. Machine-readable
 | PlayerNicknameNotify | 3064 | S2C | CONFIRMED | client handler/parser + runtime synchronization |
 | PlayerEnterSceneNotify | 9582 | S2C | CONFIRMED | scene lifecycle/runtime |
 | UnlockTransPointReq | 9369 | C2S | CONFIRMED | current handler/runtime anchor |
-| UNKNOWN_186 | 186 | C2S | UNRESOLVED | repeated runtime observation; field 14/wire 2 payload shape |
+| UNKNOWN_186 | 186 | C2S | UNRESOLVED | static identity `NLOMEGMJDGJ` / tdef `61556`; repeated runtime field-14/wire-2 observation; semantic name unresolved |
 
 ## Data completeness
 
