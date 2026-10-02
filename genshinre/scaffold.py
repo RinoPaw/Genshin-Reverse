@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .registry import CANONICAL_COLUMNS
+from .registry import CANONICAL_REGISTRY_COLUMNS
 
 DIRECTORIES = ("registry", "metadata", "proto", "xrefs", "analyses", "reports")
 
@@ -34,7 +34,7 @@ def scaffold(root: Path, version: str, region: str, platform: str) -> Path:
     registry = target / "registry" / "registry.csv"
     if not registry.exists():
         with registry.open("w", encoding="utf-8", newline="") as f:
-            csv.writer(f).writerow(CANONICAL_COLUMNS)
+            csv.writer(f).writerow(CANONICAL_REGISTRY_COLUMNS)
 
     known = target / "proto" / "known-opcodes.csv"
     if not known.exists():
