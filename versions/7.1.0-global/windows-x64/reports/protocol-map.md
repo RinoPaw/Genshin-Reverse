@@ -14,4 +14,11 @@ This report summarizes only mappings with current 7.1 evidence. Machine-readable
 
 ## Data completeness
 
-The committed registry is a seed. Preserved audit evidence states that an earlier complete recovery contained **4,896 unique CmdIds**, and all **1,540 known AstaPS opcode values** were present. The full generated files and generator were not preserved, so those counts are treated as historical recovery evidence until regeneration reproduces them.
+The 7.1 identity infrastructure is now regenerated and published rather than seed-only:
+
+- `registry/registry.csv` contains the complete **4,896-row / 4,896-unique-CmdId** canonical identity registry with a strict slot/type/CmdId bijection;
+- canonical metadata contains **88,904 types, 440,172 fields, 733,442 methods and 733,442 method-pointer rows**;
+- `registry/control-set.csv` is the current broad AstaPS-imported comparison/control surface and remains supporting evidence rather than a source of target-client semantic truth;
+- evidence-gated target-client semantic names are maintained separately in `proto/known-opcodes.csv`.
+
+Focused investigations can therefore start from the canonical registry and metadata indexes. Remaining unresolved work is semantic/parser/xref/runtime evidence, as indexed in `reports/unresolved.md` and the corresponding analysis directories/issues.
