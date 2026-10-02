@@ -45,6 +45,28 @@ If the body is interpreted as packed varints, it is `[5072]`. That is a structur
 
 Some old Genshin versions used numeric CmdId 186 for `PlayerPropChangeNotify`. CmdIds were remapped in later clients, so the old equality is `historical-only` and must not be copied into the 7.1 mapping.
 
+## Current 7.1 static identity
+
+The current canonical 7.1 registry closes the client-side identity of CmdId 186 independently of its still-unknown semantic name:
+
+```text
+registry index          48
+CmdId                   186 / 0x00BA
+client type             NLOMEGMJDGJ
+typeDefinition          61556
+type slot RVA           0x057F3858
+GetCmdId                NLOMEGMJDGJ.AEGNNPENLNM @ 0x09ED2160
+registry load RVA       0x07F7DB34
+registry store RVA      0x07F7DB3B
+slot xref count         3
+xref method count       3
+identity status         static-verified-identity
+```
+
+The identity is backed by the verified 7.1 registry constructor slot, the dominant declaring-type RIP-relative slot xrefs, and the `AEGNNPENLNM` constant-return `GetCmdId` identity. The independent GetCmdId candidate graph also resolves CmdId 186 to the single type `NLOMEGMJDGJ` / typeDefinition `61556` with the same `0x09ED2160` method.
+
+This closes the registry/type-identity question only. The canonical semantic direction remains unset, while runtime capture independently observes this packet client -> server. Parser shape, sender context, and semantic name remain unresolved.
+
 ## Current infrastructure baseline
 
 The registry/metadata dependency that originally blocked this investigation has been closed:
@@ -59,11 +81,10 @@ Do not repeat registry or metadata recovery as a prerequisite for CmdId 186. Sta
 
 ## Remaining research plan
 
-1. Query CmdId 186 in the canonical registry and record its obfuscated type, typeDefinitionIndex, type slot and available GetCmdId evidence in this analysis directory.
-2. Resolve that type through the canonical metadata indexes and identify parser/serializer methods.
-3. Recover the concrete field-14 structure from parser behavior; keep packed-varint/bytes/nested-message interpretations separate until static evidence selects one.
-4. Locate sender/call-site context and compare it with the repeated runtime login-init observations.
-5. Cross-check any semantic candidate against current target-client evidence and related projects without importing historical numeric equality.
-6. Promote a semantic name only when static identity, parser shape and runtime context agree.
+1. Resolve `NLOMEGMJDGJ` through the canonical metadata indexes and identify its parser/serializer methods.
+2. Recover the concrete field-14 structure from parser behavior; keep packed-varint/bytes/nested-message interpretations separate until static evidence selects one.
+3. Locate sender/call-site context and compare it with the repeated runtime login-init observations.
+4. Cross-check any semantic candidate against current target-client evidence and related projects without importing historical numeric equality.
+5. Promote a semantic name only when static identity, parser shape and runtime context agree.
 
 Expected sample hashes are in `../../hashes.json`.
