@@ -10,6 +10,7 @@ from .registryxrefpublish import _validated_known_opcodes
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
+HEXBYTES = re.compile(r"^(?:[0-9a-fA-F]{2})*$")
 
 REGISTRY_REQUIRED_COLUMNS = (
     "cmd_id",
@@ -31,6 +32,8 @@ KNOWN_OPCODE_REQUIRED_COLUMNS = (
 )
 ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
 ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
+MESSAGE_DIRECTIONS = {"C2S", "S2C", "unknown"}
+PROTOBUF_WIRE_TYPES = {0, 1, 2, 3, 4, 5}
 
 
 def _validate_string_list(value: object, label: str, errors: list[str]) -> None:
@@ -346,6 +349,111 @@ def _validate_known_opcodes(
             )
 
 
+def _validate_message_shapes(shapes_path: Path, errors: list[str]) -> None:
+    label = "proto/message-shapes.json"
+    try:
+        shapes = json.loads(shapes_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"{label}: {exc}")
+        return
+    if not isinstance(shapes, dict):
+        errors.append(f"{label}: root must be an object")
+        return
+
+    seen_cmd_ids: dict[int, str] = {}
+    for message_name, shape in shapes.items():
+        prefix = f"{label}:{message_name}"
+        if not isinstance(shape, dict):
+            errors.append(f"{prefix}: must be an object")
+            continue
+
+        cmd_id = shape.get("cmd_id")
+        if isinstance(cmd_id, bool) or not isinstance(cmd_id, int) or not 0 <= cmd_id <= 65535:
+            errors.append(f"{prefix}: cmd_id must be an integer in 0..65535")
+        elif cmd_id in seen_cmd_ids:
+            errors.append(
+                f"{prefix}: duplicate cmd_id {cmd_id} already used by {seen_cmd_ids[cmd_id]}"
+            )
+        else:
+            seen_cmd_ids[cmd_id] = str(message_name)
+
+        direction = shape.get("direction")
+        if direction not in MESSAGE_DIRECTIONS:
+            errors.append(f"{prefix}: bad direction {direction}")
+
+        status = shape.get("status")
+        if status not in ANALYSIS_STATUSES:
+            errors.append(f"{prefix}: bad status {status}")
+
+        for key in ("evidence",):
+            if key in shape and (not isinstance(shape[key], str) or not shape[key].strip()):
+                errors.append(f"{prefix}.{key}: must be a non-empty string")
+
+        payload_hex = shape.get("observed_payload_hex")
+        if payload_hex is not None and (
+            not isinstance(payload_hex, str) or not HEXBYTES.fullmatch(payload_hex)
+        ):
+            errors.append(f"{prefix}.observed_payload_hex: must be whole-byte hex")
+
+        fields = shape.get("fields")
+        if not isinstance(fields, list):
+            errors.append(f"{prefix}.fields: must be an array")
+            continue
+
+        seen_field_numbers: set[int] = set()
+        for index, field in enumerate(fields):
+            field_prefix = f"{prefix}.fields[{index}]"
+            if not isinstance(field, dict):
+                errors.append(f"{field_prefix}: must be an object")
+                continue
+
+            number = field.get("number")
+            if (
+                isinstance(number, bool)
+                or not isinstance(number, int)
+                or not 1 <= number <= 536870911
+            ):
+                errors.append(
+                    f"{field_prefix}.number: must be an integer in 1..536870911"
+                )
+            elif number in seen_field_numbers:
+                errors.append(f"{field_prefix}.number: duplicate field number {number}")
+            else:
+                seen_field_numbers.add(number)
+
+            wire_type = field.get("wire_type")
+            if (
+                isinstance(wire_type, bool)
+                or not isinstance(wire_type, int)
+                or wire_type not in PROTOBUF_WIRE_TYPES
+            ):
+                errors.append(f"{field_prefix}.wire_type: invalid protobuf wire type")
+
+            for key in ("likely_type", "semantic"):
+                if key in field and (
+                    not isinstance(field[key], str) or not field[key].strip()
+                ):
+                    errors.append(f"{field_prefix}.{key}: must be a non-empty string")
+
+            value_hex = field.get("observed_value_hex")
+            if value_hex is not None and (
+                not isinstance(value_hex, str) or not HEXBYTES.fullmatch(value_hex)
+            ):
+                errors.append(f"{field_prefix}.observed_value_hex: must be whole-byte hex")
+
+            packed = field.get("packed_varint_candidate")
+            if packed is not None:
+                if not isinstance(packed, list):
+                    errors.append(f"{field_prefix}.packed_varint_candidate: must be an array")
+                elif any(
+                    isinstance(value, bool) or not isinstance(value, int) or value < 0
+                    for value in packed
+                ):
+                    errors.append(
+                        f"{field_prefix}.packed_varint_candidate: values must be non-negative integers"
+                    )
+
+
 def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -415,12 +523,7 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
 
     shapes_path = path / "proto" / "message-shapes.json"
     if shapes_path.exists():
-        try:
-            shapes = json.loads(shapes_path.read_text(encoding="utf-8"))
-            if not isinstance(shapes, dict):
-                errors.append("message-shapes.json must be an object")
-        except Exception as exc:
-            errors.append(f"message-shapes.json: {exc}")
+        _validate_message_shapes(shapes_path, errors)
     elif allow_partial:
         warnings.append("proto/message-shapes.json is not generated yet")
     else:
