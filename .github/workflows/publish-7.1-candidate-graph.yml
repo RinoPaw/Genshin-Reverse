@@ -1,9 +1,10 @@
-name: Publish 7.1 protocol candidate graph
+name: Publish 7.1 GetCmdId candidate graph
 
 on:
   push:
     paths:
       - '.github/workflows/publish-7.1-candidate-graph.yml'
+      - 'genshinre/getcmdidgraph.py'
       - 'versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv'
   workflow_dispatch:
 
@@ -20,80 +21,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build protocol candidate graph
+      - name: Build GetCmdId candidate graph
         run: |
-          python - <<'PY'
-          import csv, json
-          from collections import Counter
-          from pathlib import Path
-
-          root = Path('versions/7.1.0-global/windows-x64')
-          src = root / 'registry/getcmdid-candidates.csv'
-          out = root / 'registry/registry-candidate-graph.csv'
-          summary_path = root / 'registry/registry-candidate-graph.summary.json'
-
-          with src.open(encoding='utf-8-sig', newline='') as f:
-              rows = list(csv.DictReader(f))
-
-          anchor = [r for r in rows if r['cmd_id'] == '26105' and r['type_name'] == 'HJDNCHODGOL' and int(r['get_cmd_id_rva'], 0) == 0x10587260]
-          if len(anchor) != 1:
-              raise SystemExit(f'expected one 26105/HJDNCHODGOL anchor, got {len(anchor)}')
-          method_name = anchor[0]['method_name']
-
-          selected = []
-          seen = set()
-          for r in rows:
-              if r['method_name'] != method_name:
-                  continue
-              if r['pattern'] != 'mov-ax-imm16-ret':
-                  continue
-              key = (r['cmd_id'], r['type_name'], r['type_definition_index'], r['get_cmd_id_rva'])
-              if key in seen:
-                  continue
-              seen.add(key)
-              selected.append({
-                  'cmd_id': r['cmd_id'],
-                  'type_name': r['type_name'],
-                  'type_definition_index': r['type_definition_index'],
-                  'get_cmd_id_rva': r['get_cmd_id_rva'],
-                  'method_name': r['method_name'],
-                  'pattern': r['pattern'],
-                  'status': 'static-candidate',
-                  'evidence': 'same 7.1 GetCmdId method identity as verified 26105 anchor + mov ax, imm16; ret',
-              })
-
-          selected.sort(key=lambda r: (int(r['cmd_id']), r['type_name']))
-          cols = ['cmd_id','type_name','type_definition_index','get_cmd_id_rva','method_name','pattern','status','evidence']
-          with out.open('w', encoding='utf-8', newline='') as f:
-              w = csv.DictWriter(f, fieldnames=cols)
-              w.writeheader(); w.writerows(selected)
-
-          cmd_counts = Counter(int(r['cmd_id']) for r in selected)
-          type_counts = Counter((r['type_definition_index'], r['type_name']) for r in selected)
-          anchors = {}
-          for cmd in (186, 9369, 22899, 26105):
-              anchors[str(cmd)] = [r for r in selected if int(r['cmd_id']) == cmd]
-          summary = {
-              'source': str(src),
-              'anchor_method_name': method_name,
-              'row_count': len(selected),
-              'unique_cmd_ids': len(cmd_counts),
-              'unique_types': len(type_counts),
-              'duplicate_cmd_ids': {str(k): v for k, v in cmd_counts.items() if v > 1},
-              'duplicate_types': {f'{k[0]}:{k[1]}': v for k, v in type_counts.items() if v > 1},
-              'anchors': anchors,
-              'status': 'static-candidate-graph',
-          }
-          summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-          print(json.dumps(summary, indent=2, ensure_ascii=False))
-          PY
+          ROOT=versions/7.1.0-global/windows-x64/registry
+          python -m genshinre.getcmdidgraph \
+            "$ROOT/getcmdid-candidates.csv" \
+            "$ROOT/getcmdid-candidate-graph.csv" \
+            "$ROOT/getcmdid-candidate-graph.summary.json" \
+            --anchor-cmd-id 26105 \
+            --anchor-type HJDNCHODGOL \
+            --anchor-rva 0x10587260 \
+            --focus 186,9369,22899,26105
       - name: Commit generated graph
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add versions/7.1.0-global/windows-x64/registry/registry-candidate-graph.csv \
-                  versions/7.1.0-global/windows-x64/registry/registry-candidate-graph.summary.json
+          git add versions/7.1.0-global/windows-x64/registry/getcmdid-candidate-graph.csv \
+                  versions/7.1.0-global/windows-x64/registry/getcmdid-candidate-graph.summary.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'data: publish 7.1 protocol candidate graph'
+          git commit -m 'data: publish 7.1 GetCmdId candidate graph'
           git pull --rebase origin main
           git push origin HEAD:main
