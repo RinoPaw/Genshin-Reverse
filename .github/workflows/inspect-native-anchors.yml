@@ -121,3 +121,169 @@ jobs:
             --window 96 \
             --output /tmp/runtime-type-registration-pointer-xrefs.json
           cat /tmp/runtime-type-registration-pointer-xrefs.json
+
+      - name: Inspect registration layout and known count identities
+        run: |
+          python - <<'PY'
+          from genshinre.mhy71 import (
+              EXPECTED_FIELD_COUNT,
+              EXPECTED_METHOD_COUNT,
+              EXPECTED_TYPE_COUNT,
+              METHOD_POINTER_TABLE_RVA,
+              TYPE_ARRAY_POINTER_RVA,
+          )
+          from genshinre.pe import PEImage
+          from pathlib import Path
+          import struct
+
+          exe = Path('/tmp/gi71/GenshinImpact.exe')
+          identities = {
+              'type_definition_count': EXPECTED_TYPE_COUNT,
+              'field_count': EXPECTED_FIELD_COUNT,
+              'method_count': EXPECTED_METHOD_COUNT,
+              'method_pointer_bytes': EXPECTED_METHOD_COUNT * 8,
+          }
+          with PEImage(exe) as image:
+              method_table_end = METHOD_POINTER_TABLE_RVA + EXPECTED_METHOD_COUNT * 8
+              type_array_va = struct.unpack('<Q', image.read_rva(TYPE_ARRAY_POINTER_RVA, 8))[0]
+              type_array_rva = type_array_va - image.image_base
+              print('=== derived table identities ===')
+              print('method_pointer_table_start', hex(METHOD_POINTER_TABLE_RVA))
+              print('method_pointer_table_end', hex(method_table_end))
+              print('type_array_rva', hex(type_array_rva))
+              print('known_counts', {k: (v, hex(v)) for k, v in identities.items()})
+
+              print('\n=== expanded registration neighborhood ===')
+              for rva in range(0x2870A40, 0x2870BC0, 8):
+                  blob = image.read_rva(rva, 8)
+                  if len(blob) != 8:
+                      continue
+                  qword = struct.unpack('<Q', blob)[0]
+                  lo, hi = struct.unpack('<II', blob)
+                  as_rva = qword - image.image_base if image.image_base <= qword < image.image_base + 0x50000000 else None
+                  marks = []
+                  if rva == TYPE_ARRAY_POINTER_RVA:
+                      marks.append('TYPE_ARRAY_POINTER_SOURCE')
+                  if rva == METHOD_POINTER_TABLE_RVA:
+                      marks.append('METHOD_POINTER_TABLE_START')
+                  if as_rva == method_table_end:
+                      marks.append('POINTS_TO_METHOD_TABLE_END')
+                  if as_rva == type_array_rva:
+                      marks.append('POINTS_TO_TYPE_ARRAY')
+                  for name, value in identities.items():
+                      if lo == value:
+                          marks.append('LO32=' + name)
+                      if hi == value:
+                          marks.append('HI32=' + name)
+                      if qword == value:
+                          marks.append('QWORD=' + name)
+                  print(
+                      f'0x{rva:08X} q=0x{qword:016X} lo=0x{lo:08X} hi=0x{hi:08X} '
+                      f'as_rva={None if as_rva is None else hex(as_rva)} marks={marks}'
+                  )
+
+              print('\n=== exact little-endian identity hits across file-backed sections ===')
+              for name, value in identities.items():
+                  needle4 = struct.pack('<I', value)
+                  needle8 = struct.pack('<Q', value)
+                  hits = []
+                  for section in image.sections:
+                      data = image.read_rva(section.virtual_address, section.raw_size)
+                      for width, needle in ((4, needle4), (8, needle8)):
+                          start = 0
+                          while True:
+                              off = data.find(needle, start)
+                              if off < 0:
+                                  break
+                              hits.append((section.name, section.virtual_address + off, width))
+                              start = off + 1
+                              if len(hits) >= 80:
+                                  break
+                          if len(hits) >= 80:
+                              break
+                      if len(hits) >= 80:
+                          break
+                  print(name, value, hex(value), 'hits', len(hits), hits[:80])
+          PY
+
+      - name: Profile runtime type-array boundary
+        run: |
+          python - <<'PY'
+          from genshinre.mhy71 import EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
+          from genshinre.pe import PEImage
+          from pathlib import Path
+          import struct
+
+          exe = Path('/tmp/gi71/GenshinImpact.exe')
+          VALID_KINDS = {
+              0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+              0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+              0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x18,
+              0x19, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21,
+              0x40, 0x41, 0x45, 0x55,
+          }
+          ENTRY_SIZE = 16
+          BLOCK = 4096
+          LIMIT = 1_200_000
+          with PEImage(exe) as image:
+              ptr = image.read_rva(TYPE_ARRAY_POINTER_RVA, 8)
+              type_array_rva = struct.unpack('<Q', ptr)[0] - image.image_base
+              data = image.read_rva(type_array_rva, LIMIT * ENTRY_SIZE)
+              count = len(data) // ENTRY_SIZE
+              blocks = []
+              for start in range(0, count, BLOCK):
+                  end = min(count, start + BLOCK)
+                  valid_kind = 0
+                  definition_kind = 0
+                  valid_definition = 0
+                  for index in range(start, end):
+                      entry = data[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
+                      kind = entry[0x0A]
+                      if kind in VALID_KINDS:
+                          valid_kind += 1
+                      if kind in (0x11, 0x12):
+                          definition_kind += 1
+                          definition = struct.unpack_from('<I', entry, 0)[0]
+                          if definition < EXPECTED_TYPE_COUNT:
+                              valid_definition += 1
+                  total = end - start
+                  blocks.append({
+                      'start': start,
+                      'end': end,
+                      'valid_kind_ratio': valid_kind / total,
+                      'definition_kind': definition_kind,
+                      'valid_definition_ratio': (valid_definition / definition_kind) if definition_kind else 1.0,
+                  })
+
+              first_bad = next((i for i, b in enumerate(blocks) if b['valid_kind_ratio'] < 0.95), None)
+              sustained_bad = None
+              for i in range(len(blocks) - 3):
+                  if all(blocks[j]['valid_kind_ratio'] < 0.95 for j in range(i, i + 4)):
+                      sustained_bad = i
+                      break
+              print('type_array_rva', hex(type_array_rva), 'entries_profiled', count)
+              print('first_block_below_95pct', first_bad, None if first_bad is None else blocks[first_bad])
+              print('first_four_block_sustained_below_95pct', sustained_bad, None if sustained_bad is None else blocks[sustained_bad])
+              focus = sustained_bad if sustained_bad is not None else first_bad
+              if focus is None:
+                  focus = len(blocks) - 1
+              lo = max(0, focus - 8)
+              hi = min(len(blocks), focus + 12)
+              print('=== boundary neighborhood blocks ===')
+              for row in blocks[lo:hi]:
+                  print(row)
+
+              max_valid_definition_index = -1
+              last_high_quality_index = -1
+              for index in range(count):
+                  entry = data[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
+                  kind = entry[0x0A]
+                  if kind in VALID_KINDS:
+                      last_high_quality_index = index
+                  if kind in (0x11, 0x12):
+                      definition = struct.unpack_from('<I', entry, 0)[0]
+                      if definition < EXPECTED_TYPE_COUNT:
+                          max_valid_definition_index = index
+              print('last_valid_kind_index_within_profile', last_high_quality_index)
+              print('last_class_or_valuetype_with_valid_definition_index', max_valid_definition_index)
+          PY
