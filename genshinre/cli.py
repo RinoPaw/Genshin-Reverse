@@ -11,6 +11,7 @@ from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_fields, query_methods
 from .mhy71 import decode_metadata_71
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
+from .protocolquery import query_protocol
 from .registry import query_registry
 from .scaffold import scaffold
 from .trace import import_trace
@@ -35,6 +36,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("query-registry", help="stream-query a registry.csv by identity fields")
     p.add_argument("registry", type=Path)
+    p.add_argument("--cmd-id", type=int)
+    p.add_argument("--type")
+    p.add_argument("--type-definition-index", type=int)
+    p.add_argument("--index", type=int, dest="registry_index")
+
+    p = sub.add_parser("protocol-query", help="join published protocol evidence around a registry identity")
+    p.add_argument("version_dir", type=Path)
     p.add_argument("--cmd-id", type=int)
     p.add_argument("--type")
     p.add_argument("--type-definition-index", type=int)
@@ -150,6 +158,26 @@ def main() -> None:
         )
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
+            raise SystemExit(1)
+    elif args.command == "protocol-query":
+        if not any(
+            (
+                args.cmd_id is not None,
+                args.type,
+                args.type_definition_index is not None,
+                args.registry_index is not None,
+            )
+        ):
+            raise SystemExit("provide --cmd-id, --type, --type-definition-index or --index")
+        result = query_protocol(
+            args.version_dir,
+            cmd_id=args.cmd_id,
+            type_name=args.type,
+            type_definition_index=args.type_definition_index,
+            registry_index=args.registry_index,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        if result["result_count"] == 0:
             raise SystemExit(1)
     elif args.command == "import-opcodes-java":
         print(import_java_opcodes(args.java_file, args.output_csv))
