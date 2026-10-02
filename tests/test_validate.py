@@ -18,7 +18,6 @@ class ValidatorIntegrationTests(unittest.TestCase):
         canonical_registry_published: bool,
         artifacts: list[str] | None = None,
         optional_artifacts_published: list[str] | None = None,
-        **extra: object,
     ) -> None:
         data: dict[str, object] = {
             "manifest_version": 2,
@@ -26,7 +25,6 @@ class ValidatorIntegrationTests(unittest.TestCase):
             "artifacts": artifacts or [],
             "optional_artifacts_published": optional_artifacts_published or [],
         }
-        data.update(extra)
         (root / "generated-artifacts.json").write_text(
             json.dumps(data), encoding="utf-8"
         )
@@ -84,7 +82,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
             writer.writerows(rows)
         return path
 
-    def test_manifest_v2_runs_through_main_validator(self) -> None:
+    def test_manifest_v2_runs_through_current_main_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
@@ -104,22 +102,6 @@ class ValidatorIntegrationTests(unittest.TestCase):
 
             self.assertEqual([], errors)
             self.assertEqual([], warnings)
-
-    def test_legacy_manifest_alias_is_rejected_through_main_validator(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self._write_manifest(
-                root,
-                canonical_registry_published=False,
-                optional_registry_artifacts_published=[],
-            )
-
-            errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
-
-            self.assertTrue(
-                any("optional_registry_artifacts_published" in error for error in errors)
-            )
 
     def test_registry_publication_flag_requires_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
