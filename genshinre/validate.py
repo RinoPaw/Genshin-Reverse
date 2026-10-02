@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path, PurePosixPath
 
-from .registry import ALLOWED_STATUS
+from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
@@ -199,8 +199,12 @@ def _validate_canonical_registry_publication(path: Path, errors: list[str]) -> N
     try:
         with registry_path.open("r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f)
-            if "cmd_id" not in (reader.fieldnames or []):
-                errors.append("registry/registry.csv: missing cmd_id column")
+            fields = tuple(reader.fieldnames or ())
+            if fields != CANONICAL_REGISTRY_COLUMNS:
+                errors.append(
+                    "registry/registry.csv: canonical header mismatch; "
+                    f"expected {','.join(CANONICAL_REGISTRY_COLUMNS)}; got {','.join(fields)}"
+                )
                 return
             rows = list(reader)
         cmd_ids = {int(row["cmd_id"]) for row in rows}
