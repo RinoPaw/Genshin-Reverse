@@ -85,7 +85,7 @@ POSIX shell:
 ./scripts/publish-artifacts-7.1.sh
 ```
 
-Publication verifies exact sample hashes, metadata counts, CSV row counts, the complete method-pointer table, runtime-type anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree. The manifest contract is `manifest_version: 2`.
+Publication verifies exact sample hashes, metadata counts, CSV row counts, the complete method-pointer table, runtime-type anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree. The manifest contract is `manifest_version: 3`; optional publication fields are retired.
 
 Published metadata includes:
 
