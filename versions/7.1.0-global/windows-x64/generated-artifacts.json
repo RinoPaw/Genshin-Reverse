@@ -15,8 +15,7 @@
       "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
     },
     "runtime_type_anchor": true,
-    "getcmdid_anchor": true,
-    "optional_registry_checks": {}
+    "getcmdid_anchor": true
   },
   "publication": {
     "metadata_format": "compact-query-indexes",
@@ -38,17 +37,13 @@
     "metadata/runtime-types.summary.json",
     "metadata/type-methods.json",
     "metadata/types.csv",
-    "registry/control-set.csv",
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json"
   ],
-  "optional_artifacts_published": [
-    "registry/control-set.csv"
-  ],
+  "optional_artifacts_published": [],
   "notes": [
     "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
-    "metadata publication is gated independently from experimental registry heuristics",
-    "the existing canonical registry is validated and preserved; this publisher does not replace it",
-    "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings"
+    "publication requires the current canonical 7.1 registry and exact sample identities",
+    "research intermediates are maintained by their own explicit research workflows"
   ]
 }
