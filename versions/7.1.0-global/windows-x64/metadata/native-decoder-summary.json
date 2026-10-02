@@ -1,0 +1,33 @@
+{
+  "decoder": "native-mhy71",
+  "sample": {
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "layout": {
+    "type_offset": "0x92140",
+    "type_count": 88904,
+    "parameter_offset": "0x38A5C6C",
+    "method_offset": "0x2439204",
+    "string_offset": "0x444C1E8",
+    "field_offset": "0x8D07B4"
+  },
+  "counts": {
+    "types": 88904,
+    "fields": 440172,
+    "methods": 733442,
+    "parameters": 548400
+  },
+  "type_array_rva": "0x2E1EA20",
+  "method_pointer_table_rva": "0x2870B90",
+  "parameter_base_file_offset": "0x38A5E7C",
+  "parameter_record_size": 8,
+  "method_owner_range_mismatches": 0,
+  "parameter_records_decoded": true,
+  "warnings": [],
+  "provenance": {
+    "embedded_header_rva": "0x27D4BD0",
+    "metadata_body_skip": "0x210",
+    "formula_source": "preserved 7.1 static-analysis formulas plus native parameter decoder basic block at RVA 0x52881C..0x528867"
+  }
+}

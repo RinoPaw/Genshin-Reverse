@@ -1,65 +1,64 @@
 {
-  "source": "tools/publish_generated_71.py",
+  "source": "genshinre.artifactpublish",
   "work": "work/7.1.0-global/windows-x64",
+  "status": "generated-artifacts-published",
+  "validation": {
+    "metadata_counts": {
+      "types": 88904,
+      "fields": 440172,
+      "methods": 733442,
+      "method_pointers": 733442
+    },
+    "sample": {
+      "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+      "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+    },
+    "runtime_type_anchor": true,
+    "getcmdid_anchor": true,
+    "optional_registry_checks": {}
+  },
+  "publication": {
+    "metadata_format": "compact-query-indexes",
+    "metadata_rows": {
+      "metadata/types.csv": 88904,
+      "metadata/fields.csv": 440172,
+      "metadata/methods.csv": 733442,
+      "metadata/method-pointers.csv": 733442,
+      "metadata/runtime-types.csv": 228834
+    }
+  },
   "canonical_registry_published": true,
-  "optional_registry_artifacts_published": [
-    "getcmdid-candidates.csv",
-    "getcmdid-candidates.summary.json",
-    "registry-layout-probe.json",
-    "metadata-usage-slots.csv",
-    "metadata-usage-slots.summary.json",
-    "metadata-registration-probe.json"
-  ],
-  "artifacts": [
-    "analyses/barbara-c6-revive/README.md",
-    "analyses/barbara-c6-revive/evidence.json",
-    "analyses/cmdid-186/README.md",
-    "analyses/unlock-trans-point/README.md",
-    "analyses/unlock-trans-point/candidates.csv",
-    "analyses/unlock-trans-point/retcode6-single-field-candidates.csv",
-    "cmdids/observations.csv",
-    "generated-artifacts.json",
-    "hashes.json",
-    "metadata/README.md",
-    "metadata/anchors-native.json",
-    "metadata/anchors.json",
+  "files": [
     "metadata/fields.csv",
-    "metadata/historical-seed/fields.csv",
-    "metadata/historical-seed/methods.csv",
-    "metadata/historical-seed/type-methods.json",
-    "metadata/historical-seed/types.csv",
     "metadata/method-pointers.csv",
     "metadata/methods.csv",
+    "metadata/native-decoder-summary.json",
     "metadata/runtime-types.csv",
+    "metadata/runtime-types.summary.json",
     "metadata/type-methods.json",
     "metadata/types.csv",
-    "proto/README.md",
-    "proto/known-opcodes.csv",
-    "proto/message-shapes.json",
-    "registry/README.md",
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json",
-    "registry/historical-recovery-samples.csv",
-    "registry/historical-recovery-schema.md",
-    "registry/metadata-registration-probe.json",
-    "registry/metadata-usage-slots.csv",
-    "registry/metadata-usage-slots.summary.json",
-    "registry/metadata-usage-types.csv",
-    "registry/metadata-usage-types.summary.json",
-    "registry/registry-candidate-graph.csv",
-    "registry/registry-candidate-graph.summary.json",
-    "registry/registry-layout-probe.json",
-    "registry/registry-type-slots.csv",
-    "registry/registry-type-slots.summary.json",
-    "registry/registry.csv",
-    "registry/registry.summary.json",
-    "registry/type-cache-xrefs.csv",
-    "registry/type-cache-xrefs.summary.json",
-    "reports/protocol-map.md",
-    "reports/unresolved.md",
-    "xrefs/README.md",
-    "xrefs/message-constructors.csv",
-    "xrefs/message-handlers.csv",
-    "xrefs/message-senders.csv"
+    "registry/known-opcodes.csv"
+  ],
+  "artifacts": [
+    "metadata/fields.csv",
+    "metadata/method-pointers.csv",
+    "metadata/methods.csv",
+    "metadata/native-decoder-summary.json",
+    "metadata/runtime-types.csv",
+    "metadata/runtime-types.summary.json",
+    "metadata/type-methods.json",
+    "metadata/types.csv",
+    "registry/getcmdid-candidates.csv",
+    "registry/getcmdid-candidates.summary.json",
+    "registry/known-opcodes.csv"
+  ],
+  "optional_registry_artifacts_published": [],
+  "notes": [
+    "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
+    "metadata publication is gated independently from experimental registry heuristics",
+    "the existing canonical registry is validated and preserved; this publisher does not replace it",
+    "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings"
   ]
 }

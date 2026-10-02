@@ -1,5 +1,5 @@
 {
-  "exe": "/tmp/gi71/GenshinImpact.exe",
+  "exe": "inputs/7.1.0-global/GenshinImpact.exe",
   "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
   "methods_csv": "work/7.1.0-global/windows-x64/metadata/methods.csv",
   "method_rows": 733442,
