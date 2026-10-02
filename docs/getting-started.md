@@ -120,9 +120,11 @@ The older `scripts/close-registry-7.1.*` and `scripts/publish-registry-7.1.*` co
 
 `.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and uses a pinned Sophon manifest plus expected SHA-256 hashes so a moving launcher/live-version endpoint cannot silently select another game version. Stale runs in the same heavy-generation concurrency group are cancelled when a newer relevant change arrives.
 
-Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, the wire smoke test and cheap shell/PowerShell syntax checks.
+Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, the wire/protocol-query smoke tests and cheap shell/PowerShell syntax checks. Validator-only changes stay on this fast path and do not trigger exact-sample regeneration.
 
 ## Inspect an unknown runtime packet
+
+Start with the wire payload when one is available:
 
 ```bash
 genshinre wire 7202d027
@@ -130,13 +132,25 @@ genshinre wire 7202d027
 
 For the current 7.1 `CmdId 186` observation this reports field 14, wire type 2, two payload bytes and the possible packed-varint interpretation `[5072]`. The packed interpretation is only a structural candidate until the current client type/parser identity is recovered.
 
+Then join the published evidence around the packet identity:
+
+```bash
+genshinre protocol-query \
+  versions/7.1.0-global/windows-x64 \
+  --cmd-id 186
+```
+
+`protocol-query` joins the canonical registry row with metadata fields/methods, handler/sender/constructor xrefs, runtime observation summaries, evidence-gated known opcodes and committed message shapes. It is an evidence aggregator only; it does not infer a semantic packet name or promote confidence.
+
+The same command can start from `--type`, `--type-definition-index` or registry `--index` when a CmdId is not the first known identity.
+
 ## Convert a server trace into reusable data
 
 ```bash
-genshinre import-trace born-full.log work/born-observations.csv --source born-quest351-probe
+genshinre import-trace born-full.log work/born-trace.csv --source born-quest351-probe
 ```
 
-The importer recognizes `RECV/SEND cmdId=... name=... len=... payload=...` lines and records direction, offset and payload in CSV.
+The importer recognizes `RECV/SEND cmdId=... name=... len=... payload=...` lines and records direction, offset and payload in a per-packet trace CSV. Version-level semantic summaries live separately in `cmdids/observations.csv`.
 
 ## Query the client registry
 
@@ -190,4 +204,4 @@ genshinre scaffold --version 7.2.0 --region global --platform windows-x64
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-The validator checks artifact shape, publication manifests and high-value dataset consistency. `--allow-partial` permits intentionally unresolved research layers; it does not waive errors in artifacts that claim to be published.
+The maintained validator composes registry/proto/analysis checks with manifest-v2, CmdId-observation and message-xref contracts. `--allow-partial` permits intentionally unresolved research layers; it does not waive errors in artifacts that claim to be published.
