@@ -10,13 +10,10 @@ def _parse_params(value: str) -> list[str]:
     value = (value or "").strip()
     if not value:
         return []
-    try:
-        parsed = json.loads(value)
-        if isinstance(parsed, list):
-            return [str(item) for item in parsed]
-    except json.JSONDecodeError:
-        pass
-    return [part.strip() for part in value.split("|") if part.strip()]
+    parsed = json.loads(value)
+    if not isinstance(parsed, list):
+        raise ValueError("parameter_types must be a JSON array")
+    return [str(item) for item in parsed]
 
 
 def _int_matches(value: object, expected: int | None) -> bool:
