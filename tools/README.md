@@ -23,10 +23,11 @@ When a research algorithm becomes broadly reusable, move the implementation into
 
 ## Retired duplicate/general helpers
 
-The following old standalone helpers were removed after their capability moved to the maintained command surface:
+The following old standalone helpers were removed after their capability moved to the maintained command surface or native decoder:
 
 - `fingerprint_sample.py` → `genshinre fingerprint` (including sample format detection);
 - `protobuf_wire.py` → `genshinre wire`;
-- `query_registry.py` → `genshinre query-registry`.
+- `query_registry.py` → `genshinre query-registry`;
+- `decode_method_parameters_71.py` → native `genshinre.mhy71` parameter decoding. Its three preserved handler-parameter checks now live in `versions/7.1.0-global/windows-x64/metadata/anchors.json` and are enforced by the normal metadata-anchor verification path.
 
 The moving HoYoPlay and third-party HoyoDL 7.1 fetchers were also retired. Exact 7.1 maintenance uses the pinned Sophon sample path; a future live-version discovery tool should be named and documented as discovery-only rather than presented as an exact-sample fetch path.
