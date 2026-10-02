@@ -5,6 +5,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
+EXPECTED_REGISTRY_ROW_COUNT = 4_896
+
 CANONICAL_REGISTRY_COLUMNS = (
     "index",
     "cmd_id",
