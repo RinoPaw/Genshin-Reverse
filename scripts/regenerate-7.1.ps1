@@ -164,19 +164,15 @@ try {
     Write-Host "[optional 10/13] Importing AstaPS control set"
     $ControlSetOk = $false
     if ($AstaPS) {
-        $Candidates = @(
-            (Join-Path $AstaPS "src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java"),
-            (Join-Path $AstaPS "src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java")
-        )
-        $PacketOpcodes = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-        if ($PacketOpcodes) {
+        $PacketOpcodes = Join-Path $AstaPS "src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java"
+        if (Test-Path $PacketOpcodes) {
             $ControlSetOk = Invoke-OptionalPython -Name "astaps-control-set" `
                 -m genshinre import-opcodes-java `
                 $PacketOpcodes `
                 (Join-Path $Output "control-set.csv")
         } else {
             $OptionalFailures.Add("astaps-packet-opcodes-not-found")
-            Write-Warning "PacketOpcodes.java not found under current or historical AstaPS paths"
+            Write-Warning "Expected current AstaPS PacketOpcodes.java at: $PacketOpcodes"
         }
     } else {
         Write-Host "      skipped; pass -AstaPS <path> to generate control-set.csv"
