@@ -86,21 +86,6 @@ DIRECT_FILES = {
     "getcmdid-candidates.summary.json": "registry/getcmdid-candidates.summary.json",
 }
 
-OPTIONAL_FILES = {
-    "metadata-usage-types.csv": "registry/metadata-usage-types.csv",
-    "metadata-usage-types.summary.json": "registry/metadata-usage-types.summary.json",
-    "registry-candidate-graph.csv": "registry/registry-candidate-graph.csv",
-    "registry-candidate-graph.summary.json": "registry/registry-candidate-graph.summary.json",
-    "registry-static-candidates.csv": "registry/registry-static-candidates.csv",
-    "registry-static-candidates.summary.json": "registry/registry-static-candidates.summary.json",
-    "control-set.csv": "registry/control-set.csv",
-    "registry-candidate-graph.diagnostic.json": "registry/registry-candidate-graph.diagnostic.json",
-    "registry-static-candidates.diagnostic.json": "registry/registry-static-candidates.diagnostic.json",
-    "xrefs/message-handlers.csv": "xrefs/message-handlers.csv",
-    "xrefs/message-senders.csv": "xrefs/message-senders.csv",
-    "xrefs/message-constructors.csv": "xrefs/message-constructors.csv",
-}
-
 
 def _load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -137,7 +122,7 @@ def _compact_csv(source: Path, destination: Path, columns: tuple[str, ...]) -> i
             writer.writeheader()
             count = 0
             for row in reader:
-                writer.writerow({column: row.get(column, "") for column in columns})
+                writer.writerow({column: row[column] for column in columns})
                 count += 1
     return count
 
@@ -246,31 +231,16 @@ def validate_generated_artifacts_71(
     runtime = _load_json(work_dir / "metadata/runtime-types.summary.json")
     if str(runtime.get("exe_sha256", "")) != expected_exe_sha:
         raise ValueError("runtime type index EXE hash does not match the version manifest")
-    if not bool(runtime.get("anchor_405772_class_84249_DMMJNICDOHM")):
+    if runtime.get("anchor_405772_class_84249_DMMJNICDOHM") is not True:
         raise ValueError("runtime type index failed the preserved 405772 -> DMMJNICDOHM anchor")
 
     getcmd = _load_json(work_dir / "getcmdid-candidates.summary.json")
     if str(getcmd.get("exe_sha256", "")) != expected_exe_sha:
         raise ValueError("GetCmdId candidate scan EXE hash does not match the version manifest")
-    if not bool(getcmd.get("anchor_26105_HJDNCHODGOL_0x10587260")):
+    if getcmd.get("anchor_26105_HJDNCHODGOL_0x10587260") is not True:
         raise ValueError("GetCmdId candidate scan failed the preserved 26105 anchor")
     if int(getcmd.get("method_rows", -1)) != expected_methods:
         raise ValueError("GetCmdId scan did not consume the complete decoded methods table")
-
-    optional_checks: dict[str, object] = {}
-    usage_summary = work_dir / "metadata-usage-types.summary.json"
-    if usage_summary.is_file():
-        usage = _load_json(usage_summary)
-        optional_checks["usage_type_anchor"] = bool(
-            usage.get("anchor_37523_to_405772_to_84249_DMMJNICDOHM")
-        )
-
-    graph_summary = work_dir / "registry-candidate-graph.summary.json"
-    if graph_summary.is_file():
-        graph = _load_json(graph_summary)
-        optional_checks["registry_graph_anchors"] = bool(
-            graph.get("all_preserved_anchors_pass")
-        )
 
     return {
         "metadata_counts": {
@@ -285,16 +255,14 @@ def validate_generated_artifacts_71(
         },
         "runtime_type_anchor": True,
         "getcmdid_anchor": True,
-        "optional_registry_checks": optional_checks,
     }
 
 
-def _copy_map(source_root: Path, destination_root: Path, mapping: dict[str, str]) -> list[str]:
+def _copy_required_files(source_root: Path, destination_root: Path) -> list[str]:
     copied: list[str] = []
-    for source_rel, destination_rel in mapping.items():
+    for source_rel, destination_rel in DIRECT_FILES.items():
         source = source_root / source_rel
-        if not source.is_file():
-            continue
+        _require(source)
         destination = destination_root / destination_rel
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
@@ -340,14 +308,9 @@ def publish_generated_artifacts_71(
     type_methods_path = version_dir / "metadata/type-methods.json"
     build_type_methods(version_dir / "metadata/methods.csv", type_methods_path)
     published_files.append("metadata/type-methods.json")
-
-    direct_files = _copy_map(work_dir, version_dir, DIRECT_FILES)
-    optional_files = _copy_map(work_dir, version_dir, OPTIONAL_FILES)
-    published_files.extend(direct_files)
-    published_files.extend(optional_files)
-
+    published_files.extend(_copy_required_files(work_dir, version_dir))
     published_files = sorted(set(published_files))
-    optional_files = sorted(set(optional_files))
+
     manifest: dict[str, object] = {
         "manifest_version": 2,
         "source": "genshinre.artifactpublish",
@@ -360,11 +323,11 @@ def publish_generated_artifacts_71(
         },
         "canonical_registry_published": True,
         "artifacts": published_files,
-        "optional_artifacts_published": optional_files,
+        "optional_artifacts_published": [],
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "publication requires the current canonical 7.1 registry and exact sample identities",
-            "optional research intermediates are published only when they exist and never replace canonical identity",
+            "research intermediates are maintained by their own explicit research workflows",
         ],
     }
     (version_dir / "generated-artifacts.json").write_text(
@@ -377,7 +340,7 @@ def publish_generated_artifacts_71(
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.artifactpublish",
-        description="Publish validated current 7.1 artifacts into the version directory.",
+        description="Publish validated canonical 7.1 artifacts into the version directory.",
     )
     parser.add_argument("work_dir", type=Path)
     parser.add_argument("version_dir", type=Path)
