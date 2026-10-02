@@ -201,6 +201,9 @@ class ArtifactPublishTests(unittest.TestCase):
             self.assertFalse((version / "registry/known-opcodes.csv").exists())
             self.assertFalse((version / "registry/registry.csv").exists())
             self.assertEqual(result["files"], result["artifacts"])
+            self.assertIn("registry/control-set.csv", result["optional_registry_artifacts_published"])
+            self.assertIn("registry/metadata-usage-types.csv", result["optional_registry_artifacts_published"])
+            self.assertIn("registry/registry-candidate-graph.csv", result["optional_registry_artifacts_published"])
             self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
             self.assertEqual(result["publication"]["metadata_format"], "compact-query-indexes")
 
@@ -293,6 +296,8 @@ class ArtifactPublishTests(unittest.TestCase):
 
             self.assertIn("xrefs/message-handlers.csv", result["files"])
             self.assertIn("xrefs/message-senders.csv", result["files"])
+            self.assertIn("xrefs/message-handlers.csv", result["optional_registry_artifacts_published"])
+            self.assertIn("xrefs/message-senders.csv", result["optional_registry_artifacts_published"])
 
 
 if __name__ == "__main__":
