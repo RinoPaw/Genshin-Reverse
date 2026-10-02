@@ -1,0 +1,75 @@
+name: Dump ScenePointUnlockNotify proto methods
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dump-scene-point-unlock-proto-methods.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+      - name: Fetch exact samples
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
+            --output /tmp/gi70 \
+            --expected-exe-sha256 'a1a23cb76d941df28c5156ca3152fa49421ec98842221b7d71633d42ee76ca45' \
+            --expected-metadata-sha256 'd361ff11f6ca123f4126004db13cdf1956e00d95231f84c1e5437f560e79128b'
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+      - name: Dump parser and constructors
+        run: |
+          python - <<'PY' > /tmp/scene-point-unlock-proto-methods.txt
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from genshinre.pe import PEImage
+
+          specs = [
+              ('7.0 .ctor', '/tmp/gi70/GenshinImpact.exe', 0xC83D540, 0xC83D650),
+              ('7.0 .cctor', '/tmp/gi70/GenshinImpact.exe', 0xC83D7E0, 0xC83D850),
+              ('7.0 parser EJMLONELNHC', '/tmp/gi70/GenshinImpact.exe', 0xC83D850, 0xC83DA50),
+              ('7.1 .ctor', '/tmp/gi71/GenshinImpact.exe', 0x1252B8D0, 0x1252B9E0),
+              ('7.1 .cctor', '/tmp/gi71/GenshinImpact.exe', 0x1252BC40, 0x1252BCB0),
+              ('7.1 parser NLGBJEEJDLG', '/tmp/gi71/GenshinImpact.exe', 0x1252BE50, 0x1252C090),
+          ]
+          md=Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail=True
+          images={}
+          try:
+              for title,path,start,end in specs:
+                  if path not in images:
+                      images[path]=PEImage(Path(path))
+                      images[path].__enter__()
+                  im=images[path]
+                  print('\n===',title,f'0x{start:X}..0x{end:X}','===')
+                  blob=im.read_rva(start,end-start)
+                  for ins in md.disasm(blob, im.image_base+start):
+                      print(f'{ins.address-im.image_base:08X}  {ins.mnemonic:<8} {ins.op_str}')
+          finally:
+              for im in images.values():
+                  im.__exit__(None,None,None)
+          PY
+          cat /tmp/scene-point-unlock-proto-methods.txt
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-point-unlock-proto-methods-70-71
+          path: /tmp/scene-point-unlock-proto-methods.txt
+          if-no-files-found: error
