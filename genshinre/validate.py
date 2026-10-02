@@ -29,6 +29,16 @@ ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
 ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
 MESSAGE_DIRECTIONS = {"C2S", "S2C", "unknown"}
 PROTOBUF_WIRE_TYPES = {0, 1, 2, 3, 4, 5}
+PUBLICATION_EVIDENCE = (
+    "registry/registry.summary.json",
+    "metadata/native-decoder-summary.json",
+    "metadata/runtime-types.summary.json",
+    "metadata/types.csv",
+    "metadata/fields.csv",
+    "metadata/methods.csv",
+    "metadata/method-pointers.csv",
+    "registry/getcmdid-candidates.summary.json",
+)
 
 
 def _extend_unique(target: list[str], values: list[str]) -> None:
@@ -61,6 +71,52 @@ def _validate_evidence_refs(value: object, label: str, errors: list[str]) -> Non
             field = item.get(key)
             if not isinstance(field, str) or not field.strip():
                 errors.append(f"{prefix}.{key}: must be a non-empty string")
+
+
+def _validate_hashes_file(
+    hashes_path: Path,
+    allow_partial: bool,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    if not hashes_path.is_file():
+        errors.append("missing hashes.json")
+        return
+    try:
+        data = json.loads(hashes_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"hashes.json: {exc}")
+        return
+    if not isinstance(data, dict):
+        errors.append("hashes.json: root must be an object")
+        return
+
+    for key in ("game_version", "region", "platform"):
+        value = data.get(key)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"hashes.json: {key} must be a non-empty string")
+
+    samples = data.get("samples")
+    if not isinstance(samples, dict):
+        errors.append("hashes.json: samples must be an object")
+        return
+    if not samples:
+        if allow_partial:
+            warnings.append("hashes.json: samples are not fingerprinted yet")
+        else:
+            errors.append("hashes.json: samples must not be empty")
+        return
+
+    for name, sample in samples.items():
+        if not isinstance(name, str) or not name.strip():
+            errors.append("hashes.json: sample names must be non-empty strings")
+            continue
+        if not isinstance(sample, dict):
+            errors.append(f"hashes.json: sample {name} must be an object")
+            continue
+        sha = sample.get("sha256")
+        if not isinstance(sha, str) or not HEX64.fullmatch(sha):
+            errors.append(f"{name}: invalid sha256")
 
 
 def _validate_analysis_evidence(evidence_path: Path, errors: list[str]) -> None:
@@ -211,10 +267,24 @@ def _validate_canonical_registry_publication(path: Path, errors: list[str]) -> N
         errors.append("registry/registry.csv: canonical publication contains duplicate CmdIds")
 
 
-def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[str]) -> None:
+def _has_publication_evidence(path: Path) -> bool:
+    return any((path / rel).exists() for rel in PUBLICATION_EVIDENCE)
+
+
+def _validate_generated_artifacts(
+    path: Path,
+    errors: list[str],
+    warnings: list[str],
+    *,
+    allow_partial: bool,
+) -> None:
     manifest_path = path / "generated-artifacts.json"
     if not manifest_path.exists():
-        warnings.append("missing generated-artifacts.json publication manifest")
+        message = "missing generated-artifacts.json publication manifest"
+        if allow_partial and not _has_publication_evidence(path):
+            warnings.append(message)
+        else:
+            errors.append(message)
         return
 
     _extend_unique(errors, validate_generated_manifest(path))
@@ -425,18 +495,7 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
     errors: list[str] = []
     warnings: list[str] = []
 
-    hashes_path = path / "hashes.json"
-    if not hashes_path.exists():
-        errors.append("missing hashes.json")
-    else:
-        try:
-            hashes = json.loads(hashes_path.read_text(encoding="utf-8"))
-            for name, sample in hashes.get("samples", {}).items():
-                sha = sample.get("sha256", "")
-                if sha and not HEX64.fullmatch(sha):
-                    errors.append(f"{name}: invalid sha256")
-        except Exception as exc:
-            errors.append(f"hashes.json: {exc}")
+    _validate_hashes_file(path / "hashes.json", allow_partial, errors, warnings)
 
     registry_path = path / "registry" / "registry.csv"
     if registry_path.exists():
@@ -494,7 +553,12 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
         for evidence_path in sorted(analyses_path.glob("*/evidence.json")):
             _validate_analysis_evidence(evidence_path, errors)
 
-    _validate_generated_artifacts(path, errors, warnings)
+    _validate_generated_artifacts(
+        path,
+        errors,
+        warnings,
+        allow_partial=allow_partial,
+    )
 
     observations = path / "cmdids" / "observations.csv"
     if observations.is_file():

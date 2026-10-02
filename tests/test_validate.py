@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from genshinre.artifactmanifest import REQUIRED_PUBLICATION_ROWS
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
 
@@ -16,15 +17,59 @@ class ValidatorIntegrationTests(unittest.TestCase):
         root: Path,
         *,
         canonical_registry_published: bool,
-        artifacts: list[str] | None = None,
     ) -> None:
-        data: dict[str, object] = {
-            "manifest_version": 3,
-            "canonical_registry_published": canonical_registry_published,
-            "artifacts": artifacts or [],
-        }
+        exe_sha = "e" * 64
+        metadata_sha = "d" * 64
+        (root / "hashes.json").write_text(
+            json.dumps(
+                {
+                    "game_version": "7.1.0",
+                    "region": "global",
+                    "platform": "windows-x64",
+                    "samples": {
+                        "GenshinImpact.exe": {"sha256": exe_sha},
+                        "global-metadata.dat": {"sha256": metadata_sha},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        for rel in REQUIRED_PUBLICATION_ROWS:
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+
         (root / "generated-artifacts.json").write_text(
-            json.dumps(data), encoding="utf-8"
+            json.dumps(
+                {
+                    "manifest_version": 3,
+                    "source": "genshinre.artifactpublish",
+                    "status": "generated-artifacts-published",
+                    "canonical_registry_published": canonical_registry_published,
+                    "validation": {
+                        "metadata_counts": {
+                            "types": 1,
+                            "fields": 1,
+                            "methods": 1,
+                            "method_pointers": 1,
+                        },
+                        "sample": {
+                            "exe_sha256": exe_sha,
+                            "metadata_sha256": metadata_sha,
+                        },
+                        "runtime_type_anchor": True,
+                        "getcmdid_anchor": True,
+                    },
+                    "publication": {
+                        "metadata_format": "compact-query-indexes",
+                        "metadata_rows": {
+                            rel: 1 for rel in REQUIRED_PUBLICATION_ROWS
+                        },
+                    },
+                    "artifacts": list(REQUIRED_PUBLICATION_ROWS),
+                }
+            ),
+            encoding="utf-8",
         )
 
     def _write_canonical_registry(self, root: Path) -> None:
@@ -88,7 +133,9 @@ class ValidatorIntegrationTests(unittest.TestCase):
 
             errors: list[str] = []
             warnings: list[str] = []
-            _validate_generated_artifacts(root, errors, warnings)
+            _validate_generated_artifacts(
+                root, errors, warnings, allow_partial=False
+            )
 
             self.assertEqual([], errors)
             self.assertEqual([], warnings)
@@ -99,7 +146,9 @@ class ValidatorIntegrationTests(unittest.TestCase):
             self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
+            _validate_generated_artifacts(
+                root, errors, [], allow_partial=False
+            )
 
             self.assertTrue(
                 any("canonical_registry_published is true" in error for error in errors)
@@ -116,7 +165,9 @@ class ValidatorIntegrationTests(unittest.TestCase):
             self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
+            _validate_generated_artifacts(
+                root, errors, [], allow_partial=False
+            )
 
             self.assertTrue(
                 any("row_count does not match registry.csv" in error for error in errors)

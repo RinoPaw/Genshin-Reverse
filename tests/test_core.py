@@ -73,11 +73,40 @@ class RegistryTests(unittest.TestCase):
             with (target / "registry/registry.csv").open("r", encoding="utf-8", newline="") as f:
                 self.assertEqual(tuple(next(csv.reader(f))), CANONICAL_REGISTRY_COLUMNS)
 
+    def test_strict_validation_requires_sample_fingerprints(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = scaffold(Path(td), "9.9.9", "global", "windows-x64")
+            errors, _ = validate_version(target, allow_partial=False)
+            self.assertTrue(
+                any("hashes.json: samples must not be empty" in error for error in errors)
+            )
+
+    def test_partial_validation_requires_manifest_after_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = scaffold(Path(td), "9.9.9", "global", "windows-x64")
+            published = target / "metadata" / "native-decoder-summary.json"
+            published.write_text("{}\n", encoding="utf-8")
+            errors, _ = validate_version(target, allow_partial=True)
+            self.assertTrue(
+                any("missing generated-artifacts.json publication manifest" in error for error in errors)
+            )
+
     def test_validate_accepts_static_identity_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td)
             (target / "registry").mkdir(parents=True)
-            (target / "hashes.json").write_text('{"samples": {}}\n', encoding="utf-8")
+            (target / "hashes.json").write_text(
+                json.dumps(
+                    {
+                        "game_version": "9.9.9",
+                        "region": "global",
+                        "platform": "windows-x64",
+                        "samples": {},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
             (target / "registry" / "registry.csv").write_text(
                 "index,cmd_id,type_name,type_definition_index,direction,direction_status,"
                 "semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,"
