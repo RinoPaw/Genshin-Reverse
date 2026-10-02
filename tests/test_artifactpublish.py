@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from genshinre.artifactpublish import publish_generated_artifacts_71
+from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 
 
 class ArtifactPublishTests(unittest.TestCase):
@@ -51,10 +52,29 @@ class ArtifactPublishTests(unittest.TestCase):
         registry = version / "registry"
         registry.mkdir(parents=True, exist_ok=True)
         with (registry / "registry.csv").open("w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["cmd_id"])
-            for cmd_id in range(4896):
-                writer.writerow([cmd_id])
+            writer = csv.DictWriter(f, fieldnames=CANONICAL_REGISTRY_COLUMNS)
+            writer.writeheader()
+            for index in range(4896):
+                writer.writerow(
+                    {
+                        "index": index,
+                        "cmd_id": index + 1,
+                        "type_name": f"TYPE_{index}",
+                        "type_definition_index": index,
+                        "direction": "",
+                        "direction_status": "unresolved",
+                        "semantic_name": "",
+                        "type_slot_rva": f"0x{0x5700000 + index * 8:X}",
+                        "get_cmd_id_rva": "",
+                        "get_cmd_id_method": "",
+                        "load_rva": f"0x{0x7F00000 + index * 16:X}",
+                        "store_rva": f"0x{0x7F00007 + index * 16:X}",
+                        "xref_count": 1,
+                        "xref_method_count": 1,
+                        "status": "static-verified-identity",
+                        "evidence": "synthetic canonical registry fixture",
+                    }
+                )
         (registry / "registry.summary.json").write_text(
             json.dumps(
                 {
@@ -67,7 +87,7 @@ class ArtifactPublishTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def _fixture(self, root: Path) -> tuple[Path, Path]:
+    def _fixture(self, root: Path, *, with_registry: bool = True) -> tuple[Path, Path]:
         work = root / "work"
         version = root / "version"
         (work / "metadata").mkdir(parents=True)
@@ -91,6 +111,9 @@ class ArtifactPublishTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+
+        if with_registry:
+            self._write_current_registry(version)
 
         common_extra = ["status", "evidence"]
         self._write_table(
@@ -178,7 +201,13 @@ class ArtifactPublishTests(unittest.TestCase):
         )
         return work, version
 
-    def test_publishes_compact_metadata_without_faking_canonical_registry(self) -> None:
+    def test_requires_current_canonical_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td), with_registry=False)
+            with self.assertRaisesRegex(ValueError, "current canonical registry is required"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_publishes_compact_metadata_with_current_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             work, version = self._fixture(root)
@@ -186,7 +215,7 @@ class ArtifactPublishTests(unittest.TestCase):
 
             self.assertEqual(result["manifest_version"], 2)
             self.assertNotIn("files", result)
-            self.assertFalse(result["canonical_registry_published"])
+            self.assertTrue(result["canonical_registry_published"])
             for rel in (
                 "metadata/types.csv",
                 "metadata/fields.csv",
@@ -201,7 +230,6 @@ class ArtifactPublishTests(unittest.TestCase):
             ):
                 self.assertTrue((version / rel).is_file(), rel)
             self.assertFalse((version / "registry/known-opcodes.csv").exists())
-            self.assertFalse((version / "registry/registry.csv").exists())
             self.assertIn("registry/control-set.csv", result["optional_artifacts_published"])
             self.assertIn("registry/metadata-usage-types.csv", result["optional_artifacts_published"])
             self.assertIn("registry/registry-candidate-graph.csv", result["optional_artifacts_published"])
@@ -220,9 +248,7 @@ class ArtifactPublishTests(unittest.TestCase):
 
     def test_preserves_current_xref_published_canonical_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            work, version = self._fixture(root)
-            self._write_current_registry(version)
+            work, version = self._fixture(Path(td))
             result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
             self.assertTrue(result["canonical_registry_published"])
@@ -234,12 +260,26 @@ class ArtifactPublishTests(unittest.TestCase):
     def test_rejects_half_published_canonical_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            work, version = self._fixture(root)
-            self._write_csv(version / "registry/registry.csv", 4896)
-            with self.assertRaisesRegex(ValueError, "publication is incomplete"):
+            work, version = self._fixture(root, with_registry=False)
+            registry = version / "registry" / "registry.csv"
+            with registry.open("w", encoding="utf-8", newline="") as f:
+                csv.writer(f).writerow(CANONICAL_REGISTRY_COLUMNS)
+            with self.assertRaisesRegex(ValueError, "current canonical registry is required"):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
-    def test_metadata_publication_does_not_require_registry_heuristics(self) -> None:
+    def test_rejects_noncanonical_registry_header(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td))
+            registry = version / "registry" / "registry.csv"
+            with registry.open("w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["cmd_id"])
+                for cmd_id in range(1, 4897):
+                    writer.writerow([cmd_id])
+            with self.assertRaisesRegex(ValueError, "canonical registry CSV header mismatch"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_metadata_publication_does_not_require_optional_registry_heuristics(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             work, version = self._fixture(root)
