@@ -6,6 +6,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
+from .registryxrefpublish import _validated_known_opcodes
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
@@ -21,6 +22,13 @@ REGISTRY_REQUIRED_COLUMNS = (
     "evidence",
 )
 REGISTRY_SLOT_COLUMNS = ("type_cache_rva", "type_slot_rva")
+KNOWN_OPCODE_REQUIRED_COLUMNS = (
+    "semantic_name",
+    "cmd_id",
+    "direction",
+    "status",
+    "evidence",
+)
 ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
 ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
 
@@ -225,9 +233,7 @@ def _validate_canonical_registry_publication(path: Path, errors: list[str]) -> N
             f"({summary.get('unique_cmd_ids')} != {unique_cmd_ids})"
         )
     if unique_cmd_ids != row_count:
-        errors.append(
-            "registry/registry.csv: canonical publication contains duplicate CmdIds"
-        )
+        errors.append("registry/registry.csv: canonical publication contains duplicate CmdIds")
 
 
 def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[str]) -> None:
@@ -254,6 +260,90 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
 
     if data.get("canonical_registry_published") is True:
         _validate_canonical_registry_publication(path, errors)
+
+
+def _validate_known_opcodes(
+    known_path: Path,
+    registry_path: Path,
+    errors: list[str],
+) -> None:
+    try:
+        with known_path.open("r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            fields = tuple(reader.fieldnames or ())
+            missing = [column for column in KNOWN_OPCODE_REQUIRED_COLUMNS if column not in fields]
+            if missing:
+                errors.append(
+                    "proto/known-opcodes.csv missing columns: " + ", ".join(missing)
+                )
+                return
+            known_rows = list(reader)
+        known_by_cmd = _validated_known_opcodes(known_rows)
+    except Exception as exc:
+        errors.append(f"proto/known-opcodes.csv: {exc}")
+        return
+
+    if not registry_path.exists():
+        return
+
+    try:
+        with registry_path.open("r", encoding="utf-8-sig", newline="") as f:
+            registry_rows = list(csv.DictReader(f))
+        registry_by_cmd = {int(row["cmd_id"]): row for row in registry_rows}
+    except Exception as exc:
+        errors.append(f"proto/known-opcodes.csv registry consistency check: {exc}")
+        return
+
+    for cmd_id, known in known_by_cmd.items():
+        registry = registry_by_cmd.get(cmd_id)
+        if registry is None:
+            errors.append(
+                f"proto/known-opcodes.csv: CmdId {cmd_id} is missing from registry/registry.csv"
+            )
+            continue
+
+        semantic_name = str(known.get("semantic_name", "")).strip()
+        direction = str(known.get("direction", "")).strip()
+        if str(registry.get("semantic_name", "")).strip() != semantic_name:
+            errors.append(
+                f"registry/registry.csv: CmdId {cmd_id} semantic_name does not match known-opcodes.csv"
+            )
+        if str(registry.get("direction", "")).strip() != direction:
+            errors.append(
+                f"registry/registry.csv: CmdId {cmd_id} direction does not match known-opcodes.csv"
+            )
+        if "direction_status" in registry and registry.get("direction_status") != "control-confirmed":
+            errors.append(
+                f"registry/registry.csv: CmdId {cmd_id} direction_status must be control-confirmed"
+            )
+
+    summary_path = registry_path.with_name("registry.summary.json")
+    canonical = False
+    if summary_path.exists():
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            canonical = (
+                isinstance(summary, dict)
+                and summary.get("status") == "canonical-static-identity-registry"
+            )
+        except Exception:
+            pass
+
+    if canonical:
+        enriched_cmds = {
+            int(row["cmd_id"])
+            for row in registry_rows
+            if str(row.get("semantic_name", "")).strip()
+            or str(row.get("direction", "")).strip() in {"C2S", "S2C"}
+        }
+        known_cmds = set(known_by_cmd)
+        if enriched_cmds != known_cmds:
+            extra = sorted(enriched_cmds - known_cmds)
+            missing = sorted(known_cmds - enriched_cmds)
+            errors.append(
+                "registry/registry.csv: canonical semantic enrichment does not match "
+                f"proto/known-opcodes.csv; extra={extra[:20]} missing={missing[:20]}"
+            )
 
 
 def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str], list[str]]:
@@ -318,7 +408,9 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
         errors.append("missing registry/registry.csv")
 
     known_path = path / "proto" / "known-opcodes.csv"
-    if not known_path.exists():
+    if known_path.exists():
+        _validate_known_opcodes(known_path, registry_path, errors)
+    else:
         (warnings if allow_partial else errors).append("missing proto/known-opcodes.csv")
 
     shapes_path = path / "proto" / "message-shapes.json"
