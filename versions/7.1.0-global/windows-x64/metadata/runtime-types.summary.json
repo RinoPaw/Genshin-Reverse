@@ -289,6 +289,6 @@
   "notes": [
     "scan_count is bounded by --max-entries and the containing PE section, not a claimed runtime typesCount",
     "default CSV emits only class/valuetype entries that resolve to a decoded metadata type name",
-    "the preserved 405772 -> typeDef 84249 anchor must pass before using this index for registry work"
+    "the preserved 405772 -> typeDef 84249 anchor is mandatory for this exact-sample index"
   ]
 }
