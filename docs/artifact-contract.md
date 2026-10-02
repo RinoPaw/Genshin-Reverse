@@ -9,40 +9,42 @@ Every generated dataset should answer four questions without relying on someone'
 
 ## Version provenance
 
-A version/platform directory must bind generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, which records the publisher, validation result, compact metadata row counts, canonical-registry publication state, and the files actually published by that run.
+A version/platform directory binds generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, recording the publisher, validation result, compact metadata row counts, canonical-registry state, and the fixed canonical files published by that run.
 
 The current manifest contract is version 2:
 
 ```text
 manifest_version = 2
-artifacts = all files published by this run
-optional_artifacts_published = the optional subset that happened to be present
-canonical_registry_published = whether the existing canonical registry passed the publication gate
+artifacts = canonical files published by this run
+optional_artifacts_published = []
+canonical_registry_published = true
 ```
+
+`optional_artifacts_published` is retained as an empty v2 schema field so existing manifest readers stay structurally stable. The canonical publisher never fills it. Research artifacts are published by their own explicit research workflows.
 
 Published paths are relative to the version/platform root, for example:
 
 ```text
 metadata/methods.csv
+metadata/runtime-types.csv
 registry/getcmdid-candidates.csv
-registry/control-set.csv
 ```
 
-`optional_artifacts_published` uses the same version-root-relative convention and must be a subset of `artifacts`. Every path listed by either field must exist after publication.
+Every path listed in `artifacts` must exist after publication.
 
-The v1 aliases `files` and `optional_registry_artifacts_published` are retired. New tooling must not emit or depend on them. The lightweight `genshinre.artifactmanifest` validator and ordinary CI lock the committed manifest to the v2 contract without requiring a client download.
+The retired v1 aliases `files` and `optional_registry_artifacts_published` are rejected. Current tooling must not emit or depend on them. Ordinary CI validates the committed manifest without downloading the client.
 
 ## Work output versus canonical published indexes
 
-Exact-sample regeneration writes rich intermediate/provenance data under `work/`. Git-published metadata under `versions/` is a compact query-oriented projection. Do not add provenance columns back into canonical CSVs solely because the decoder work file contains them; keep detailed decoder evidence in `work/`, summaries, or focused evidence artifacts.
+Exact-sample regeneration writes rich decoder/provenance data under `work/`. Git-published metadata under `versions/` is a compact query-oriented projection. Detailed decoder provenance stays in work output and explicit summary artifacts.
 
-The maintained publisher validates sample hashes and complete native row counts before publication. Experimental registry recovery may fail without suppressing valid canonical metadata publication.
+Canonical publication is fail-closed. It requires the pinned sample hashes, exact metadata counts, complete method-pointer table, runtime/GetCmdId anchors, and the current canonical registry. Research probes are outside this publication path and cannot substitute for a failed canonical gate.
 
 ## Stable identities
 
-Obfuscated IL2CPP type names are valid stable node identities when they are bound to the same sample. Preserve `type_definition_index`, method indexes, RVAs, and the relevant runtime/registration slot identity whenever available. The current canonical registry uses `type_slot_rva`; metadata/runtime research artifacts may also expose type-cache-related addresses where that is the actual recovered identity.
+Obfuscated IL2CPP type names are stable node identities when bound to the same exact sample. Preserve `type_definition_index`, method indexes, RVAs, and the relevant runtime/registration slot identity whenever available. The current canonical registry uses `type_slot_rva`.
 
-Semantic names should stay in separate fields so later corrections do not destroy original static identities.
+Semantic names stay in separate fields so later corrections do not destroy original static identities.
 
 ## Addresses
 
@@ -60,13 +62,13 @@ Machine-readable mappings should include a `status` or `confidence` field approp
 
 Membership in an external/control mapping is supporting evidence and does not promote a target-client semantic name by itself.
 
-For focused investigations, use `analyses/<topic>/evidence.json` and the promotion rules in `docs/analysis-contract.md`.
+Focused investigations use `analyses/<topic>/evidence.json` and the promotion rules in `docs/analysis-contract.md`.
 
 ## Canonical registry
 
-For current 7.1, `registry/registry.csv` plus `registry/registry.summary.json` is the canonical numeric/type identity dataset. Candidate graphs, usage joins, layout probes, imported control sets, and historical recovery files remain supporting/intermediate artifacts unless an explicit publication gate promotes a replacement.
+For current 7.1, `registry/registry.csv` plus `registry/registry.summary.json` is the canonical numeric/type identity dataset. The canonical publication gate requires the exact CSV header, 4,896 rows, 4,896 unique CmdIds, and the strict registry-slot/type-definition/CmdId bijection summary.
 
-General artifact publication must validate and preserve this canonical registry rather than overwrite it through an experimental recovery path.
+Candidate graphs, usage joins, imported control sets, historical comparisons and packet-specific xrefs are research evidence. They remain outside the canonical artifact publisher until a future explicit contract promotes a replacement dataset.
 
 ## Keep computation-friendly data
 
