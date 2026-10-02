@@ -184,6 +184,8 @@ class ArtifactPublishTests(unittest.TestCase):
             work, version = self._fixture(root)
             result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
+            self.assertEqual(result["manifest_version"], 2)
+            self.assertNotIn("files", result)
             self.assertFalse(result["canonical_registry_published"])
             for rel in (
                 "metadata/types.csv",
@@ -200,10 +202,9 @@ class ArtifactPublishTests(unittest.TestCase):
                 self.assertTrue((version / rel).is_file(), rel)
             self.assertFalse((version / "registry/known-opcodes.csv").exists())
             self.assertFalse((version / "registry/registry.csv").exists())
-            self.assertEqual(result["files"], result["artifacts"])
-            self.assertIn("registry/control-set.csv", result["optional_registry_artifacts_published"])
-            self.assertIn("registry/metadata-usage-types.csv", result["optional_registry_artifacts_published"])
-            self.assertIn("registry/registry-candidate-graph.csv", result["optional_registry_artifacts_published"])
+            self.assertIn("registry/control-set.csv", result["optional_artifacts_published"])
+            self.assertIn("registry/metadata-usage-types.csv", result["optional_artifacts_published"])
+            self.assertIn("registry/registry-candidate-graph.csv", result["optional_artifacts_published"])
             self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
             self.assertEqual(result["publication"]["metadata_format"], "compact-query-indexes")
 
@@ -253,8 +254,8 @@ class ArtifactPublishTests(unittest.TestCase):
             result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
             self.assertTrue((version / "metadata/fields.csv").is_file())
             self.assertTrue((version / "metadata/method-pointers.csv").is_file())
-            self.assertNotIn("registry/metadata-usage-types.csv", result["files"])
-            self.assertNotIn("registry/registry-candidate-graph.csv", result["files"])
+            self.assertNotIn("registry/metadata-usage-types.csv", result["artifacts"])
+            self.assertNotIn("registry/registry-candidate-graph.csv", result["artifacts"])
             self.assertEqual(result["validation"]["optional_registry_checks"], {})
 
     def test_rejects_seed_sized_metadata_even_when_summary_claims_full_fixture(self) -> None:
@@ -294,10 +295,10 @@ class ArtifactPublishTests(unittest.TestCase):
             self._write_csv(work / "xrefs/message-senders.csv", 1)
             result = publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
-            self.assertIn("xrefs/message-handlers.csv", result["files"])
-            self.assertIn("xrefs/message-senders.csv", result["files"])
-            self.assertIn("xrefs/message-handlers.csv", result["optional_registry_artifacts_published"])
-            self.assertIn("xrefs/message-senders.csv", result["optional_registry_artifacts_published"])
+            self.assertIn("xrefs/message-handlers.csv", result["artifacts"])
+            self.assertIn("xrefs/message-senders.csv", result["artifacts"])
+            self.assertIn("xrefs/message-handlers.csv", result["optional_artifacts_published"])
+            self.assertIn("xrefs/message-senders.csv", result["optional_artifacts_published"])
 
 
 if __name__ == "__main__":
