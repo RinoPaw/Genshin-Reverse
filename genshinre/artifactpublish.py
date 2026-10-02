@@ -12,7 +12,7 @@ from .mhy71 import (
     EXPECTED_METHOD_COUNT,
     EXPECTED_TYPE_COUNT,
 )
-from .registrylayout import HISTORICAL_ROW_COUNT
+from .registry import EXPECTED_REGISTRY_ROW_COUNT
 
 
 REQUIRED_WORK_FILES = (
@@ -165,13 +165,13 @@ def _canonical_registry_published(version_dir: Path) -> bool:
     summary = _load_json(summary_json)
     if summary.get("status") != "canonical-static-identity-registry":
         raise ValueError("registry.summary.json does not describe the current canonical identity registry")
-    if int(summary.get("row_count", -1)) != HISTORICAL_ROW_COUNT:
+    if int(summary.get("row_count", -1)) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry summary does not contain exactly 4,896 rows")
-    if int(summary.get("unique_cmd_ids", -1)) != HISTORICAL_ROW_COUNT:
+    if int(summary.get("unique_cmd_ids", -1)) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry summary does not contain 4,896 unique CmdIds")
     if not bool(summary.get("strict_slot_type_cmd_bijection")):
         raise ValueError("canonical registry summary lacks the strict slot/type/CmdId bijection gate")
-    if _csv_row_count(registry_csv) != HISTORICAL_ROW_COUNT:
+    if _csv_row_count(registry_csv) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry CSV does not contain exactly 4,896 rows")
     return True
 
