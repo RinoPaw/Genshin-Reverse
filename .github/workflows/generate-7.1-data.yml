@@ -43,18 +43,13 @@ jobs:
       - name: Fetch pinned global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
-      - name: Fetch current AstaPS control set
-        run: |
-          git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git ../AstaPS
-
-      - name: Regenerate exact-sample data and best-effort research intermediates
+      - name: Regenerate exact-sample canonical data
         run: |
           bash scripts/regenerate-7.1.sh \
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --metadata inputs/7.1.0-global/global-metadata.dat \
             --output work/7.1.0-global/windows-x64 \
-            --python python \
-            --astaps ../AstaPS
+            --python python
 
       - name: Publish validated artifacts into version tree
         run: |
