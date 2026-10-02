@@ -187,7 +187,7 @@ def publish_registry_from_xrefs_71(
         "notes": [
             "all 4,896 identities are closed by a verified constructor slot and a unique dominant code-xref owner",
             "the 27 AEGNNPENLNM constant-return candidate types with no verified registry-slot xref are excluded structurally",
-            "direction and semantic labels are supplemental control-set evidence and remain blank when unresolved",
+            "direction and semantic labels are supplemental evidence-gated target-client mappings and remain blank when unresolved",
         ],
     }
     if summary_json is None:
