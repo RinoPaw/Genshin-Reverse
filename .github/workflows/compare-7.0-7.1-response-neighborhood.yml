@@ -52,8 +52,6 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             /tmp/response-neighborhood-70-71.json \
             --old-target-rva 0xB6F18D0 \
-            --candidate 36641:0xF045790 \
-            --candidate 20290:0xF0462A0 \
             --radius 14
       - name: Upload evidence
         if: always()
