@@ -28,13 +28,14 @@ jobs:
             --output /tmp/gi71 \
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
-      - name: Search semantic strings and descriptor-name fragments
+      - name: Search semantic strings and descriptor encodings
         run: |
           python - <<'PY'
+          import base64
           import json
           from pathlib import Path
 
-          targets = [
+          semantic_targets = [
               'UnlockTransPointRsp',
               'UnlockTransPointReq',
               'UnlockTransPoint',
@@ -44,45 +45,95 @@ jobs:
               'ScenePointUnlock',
               'GetSceneAreaRsp',
           ]
+          descriptor_files = [
+              'UnlockTransPointRsp.proto',
+              'UnlockTransPointReq.proto',
+              'ScenePointUnlockNotify.proto',
+              'GetSceneAreaRsp.proto',
+          ]
+
+          # A generated C# FileDescriptorProto normally starts with field 1 (name):
+          #   0x0a, len(filename), filename bytes
+          # and the generated reflection class stores the serialized descriptor as
+          # a Base64 string. Searching these exact prefixes also gives us known-good
+          # controls (ScenePointUnlockNotify/GetSceneAreaRsp) for judging stripping.
+          descriptor_prefixes = {}
+          for name in descriptor_files:
+              raw = bytes([0x0A, len(name)]) + name.encode('ascii')
+              descriptor_prefixes[name] = base64.b64encode(raw).decode('ascii').rstrip('=')
+
           paths = [
               Path('/tmp/gi71/GenshinImpact.exe'),
               Path('/tmp/gi71/global-metadata.dat'),
           ]
-          report = {'targets': targets, 'files': []}
+          report = {
+              'semantic_targets': semantic_targets,
+              'descriptor_prefixes': descriptor_prefixes,
+              'files': [],
+          }
           for path in paths:
               data = path.read_bytes()
-              rows = []
-              for text in targets:
+              semantic_rows = []
+              for text in semantic_targets:
                   for encoding, needle in [
                       ('ascii', text.encode('ascii')),
                       ('utf16le', text.encode('utf-16le')),
                   ]:
-                      start = 0
                       hits = []
+                      start = 0
                       while True:
                           off = data.find(needle, start)
                           if off < 0:
                               break
-                          lo = max(0, off - 64)
-                          hi = min(len(data), off + len(needle) + 64)
-                          hits.append({
-                              'offset': off,
-                              'context_hex': data[lo:hi].hex(),
-                          })
+                          hits.append(off)
                           start = off + 1
                       if hits:
-                          rows.append({'text': text, 'encoding': encoding, 'hits': hits})
+                          semantic_rows.append({'text': text, 'encoding': encoding, 'offsets': hits})
+
+              descriptor_rows = []
+              for name, prefix in descriptor_prefixes.items():
+                  needle = prefix.encode('ascii')
+                  offsets = []
+                  start = 0
+                  while True:
+                      off = data.find(needle, start)
+                      if off < 0:
+                          break
+                      offsets.append(off)
+                      start = off + 1
+                  descriptor_rows.append({
+                      'proto_file': name,
+                      'base64_prefix': prefix,
+                      'offsets': offsets,
+                  })
+
               report['files'].append({
                   'path': str(path),
                   'size': len(data),
-                  'matches': rows,
+                  'semantic_matches': semantic_rows,
+                  'descriptor_prefix_matches': descriptor_rows,
               })
+
+          controls_present = any(
+              row['offsets']
+              for file in report['files']
+              for row in file['descriptor_prefix_matches']
+              if row['proto_file'] in {'ScenePointUnlockNotify.proto', 'GetSceneAreaRsp.proto'}
+          )
+          report['known_control_descriptor_prefix_present'] = controls_present
+          report['interpretation'] = (
+              'descriptor reflection data survives for at least one known current control'
+              if controls_present else
+              'known current controls also lack generated descriptor Base64 prefixes; reflection descriptors are likely stripped or transformed'
+          )
+
           out = Path('/tmp/protobuf-semantic-strings-71.json')
           out.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          print('known control descriptor prefix present:', controls_present)
           for file in report['files']:
-              print(file['path'], 'match groups=', len(file['matches']))
-              for row in file['matches']:
-                  print(' ', row['text'], row['encoding'], [h['offset'] for h in row['hits']])
+              print(file['path'])
+              for row in file['descriptor_prefix_matches']:
+                  print(' ', row['proto_file'], row['base64_prefix'], row['offsets'])
           PY
       - uses: actions/upload-artifact@v4
         with:
