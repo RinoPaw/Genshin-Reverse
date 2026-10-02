@@ -87,6 +87,18 @@ def _normalize_direction(value: str, direction_map: dict[str, str]) -> str:
     raise ValueError(f"unsupported direction: {value}")
 
 
+def _row_int_equals(row: dict[str, str], key: str, expected: int | None) -> bool:
+    if expected is None:
+        return True
+    text = str(row.get(key, "")).strip()
+    if not text:
+        return False
+    try:
+        return int(text, 0) == expected
+    except ValueError:
+        return False
+
+
 def normalize_registry(
     input_csv: Path,
     output_dir: Path,
@@ -168,12 +180,36 @@ def normalize_registry(
     return summary
 
 
-def query_registry(path: Path, cmd_id: int | None = None, type_name: str | None = None) -> list[dict[str, str]]:
-    if (cmd_id is None) == (type_name is None):
-        raise ValueError("provide exactly one of cmd_id or type_name")
+def query_registry(
+    path: Path,
+    cmd_id: int | None = None,
+    type_name: str | None = None,
+    type_definition_index: int | None = None,
+    registry_index: int | None = None,
+) -> list[dict[str, str]]:
+    """Stream-filter a registry CSV using one or more identity fields."""
+
+    if not any(
+        (
+            cmd_id is not None,
+            type_name,
+            type_definition_index is not None,
+            registry_index is not None,
+        )
+    ):
+        raise ValueError("provide at least one registry query filter")
+
+    needle = type_name.casefold() if type_name else None
+    result: list[dict[str, str]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
-    if cmd_id is not None:
-        return [row for row in rows if row.get("cmd_id") == str(cmd_id)]
-    needle = (type_name or "").casefold()
-    return [row for row in rows if needle in row.get("type_name", "").casefold()]
+        for row in csv.DictReader(f):
+            if not _row_int_equals(row, "cmd_id", cmd_id):
+                continue
+            if needle and needle not in str(row.get("type_name", "")).casefold():
+                continue
+            if not _row_int_equals(row, "type_definition_index", type_definition_index):
+                continue
+            if not _row_int_equals(row, "index", registry_index):
+                continue
+            result.append(dict(row))
+    return result
