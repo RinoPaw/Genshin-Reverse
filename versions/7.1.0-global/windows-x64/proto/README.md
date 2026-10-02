@@ -22,7 +22,11 @@ Keep `CANDIDATE`, `HIGH_CONFIDENCE`, competing identities and unresolved names i
 
 ### `message-shapes.json`
 
-Parser-derived protobuf fields and wire types keyed by original message identity. It supports structural queries such as “one varint at field 6”, “string + uint32”, “repeated message field 12” or “empty message”. Structural parser recovery does not by itself assign a semantic message name.
+Structural protobuf evidence keyed by the current working message identity. Entries may come from current-client parser/static recovery or from narrower runtime wire observations; `status` and `evidence` keep those evidence levels distinct.
+
+Each message records a CmdId, direction, evidence status and a field list. Field entries minimally preserve protobuf field number and wire type, with optional likely type, semantic label or observed runtime bytes. This supports structural queries such as “one varint at field 6”, “string + uint32”, “repeated message field 12” or “empty message” without forcing an unresolved message to receive a semantic name.
+
+The machine-readable contract is `schemas/message-shapes.schema.json`; `genshinre validate` enforces the core structure with no extra runtime dependency. A structurally confirmed shape does not by itself promote a semantic message name into `known-opcodes.csv`.
 
 ## Future protocol artifacts
 
