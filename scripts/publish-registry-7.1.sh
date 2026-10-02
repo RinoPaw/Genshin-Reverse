@@ -6,12 +6,13 @@ usage() {
 Usage:
   scripts/publish-registry-7.1.sh [--work DIR] [--destination DIR] [--python PYTHON]
 
+Historical native-layout projection helper.
 Prerequisites:
   1. scripts/regenerate-7.1.sh ... --astaps ../AstaPS
   2. scripts/close-registry-7.1.sh ... --require-direction-perfect
 
-The default destination is inside work/, so running this command does not
-silently overwrite committed version artifacts.
+The default destination is inside work/, so this command cannot silently
+overwrite the xref-published canonical registry under versions/.
 EOF
 }
 
@@ -33,7 +34,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 if [[ -z "$DESTINATION" ]]; then
-  DESTINATION="$WORK/canonical-registry"
+  DESTINATION="$WORK/historical-native-registry"
 fi
 
 REQUIRED=(
@@ -41,14 +42,14 @@ REQUIRED=(
   "$WORK/registry-native-usage.csv"
   "$WORK/registry-native-compare.json"
   "$WORK/registry-direction-audit.json"
-  "$WORK/known-opcodes.csv"
+  "$WORK/control-set.csv"
   "$WORK/getcmdid-candidates.csv"
   "versions/7.1.0-global/windows-x64/hashes.json"
 )
 for required in "${REQUIRED[@]}"; do
   if [[ ! -f "$required" ]]; then
-    echo "Required publication artifact is missing: $required" >&2
-    echo "Run regeneration and strict registry closure first." >&2
+    echo "Required historical projection artifact is missing: $required" >&2
+    echo "Run regeneration and strict native registry closure first." >&2
     exit 1
   fi
 done
@@ -58,11 +59,11 @@ done
   "$WORK/registry-native-usage.csv" \
   "$WORK/registry-native-compare.json" \
   "$WORK/registry-direction-audit.json" \
-  "$WORK/known-opcodes.csv" \
+  "$WORK/control-set.csv" \
   "$WORK/getcmdid-candidates.csv" \
   versions/7.1.0-global/windows-x64/hashes.json \
   "$DESTINATION"
 
-printf 'Canonical registry publication gates passed.\n'
+printf 'Historical native registry projection gates passed.\n'
 printf 'Output: %s\n' "$DESTINATION"
-printf 'Review summary.json and the semantic-name gaps before committing generated artifacts.\n'
+printf 'This output is comparison evidence only; current canonical registry publication remains genshinre.registryxrefpublish.\n'
