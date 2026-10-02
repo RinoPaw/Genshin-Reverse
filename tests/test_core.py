@@ -6,10 +6,24 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from genshinre.fingerprint import fingerprint
 from genshinre.registry import CANONICAL_COLUMNS, normalize_registry, query_registry
 from genshinre.scaffold import scaffold
 from genshinre.validate import validate_version
 from genshinre.wire import parse_message
+
+
+class FingerprintTests(unittest.TestCase):
+    def test_detects_metadata_formats(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            mhy = root / "global-metadata.dat"
+            mhy.write_bytes(b"MHY\x00" + b"\x00" * 28)
+            self.assertEqual("mhy-obfuscated-metadata", fingerprint(mhy)["format"])
+
+            il2cpp = root / "standard.dat"
+            il2cpp.write_bytes(bytes.fromhex("af1bb1fa") + b"\x00" * 28)
+            self.assertEqual("standard-il2cpp-metadata", fingerprint(il2cpp)["format"])
 
 
 class WireTests(unittest.TestCase):
