@@ -47,7 +47,7 @@ class OpcodeTests(unittest.TestCase):
 
 
 class MetadataTests(unittest.TestCase):
-    def test_parameter_query_and_index(self) -> None:
+    def test_parameter_query_and_compact_index(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             methods = root / "methods.csv"
@@ -59,7 +59,8 @@ class MetadataTests(unittest.TestCase):
             rows = query_methods(methods, parameter_type="ONKOPMILDMF")
             self.assertEqual(1, len(rows))
             index = build_type_methods(methods, root / "type-methods.json")
-            self.assertIn("LLCGIEDMIIG", index)
+            self.assertEqual(index["by_type_name"]["LLCGIEDMIIG"], [322028])
+            self.assertEqual(index["by_type_definition_index"]["1"], [322028])
 
 
 if __name__ == "__main__":
