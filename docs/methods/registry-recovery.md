@@ -2,11 +2,15 @@
 
 The 7.1 protocol registry is recovered in explicit evidence layers. Every intermediate table remains inspectable so a plausible false positive cannot silently become a canonical CmdId mapping.
 
+The current canonical 7.1 identity registry is already closed at 4,896 rows / 4,896 unique CmdIds and is published by `genshinre.registryxrefpublish`. The usage/native-layout stages below remain valuable as independent recovery and regression evidence; they do not own current canonical publication.
+
 ## Stage 0 — exact sample and metadata
 
 Fingerprint the samples, decode metadata indexes, and require the pinned 7.1 anchors to pass first. See `metadata-extraction.md` and `native-metadata-71.md`.
 
 The preserved Global/Windows x64 sample is bound to the SHA-256 values in `versions/7.1.0-global/windows-x64/hashes.json`.
+
+Maintained automation obtains this exact sample through `scripts/fetch-7.1-samples.sh` or `.ps1` and the pinned Sophon manifest.
 
 ## Stage 1 — constant-return `GetCmdId` candidates
 
@@ -19,14 +23,9 @@ genshinre scan-constant-cmdids \
   work/7.1.0-global/windows-x64/getcmdid-candidates.csv
 ```
 
-The scanner maps metadata method RVAs into the PE and recognizes a deliberately narrow constant-return body such as:
+The scanner maps metadata method RVAs into the PE and recognizes deliberately narrow constant-return bodies. Current 7.1 controls include 16-bit AX immediate-return stubs in addition to ordinary EAX forms.
 
-```text
-mov eax, IMM32
-ret
-```
-
-Optional ENDBR64 and small NOP padding are accepted. The output is candidate data because ordinary client methods can also return small constants.
+The output is candidate data because ordinary client methods can also return small constants.
 
 Preserved controls include:
 
@@ -35,7 +34,7 @@ HJDNCHODGOL @ 0x10587260 -> 26105
 DMMJNICDOHM @ 0x0C87EA60 -> 9369
 ```
 
-Failure of these controls indicates a sample, metadata, RVA, or decoder problem and stops the stronger joins from being trusted.
+Failure of these controls indicates a sample, metadata, RVA, or decoder problem and stops stronger joins from being trusted.
 
 ## Stage 2a — metadata-usage call-site audit
 
@@ -49,32 +48,28 @@ store_rva         = 0x07F852AB
 type_slot_rva     = 0x057E6498
 ```
 
-`metadata-usage-sites.csv` is audit evidence. It is intentionally kept separate from the full destination table because call-site recovery and registration-table recovery are independent observations.
+`metadata-usage-sites.csv` is audit evidence. It stays separate from the destination table because call-site recovery and registration-table recovery are independent observations.
 
 ## Stage 2b — metadata-registration destination table
 
-`genshinre.metareg` first probes count/pointer structures around the known runtime type array without assigning semantic names from layout alone.
+`genshinre.metareg` probes count/pointer structures around the runtime type array without assigning semantic names from layout alone.
 
-`genshinre.metausage` then looks for a candidate pointer table whose entry `37523` resolves exactly to the preserved static slot `0x057E6498`. The anchor must be unique before the table is exported as:
+`genshinre.metausage` searches for a candidate pointer table whose entry `37523` resolves exactly to the preserved static slot `0x057E6498`. The anchor must be unique before the table is accepted.
+
+Some exact-sample runs do not close this heuristic. Maintained regeneration treats this as an optional research stage and may fall back to `genshinre.usageslots` using direct initializer call-site evidence. A failure here does not invalidate already verified metadata/runtime/GetCmdId core artifacts.
+
+The resulting intermediate shape is:
 
 ```text
 metadata-usage-slots.csv
 usage_destination -> type_slot_rva
 ```
 
-This table reconstructs the destination-to-static-slot layer. It does not identify the message type by itself.
-
 ## Stage 2c — usage source and runtime type identity
 
 `genshinre.typearray` exports the IL2CPP runtime type array into a queryable index.
 
-`genshinre.usagesource` inspects data references used by the metadata-usage initializer and tests build-relevant source representations against the preserved mapping:
-
-```text
-usage 37523 -> runtime type index 405772
-```
-
-`genshinre.usagejoin` combines the selected usage-source representation with the anchored destination table and runtime type index. The preserved end-to-end control is:
+`genshinre.usagesource` and `genshinre.usagejoin` test source representations and join usage slots to runtime type identities. The preserved end-to-end control is:
 
 ```text
 37523
@@ -85,78 +80,103 @@ usage 37523 -> runtime type index 405772
 -> DMMJNICDOHM
 ```
 
-The resulting `metadata-usage-types.csv` is a machine-queryable bridge from metadata usage identity to decoded client type identity.
+`metadata-usage-types.csv` is a research bridge from metadata usage identity to decoded client type identity. Its availability depends on the optional usage recovery closing without ambiguity.
 
-## Stage 2d — registry candidate graph
+## Stage 2d — registry candidate graphs
 
-`genshinre.registrygraph` joins `metadata-usage-types.csv` with the Stage-1 `GetCmdId` candidates by typeDefinition identity, retaining genuine ambiguity instead of collapsing it.
+There are two intentionally separate candidate-graph namespaces.
 
-It outputs:
+`genshinre.getcmdidgraph` uses only the verified GetCmdId method identity plus machine-code stub shape. It publishes:
+
+```text
+registry/getcmdid-candidate-graph.csv
+registry/getcmdid-candidate-graph.summary.json
+```
+
+`genshinre.registrygraph` joins `metadata-usage-types.csv` with GetCmdId candidates by typeDefinition identity and publishes the usage-backed research graph when that optional path closes:
 
 ```text
 registry-candidate-graph.csv
 registry-candidate-graph.summary.json
 ```
 
-Important preserved anchors are checked explicitly:
+Preserved anchors include:
 
 - `9369 -> DMMJNICDOHM`, typeDefinition `84249`, usage `37523`, slot `0x057E6498`, GetCmdId `0x0C87EA60`;
 - `26105 -> HJDNCHODGOL`, GetCmdId `0x10587260`;
 - `22899 -> ONKOPMILDMF`, typeDefinition `87483`, slot `0x057F6F60`.
 
-The earlier successful audit recovered **4,896 unique CmdIds**. Natural convergence toward that scale is a regression signal. Generation code never trims, pads, or otherwise forces the result to 4,896.
+Candidate graphs remain discovery evidence. Constant-return non-protocol methods and genuine usage ambiguity can survive these layers.
 
-The candidate graph is still intermediate evidence. Constant-return non-protocol methods can survive this layer, and a protobuf type may participate in more than one metadata usage.
+## Stage 2e — independent control-set diagnostics
 
-## Stage 2e — convergence diagnostics and report
-
-With an AstaPS checkout, create an independent numeric control set:
+With an AstaPS checkout, create a broad numeric/semantic comparison surface:
 
 ```bash
 genshinre import-opcodes-java \
-  ../AstaPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java \
-  work/7.1.0-global/windows-x64/known-opcodes.csv
+  ../AstaPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java \
+  work/7.1.0-global/windows-x64/control-set.csv
 ```
 
-`genshinre.graphdiag` produces machine-readable coverage and delta information. The preserved earlier recovery covered all **1,540** then-known AstaPS numeric opcode values.
-
-`genshinre.registryreport` produces `registry-candidate-report.md` for human review. It highlights:
-
-- graph row count and unique CmdId count;
-- one-to-one joins;
-- usage ambiguity;
-- duplicate CmdIds;
-- types associated with multiple candidate CmdIds;
-- AstaPS control-set gaps when available;
-- focused rows for `186`, `9369`, `22899`, and `26105`;
-- preserved anchor status.
-
-A missing `186` row is itself useful evidence: it shows which recovery layer still excludes the observed packet before anyone starts another full EXE analysis.
-
-## Stage 3 — canonical registration identity and direction
-
-Promotion into canonical `registry/registry.csv` requires independent closure of protocol registration membership. The richer historical raw rows included `registry_flag`, metadata usage destination, static slot, store RVA, runtime type index, typeDefinition and type name.
-
-Two preserved direction controls currently support:
+Maintained regeneration publishes this as:
 
 ```text
-9369  registry_flag=1  C2S
-22899 registry_flag=0  S2C
+versions/7.1.0-global/windows-x64/registry/control-set.csv
 ```
 
-These controls are insufficient to globally assign flag semantics without regenerating more of the original registration structure. Direction remains evidence-backed per row until that layer is closed.
+This control set is external/server-derived comparison evidence. Target-client semantic names that pass the repository evidence gate live separately in `proto/known-opcodes.csv`.
 
-Once membership is closed, emit raw build-specific evidence first, then project stable fields into canonical `registry.csv` through `normalize-registry`.
+`genshinre.graphdiag` and `genshinre.registryreport` use the control set to report coverage, deltas, duplicate identities, ambiguity and focused rows without promoting names into canonical target-client semantics.
+
+## Stage 3 — current canonical registration identity
+
+Current 7.1 canonical identity is built from verified registry type slots plus dominant declaring-type code xrefs. The maintained publisher is:
+
+```text
+genshinre.registryxrefpublish
+```
+
+Its publication gate requires:
+
+- exactly 4,896 registry rows;
+- 4,896 unique CmdIds;
+- strict registry-slot / type-definition / CmdId bijection;
+- preserved control anchors;
+- exact current artifact inputs.
+
+The published pair is:
+
+```text
+registry/registry.csv
+registry/registry.summary.json
+```
+
+Direction and semantic names are independent evidence layers. A closed numeric/type identity can therefore carry blank or unresolved semantic fields.
+
+`genshinre normalize-registry` is a generic interchange normalizer for external or historical registry-like CSV files. Its output explicitly records `canonical_publication=false`; it is not the current canonical publication mechanism.
+
+## Historical native-layout structural closure
+
+The direct-slot and usage-backed native-layout paths are retained as independent historical reproduction evidence. Their maintained wrappers are:
+
+```text
+scripts/close-registry-7.1.sh / .ps1
+scripts/publish-registry-7.1.sh / .ps1
+```
+
+They require natural 4,896-row closure and row-by-row agreement between the independent native paths. Their default projection output stays under `work/.../historical-native-registry` so it cannot silently overwrite the xref-published canonical registry.
+
+See `native-registry-layout-71.md` for the structural method.
 
 ## Stage 4 — semantic naming
 
-Numeric CmdId plus obfuscated type identity still does not establish a semantic protobuf name for unknown rows. Semantic naming should use parser shape, handler/sender xrefs, UI/gameplay call paths, runtime observations, or another independent current-version source.
+Numeric CmdId plus obfuscated client type identity does not establish a semantic protobuf name for an unknown row. Semantic naming should use parser shape, handler/sender xrefs, UI/gameplay call paths, runtime observations, or another independent current-version source.
 
 Historical numeric equality remains `historical-only` evidence. Rejected candidates are retained with the reason they failed.
 
-## One-command regeneration
+## Maintained regeneration
 
-The supported entry points are:
+Linux/macOS/WSL:
 
 ```bash
 scripts/regenerate-7.1.sh \
@@ -165,7 +185,7 @@ scripts/regenerate-7.1.sh \
   --astaps ../AstaPS
 ```
 
-or on Windows:
+Windows:
 
 ```powershell
 .\scripts\regenerate-7.1.ps1 `
@@ -174,4 +194,4 @@ or on Windows:
   -AstaPS ..\AstaPS
 ```
 
-Read `registry-candidate-report.md` first after a run, then inspect the machine-readable summaries for the layer that still carries uncertainty.
+The exact-sample metadata/runtime/GetCmdId stages are required. Usage/native registry heuristics are best-effort research stages and report unresolved results without suppressing valid core artifacts.
