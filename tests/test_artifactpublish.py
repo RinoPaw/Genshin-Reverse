@@ -18,6 +18,20 @@ class ArtifactPublishTests(unittest.TestCase):
             for index in range(rows):
                 writer.writerow([index])
 
+    def _write_current_registry(self, version: Path) -> None:
+        self._write_csv(version / "registry/registry.csv", 4896)
+        (version / "registry/registry.summary.json").write_text(
+            json.dumps(
+                {
+                    "row_count": 4896,
+                    "unique_cmd_ids": 4896,
+                    "strict_slot_type_cmd_bijection": True,
+                    "status": "canonical-static-identity-registry",
+                }
+            ),
+            encoding="utf-8",
+        )
+
     def _fixture(self, root: Path) -> tuple[Path, Path]:
         work = root / "work"
         version = root / "version"
@@ -119,6 +133,37 @@ class ArtifactPublishTests(unittest.TestCase):
             self.assertEqual(result["files"], result["artifacts"])
             self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
 
+    def test_preserves_current_xref_published_canonical_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            work, version = self._fixture(root)
+            self._write_current_registry(version)
+
+            result = publish_generated_artifacts_71(
+                work,
+                version,
+                expected_counts=(2, 3, 4),
+            )
+
+            self.assertTrue(result["canonical_registry_published"])
+            self.assertTrue((version / "registry/registry.csv").is_file())
+            self.assertTrue((version / "registry/registry.summary.json").is_file())
+            self.assertFalse((version / "registry/registry.json").exists())
+            self.assertFalse((version / "registry/summary.json").exists())
+
+    def test_rejects_half_published_canonical_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            work, version = self._fixture(root)
+            self._write_csv(version / "registry/registry.csv", 4896)
+
+            with self.assertRaisesRegex(ValueError, "publication is incomplete"):
+                publish_generated_artifacts_71(
+                    work,
+                    version,
+                    expected_counts=(2, 3, 4),
+                )
+
     def test_metadata_publication_does_not_require_registry_heuristics(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -147,7 +192,6 @@ class ArtifactPublishTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             work, version = self._fixture(root)
-            # Remove one method row while keeping the summary untouched.
             self._write_csv(work / "metadata/methods.csv", 1)
             with self.assertRaisesRegex(ValueError, "CSV row count mismatch"):
                 publish_generated_artifacts_71(
