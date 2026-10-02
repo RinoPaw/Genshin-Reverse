@@ -116,6 +116,13 @@ def validate_generated_artifacts_71(
             f"{actual_csv_counts} != {expected_counts}"
         )
 
+    method_pointer_count = _csv_row_count(work_dir / "metadata/method-pointers.csv")
+    if method_pointer_count != expected_methods:
+        raise ValueError(
+            "generated method-pointer CSV row count mismatch: "
+            f"{method_pointer_count} != {expected_methods}"
+        )
+
     expected_exe_sha, expected_metadata_sha = _sample_hashes(version_dir)
     sample = dict(native.get("sample", {}))
     if str(sample.get("exe_sha256", "")) != expected_exe_sha:
@@ -154,6 +161,7 @@ def validate_generated_artifacts_71(
             "types": actual_csv_counts[0],
             "fields": actual_csv_counts[1],
             "methods": actual_csv_counts[2],
+            "method_pointers": method_pointer_count,
         },
         "sample": {
             "exe_sha256": expected_exe_sha,
@@ -215,11 +223,18 @@ def publish_generated_artifacts_71(
         copied.extend(_copy_map(canonical_registry_dir, version_dir, CANONICAL_FILES))
         canonical_published = True
 
+    published_files = sorted(copied)
     manifest: dict[str, object] = {
+        "source": "genshinre.artifactpublish",
+        "work": str(work_dir),
         "status": "generated-artifacts-published",
         "validation": validation,
         "canonical_registry_published": canonical_published,
-        "files": sorted(copied),
+        "files": published_files,
+        # Compatibility alias for the repository-wide version validator while
+        # older publication manifests are still present in Git history.
+        "artifacts": published_files,
+        "optional_registry_artifacts_published": [],
         "notes": [
             "the complete registry canonical filenames are emitted only by the stricter registry publication gate",
             "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings",
