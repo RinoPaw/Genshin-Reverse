@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path, PurePosixPath
 
-MANIFEST_VERSION = 2
+MANIFEST_VERSION = 3
+RETIRED_FIELDS = {
+    "files",
+    "optional_registry_artifacts_published",
+    "optional_artifacts_published",
+}
 
 
 def _validate_paths(
@@ -60,21 +65,13 @@ def validate_generated_manifest(root: Path) -> list[str]:
             f"{MANIFEST_VERSION}"
         )
 
-    if "files" in data:
-        errors.append("generated-artifacts.json: retired field 'files' is not allowed")
-    if "optional_registry_artifacts_published" in data:
-        errors.append(
-            "generated-artifacts.json: retired field "
-            "'optional_registry_artifacts_published' is not allowed"
-        )
+    for field in sorted(RETIRED_FIELDS):
+        if field in data:
+            errors.append(
+                f"generated-artifacts.json: retired field {field!r} is not allowed"
+            )
 
     _validate_paths(root, data.get("artifacts"), "artifacts", errors)
-
-    optional = data.get("optional_artifacts_published")
-    if optional != []:
-        errors.append(
-            "generated-artifacts.json: optional_artifacts_published must be an empty array"
-        )
 
     if data.get("canonical_registry_published") is not True:
         errors.append(
