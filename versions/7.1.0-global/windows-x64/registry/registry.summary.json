@@ -1,4 +1,7 @@
 {
+  "producer": "genshinre.registryxrefpublish",
+  "identity_method": "verified registry constructor slot + unique dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity",
+  "semantic_enrichment": "evidence-gated known-opcodes join for direction and semantic labels",
   "row_count": 4896,
   "unique_cmd_ids": 4896,
   "unique_type_definition_indices": 4896,
