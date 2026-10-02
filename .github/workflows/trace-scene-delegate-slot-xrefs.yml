@@ -1,0 +1,279 @@
+name: Trace scene delegate slot xrefs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/trace-scene-delegate-slot-xrefs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact 7.0 and 7.1 samples plus 7.0 dump
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
+            --output /tmp/gi70 \
+            --expected-exe-sha256 'a1a23cb76d941df28c5156ca3152fa49421ec98842221b7d71633d42ee76ca45' \
+            --expected-metadata-sha256 'd361ff11f6ca123f4126004db13cdf1956e00d95231f84c1e5437f560e79128b'
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+          curl --fail --location \
+            'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' \
+            -o /tmp/data.7z
+          mkdir -p /tmp/data
+          7z x -y /tmp/data.7z -o/tmp/data >/dev/null
+          test -f /tmp/data/data/dump.json
+
+      - name: Trace exact delegate-slot reads and writes
+        run: |
+          python - <<'PY' > /tmp/scene-delegate-slot-xrefs.json
+          import bisect
+          import csv
+          import json
+          import re
+          from collections import Counter, deque
+          from pathlib import Path
+
+          from capstone import CS_AC_READ, CS_AC_WRITE, CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86 import X86_OP_MEM, X86_REG_RIP
+
+          from genshinre.pe import PEImage
+
+          OLD_OWNER = 'KGCKOFPFBLA'
+          NEW_OWNER = 'KLLNGCPBLMM'
+          OLD_SLOTS = {
+              0x36E6E8: 'unlock_sender',
+              0x36E970: 'unlock_rsp',
+              0x36EC58: 'get_scene_area_rsp_control',
+          }
+          NEW_SLOTS = {
+              0x4B2A70: 'unlock_sender',
+              0x4B2A90: 'rsp_36641',
+              0x4B2AB0: 'rsp_20290',
+              0x4B2AC0: 'get_scene_area_rsp_control',
+          }
+
+          rva_re = re.compile(r'"rva":(\d+)')
+          old_owner = None
+          old_all_rvas = set()
+          with Path('/tmp/data/data/dump.json').open(encoding='utf-8', errors='replace') as f:
+              for line in f:
+                  if '"rva":' in line:
+                      old_all_rvas.update(int(x) for x in rva_re.findall(line) if int(x) > 0)
+                  if old_owner is None and f'"name":"{OLD_OWNER}"' in line:
+                      obj, _ = json.JSONDecoder().raw_decode(line.strip())
+                      if obj.get('name') == OLD_OWNER:
+                          old_owner = obj
+          if old_owner is None:
+              raise RuntimeError('historical scene owner missing')
+          old_all_rvas = sorted(old_all_rvas)
+
+          old_owner_methods = []
+          for position, method in enumerate(old_owner.get('methods', [])):
+              start = int(method.get('rva') or 0)
+              if start <= 0:
+                  continue
+              i = bisect.bisect_right(old_all_rvas, start)
+              if i >= len(old_all_rvas):
+                  continue
+              old_owner_methods.append({
+                  'start': start,
+                  'end': old_all_rvas[i],
+                  'type_name': OLD_OWNER,
+                  'method_name': method.get('name'),
+                  'method_index': method.get('idx'),
+                  'owner_position': position,
+                  'parameter_types': [p.get('type') for p in (method.get('params') or [])],
+              })
+
+          new_methods = []
+          with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8', newline='') as f:
+              for row in csv.DictReader(f):
+                  start = int(row['rva'], 0) if row.get('rva') else 0
+                  if start <= 0:
+                      continue
+                  try:
+                      params = json.loads(row.get('parameter_types') or '[]')
+                  except Exception:
+                      params = []
+                  new_methods.append({
+                      'start': start,
+                      'type_name': row.get('type_name'),
+                      'method_name': row.get('method_name'),
+                      'method_index': int(row['method_index']),
+                      'type_definition_index': int(row['type_definition_index']),
+                      'parameter_types': params,
+                  })
+          new_methods.sort(key=lambda row: row['start'])
+          for i, row in enumerate(new_methods):
+              row['end'] = new_methods[i + 1]['start'] if i + 1 < len(new_methods) else row['start'] + 0x1000
+
+          def method_for(methods, starts, rva):
+              i = bisect.bisect_right(starts, rva) - 1
+              if i < 0:
+                  return None
+              row = methods[i]
+              if rva >= row['end']:
+                  return None
+              return row
+
+          old_owner_methods.sort(key=lambda row: row['start'])
+          old_owner_starts = [row['start'] for row in old_owner_methods]
+          new_starts = [row['start'] for row in new_methods]
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def access_name(op):
+              flags = []
+              if op.access & CS_AC_READ:
+                  flags.append('read')
+              if op.access & CS_AC_WRITE:
+                  flags.append('write')
+              return '+'.join(flags) if flags else 'unknown'
+
+          def scan(exe_path, slots, version):
+              hits = []
+              with PEImage(Path(exe_path)) as image:
+                  for sec in image.sections:
+                      if not (sec.characteristics & 0x20000000):
+                          continue
+                      blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                      previous = deque(maxlen=8)
+                      active = []
+                      for insn in md.disasm(blob, image.image_base + sec.virtual_address):
+                          row = {
+                              'rva': f'0x{insn.address - image.image_base:X}',
+                              'mnemonic': insn.mnemonic,
+                              'op_str': insn.op_str,
+                              'bytes': insn.bytes.hex(),
+                          }
+                          for item in list(active):
+                              item['context'].append(row)
+                              item['_remaining'] -= 1
+                              if item['_remaining'] <= 0:
+                                  active.remove(item)
+
+                          matched = []
+                          for operand_index, op in enumerate(insn.operands):
+                              if op.type != X86_OP_MEM or op.mem.base == X86_REG_RIP:
+                                  continue
+                              disp = int(op.mem.disp)
+                              if disp in slots:
+                                  matched.append((disp, operand_index, access_name(op)))
+
+                          for disp, operand_index, access in matched:
+                              rva = insn.address - image.image_base
+                              method = (
+                                  method_for(old_owner_methods, old_owner_starts, rva)
+                                  if version == '7.0'
+                                  else method_for(new_methods, new_starts, rva)
+                              )
+                              item = {
+                                  'slot': f'0x{disp:X}',
+                                  'slot_label': slots[disp],
+                                  'rva': f'0x{rva:X}',
+                                  'mnemonic': insn.mnemonic,
+                                  'op_str': insn.op_str,
+                                  'operand_index': operand_index,
+                                  'access': access,
+                                  'method': method,
+                                  'context': list(previous) + [row],
+                                  '_remaining': 8,
+                              }
+                              hits.append(item)
+                              active.append(item)
+                          previous.append(row)
+              for item in hits:
+                  item.pop('_remaining', None)
+              return hits
+
+          old_hits = scan('/tmp/gi70/GenshinImpact.exe', OLD_SLOTS, '7.0')
+          new_hits = scan('/tmp/gi71/GenshinImpact.exe', NEW_SLOTS, '7.1')
+
+          def summarize(hits):
+              out = {}
+              for item in hits:
+                  label = item['slot_label']
+                  entry = out.setdefault(label, {'total': 0, 'access': Counter(), 'methods': Counter()})
+                  entry['total'] += 1
+                  entry['access'][item['access']] += 1
+                  method = item.get('method')
+                  if method:
+                      entry['methods'][f"{method.get('type_name')}.{method.get('method_name')}@0x{method['start']:X}"] += 1
+                  else:
+                      entry['methods']['<unmapped>'] += 1
+              for entry in out.values():
+                  entry['access'] = dict(entry['access'])
+                  entry['methods'] = dict(entry['methods'])
+              return out
+
+          # The canonical field index is useful for checking whether nearby native slots are
+          # backed by adjacent/repeated metadata fields on the current scene owner.
+          current_fields = []
+          with open('versions/7.1.0-global/windows-x64/metadata/fields.csv', encoding='utf-8', newline='') as f:
+              for row in csv.DictReader(f):
+                  if row.get('type_name') == NEW_OWNER:
+                      current_fields.append(row)
+
+          report = {
+              'old_owner': OLD_OWNER,
+              'new_owner': NEW_OWNER,
+              'old_slots': {f'0x{k:X}': v for k, v in OLD_SLOTS.items()},
+              'new_slots': {f'0x{k:X}': v for k, v in NEW_SLOTS.items()},
+              'old_summary': summarize(old_hits),
+              'new_summary': summarize(new_hits),
+              'old_hits': old_hits,
+              'new_hits': new_hits,
+              'old_owner_fields': old_owner.get('fields', []),
+              'new_owner_fields': current_fields,
+              'notes': [
+                  'Exact non-RIP memory displacement matches only; RIP-relative references are excluded.',
+                  'Capstone operand access flags distinguish reads and writes when available.',
+                  '7.0 method ownership is reported for KGCKOFPFBLA; 7.1 hits are mapped against the full current method index.',
+                  'The sender and GetSceneAreaRsp slots are controls; candidate identity requires a discriminating writer/registration relation, not address proximity alone.',
+              ],
+          }
+          print(json.dumps(report, indent=2))
+          PY
+
+          python - <<'PY'
+          import json
+          d = json.load(open('/tmp/scene-delegate-slot-xrefs.json'))
+          print('7.0 summary')
+          print(json.dumps(d['old_summary'], indent=2))
+          print('7.1 summary')
+          print(json.dumps(d['new_summary'], indent=2))
+          print('7.1 scene owner fields:', len(d['new_owner_fields']))
+          for hit in d['new_hits']:
+              if 'write' in hit['access']:
+                  print('WRITE', hit['slot_label'], hit['rva'], hit['op_str'], hit.get('method'))
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-delegate-slot-xrefs
+          path: /tmp/scene-delegate-slot-xrefs.json
+          if-no-files-found: error
