@@ -27,17 +27,17 @@
     "type_name": {"type": "string", "minLength": 1},
     "type_definition_index": {"type": "integer", "minimum": 0},
     "direction": {"enum": ["C2S", "S2C", "unknown", ""]},
-    "direction_status": {"type": "string"},
+    "direction_status": {"enum": ["control-confirmed", "unresolved"]},
     "semantic_name": {"type": "string"},
     "type_slot_rva": {"type": "string", "pattern": "^0x[0-9A-Fa-f]+$"},
     "get_cmd_id_rva": {"type": "string", "pattern": "^0x[0-9A-Fa-f]+$"},
-    "get_cmd_id_method": {"type": "string"},
+    "get_cmd_id_method": {"const": "AEGNNPENLNM"},
     "load_rva": {"type": "string", "pattern": "^0x[0-9A-Fa-f]+$"},
     "store_rva": {"type": "string", "pattern": "^0x[0-9A-Fa-f]+$"},
     "xref_count": {"type": "integer", "minimum": 0},
     "xref_method_count": {"type": "integer", "minimum": 0},
-    "status": {"type": "string"},
-    "evidence": {"type": "string"}
+    "status": {"const": "static-verified-identity"},
+    "evidence": {"type": "string", "minLength": 1}
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }
