@@ -99,10 +99,9 @@ def scan_type_array_71(
     summary_json: Path | None = None,
     max_entries: int = DEFAULT_MAX_ENTRIES,
     include_all_kinds: bool = False,
-    allow_unknown_sample: bool = False,
 ) -> dict[str, object]:
     exe_sha = _sha256(exe)
-    if not allow_unknown_sample and exe_sha != EXPECTED_EXE_SHA256:
+    if exe_sha != EXPECTED_EXE_SHA256:
         raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
 
     names = _load_type_names(types_csv)
@@ -230,7 +229,7 @@ def scan_type_array_71(
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.typearray",
-        description="Export a queryable 7.1 IL2CPP runtime type-index map.",
+        description="Export a queryable exact-sample 7.1 IL2CPP runtime type-index map.",
     )
     parser.add_argument("exe", type=Path)
     parser.add_argument("types_csv", type=Path)
@@ -238,7 +237,6 @@ def main() -> None:
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--max-entries", type=int, default=DEFAULT_MAX_ENTRIES)
     parser.add_argument("--all-kinds", action="store_true")
-    parser.add_argument("--allow-unknown-sample", action="store_true")
     parser.add_argument("--require-anchor", action="store_true")
     args = parser.parse_args()
 
@@ -249,7 +247,6 @@ def main() -> None:
         summary_json=args.summary,
         max_entries=args.max_entries,
         include_all_kinds=args.all_kinds,
-        allow_unknown_sample=args.allow_unknown_sample,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
     if args.require_anchor and not result["anchor_405772_class_84249_DMMJNICDOHM"]:
