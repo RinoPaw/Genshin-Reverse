@@ -1,0 +1,78 @@
+name: Inspect ScenePointUnlockNotify field metadata
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-scene-point-unlock-field-metadata.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch 7.0 dump only
+        run: |
+          curl --fail --location 'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' -o /tmp/data.7z
+          mkdir -p /tmp/data && 7z x -y /tmp/data.7z -o/tmp/data >/dev/null
+
+      - name: Inspect field metadata
+        run: |
+          python - <<'PY' > /tmp/scene-point-unlock-field-metadata.json
+          import csv
+          import json
+          from pathlib import Path
+
+          OLD='PANBIAIAIDH'
+          NEW='DBNMIKBJIPE'
+
+          old=None
+          with Path('/tmp/data/data/dump.json').open(encoding='utf-8', errors='replace') as f:
+              for line in f:
+                  if f'"name":"{OLD}"' not in line:
+                      continue
+                  try:
+                      obj,_=json.JSONDecoder().raw_decode(line.strip())
+                  except Exception:
+                      continue
+                  if obj.get('name')==OLD:
+                      old=obj
+                      break
+          if old is None:
+              raise RuntimeError('old type not found')
+
+          field_csv=Path('versions/7.1.0-global/windows-x64/metadata/fields.csv')
+          current=[]
+          header=None
+          if field_csv.exists():
+              with field_csv.open(encoding='utf-8', newline='') as f:
+                  r=csv.DictReader(f)
+                  header=r.fieldnames
+                  for row in r:
+                      if row.get('type_name')==NEW:
+                          current.append(row)
+
+          print(json.dumps({
+              'old_type_name': OLD,
+              'old_type_keys': list(old.keys()),
+              'old_fields': old.get('fields'),
+              'old_properties': old.get('properties'),
+              'new_type_name': NEW,
+              'fields_csv_header': header,
+              'new_fields_csv_rows': current,
+          },indent=2,ensure_ascii=False))
+          PY
+
+          cat /tmp/scene-point-unlock-field-metadata.json
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-point-unlock-field-metadata
+          path: /tmp/scene-point-unlock-field-metadata.json
+          if-no-files-found: error
