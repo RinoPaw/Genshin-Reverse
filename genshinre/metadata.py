@@ -19,6 +19,18 @@ def _parse_params(value: str) -> list[str]:
     return [part.strip() for part in value.split("|") if part.strip()]
 
 
+def _int_matches(value: object, expected: int | None) -> bool:
+    if expected is None:
+        return True
+    text = str(value or "").strip()
+    if not text:
+        return False
+    try:
+        return int(text, 0) == expected
+    except ValueError:
+        return False
+
+
 def load_methods(methods_csv: Path) -> list[dict[str, object]]:
     with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
         rows = []
@@ -82,17 +94,52 @@ def query_methods(
     type_name: str | None = None,
     parameter_type: str | None = None,
     method_name: str | None = None,
+    type_definition_index: int | None = None,
 ) -> list[dict[str, object]]:
-    rows = load_methods(methods_csv)
-    result = []
-    for row in rows:
-        if type_name and type_name.casefold() not in str(row.get("type_name", "")).casefold():
-            continue
-        if method_name and method_name.casefold() not in str(row.get("method_name", "")).casefold():
-            continue
-        if parameter_type:
-            params = [str(item).casefold() for item in row.get("parameter_types", [])]
-            if parameter_type.casefold() not in params:
+    """Stream-filter a methods CSV without materializing the full metadata table."""
+
+    result: list[dict[str, object]] = []
+    with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        for raw in csv.DictReader(f):
+            if type_name and type_name.casefold() not in str(raw.get("type_name", "")).casefold():
                 continue
-        result.append(row)
+            if not _int_matches(raw.get("type_definition_index"), type_definition_index):
+                continue
+            if method_name and method_name.casefold() not in str(raw.get("method_name", "")).casefold():
+                continue
+
+            params = _parse_params(raw.get("parameter_types", ""))
+            if parameter_type and parameter_type.casefold() not in {item.casefold() for item in params}:
+                continue
+
+            row: dict[str, object] = dict(raw)
+            row["parameter_types"] = params
+            result.append(row)
+    return result
+
+
+def query_fields(
+    fields_csv: Path,
+    type_name: str | None = None,
+    field_name: str | None = None,
+    field_type: str | None = None,
+    type_definition_index: int | None = None,
+    field_type_index: int | None = None,
+) -> list[dict[str, str]]:
+    """Stream-filter a canonical metadata fields CSV."""
+
+    result: list[dict[str, str]] = []
+    with fields_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            if type_name and type_name.casefold() not in str(row.get("type_name", "")).casefold():
+                continue
+            if not _int_matches(row.get("type_definition_index"), type_definition_index):
+                continue
+            if field_name and field_name.casefold() not in str(row.get("field_name", "")).casefold():
+                continue
+            if field_type and field_type.casefold() != str(row.get("field_type", "")).casefold():
+                continue
+            if not _int_matches(row.get("field_type_index"), field_type_index):
+                continue
+            result.append(dict(row))
     return result
