@@ -6,6 +6,8 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from .registry import CANONICAL_REGISTRY_COLUMNS
+
 EXPECTED_ROWS = 4896
 PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF"}
 ANCHORS = {
@@ -13,24 +15,7 @@ ANCHORS = {
     22899: {"index": 3118, "slot": 0x057F6F60, "type_name": "ONKOPMILDMF", "tdi": 87483},
 }
 
-COLUMNS = (
-    "index",
-    "cmd_id",
-    "type_name",
-    "type_definition_index",
-    "direction",
-    "direction_status",
-    "semantic_name",
-    "type_slot_rva",
-    "get_cmd_id_rva",
-    "get_cmd_id_method",
-    "load_rva",
-    "store_rva",
-    "xref_count",
-    "xref_method_count",
-    "status",
-    "evidence",
-)
+COLUMNS = CANONICAL_REGISTRY_COLUMNS
 
 
 def _rows(path: Path) -> list[dict[str, str]]:
