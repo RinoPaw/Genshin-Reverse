@@ -43,8 +43,6 @@ scripts/publish-artifacts-7.1.{sh,ps1}
 genshinre.registryxrefpublish
 ```
 
-The older `close-registry-7.1.*` / `publish-registry-7.1.*` native-layout path remains research tooling and historical evidence. It is not the current canonical registry publication path.
-
 See `docs/getting-started.md` for the maintained workflow.
 
 ## Layout
@@ -53,7 +51,7 @@ See `docs/getting-started.md` for the maintained workflow.
 docs/                         methods, case studies, artifact contract
 genshinre/                    standard-library CLI/package
 schemas/                      canonical artifact schemas
-tools/                        focused/legacy helper scripts
+tools/                        focused research helpers
 tests/                        synthetic regression tests
 scripts/                      reproducible target-version workflows
 versions/
@@ -81,7 +79,7 @@ runtime observation
 → confirmed semantic mapping
 ```
 
-A target count is never used to pad or trim generated output. Historical counts are regression evidence only.
+A target count is never used to pad or trim generated output.
 
 ## Current 7.1 artifact status
 
