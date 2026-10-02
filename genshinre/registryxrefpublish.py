@@ -10,6 +10,12 @@ from .registry import CANONICAL_REGISTRY_COLUMNS
 
 EXPECTED_ROWS = 4896
 PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF"}
+SUMMARY_PRODUCER = "genshinre.registryxrefpublish"
+SUMMARY_IDENTITY_METHOD = (
+    "verified registry constructor slot + unique dominant declaring-type RIP-relative slot xref "
+    "+ AEGNNPENLNM GetCmdId constant-return identity"
+)
+SUMMARY_SEMANTIC_ENRICHMENT = "evidence-gated known-opcodes join for direction and semantic labels"
 ANCHORS = {
     9369: {"index": 2232, "slot": 0x057E6498, "type_name": "DMMJNICDOHM", "tdi": 84249},
     22899: {"index": 3118, "slot": 0x057F6F60, "type_name": "ONKOPMILDMF", "tdi": 87483},
@@ -174,6 +180,9 @@ def publish_registry_from_xrefs_71(
 
     direction_counts = Counter(row["direction"] or "unresolved" for row in output)
     summary: dict[str, object] = {
+        "producer": SUMMARY_PRODUCER,
+        "identity_method": SUMMARY_IDENTITY_METHOD,
+        "semantic_enrichment": SUMMARY_SEMANTIC_ENRICHMENT,
         "row_count": len(output),
         "unique_cmd_ids": len(selected_cmds),
         "unique_type_definition_indices": len(selected_types),
