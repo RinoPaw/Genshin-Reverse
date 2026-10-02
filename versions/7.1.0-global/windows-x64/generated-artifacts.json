@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "source": "genshinre.artifactpublish",
   "work": "work/7.1.0-global/windows-x64",
   "status": "generated-artifacts-published",
@@ -40,7 +40,6 @@
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json"
   ],
-  "optional_artifacts_published": [],
   "notes": [
     "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
     "publication requires the current canonical 7.1 registry and exact sample identities",
