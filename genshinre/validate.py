@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from .registry import ALLOWED_STATUS
 
@@ -132,6 +132,65 @@ def _validate_analysis_evidence(evidence_path: Path, errors: list[str]) -> None:
                 _validate_evidence_refs(item["evidence"], f"{prefix}.evidence", errors)
 
 
+def _validate_manifest_paths(
+    path: Path,
+    values: object,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(values, list):
+        errors.append(f"generated-artifacts.json:{label}: must be an array")
+        return
+
+    seen: set[str] = set()
+    for index, value in enumerate(values):
+        item_label = f"generated-artifacts.json:{label}[{index}]"
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{item_label}: must be a non-empty string")
+            continue
+
+        rel = PurePosixPath(value)
+        if rel.is_absolute() or ".." in rel.parts:
+            errors.append(f"{item_label}: must stay inside the version directory")
+            continue
+        normalized = rel.as_posix()
+        if normalized in seen:
+            errors.append(f"{item_label}: duplicate path {normalized}")
+            continue
+        seen.add(normalized)
+
+        if not (path / Path(*rel.parts)).exists():
+            errors.append(f"{item_label}: listed artifact does not exist: {normalized}")
+
+
+def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[str]) -> None:
+    manifest_path = path / "generated-artifacts.json"
+    if not manifest_path.exists():
+        warnings.append("missing generated-artifacts.json publication manifest")
+        return
+
+    try:
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"generated-artifacts.json: {exc}")
+        return
+    if not isinstance(data, dict):
+        errors.append("generated-artifacts.json: root must be an object")
+        return
+
+    _validate_manifest_paths(path, data.get("artifacts"), "artifacts", errors)
+
+    optional = data.get("optional_registry_artifacts_published", [])
+    _validate_manifest_paths(path, optional, "optional_registry_artifacts_published", errors)
+
+    if data.get("canonical_registry_published") is True:
+        registry_path = path / "registry" / "registry.csv"
+        if not registry_path.exists():
+            errors.append(
+                "generated-artifacts.json: canonical_registry_published is true but registry/registry.csv is missing"
+            )
+
+
 def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -215,7 +274,16 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
         for evidence_path in sorted(analyses_path.glob("*/evidence.json")):
             _validate_analysis_evidence(evidence_path, errors)
 
-    for rel in ("metadata/types.csv", "metadata/methods.csv", "metadata/fields.csv", "xrefs/message-handlers.csv", "xrefs/message-senders.csv"):
+    _validate_generated_artifacts(path, errors, warnings)
+
+    for rel in (
+        "metadata/types.csv",
+        "metadata/methods.csv",
+        "metadata/fields.csv",
+        "metadata/method-pointers.csv",
+        "xrefs/message-handlers.csv",
+        "xrefs/message-senders.csv",
+    ):
         if not (path / rel).exists():
             warnings.append(f"pending high-value artifact: {rel}")
 
