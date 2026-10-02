@@ -1,0 +1,97 @@
+{
+  "topic": "cmdid-186",
+  "state": "ACTIVE",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json"
+  },
+  "questions": [
+    "What concrete protobuf field type does field 14 use in NLOMEGMJDGJ?",
+    "Which current-client sender or call-site context produces CmdId 186 during login initialization?",
+    "Which semantic packet name is supported when static parser evidence and runtime context are combined?"
+  ],
+  "claims": [
+    {
+      "id": "runtime-c2s-observation",
+      "status": "CONFIRMED",
+      "statement": "CmdId 186 is observed client-to-server in the preserved fresh-account login trace with payload 7202d027, and the same CmdId recurs in multiple login-init runs.",
+      "evidence": [
+        {
+          "kind": "runtime-trace",
+          "source": "issue-1 / recovered login-init traces",
+          "locator": "README.md#runtime-observation",
+          "note": "Quest 351 startup was intentionally suspended in the primary probe, so temporal proximity alone is not semantic proof."
+        }
+      ]
+    },
+    {
+      "id": "wire-field-14",
+      "status": "CONFIRMED",
+      "statement": "Payload 7202d027 contains protobuf field 14 with wire type 2, length 2 and body d027.",
+      "evidence": [
+        {
+          "kind": "wire-decode",
+          "source": "genshinre wire",
+          "locator": "7202d027",
+          "note": "Packed-varint decoding yields [5072], but the concrete generated field type remains unresolved."
+        }
+      ]
+    },
+    {
+      "id": "static-client-identity",
+      "status": "CONFIRMED",
+      "statement": "The canonical 7.1 registry maps CmdId 186 to client type NLOMEGMJDGJ, typeDefinition 61556, registry index 48, type slot RVA 0x057F3858 and GetCmdId RVA 0x09ED2160.",
+      "evidence": [
+        {
+          "kind": "canonical-registry",
+          "source": "../../registry/registry.csv",
+          "locator": "cmd_id=186",
+          "note": "Identity status is static-verified-identity; semantic name remains unset."
+        }
+      ]
+    },
+    {
+      "id": "field-14-concrete-type",
+      "status": "UNRESOLVED",
+      "statement": "The concrete generated protobuf type represented by field 14 has not yet been proven from parser behavior.",
+      "evidence": []
+    },
+    {
+      "id": "sender-context",
+      "status": "UNRESOLVED",
+      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem.",
+      "evidence": []
+    },
+    {
+      "id": "semantic-name",
+      "status": "UNRESOLVED",
+      "statement": "CmdId 186 has no confirmed 7.1 semantic packet name.",
+      "evidence": []
+    }
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Copy PlayerPropChangeNotify from an old version because that version also used numeric CmdId 186.",
+      "reason": "CmdIds are remapped across client versions; historical numeric equality is not current-client semantic evidence.",
+      "evidence": [
+        {
+          "kind": "historical-only",
+          "source": "older Genshin protocol mappings",
+          "note": "Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json"
+  ],
+  "next_steps": [
+    "Confirm parser/serializer roles for NLOMEGMJDGJ and recover field-14 behavior.",
+    "Locate sender/call-site xrefs for NLOMEGMJDGJ and compare them with repeated login-init runtime observations.",
+    "Cross-check semantic candidates against current-client evidence and related projects without importing historical numeric equality.",
+    "Promote a semantic name only when static identity, parser shape and runtime context agree."
+  ]
+}
