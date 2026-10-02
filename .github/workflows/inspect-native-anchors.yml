@@ -111,3 +111,13 @@ jobs:
                           marker = ' <==' if irva == rva else ''
                           print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
           PY
+
+      - name: Follow runtime type registration pointer holders
+        run: |
+          python -m genshinre.pointerxref \
+            /tmp/gi71/GenshinImpact.exe \
+            0x2870A90 \
+            0x2870B20 \
+            --window 96 \
+            --output /tmp/runtime-type-registration-pointer-xrefs.json
+          cat /tmp/runtime-type-registration-pointer-xrefs.json
