@@ -61,10 +61,67 @@ Current unresolved response candidates remain:
 
 Keep the canonical semantic mapping unresolved until a current-client transaction uniquely binds one candidate.
 
-## Recommended continuation
+## Same-version `ScenePointUnlockNotify` implementation comparison
 
-1. Verify the generated/provided `ScenePointUnlockNotify` field numbers against the recovered 7.1 parser, not only its semantic field names.
-2. Capture the exact S2C `25567` frame emitted immediately after `9369`, including body bytes.
-3. Capture the scene-entry frames around the first handshake that makes the point appear unlocked and identify the message that carries point 122 as unlocked.
-4. Compare those two wire representations. If the immediate `25567` body is malformed or missing the point list, fix that path before using visual client behavior as evidence for `36641` vs `20290`.
-5. Only after the live notification path is known-good should the response-candidate runtime probe be treated as semantic evidence.
+Follow-up inspection found a concrete implementation difference worth carrying into the next session.
+
+AstaPS test branch `test/unlock-trans-point-rsp` currently builds the immediate unlock notification as:
+
+```java
+ScenePointUnlockNotify.newBuilder()
+    .setSceneId(sceneId)
+    .addPointList(pointId)
+    .addUnhidePointList(pointId);
+```
+
+The same-version `capyb2222/LunaGC_7.1.0` implementation builds the ordinary waypoint unlock notification with only:
+
+```java
+ScenePointUnlockNotify.newBuilder()
+    .setSceneId(sceneId)
+    .addPointList(pointId);
+```
+
+Its published 7.1 proto declares:
+
+```proto
+message ScenePointUnlockNotify {
+    repeated uint32 unhide_point_list = 50000;
+    repeated uint32 locked_point_list = 50001;
+    repeated uint32 point_list = 15;
+    repeated uint32 hide_point_list = 6;
+    uint32 scene_id = 2;
+}
+```
+
+Thus the minimum same-version live-unlock payload used by Luna is `scene_id(field 2) + point_list(field 15)`. AstaPS additionally emits `unhide_point_list(field 50000)` for the same operation.
+
+This difference is **not yet proven causal**. It is plausible that `unhide_point_list` is harmless, required only for a different hide/unhide lifecycle, or that AstaPS inherited it from an older/other semantic use. Do not remove it from production solely from this comparison. The important next step is to verify the official 7.1 client parser/wire semantics and capture the actual immediate packet body.
+
+The AstaPS packet class also has hide/relock helpers that fill hide-related repeated fields; this reinforces that `point_list` and hide/unhide state are distinct semantic axes and should not be assumed interchangeable.
+
+## Handoff state
+
+At handoff time the strongest live observation remains:
+
+```text
+9369 UnlockTransPointReq
+  -> server records point 122 unlocked immediately
+  -> AstaPS sends normal ScenePointUnlockNotify plus candidate UnlockTransPointRsp
+  -> client map remains gray initially
+  -> later full scene-entry handshake occurs
+  -> client eventually shows point unlocked
+```
+
+The visual result therefore cannot yet rank `36641` over `20290`.
+
+The next session should start from these checks, in order:
+
+1. Recover/verify official 7.1 `ScenePointUnlockNotify` parser field numbers and meanings from `Genshin-Reverse`, especially fields 2, 15, 50000, and 50001.
+2. Confirm AstaPS's generated `ScenePointUnlockNotify` descriptors/tags exactly match those recovered fields; do not trust names alone.
+3. Capture the exact S2C `25567` body emitted after a fresh `9369`, including body hex. Decode which fields are really present on wire.
+4. Identify which S2C packet during the first later scene-entry handshake carries the newly unlocked point and makes the client converge. Compare its representation with the immediate `25567`.
+5. If the immediate notification path is fixed/verified, repeat the controlled `36641` vs `20290` response probe on fresh ordinary waypoints. Only then use client behavior as response-semantic evidence.
+6. Preserve the removed `GetScenePointRsp` workaround on the test branch during this investigation; reintroducing it would mask the live notification failure.
+
+Do not publish either response candidate into the canonical semantic opcode map until this path converges.
