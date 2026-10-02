@@ -26,7 +26,7 @@ Another ranking heuristic would therefore add little information. A raw CmdId ob
 
 ## Verified decrypted packet framing
 
-A known client packet sniffer implementation parses the game packet buffer after XOR transformation as:
+The current client itself now independently confirms the packet framing:
 
 ```text
 +0x00  uint16 BE  head magic = 0x4567
@@ -38,7 +38,7 @@ A known client packet sniffer implementation parses the game packet buffer after
 +end-2 uint16 BE  tail magic = 0x89AB
 ```
 
-The endian interpretation is independently confirmed by the sniffer's `ReadMapped`/`WriteMapped` helpers: their default mode maps network-order bytes on little-endian Windows.
+The endian conversion methods used by the recovered parser/encoder are current-client methods on `uint16` / `uint32`. This also agrees with historical sniffer implementations.
 
 `tools/parse_decrypted_game_packet.py` validates both magic values, sizes and concatenated frames, then reports CmdId/head/body without requiring a protobuf schema.
 
@@ -62,18 +62,138 @@ python tools/parse_decrypted_game_packet.py \
 
 The second sample is a synthetic empty-body frame and decodes to CmdId 9369.
 
-## Capture boundary
+## Exact current-7.1 plaintext capture points
 
-Do not feed raw UDP/KCP ciphertext into the parser. The useful capture point is an in-process game packet buffer after the game's packet XOR transform has been applied, or any equivalent instrumentation layer that already exposes the decrypted framed packet.
-
-Historical client tooling used two useful boundaries:
+Pinned executable:
 
 ```text
-send:    KcpNative kcp_client_send_packet
-receive: KcpClient TryDequeueEvent / EventRecvMsg
+GenshinImpact.exe SHA-256
+08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
 ```
 
-and called the game's packet XOR routine before parsing the framing above. Exact 7.1 hook identities/RVAs must be recovered against the pinned 7.1 client before implementing a maintained injector; old hook addresses must not be copied forward.
+The framing locator run `37005979777`, artifact `game-packet-framing-71` (`11226065517`), found only seven decoded methods containing framing-magic immediates. Only two methods contain both `0x4567` and `0x89AB`; both belong to `PGKFPMENDPA` and form the packet parser/encoder pair.
+
+The follow-up call-edge run `37006317449`, artifact `game-packet-framing-edges-71` (`11225777817`), recovered their callers, full native bodies and XOR boundaries.
+
+### S2C parser
+
+```text
+PGKFPMENDPA method_index 503881
+start RVA   0xA018360
+signature   (kind_0x1D, int32, FBHCMOCPFEA, bool)
+```
+
+The function first transforms the incoming managed `byte[]` in place:
+
+```text
+0xA018430  mov rbx, [r14]
+...
+0xA018459  movzx eax, byte ptr [key + index]
+0xA01845E  xor byte ptr [rbx + rcx + 0x20], al
+0xA018462  inc rcx
+0xA018465  cmp rbp, rcx
+0xA018468  jne 0xA018430
+```
+
+Immediately after that loop:
+
+```text
+0xA01846A  mov eax, 5
+0xA01846F  cmp r12d, 0xc
+...
+0xA0184B4  movzx ecx, word ptr [rax + 0x20]
+0xA0184B8  endian-convert uint16
+0xA0184C5  cmp ecx, 0x4567
+```
+
+Therefore the maintained S2C plaintext hook is:
+
+```text
+RVA       0xA01846A
+r14       address of managed byte[] reference
+[r14]     managed byte[] object
+r12d      available input length
+byte data managed byte[] + 0x20
+state     packet XOR complete (or intentionally bypassed); framing not parsed yet
+```
+
+This point is superior to a KCP-level hook for the current task because the buffer is already plaintext and still contains the complete framed packet.
+
+### C2S encoder
+
+```text
+PGKFPMENDPA method_index 503894
+start RVA   0xA019BB0
+signature   (MemoryStream)
+```
+
+The encoder writes the full plaintext frame first:
+
+```text
+0xA019C6C  mov cx, 0x4567
+...
+0xA01A014  mov cx, 0x89ab
+```
+
+It then obtains the completed managed `byte[]` from the stream. At the end of frame construction:
+
+```text
+r14 = complete managed byte[]
+edi = frame length
+```
+
+The XOR loop begins at:
+
+```text
+0xA01A110  cmp rcx, rbp
+...
+0xA01A12A  movzx eax, byte ptr [key + index]
+0xA01A12F  xor byte ptr [r14 + rcx + 0x20], al
+0xA01A134  inc rcx
+0xA01A137  cmp rdi, rcx
+0xA01A13A  jne 0xA01A110
+```
+
+Therefore the maintained C2S plaintext hook is:
+
+```text
+RVA       0xA01A0EF
+r14       complete managed byte[] object
+edi       frame length
+byte data managed byte[] + 0x20
+state     framing complete; XOR has not started
+```
+
+These two RVAs are build-specific. Do not transfer them to another executable hash.
+
+## Maintained runtime collector
+
+The repository now carries:
+
+```text
+tools/runtime/capture_game_packets_71.js
+tools/runtime/capture_game_packets_71.py
+```
+
+The JavaScript attaches at the two current RVAs above. It validates `0x4567`, declared head/body sizes and `0x89AB` before emitting a packet event. Every packet contributes direction/CmdId/head metadata; full frame bytes are preserved for the watched transaction IDs:
+
+```text
+9369   UnlockTransPointReq
+36641  response candidate A
+20290  response candidate B
+25567  ScenePointUnlockNotify
+```
+
+The Python wrapper only needs the runtime Frida binding; it is deliberately not a project dependency:
+
+```bash
+python -m pip install frida
+python tools/runtime/capture_game_packets_71.py \
+  --process GenshinImpact.exe \
+  --output unlock-trans-point-71.ndjson
+```
+
+Use the probe only in a research environment where process instrumentation is permitted. The maintained evidence target remains a known-correct 7.1 transaction; traffic generated by a private server that is itself guessing the response CmdId cannot confirm the semantic mapping.
 
 ## Decisive experiment
 
@@ -100,7 +220,7 @@ or:
 
 If exactly one candidate occurs in the unlock transaction, that is direct current-client/current-server evidence and can promote the mapping. Preserve the complete surrounding event window, not only the chosen CmdId, so unrelated concurrent traffic can be ruled out.
 
-If both candidates occur in the same narrow window, do not choose by timing alone. Preserve the packet-head bytes and recover/correlate the packet-head sequence fields before promotion.
+If both candidates occur in the same narrow window, do not choose by timing alone. The collector preserves packet-head bytes; correlate the packet-head sequence fields before promotion.
 
 ## Evidence promotion rule
 
