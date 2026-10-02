@@ -45,6 +45,12 @@ This is the general heavy generation workflow. Do not add a second workflow that
 
 Focused refresh for GetCmdId candidates and native registry slot/array support artifacts. It uses reusable Python modules and the shared pinned-sample fetch entry point.
 
+### `publish-7.1-candidate-graph.yml`
+
+Thin publisher for the GetCmdId-only structural candidate graph. The implementation lives in `genshinre.getcmdidgraph`; published artifacts are `registry/getcmdid-candidate-graph.*`.
+
+This graph is intentionally distinct from `registry-candidate-graph.*`, which is reserved for the metadata-usage join implemented by `genshinre.registrygraph`.
+
 ### `recover-7.1-type-cache-xrefs.yml`
 
 Focused producer for `registry/type-cache-xrefs.*`. It consumes the published metadata/GetCmdId/slot datasets and scans only the exact executable required for the xref operation. It must not patch source files or regenerate unrelated metadata.
@@ -70,19 +76,19 @@ They may be packet-, method-, version-, or hypothesis-specific. Maintainers shou
 3. any unique evidence/results that matter are committed under `versions/`;
 4. no active investigation depends on the workflow shell itself.
 
-Packet-specific workflows remain owned by the corresponding investigation. Repository maintenance may improve shared setup or safety around them, but should not take ownership of their reverse-engineering conclusion.
+The current packet-specific workflow families are primarily the 7.0/7.1 `UnlockTransPoint` comparison/inspection chain, scene-handler comparison work, and targeted usage/initializer diagnostics. They remain investigation scaffolding. Repository maintenance may improve shared setup or safety around them, but does not own their reverse-engineering conclusions.
 
-## Transitional / historical workflow debt
+`inspect-native-anchors.yml` still contains a small fixed-target disassembly probe. It is retained as research scaffolding because its targets are investigation-specific; new generally reusable disassembly logic should go into `genshinre/` or `tools/` instead of expanding that YAML.
 
-Some older workflows still contain inline Python or duplicate setup. Treat these as migration candidates, not templates for new work.
+## Retired workflow debt
 
-In particular, `publish-7.1-candidate-graph.yml` currently represents an older candidate-graph heuristic directly in YAML. Preserve its committed evidence until that exact method is either represented by reusable tooling or explicitly archived as historical-only.
-
-The following obsolete general workflows were retired after their reusable behavior was preserved elsewhere:
+The following obsolete shells were retired after their reusable behavior or evidence was preserved elsewhere:
 
 - `generate-7.1-artifacts.yml` — duplicate full 7.1 generation pipeline;
 - `publish-7.1-from-artifact.yml` — hard-coded an old Actions run and duplicate publisher;
-- `publish-7.1-registry.yml` — inline legacy registry publisher superseded by `genshinre.registryxrefpublish`.
+- `publish-7.1-registry.yml` — inline legacy registry publisher superseded by `genshinre.registryxrefpublish`;
+- `inspect-usage-artifact.yml` — hard-coded an old failed-work Actions run and only performed ad-hoc grep/printing;
+- the old GetCmdId-only `registry-candidate-graph.*` alias — reproduced under `getcmdid-candidate-graph.*`, leaving `registry-candidate-graph.*` available for the usage-join graph.
 
 ## Adding a workflow
 
