@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from .validate import ANALYSIS_STATUSES, MESSAGE_DIRECTIONS
+from .contracts import ANALYSIS_STATUSES, MESSAGE_DIRECTIONS
 
 COLUMNS = ("name", "cmd_id", "direction", "status", "evidence")
 
