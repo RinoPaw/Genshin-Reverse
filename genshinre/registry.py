@@ -5,6 +5,25 @@ import json
 from collections import Counter
 from pathlib import Path
 
+CANONICAL_REGISTRY_COLUMNS = (
+    "index",
+    "cmd_id",
+    "type_name",
+    "type_definition_index",
+    "direction",
+    "direction_status",
+    "semantic_name",
+    "type_slot_rva",
+    "get_cmd_id_rva",
+    "get_cmd_id_method",
+    "load_rva",
+    "store_rva",
+    "xref_count",
+    "xref_method_count",
+    "status",
+    "evidence",
+)
+
 NORMALIZED_REGISTRY_COLUMNS = (
     "cmd_id",
     "type_name",
@@ -18,8 +37,8 @@ NORMALIZED_REGISTRY_COLUMNS = (
     "notes",
 )
 
-# Historical native-layout projector compatibility only. The current canonical
-# 7.1 registry schema is the xref-published 16-column registry/registry.csv.
+# Historical native-layout projector compatibility only. Do not use this name
+# for new code; current canonical publication uses CANONICAL_REGISTRY_COLUMNS.
 CANONICAL_COLUMNS = NORMALIZED_REGISTRY_COLUMNS
 
 ALLOWED_STATUS = {
