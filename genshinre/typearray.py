@@ -6,11 +6,11 @@ import hashlib
 import json
 from pathlib import Path
 
-from .mhy71 import EXPECTED_EXE_SHA256, TYPE_ARRAY_POINTER_RVA
+from .mhy71 import EXPECTED_EXE_SHA256, EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
 from .pe import PEImage
 
 ENTRY_SIZE = 16
-DEFAULT_MAX_ENTRIES = 1_000_000
+EXPECTED_RUNTIME_TYPE_COUNT = 683_574
 ANCHOR_TYPE_INDEX = 405_772
 ANCHOR_KIND = 0x12
 ANCHOR_TYPE_DEFINITION = 84_249
@@ -45,6 +45,13 @@ TYPE_KIND_NAMES = {
     0x1C: "object",
     0x1D: "szarray",
     0x1E: "mvar",
+    0x1F: "cmod_reqd",
+    0x20: "cmod_opt",
+    0x21: "internal",
+    0x40: "modifier",
+    0x41: "sentinel",
+    0x45: "pinned",
+    0x55: "enum",
 }
 
 COLUMNS = (
@@ -69,8 +76,8 @@ def _sha256(path: Path) -> str:
 
 
 def decode_type_entry(entry: bytes) -> dict[str, int | str]:
-    if len(entry) < ENTRY_SIZE:
-        raise ValueError("truncated Il2CppType entry")
+    if len(entry) != ENTRY_SIZE:
+        raise ValueError("Il2CppType entry must be exactly 16 bytes")
     data_u32 = int.from_bytes(entry[0:4], "little", signed=False)
     kind = entry[0x0A]
     return {
@@ -78,6 +85,23 @@ def decode_type_entry(entry: bytes) -> dict[str, int | str]:
         "kind": kind,
         "kind_name": TYPE_KIND_NAMES.get(kind, f"kind_0x{kind:02X}"),
     }
+
+
+def is_valid_type_entry(entry: bytes, *, type_definition_count: int = EXPECTED_TYPE_COUNT) -> bool:
+    if len(entry) != ENTRY_SIZE:
+        return False
+    kind = entry[0x0A]
+    if kind not in TYPE_KIND_NAMES:
+        return False
+    if entry[0x0C:0x10] != b"\0" * 4:
+        return False
+    if kind in (0x11, 0x12):
+        data_u64 = int.from_bytes(entry[0:8], "little", signed=False)
+        if data_u64 >> 32:
+            return False
+        if (data_u64 & 0xFFFFFFFF) >= type_definition_count:
+            return False
+    return True
 
 
 def _load_type_names(types_csv: Path) -> dict[int, str]:
@@ -113,7 +137,6 @@ def scan_type_array_71(
     types_csv: Path,
     output_csv: Path,
     summary_json: Path | None = None,
-    max_entries: int = DEFAULT_MAX_ENTRIES,
     include_all_kinds: bool = False,
 ) -> dict[str, object]:
     exe_sha = _sha256(exe)
@@ -121,8 +144,10 @@ def scan_type_array_71(
         raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
 
     names = _load_type_names(types_csv)
-    if not names:
-        raise ValueError(f"no type definitions found in {types_csv}")
+    if len(names) != EXPECTED_TYPE_COUNT:
+        raise ValueError(
+            f"decoded metadata type count {len(names)} != preserved {EXPECTED_TYPE_COUNT}"
+        )
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     if summary_json is None:
@@ -147,12 +172,12 @@ def scan_type_array_71(
             raise ValueError("invalid 7.1 IL2CPP type-array pointer")
 
         for delta in range(-0x20, 0x29, 8):
-            blob = image.read_rva(TYPE_ARRAY_POINTER_RVA + delta, 8)
-            if len(blob) != 8:
+            data = image.read_rva(TYPE_ARRAY_POINTER_RVA + delta, 8)
+            if len(data) != 8:
                 raise ValueError(
                     f"cannot read type-array pointer neighborhood at delta {delta:+#x}"
                 )
-            pointer_neighborhood[f"{delta:+#x}"] = f"0x{int.from_bytes(blob, 'little'):X}"
+            pointer_neighborhood[f"{delta:+#x}"] = f"0x{int.from_bytes(data, 'little'):X}"
 
         section = next(
             (
@@ -170,19 +195,28 @@ def scan_type_array_71(
             0,
             (section.virtual_address + section.raw_size - type_array_rva) // ENTRY_SIZE,
         )
-        scan_count = min(max_entries, capacity)
-        expected_bytes = scan_count * ENTRY_SIZE
+        if capacity <= EXPECTED_RUNTIME_TYPE_COUNT:
+            raise ValueError(
+                "containing PE section does not include the verified runtime type boundary"
+            )
+
+        read_count = EXPECTED_RUNTIME_TYPE_COUNT + 1
+        expected_bytes = read_count * ENTRY_SIZE
         blob = image.read_rva(type_array_rva, expected_bytes)
         if len(blob) != expected_bytes:
             raise ValueError(
-                "runtime type-array read was truncated: "
+                "runtime type-array boundary read was truncated: "
                 f"expected {expected_bytes} bytes, got {len(blob)}"
             )
 
         writer = csv.DictWriter(out, fieldnames=COLUMNS)
         writer.writeheader()
-        for index in range(scan_count):
+        for index in range(EXPECTED_RUNTIME_TYPE_COUNT):
             entry = blob[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
+            if not is_valid_type_entry(entry):
+                raise ValueError(
+                    f"runtime type entry {index} fails exact 7.1 structural validation"
+                )
             decoded = decode_type_entry(entry)
             kind = int(decoded["kind"])
             kind_key = f"0x{kind:02X}"
@@ -220,11 +254,27 @@ def scan_type_array_71(
                     "type_name": name,
                     "entry_rva": f"0x{type_array_rva + index * ENTRY_SIZE:X}",
                     "status": "static-decoded" if name else "candidate",
-                    "evidence": "7.1 IL2CPP runtime type array",
+                    "evidence": "exact 7.1 IL2CPP runtime type array",
                 }
             )
             emitted += 1
 
+        boundary_entry = blob[
+            EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE :
+            (EXPECTED_RUNTIME_TYPE_COUNT + 1) * ENTRY_SIZE
+        ]
+        boundary_entry_valid = is_valid_type_entry(boundary_entry)
+        if boundary_entry_valid:
+            raise ValueError(
+                "first entry after verified 7.1 runtime type boundary still looks like Il2CppType"
+            )
+
+    if not anchor_found:
+        raise ValueError(
+            "runtime type index failed mandatory 405772 -> typeDef 84249 DMMJNICDOHM anchor"
+        )
+
+    boundary_rva = type_array_rva + EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE
     summary: dict[str, object] = {
         "exe": str(exe),
         "exe_sha256": exe_sha,
@@ -235,8 +285,11 @@ def scan_type_array_71(
         "pointer_source_neighborhood_qwords": pointer_neighborhood,
         "section": section.name,
         "section_capacity_entries": capacity,
-        "scan_count": scan_count,
-        "max_entries": max_entries,
+        "runtime_type_count": EXPECTED_RUNTIME_TYPE_COUNT,
+        "boundary_rva": f"0x{boundary_rva:X}",
+        "boundary_entry_hex": boundary_entry.hex(),
+        "boundary_entry_valid_type": boundary_entry_valid,
+        "structural_validation_passed": True,
         "include_all_kinds": include_all_kinds,
         "emitted_rows": emitted,
         "class_entries_seen": class_rows,
@@ -244,10 +297,11 @@ def scan_type_array_71(
         "named_definition_entries": valid_named_rows,
         "kind_counts": kind_counts,
         "anchor_405772_class_84249_DMMJNICDOHM": anchor_found,
-        "status": "static-index",
+        "status": "canonical-exact-runtime-type-index",
         "notes": [
-            "scan_count is bounded by --max-entries and the containing PE section, not a claimed runtime typesCount",
-            "default CSV emits only class/valuetype entries that resolve to a decoded metadata type name",
+            "all 683,574 entries pass the exact-sample Il2CppType structural gate",
+            "index 683,574 is the first boundary entry and is required to fail that structural gate",
+            "default CSV emits class/valuetype entries that resolve to decoded metadata type names",
             "the preserved 405772 -> typeDef 84249 anchor is mandatory for this exact-sample index",
         ],
     }
@@ -255,10 +309,6 @@ def scan_type_array_71(
         json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    if not anchor_found:
-        raise ValueError(
-            "runtime type index failed mandatory 405772 -> typeDef 84249 DMMJNICDOHM anchor"
-        )
     return summary
 
 
@@ -271,7 +321,6 @@ def main() -> None:
     parser.add_argument("types_csv", type=Path)
     parser.add_argument("output_csv", type=Path)
     parser.add_argument("--summary", type=Path)
-    parser.add_argument("--max-entries", type=int, default=DEFAULT_MAX_ENTRIES)
     parser.add_argument("--all-kinds", action="store_true")
     args = parser.parse_args()
 
@@ -280,7 +329,6 @@ def main() -> None:
         args.types_csv,
         args.output_csv,
         summary_json=args.summary,
-        max_entries=args.max_entries,
         include_all_kinds=args.all_kinds,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
