@@ -24,7 +24,6 @@
   "parameter_record_size": 8,
   "method_owner_range_mismatches": 0,
   "parameter_records_decoded": true,
-  "warnings": [],
   "provenance": {
     "embedded_header_rva": "0x27D4BD0",
     "metadata_body_skip": "0x210",
