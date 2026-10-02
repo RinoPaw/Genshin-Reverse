@@ -93,7 +93,7 @@ OPTIONAL_FILES = {
     "registry-candidate-graph.summary.json": "registry/registry-candidate-graph.summary.json",
     "registry-static-candidates.csv": "registry/registry-static-candidates.csv",
     "registry-static-candidates.summary.json": "registry/registry-static-candidates.summary.json",
-    "known-opcodes.csv": "registry/known-opcodes.csv",
+    "control-set.csv": "registry/control-set.csv",
     "registry-candidate-graph.diagnostic.json": "registry/registry-candidate-graph.diagnostic.json",
     "registry-static-candidates.diagnostic.json": "registry/registry-static-candidates.diagnostic.json",
     "xrefs/message-handlers.csv": "xrefs/message-handlers.csv",
