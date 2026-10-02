@@ -17,13 +17,11 @@ class ValidatorIntegrationTests(unittest.TestCase):
         *,
         canonical_registry_published: bool,
         artifacts: list[str] | None = None,
-        optional_artifacts_published: list[str] | None = None,
     ) -> None:
         data: dict[str, object] = {
-            "manifest_version": 2,
+            "manifest_version": 3,
             "canonical_registry_published": canonical_registry_published,
             "artifacts": artifacts or [],
-            "optional_artifacts_published": optional_artifacts_published or [],
         }
         (root / "generated-artifacts.json").write_text(
             json.dumps(data), encoding="utf-8"
@@ -82,16 +80,11 @@ class ValidatorIntegrationTests(unittest.TestCase):
             writer.writerows(rows)
         return path
 
-    def test_manifest_v2_runs_through_current_main_validator(self) -> None:
+    def test_manifest_v3_runs_through_current_main_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
-            self._write_manifest(
-                root,
-                canonical_registry_published=True,
-                artifacts=[],
-                optional_artifacts_published=[],
-            )
+            self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
             warnings: list[str] = []
