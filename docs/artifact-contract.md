@@ -11,7 +11,16 @@ Every generated dataset should answer four questions without relying on someone'
 
 A version/platform directory must bind generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, which records the publisher, validation result, compact metadata row counts, canonical-registry publication state, and the files actually published by that run.
 
-Published paths in `generated-artifacts.json` are relative to the version/platform root, for example:
+The current manifest contract is version 2:
+
+```text
+manifest_version = 2
+artifacts = all files published by this run
+optional_artifacts_published = the optional subset that happened to be present
+canonical_registry_published = whether the existing canonical registry passed the publication gate
+```
+
+Published paths are relative to the version/platform root, for example:
 
 ```text
 metadata/methods.csv
@@ -19,7 +28,9 @@ registry/getcmdid-candidates.csv
 registry/control-set.csv
 ```
 
-`optional_registry_artifacts_published` follows the same version-root-relative convention. A file listed in the manifest must exist after publication.
+`optional_artifacts_published` uses the same version-root-relative convention and must be a subset of `artifacts`. Every path listed by either field must exist after publication.
+
+The v1 aliases `files` and `optional_registry_artifacts_published` are retired. New tooling must not emit or depend on them. The lightweight `genshinre.artifactmanifest` validator and ordinary CI lock the committed manifest to the v2 contract without requiring a client download.
 
 ## Work output versus canonical published indexes
 
