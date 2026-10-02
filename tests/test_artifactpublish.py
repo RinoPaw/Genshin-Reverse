@@ -135,6 +135,7 @@ class ArtifactPublishTests(unittest.TestCase):
             2,
         )
         self._write_csv(work / "getcmdid-candidates.csv", 2)
+        self._write_csv(work / "control-set.csv", 2)
         self._write_csv(work / "metadata-usage-types.csv", 2)
         self._write_csv(work / "registry-candidate-graph.csv", 2)
         (work / "metadata/native-decoder-summary.json").write_text(
@@ -192,10 +193,12 @@ class ArtifactPublishTests(unittest.TestCase):
                 "metadata/type-methods.json",
                 "metadata/runtime-types.csv",
                 "registry/getcmdid-candidates.csv",
+                "registry/control-set.csv",
                 "registry/metadata-usage-types.csv",
                 "registry/registry-candidate-graph.csv",
             ):
                 self.assertTrue((version / rel).is_file(), rel)
+            self.assertFalse((version / "registry/known-opcodes.csv").exists())
             self.assertFalse((version / "registry/registry.csv").exists())
             self.assertEqual(result["files"], result["artifacts"])
             self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
