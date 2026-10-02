@@ -82,13 +82,29 @@ def decode_type_entry(entry: bytes) -> dict[str, int | str]:
 
 def _load_type_names(types_csv: Path) -> dict[int, str]:
     result: dict[int, str] = {}
-    with types_csv.open("r", encoding="utf-8", newline="") as f:
-        for row in csv.DictReader(f):
+    with types_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        fields = set(reader.fieldnames or ())
+        missing = {"type_definition_index", "type_name"} - fields
+        if missing:
+            raise ValueError(
+                f"{types_csv} missing required columns: {', '.join(sorted(missing))}"
+            )
+        for line_no, row in enumerate(reader, start=2):
+            text = str(row["type_definition_index"]).strip()
+            if not text:
+                raise ValueError(f"{types_csv}:{line_no}: missing type_definition_index")
             try:
-                index = int(str(row.get("type_definition_index", "")).strip())
-            except ValueError:
-                continue
-            result[index] = str(row.get("type_name", ""))
+                index = int(text, 0)
+            except ValueError as exc:
+                raise ValueError(
+                    f"{types_csv}:{line_no}: bad type_definition_index {text!r}"
+                ) from exc
+            if index in result:
+                raise ValueError(
+                    f"{types_csv}:{line_no}: duplicate type_definition_index {index}"
+                )
+            result[index] = str(row["type_name"])
     return result
 
 
@@ -132,23 +148,36 @@ def scan_type_array_71(
 
         for delta in range(-0x20, 0x29, 8):
             blob = image.read_rva(TYPE_ARRAY_POINTER_RVA + delta, 8)
-            if len(blob) == 8:
-                pointer_neighborhood[f"{delta:+#x}"] = f"0x{int.from_bytes(blob, 'little'):X}"
+            if len(blob) != 8:
+                raise ValueError(
+                    f"cannot read type-array pointer neighborhood at delta {delta:+#x}"
+                )
+            pointer_neighborhood[f"{delta:+#x}"] = f"0x{int.from_bytes(blob, 'little'):X}"
 
         section = next(
             (
                 item
                 for item in image.sections
-                if item.virtual_address <= type_array_rva < item.virtual_address + max(item.virtual_size, item.raw_size)
+                if item.virtual_address
+                <= type_array_rva
+                < item.virtual_address + max(item.virtual_size, item.raw_size)
             ),
             None,
         )
         if section is None:
             raise ValueError(f"type-array RVA 0x{type_array_rva:X} is outside PE sections")
-        capacity = max(0, (section.virtual_address + section.raw_size - type_array_rva) // ENTRY_SIZE)
+        capacity = max(
+            0,
+            (section.virtual_address + section.raw_size - type_array_rva) // ENTRY_SIZE,
+        )
         scan_count = min(max_entries, capacity)
-        blob = image.read_rva(type_array_rva, scan_count * ENTRY_SIZE)
-        scan_count = len(blob) // ENTRY_SIZE
+        expected_bytes = scan_count * ENTRY_SIZE
+        blob = image.read_rva(type_array_rva, expected_bytes)
+        if len(blob) != expected_bytes:
+            raise ValueError(
+                "runtime type-array read was truncated: "
+                f"expected {expected_bytes} bytes, got {len(blob)}"
+            )
 
         writer = csv.DictWriter(out, fieldnames=COLUMNS)
         writer.writeheader()
@@ -219,17 +248,24 @@ def scan_type_array_71(
         "notes": [
             "scan_count is bounded by --max-entries and the containing PE section, not a claimed runtime typesCount",
             "default CSV emits only class/valuetype entries that resolve to a decoded metadata type name",
-            "the preserved 405772 -> typeDef 84249 anchor must pass before using this index for registry work",
+            "the preserved 405772 -> typeDef 84249 anchor is mandatory for this exact-sample index",
         ],
     }
-    summary_json.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    summary_json.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    if not anchor_found:
+        raise ValueError(
+            "runtime type index failed mandatory 405772 -> typeDef 84249 DMMJNICDOHM anchor"
+        )
     return summary
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.typearray",
-        description="Export a queryable exact-sample 7.1 IL2CPP runtime type-index map.",
+        description="Export the exact-sample 7.1 IL2CPP runtime type-index map.",
     )
     parser.add_argument("exe", type=Path)
     parser.add_argument("types_csv", type=Path)
@@ -237,7 +273,6 @@ def main() -> None:
     parser.add_argument("--summary", type=Path)
     parser.add_argument("--max-entries", type=int, default=DEFAULT_MAX_ENTRIES)
     parser.add_argument("--all-kinds", action="store_true")
-    parser.add_argument("--require-anchor", action="store_true")
     args = parser.parse_args()
 
     result = scan_type_array_71(
@@ -249,8 +284,6 @@ def main() -> None:
         include_all_kinds=args.all_kinds,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
-    if args.require_anchor and not result["anchor_405772_class_84249_DMMJNICDOHM"]:
-        raise SystemExit(1)
 
 
 if __name__ == "__main__":
