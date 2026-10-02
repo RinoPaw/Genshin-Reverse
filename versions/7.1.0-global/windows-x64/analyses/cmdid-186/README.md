@@ -19,15 +19,17 @@ The trace was captured with Quest 351 startup intentionally suspended. `player.o
 Immediate inbound sequence:
 
 ```text
-+2716ms 7645 SetOpenStateReq                38107001
-+2724ms  982 GetPlayerSocialDetailReq       4093a704
-+2766ms 7829 GetShopReq                     70d00f
-+2842ms 7829 GetShopReq                     70d30f
++2716ms 7645 SetOpenStateReq                 38107001
++2724ms  982 GetPlayerSocialDetailReq        4093a704
++2766ms 7829 GetShopReq                      70d00f
++2842ms 7829 GetShopReq                      70d30f
 +2846ms 3755 QueryCodexMonsterBeKilledNumReq <empty>
-+2858ms  186 UNKNOWN                        7202d027
++2858ms  186 UNKNOWN                         7202d027
 ```
 
 No further inbound packet was observed before the client opened a new connection roughly 33 seconds later. Because the experiment deliberately withheld Quest 351, temporal proximity must not be treated as proof that CmdId 186 belongs to the born/intro lifecycle.
+
+Repository/library log recovery later found the same CmdId in at least four independent runs in the same login-init neighborhood. In several runs it was followed a few seconds later by scene-area/scene-point traffic. This supports a repeatable login or scene-initialization role, but still does not establish a semantic packet name.
 
 ## Wire shape
 
@@ -43,24 +45,25 @@ If the body is interpreted as packed varints, it is `[5072]`. That is a structur
 
 Some old Genshin versions used numeric CmdId 186 for `PlayerPropChangeNotify`. CmdIds were remapped in later clients, so the old equality is `historical-only` and must not be copied into the 7.1 mapping.
 
-## Recovered prior-work evidence
+## Current infrastructure baseline
 
-A previous 7.1 static-analysis pass produced a client registry containing **4,896 unique CmdIds**. It was cross-checked against **1,540 known AstaPS opcodes**, all of which matched. That work also recovered examples such as:
+The registry/metadata dependency that originally blocked this investigation has been closed:
 
-```text
-26105 -> HJDNCHODGOL (SetPlayerBornDataReq)
-22899 -> ONKOPMILDMF (DoSetPlayerBornDataNotify)
-```
+- `../../registry/registry.csv` is the current canonical 7.1 client identity registry and contains the complete 4,896-row / 4,896-unique-CmdId population;
+- `../../registry/registry.summary.json` records the publication/coverage summary;
+- `../../registry/control-set.csv` is the broad AstaPS-derived comparison set and must not be treated as target-client semantic proof;
+- `../../proto/known-opcodes.csv` contains the smaller evidence-gated target-client semantic mappings;
+- the complete canonical metadata indexes are published under `../../metadata/`.
 
-The old audit references `decode_registry.py`, `registry/registry.csv` and `registry/registry_summary.json`, but those machine-readable artifacts were not preserved in an accessible repository. This investigation therefore treats regeneration/backfill of the canonical registry as the highest-priority dependency.
+Do not repeat registry or metadata recovery as a prerequisite for CmdId 186. Start from the published artifacts and add packet-specific evidence.
 
-## Recovery plan
+## Remaining research plan
 
-1. Regenerate or recover `registry/registry.csv` from the exact 7.1 sample.
-2. Query `0xBA` to obtain the obfuscated type, `typeDefinitionIndex`, type-cache RVA and `GetCmdId` RVA.
-3. Resolve the type in the metadata indexes and locate parser/serializer methods.
-4. Recover field 14 structure from the parser.
-5. Locate sender/call context and compare it with the runtime login timing.
-6. Publish a semantic mapping only when static identity and runtime context agree.
+1. Query CmdId 186 in the canonical registry and record its obfuscated type, typeDefinitionIndex, type slot and available GetCmdId evidence in this analysis directory.
+2. Resolve that type through the canonical metadata indexes and identify parser/serializer methods.
+3. Recover the concrete field-14 structure from parser behavior; keep packed-varint/bytes/nested-message interpretations separate until static evidence selects one.
+4. Locate sender/call-site context and compare it with the repeated runtime login-init observations.
+5. Cross-check any semantic candidate against current target-client evidence and related projects without importing historical numeric equality.
+6. Promote a semantic name only when static identity, parser shape and runtime context agree.
 
 Expected sample hashes are in `../../hashes.json`.
