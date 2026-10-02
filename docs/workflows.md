@@ -80,6 +80,8 @@ They may be packet-, method-, version-, or hypothesis-specific. Maintainers shou
 
 The current packet-specific workflow families are primarily the 7.0/7.1 `UnlockTransPoint` comparison/inspection chain, scene-handler comparison work, and targeted usage/initializer diagnostics. They remain investigation scaffolding. Repository maintenance may improve shared setup or safety around them, but does not own their reverse-engineering conclusions.
 
+Heavy research workflows that download the client or perform long executable scans should use per-ref concurrency with `cancel-in-progress: true` when newer iterations supersede older runs. This is an orchestration safeguard only; it must not change experiment inputs or evidence semantics.
+
 `inspect-native-anchors.yml` still contains a small fixed-target disassembly probe. It is retained as research scaffolding because its targets are investigation-specific; new generally reusable disassembly logic should go into `genshinre/` or `tools/` instead of expanding that YAML.
 
 ## Retired workflow debt
@@ -103,6 +105,7 @@ Before adding a new workflow, prefer this order:
 2. use an existing maintained workflow if only orchestration changes;
 3. add a narrowly triggered research workflow only when the investigation genuinely needs a distinct environment or sequence;
 4. keep exact sample hashes and provenance visible through the shared sample fetch entry point or an investigation-specific pinned source;
-5. avoid auto-running full-client work on unrelated pushes.
+5. avoid auto-running full-client work on unrelated pushes;
+6. add stale-run cancellation for long same-ref jobs whose newest iteration supersedes older ones.
 
 A workflow is orchestration, not the canonical implementation of a reverse-engineering method.
