@@ -151,7 +151,7 @@ def _validate_manifest_paths(
 
         rel = PurePosixPath(value)
         if rel.is_absolute() or ".." in rel.parts:
-            errors.append(f"{item_label}: must stay inside the version directory")
+            errors.append(f"{item_label}: must stay inside the publication directory")
             continue
         normalized = rel.as_posix()
         if normalized in seen:
@@ -181,7 +181,9 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
     _validate_manifest_paths(path, data.get("artifacts"), "artifacts", errors)
 
     optional = data.get("optional_registry_artifacts_published", [])
-    _validate_manifest_paths(path, optional, "optional_registry_artifacts_published", errors)
+    _validate_manifest_paths(
+        path / "registry", optional, "optional_registry_artifacts_published", errors
+    )
 
     if data.get("canonical_registry_published") is True:
         registry_path = path / "registry" / "registry.csv"
