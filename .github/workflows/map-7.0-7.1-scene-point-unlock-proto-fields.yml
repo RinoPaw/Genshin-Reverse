@@ -1,0 +1,298 @@
+name: Map ScenePointUnlockNotify proto fields across 7.0 and 7.1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/map-7.0-7.1-scene-point-unlock-proto-fields.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact 7.0 and 7.1 samples plus 7.0 dump
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
+            --output /tmp/gi70 \
+            --expected-exe-sha256 'a1a23cb76d941df28c5156ca3152fa49421ec98842221b7d71633d42ee76ca45' \
+            --expected-metadata-sha256 'd361ff11f6ca123f4126004db13cdf1956e00d95231f84c1e5437f560e79128b'
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+          curl --fail --location 'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' -o /tmp/data.7z
+          mkdir -p /tmp/data && 7z x -y /tmp/data.7z -o/tmp/data >/dev/null
+
+      - name: Align protobuf parser tag comparisons
+        run: |
+          python - <<'PY' > /tmp/scene-point-unlock-proto-field-map.json
+          import bisect
+          import csv
+          import difflib
+          import json
+          import re
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_OP_REG, X86_REG_RIP
+          from genshinre.pe import PEImage
+
+          OLD_TYPE = 'PANBIAIAIDH'   # 7.0 ScenePointUnlockNotify / CmdId 7929
+          NEW_TYPE = 'DBNMIKBJIPE'   # 7.1 ScenePointUnlockNotify / CmdId 25567
+          OLD_TAG_SEMANTICS = {
+              16: 'unhide_point_list:2/unpacked',
+              18: 'unhide_point_list:2/packed',
+              32: 'locked_point_list:4/unpacked',
+              34: 'locked_point_list:4/packed',
+              40: 'point_list:5/unpacked',
+              42: 'point_list:5/packed',
+              64: 'hide_point_list:8/unpacked',
+              66: 'hide_point_list:8/packed',
+              72: 'scene_id:9',
+          }
+
+          def load_old_type_and_rvas():
+              target = None
+              all_rvas = set()
+              rva_re = re.compile(r'"rva":(\d+)')
+              with Path('/tmp/data/data/dump.json').open(encoding='utf-8', errors='replace') as f:
+                  for line in f:
+                      if '"rva":' in line:
+                          all_rvas.update(int(x) for x in rva_re.findall(line) if int(x) > 0)
+                      if target is None and f'"name":"{OLD_TYPE}"' in line:
+                          try:
+                              obj, _ = json.JSONDecoder().raw_decode(line.strip())
+                          except Exception:
+                              continue
+                          if obj.get('name') == OLD_TYPE:
+                              target = obj
+              if target is None:
+                  raise RuntimeError('old type not found')
+              all_rvas = sorted(all_rvas)
+              rows = []
+              for pos, m in enumerate(target.get('methods', [])):
+                  rva = int(m.get('rva') or 0)
+                  if rva <= 0:
+                      continue
+                  i = bisect.bisect_right(all_rvas, rva)
+                  if i >= len(all_rvas):
+                      continue
+                  rows.append({
+                      'pos': pos,
+                      'name': m.get('name') or '',
+                      'index': m.get('idx'),
+                      'rva': rva,
+                      'end': all_rvas[i],
+                  })
+              return rows
+
+          def load_new_methods():
+              all_rvas = []
+              rows = []
+              with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8', newline='') as f:
+                  for row in csv.DictReader(f):
+                      raw = row.get('rva') or ''
+                      if not raw:
+                          continue
+                      rva = int(raw, 0)
+                      if rva <= 0:
+                          continue
+                      all_rvas.append(rva)
+                      if row.get('type_name') == NEW_TYPE:
+                          rows.append({
+                              'name': row.get('method_name') or '',
+                              'index': int(row['method_index']),
+                              'rva': rva,
+                          })
+              all_rvas = sorted(set(all_rvas))
+              for row in rows:
+                  i = bisect.bisect_right(all_rvas, row['rva'])
+                  row['end'] = all_rvas[i] if i < len(all_rvas) else row['rva'] + 0x1800
+              return rows
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def disasm(image, row):
+              size = row['end'] - row['rva']
+              if size <= 0 or size > 0x20000:
+                  return []
+              try:
+                  blob = image.read_rva(row['rva'], size)
+              except Exception:
+                  return []
+              out = []
+              for ins in md.disasm(blob, image.image_base + row['rva']):
+                  ops = []
+                  imms = []
+                  for op in ins.operands:
+                      if op.type == X86_OP_REG:
+                          ops.append('R')
+                      elif op.type == X86_OP_IMM:
+                          imms.append(int(op.imm))
+                          if ins.mnemonic == 'call' or ins.mnemonic.startswith('j'):
+                              ops.append('T')
+                          else:
+                              ops.append('I')
+                      elif op.type == X86_OP_MEM:
+                          if op.mem.base == X86_REG_RIP:
+                              ops.append('MRIP')
+                          else:
+                              disp = int(op.mem.disp)
+                              ops.append('MBIG' if abs(disp) >= 0x1000 else 'MSMALL')
+                      else:
+                          ops.append('O')
+                  out.append({
+                      'rva': ins.address - image.image_base,
+                      'mnemonic': ins.mnemonic,
+                      'op_str': ins.op_str,
+                      'token': ins.mnemonic + ':' + ':'.join(ops),
+                      'imms': imms,
+                  })
+              return out
+
+          def plausible_wire_tag(value):
+              return 0 < value <= 0x400 and (value & 7) in {0, 1, 2, 5}
+
+          old_methods = load_old_type_and_rvas()
+          new_methods = load_new_methods()
+          report = {
+              'old_type': OLD_TYPE,
+              'new_type': NEW_TYPE,
+              'old_tag_semantics': OLD_TAG_SEMANTICS,
+              'old_methods': [{k: (f'0x{v:X}' if k in {'rva','end'} else v) for k,v in r.items()} for r in old_methods],
+              'new_methods': [{k: (f'0x{v:X}' if k in {'rva','end'} else v) for k,v in r.items()} for r in new_methods],
+              'candidate_parser_pairs': [],
+              'tag_mapping_votes': {},
+          }
+
+          votes = {}
+          with PEImage(Path('/tmp/gi70/GenshinImpact.exe')) as im70, PEImage(Path('/tmp/gi71/GenshinImpact.exe')) as im71:
+              old_dis = {r['rva']: disasm(im70, r) for r in old_methods}
+              new_dis = {r['rva']: disasm(im71, r) for r in new_methods}
+
+              pairs = []
+              for om in old_methods:
+                  a = old_dis[om['rva']]
+                  if not a:
+                      continue
+                  old_known = [
+                      imm for ins in a if ins['mnemonic'] in {'cmp','test'}
+                      for imm in ins['imms'] if imm in OLD_TAG_SEMANTICS
+                  ]
+                  if len(set(old_known)) < 3:
+                      continue
+                  for nm in new_methods:
+                      b = new_dis[nm['rva']]
+                      if not b:
+                          continue
+                      new_tags = [
+                          imm for ins in b if ins['mnemonic'] in {'cmp','test'}
+                          for imm in ins['imms'] if plausible_wire_tag(imm)
+                      ]
+                      if len(set(new_tags)) < 3:
+                          continue
+                      sm = difflib.SequenceMatcher(None, [x['token'] for x in a], [x['token'] for x in b], autojunk=False)
+                      ratio = sm.ratio()
+                      if ratio < 0.45:
+                          continue
+                      aligned = []
+                      for block in sm.get_matching_blocks():
+                          for k in range(block.size):
+                              oi = a[block.a+k]
+                              ni = b[block.b+k]
+                              if oi['mnemonic'] not in {'cmp','test'} or ni['mnemonic'] not in {'cmp','test'}:
+                                  continue
+                              otags = [v for v in oi['imms'] if v in OLD_TAG_SEMANTICS]
+                              ntags = [v for v in ni['imms'] if plausible_wire_tag(v)]
+                              for ot in otags:
+                                  for nt in ntags:
+                                      aligned.append({
+                                          'old_tag': ot,
+                                          'old_semantic': OLD_TAG_SEMANTICS[ot],
+                                          'new_tag': nt,
+                                          'new_field': nt >> 3,
+                                          'new_wire_type': nt & 7,
+                                          'old_rva': f"0x{oi['rva']:X}",
+                                          'new_rva': f"0x{ni['rva']:X}",
+                                          'old_op': oi['op_str'],
+                                          'new_op': ni['op_str'],
+                                      })
+                      if not aligned:
+                          continue
+                      item = {
+                          'old_method': om['name'],
+                          'old_rva': f"0x{om['rva']:X}",
+                          'new_method': nm['name'],
+                          'new_rva': f"0x{nm['rva']:X}",
+                          'token_similarity': ratio,
+                          'old_known_tags': sorted(set(old_known)),
+                          'new_plausible_tags': sorted(set(new_tags)),
+                          'aligned_tag_comparisons': aligned,
+                      }
+                      pairs.append(item)
+                      weight = max(1, round(ratio * 100))
+                      for x in aligned:
+                          key = (x['old_tag'], x['new_tag'])
+                          votes[key] = votes.get(key, 0) + weight
+
+              pairs.sort(key=lambda x: (len(x['aligned_tag_comparisons']), x['token_similarity']), reverse=True)
+              report['candidate_parser_pairs'] = pairs[:20]
+
+          by_old = {}
+          for (ot, nt), score in votes.items():
+              by_old.setdefault(ot, []).append((score, nt))
+          vote_report = {}
+          for ot, rows in sorted(by_old.items()):
+              rows.sort(reverse=True)
+              vote_report[str(ot)] = [
+                  {
+                      'old_semantic': OLD_TAG_SEMANTICS[ot],
+                      'new_tag': nt,
+                      'new_field': nt >> 3,
+                      'new_wire_type': nt & 7,
+                      'score': score,
+                  }
+                  for score, nt in rows[:10]
+              ]
+          report['tag_mapping_votes'] = vote_report
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          PY
+
+          python - <<'PY'
+          import json
+          d = json.load(open('/tmp/scene-point-unlock-proto-field-map.json', encoding='utf-8'))
+          print('top parser pairs:')
+          for p in d['candidate_parser_pairs'][:8]:
+              print(p['old_method'], p['old_rva'], '->', p['new_method'], p['new_rva'],
+                    'sim=', round(p['token_similarity'], 4), 'aligned=', len(p['aligned_tag_comparisons']))
+              for x in p['aligned_tag_comparisons'][:20]:
+                  print(' ', x['old_tag'], x['old_semantic'], '->', x['new_tag'],
+                        'field', x['new_field'], 'wire', x['new_wire_type'])
+          print('votes:')
+          for old_tag, rows in d['tag_mapping_votes'].items():
+              print(old_tag, rows[:5])
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-point-unlock-proto-field-map-70-71
+          path: /tmp/scene-point-unlock-proto-field-map.json
+          if-no-files-found: error
