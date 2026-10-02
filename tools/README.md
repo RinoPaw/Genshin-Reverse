@@ -17,6 +17,13 @@ For reusable repository functionality, prefer this order:
 
 The remaining compare/inspect/scan/trace/decode scripts are research scaffolding for specific native-analysis questions, mostly around 7.0/7.1 protocol and scene/UnlockTransPoint work. They may use fixed RVAs, exact type identities, historical samples, or experiment-specific output shapes.
 
+Two similarly named protocol-consumer helpers intentionally operate at different evidence layers:
+
+- `find_protocol_parameter_consumers_71.py` consumes the already decoded canonical/work `methods.csv` parameter names. It is the fast name-level search for external consumers of selected protocol types.
+- `decode_protocol_handler_parameters_71.py` independently decodes exact-sample parameter records back to runtime type indices and applies known handler controls. It is a lower-level cross-check when name-level metadata alone is not sufficient.
+
+Keep both while that independent cross-check is useful. A future generalized consumer-query implementation should preserve the distinction between decoded metadata lookup and raw native-record verification before either helper is retired.
+
 Do not promote a result produced by one of these scripts into canonical protocol data solely because the script completed successfully. Promotion still follows `docs/analysis-contract.md` and the relevant artifact publication gate.
 
 When a research algorithm becomes broadly reusable, move the implementation into `genshinre/`, add tests, and reduce the tool/workflow to thin orchestration or retire it after its evidence is preserved.
