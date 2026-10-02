@@ -25,13 +25,13 @@ CORE_FILES = {
     "metadata/runtime-types.summary.json": "metadata/runtime-types.summary.json",
     "getcmdid-candidates.csv": "registry/getcmdid-candidates.csv",
     "getcmdid-candidates.summary.json": "registry/getcmdid-candidates.summary.json",
+}
+
+OPTIONAL_FILES = {
     "metadata-usage-types.csv": "registry/metadata-usage-types.csv",
     "metadata-usage-types.summary.json": "registry/metadata-usage-types.summary.json",
     "registry-candidate-graph.csv": "registry/registry-candidate-graph.csv",
     "registry-candidate-graph.summary.json": "registry/registry-candidate-graph.summary.json",
-}
-
-OPTIONAL_FILES = {
     "registry-static-candidates.csv": "registry/registry-static-candidates.csv",
     "registry-static-candidates.summary.json": "registry/registry-static-candidates.summary.json",
     "known-opcodes.csv": "registry/known-opcodes.csv",
@@ -91,7 +91,7 @@ def validate_generated_artifacts_71(
         _require(work_dir / source)
     _require(version_dir / "hashes.json")
 
-    expected_types, expected_fields, expected_methods = expected_counts
+    _, _, expected_methods = expected_counts
     native = _load_json(work_dir / "metadata/native-decoder-summary.json")
     counts = dict(native.get("counts", {}))
     actual_summary_counts = (
@@ -136,10 +136,6 @@ def validate_generated_artifacts_71(
     if not bool(runtime.get("anchor_405772_class_84249_DMMJNICDOHM")):
         raise ValueError("runtime type index failed the preserved 405772 -> DMMJNICDOHM anchor")
 
-    usage = _load_json(work_dir / "metadata-usage-types.summary.json")
-    if not bool(usage.get("anchor_37523_to_405772_to_84249_DMMJNICDOHM")):
-        raise ValueError("metadata usage/type join failed the preserved 9369 identity anchor")
-
     getcmd = _load_json(work_dir / "getcmdid-candidates.summary.json")
     if str(getcmd.get("exe_sha256", "")) != expected_exe_sha:
         raise ValueError("GetCmdId candidate scan EXE hash does not match the version manifest")
@@ -148,13 +144,24 @@ def validate_generated_artifacts_71(
     if int(getcmd.get("method_rows", -1)) != expected_methods:
         raise ValueError("GetCmdId scan did not consume the complete decoded methods table")
 
-    graph = _load_json(work_dir / "registry-candidate-graph.summary.json")
-    if not bool(graph.get("all_preserved_anchors_pass")):
-        raise ValueError("registry candidate graph failed one or more preserved anchors")
-
     type_methods = _load_json(work_dir / "metadata/type-methods.json")
     if not type_methods:
         raise ValueError("type-methods.json is empty")
+
+    optional_checks: dict[str, object] = {}
+    usage_summary = work_dir / "metadata-usage-types.summary.json"
+    if usage_summary.is_file():
+        usage = _load_json(usage_summary)
+        optional_checks["usage_type_anchor"] = bool(
+            usage.get("anchor_37523_to_405772_to_84249_DMMJNICDOHM")
+        )
+
+    graph_summary = work_dir / "registry-candidate-graph.summary.json"
+    if graph_summary.is_file():
+        graph = _load_json(graph_summary)
+        optional_checks["registry_graph_anchors"] = bool(
+            graph.get("all_preserved_anchors_pass")
+        )
 
     return {
         "metadata_counts": {
@@ -168,9 +175,8 @@ def validate_generated_artifacts_71(
             "metadata_sha256": expected_metadata_sha,
         },
         "runtime_type_anchor": True,
-        "usage_type_anchor": True,
         "getcmdid_anchor": True,
-        "registry_graph_anchors": True,
+        "optional_registry_checks": optional_checks,
     }
 
 
@@ -236,6 +242,7 @@ def publish_generated_artifacts_71(
         "artifacts": published_files,
         "optional_registry_artifacts_published": [],
         "notes": [
+            "metadata publication is gated independently from experimental registry heuristics",
             "the complete registry canonical filenames are emitted only by the stricter registry publication gate",
             "intermediate registry artifacts remain evidence/candidate datasets and must not be treated as canonical mappings",
         ],
