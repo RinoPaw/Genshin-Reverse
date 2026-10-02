@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from genshinre.registrypublish import publish_canonical_registry_71
+from genshinre.registrypublish import publish_historical_native_registry_71
 
 
 class RegistryPublishTests(unittest.TestCase):
@@ -26,23 +26,23 @@ class RegistryPublishTests(unittest.TestCase):
             direction.write_text("{}", encoding="utf-8")
             hashes.write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "full row-by-row agreement"):
-                publish_canonical_registry_71(
+                publish_historical_native_registry_71(
                     root / "missing-direct.csv",
                     root / "missing-usage.csv",
                     comparison,
                     direction,
-                    root / "missing-known.csv",
+                    root / "missing-control.csv",
                     root / "missing-getcmd.csv",
                     hashes,
                     root / "out",
                 )
 
-    def test_publishes_only_after_all_gates_pass(self) -> None:
+    def test_publishes_historical_projection_only_after_all_gates_pass(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             direct = root / "direct.csv"
             usage = root / "usage.csv"
-            known = root / "known.csv"
+            control = root / "control.csv"
             getcmd = root / "getcmd.csv"
             comparison = root / "compare.json"
             direction = root / "direction.json"
@@ -86,7 +86,7 @@ class RegistryPublishTests(unittest.TestCase):
                 usage_rows,
             )
             self._write_csv(
-                known,
+                control,
                 ("semantic_name", "cmd_id"),
                 [
                     {"semantic_name": "FooReq", "cmd_id": 1},
@@ -136,12 +136,12 @@ class RegistryPublishTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = publish_canonical_registry_71(
+            result = publish_historical_native_registry_71(
                 direct,
                 usage,
                 comparison,
                 direction,
-                known,
+                control,
                 getcmd,
                 hashes,
                 output,
@@ -149,7 +149,9 @@ class RegistryPublishTests(unittest.TestCase):
             self.assertEqual(4896, result["row_count"])
             self.assertEqual(4896, result["unique_cmd_ids"])
             self.assertEqual(2, result["semantic_name_count"])
-            self.assertEqual("canonical-static-registry", result["status"])
+            self.assertEqual("historical-native-registry-projection", result["status"])
+            self.assertFalse(result["canonical_publication"])
+            self.assertEqual(str(control), result["provenance"]["control_set_csv"])
 
             with (output / "registry.csv").open("r", encoding="utf-8", newline="") as f:
                 rows = list(csv.DictReader(f))
