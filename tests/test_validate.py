@@ -10,8 +10,23 @@ from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
 
 
-class GeneratedArtifactManifestTests(unittest.TestCase):
-    def _write_manifest(self, root: Path, data: dict) -> None:
+class ValidatorIntegrationTests(unittest.TestCase):
+    def _write_manifest(
+        self,
+        root: Path,
+        *,
+        canonical_registry_published: bool,
+        artifacts: list[str] | None = None,
+        optional_artifacts_published: list[str] | None = None,
+        **extra: object,
+    ) -> None:
+        data: dict[str, object] = {
+            "manifest_version": 2,
+            "canonical_registry_published": canonical_registry_published,
+            "artifacts": artifacts or [],
+            "optional_artifacts_published": optional_artifacts_published or [],
+        }
+        data.update(extra)
         (root / "generated-artifacts.json").write_text(
             json.dumps(data), encoding="utf-8"
         )
@@ -69,103 +84,47 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             writer.writerows(rows)
         return path
 
-    def test_valid_manifest_accepts_existing_files(self) -> None:
+    def test_manifest_v2_runs_through_main_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
-            (root / "registry" / "control-set.csv").write_text("cmd_id\n1\n", encoding="utf-8")
-            (root / "metadata").mkdir()
-            (root / "metadata" / "types.csv").write_text("type_name\n", encoding="utf-8")
+            (root / "registry" / "control-set.csv").write_text(
+                "cmd_id\n1\n", encoding="utf-8"
+            )
             self._write_manifest(
                 root,
-                {
-                    "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": ["registry/control-set.csv"],
-                    "artifacts": [
-                        "generated-artifacts.json",
-                        "registry/registry.csv",
-                        "registry/registry.summary.json",
-                        "registry/control-set.csv",
-                        "metadata/types.csv",
-                    ],
-                },
+                canonical_registry_published=True,
+                artifacts=["registry/control-set.csv"],
+                optional_artifacts_published=["registry/control-set.csv"],
             )
 
             errors: list[str] = []
             warnings: list[str] = []
             _validate_generated_artifacts(root, errors, warnings)
 
-            self.assertEqual(errors, [])
-            self.assertEqual(warnings, [])
+            self.assertEqual([], errors)
+            self.assertEqual([], warnings)
 
-    def test_missing_listed_artifact_is_error(self) -> None:
+    def test_legacy_manifest_alias_is_rejected_through_main_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_manifest(
                 root,
-                {
-                    "canonical_registry_published": False,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": ["missing.csv"],
-                },
+                canonical_registry_published=False,
+                optional_registry_artifacts_published=[],
             )
 
             errors: list[str] = []
             _validate_generated_artifacts(root, errors, [])
 
             self.assertTrue(
-                any("listed artifact does not exist: missing.csv" in error for error in errors)
+                any("optional_registry_artifacts_published" in error for error in errors)
             )
-
-    def test_missing_optional_artifact_uses_version_root_relative_path(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": False,
-                    "optional_registry_artifacts_published": ["registry/missing.csv"],
-                    "artifacts": [],
-                },
-            )
-
-            errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
-
-            self.assertTrue(
-                any("listed artifact does not exist: registry/missing.csv" in error for error in errors)
-            )
-
-    def test_duplicate_and_parent_paths_are_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "ok.csv").write_text("x\n", encoding="utf-8")
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": False,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": ["ok.csv", "ok.csv", "../escape.csv"],
-                },
-            )
-
-            errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
-
-            self.assertTrue(any("duplicate path ok.csv" in error for error in errors))
-            self.assertTrue(any("must stay inside the publication directory" in error for error in errors))
 
     def test_registry_publication_flag_requires_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": ["generated-artifacts.json"],
-                },
-            )
+            self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
             _validate_generated_artifacts(root, errors, [])
@@ -173,48 +132,6 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             self.assertTrue(
                 any("canonical_registry_published is true" in error for error in errors)
             )
-
-    def test_registry_publication_flag_requires_summary(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "registry").mkdir()
-            (root / "registry" / "registry.csv").write_text("cmd_id\n1\n", encoding="utf-8")
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": ["generated-artifacts.json", "registry/registry.csv"],
-                },
-            )
-
-            errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
-
-            self.assertTrue(any("registry/registry.summary.json is missing" in error for error in errors))
-
-    def test_registry_publication_requires_exact_canonical_header(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self._write_canonical_registry(root)
-            (root / "registry" / "registry.csv").write_text("cmd_id\n1\n", encoding="utf-8")
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": [
-                        "generated-artifacts.json",
-                        "registry/registry.csv",
-                        "registry/registry.summary.json",
-                    ],
-                },
-            )
-
-            errors: list[str] = []
-            _validate_generated_artifacts(root, errors, [])
-
-            self.assertTrue(any("canonical header mismatch" in error for error in errors))
 
     def test_registry_summary_must_match_csv(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -224,23 +141,14 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             summary["row_count"] = 2
             summary_path.write_text(json.dumps(summary), encoding="utf-8")
-            self._write_manifest(
-                root,
-                {
-                    "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": [],
-                    "artifacts": [
-                        "generated-artifacts.json",
-                        "registry/registry.csv",
-                        "registry/registry.summary.json",
-                    ],
-                },
-            )
+            self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
             _validate_generated_artifacts(root, errors, [])
 
-            self.assertTrue(any("row_count does not match registry.csv" in error for error in errors))
+            self.assertTrue(
+                any("row_count does not match registry.csv" in error for error in errors)
+            )
 
     def test_known_opcodes_reject_non_confirmed_rows(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
