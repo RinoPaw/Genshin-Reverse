@@ -69,8 +69,6 @@ jobs:
       - name: Show generated file sizes
         run: |
           find versions/7.1.0-global/windows-x64 -type f -printf '%s %p\n' | sort -nr | head -40
-          echo 'Files over 95 MiB:'
-          find versions/7.1.0-global/windows-x64 -type f -size +95M -print || true
 
       - name: Preserve work output as Actions artifact
         if: always()
@@ -91,12 +89,21 @@ jobs:
             echo 'No generated artifact changes to commit.'
             exit 0
           fi
-          oversized=$(find versions/7.1.0-global/windows-x64 -type f -size +95M -print)
+
+          oversized=''
+          while IFS= read -r path; do
+            [[ -f "$path" ]] || continue
+            size=$(stat -c '%s' "$path")
+            if (( size > 99614720 )); then
+              oversized+="$size $path"$'\n'
+            fi
+          done < <(git diff --cached --name-only --diff-filter=AM)
           if [[ -n "$oversized" ]]; then
-            echo 'Refusing Git push because generated files exceed 95 MiB:' >&2
-            echo "$oversized" >&2
+            echo 'Refusing Git push because staged generated files exceed 95 MiB:' >&2
+            printf '%s' "$oversized" >&2
             exit 1
           fi
+
           git commit -m 'data: publish generated global 7.1 reverse artifacts'
           git pull --rebase origin main
           git push origin HEAD:main
