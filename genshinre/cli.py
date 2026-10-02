@@ -11,6 +11,7 @@ from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_fields, query_methods
 from .mhy71 import decode_metadata_71
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
+from .pointerxref import scan_pointer_xrefs
 from .protocolquery import query_protocol
 from .registry import query_registry
 from .scaffold import scaffold
@@ -94,6 +95,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("target_rvas", nargs="+", type=_rva)
     p.add_argument("--window", type=int, default=24)
     p.add_argument("--all-sections", action="store_true")
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser(
+        "pointer-xrefs",
+        help="find data qword holders pointing into an RVA range, then code xrefs to those holders",
+    )
+    p.add_argument("exe", type=Path)
+    p.add_argument("target_start_rva", type=_rva)
+    p.add_argument("target_end_rva", type=_rva)
+    p.add_argument("--alignment", type=int, default=8)
+    p.add_argument("--window", type=int, default=48)
+    p.add_argument("--include-executable-holders", action="store_true")
     p.add_argument("--output", type=Path)
 
     p = sub.add_parser("inspect-rva", help="dump bytes and simple RIP-relative instructions around an RVA")
@@ -246,6 +259,18 @@ def main() -> None:
             args.target_rvas,
             window=args.window,
             executable_sections_only=not args.all_sections,
+        )
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "pointer-xrefs":
+        result = scan_pointer_xrefs(
+            args.exe,
+            args.target_start_rva,
+            args.target_end_rva,
+            alignment=args.alignment,
+            window=args.window,
+            include_executable_holders=args.include_executable_holders,
         )
         if args.output:
             write_json(result, args.output)
