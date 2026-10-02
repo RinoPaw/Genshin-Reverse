@@ -15,11 +15,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install tooling
         run: python -m pip install -e . zstandard capstone
 
@@ -51,12 +49,11 @@ jobs:
           import csv
           import json
           import re
-          from collections import Counter, deque
+          from collections import Counter
           from pathlib import Path
 
           from capstone import CS_AC_READ, CS_AC_WRITE, CS_ARCH_X86, CS_MODE_64, Cs
           from capstone.x86 import X86_OP_MEM, X86_REG_RIP
-
           from genshinre.pe import PEImage
 
           OLD_OWNER = 'KGCKOFPFBLA'
@@ -73,6 +70,7 @@ jobs:
               0x4B2AC0: 'get_scene_area_rsp_control',
           }
 
+          # Historical owner + global historical method RVAs for exact method ends.
           rva_re = re.compile(r'"rva":(\d+)')
           old_owner = None
           old_all_rvas = set()
@@ -87,7 +85,6 @@ jobs:
           if old_owner is None:
               raise RuntimeError('historical scene owner missing')
           old_all_rvas = sorted(old_all_rvas)
-
           old_owner_methods = []
           for position, method in enumerate(old_owner.get('methods', [])):
               start = int(method.get('rva') or 0)
@@ -105,7 +102,10 @@ jobs:
                   'owner_position': position,
                   'parameter_types': [p.get('type') for p in (method.get('params') or [])],
               })
+          old_owner_methods.sort(key=lambda row: row['start'])
+          old_owner_starts = [row['start'] for row in old_owner_methods]
 
+          # Full 7.1 method index gives both exact owner ranges and mapping for global hits.
           new_methods = []
           with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8', newline='') as f:
               for row in csv.DictReader(f):
@@ -127,19 +127,15 @@ jobs:
           new_methods.sort(key=lambda row: row['start'])
           for i, row in enumerate(new_methods):
               row['end'] = new_methods[i + 1]['start'] if i + 1 < len(new_methods) else row['start'] + 0x1000
+          new_starts = [row['start'] for row in new_methods]
+          new_owner_methods = [row for row in new_methods if row['type_name'] == NEW_OWNER]
 
           def method_for(methods, starts, rva):
               i = bisect.bisect_right(starts, rva) - 1
               if i < 0:
                   return None
               row = methods[i]
-              if rva >= row['end']:
-                  return None
-              return row
-
-          old_owner_methods.sort(key=lambda row: row['start'])
-          old_owner_starts = [row['start'] for row in old_owner_methods]
-          new_starts = [row['start'] for row in new_methods]
+              return row if rva < row['end'] else None
 
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
@@ -152,44 +148,76 @@ jobs:
                   flags.append('write')
               return '+'.join(flags) if flags else 'unknown'
 
-          def scan(exe_path, slots, version):
+          def instruction_row(image, insn):
+              return {
+                  'rva': f'0x{insn.address - image.image_base:X}',
+                  'mnemonic': insn.mnemonic,
+                  'op_str': insn.op_str,
+                  'bytes': insn.bytes.hex(),
+              }
+
+          def matches(insn, slots):
+              out = []
+              for operand_index, op in enumerate(insn.operands):
+                  if op.type != X86_OP_MEM or op.mem.base == X86_REG_RIP:
+                      continue
+                  disp = int(op.mem.disp)
+                  if disp in slots:
+                      out.append((disp, operand_index, access_name(op)))
+              return out
+
+          # Primary scan: start at every metadata method boundary so Capstone cannot lose
+          # synchronization because of unrelated bytes earlier in the PE section.
+          def scan_methods(exe_path, methods, slots):
               hits = []
+              with PEImage(Path(exe_path)) as image:
+                  for method in methods:
+                      size = method['end'] - method['start']
+                      if size <= 0 or size > 0x20000:
+                          continue
+                      try:
+                          blob = image.read_rva(method['start'], size)
+                      except Exception:
+                          continue
+                      rows = list(md.disasm(blob, image.image_base + method['start']))
+                      for i, insn in enumerate(rows):
+                          for disp, operand_index, access in matches(insn, slots):
+                              hits.append({
+                                  'slot': f'0x{disp:X}',
+                                  'slot_label': slots[disp],
+                                  'rva': f'0x{insn.address-image.image_base:X}',
+                                  'mnemonic': insn.mnemonic,
+                                  'op_str': insn.op_str,
+                                  'operand_index': operand_index,
+                                  'access': access,
+                                  'method': method,
+                                  'context': [instruction_row(image, x) for x in rows[max(0, i-8):i+9]],
+                              })
+              return hits
+
+          # Secondary scan: executable sections with skipdata enabled catches references made
+          # by methods outside the scene owner. Current hits can be mapped through methods.csv.
+          def scan_sections(exe_path, slots, version):
+              hits = []
+              scan_md = Cs(CS_ARCH_X86, CS_MODE_64)
+              scan_md.detail = True
+              scan_md.skipdata = True
               with PEImage(Path(exe_path)) as image:
                   for sec in image.sections:
                       if not (sec.characteristics & 0x20000000):
                           continue
                       blob = image.read_rva(sec.virtual_address, sec.raw_size)
-                      previous = deque(maxlen=8)
-                      active = []
-                      for insn in md.disasm(blob, image.image_base + sec.virtual_address):
-                          row = {
-                              'rva': f'0x{insn.address - image.image_base:X}',
-                              'mnemonic': insn.mnemonic,
-                              'op_str': insn.op_str,
-                              'bytes': insn.bytes.hex(),
-                          }
-                          for item in list(active):
-                              item['context'].append(row)
-                              item['_remaining'] -= 1
-                              if item['_remaining'] <= 0:
-                                  active.remove(item)
-
-                          matched = []
-                          for operand_index, op in enumerate(insn.operands):
-                              if op.type != X86_OP_MEM or op.mem.base == X86_REG_RIP:
-                                  continue
-                              disp = int(op.mem.disp)
-                              if disp in slots:
-                                  matched.append((disp, operand_index, access_name(op)))
-
-                          for disp, operand_index, access in matched:
+                      for insn in scan_md.disasm(blob, image.image_base + sec.virtual_address):
+                          if insn.id == 0:
+                              continue
+                          for disp, operand_index, access in matches(insn, slots):
                               rva = insn.address - image.image_base
                               method = (
                                   method_for(old_owner_methods, old_owner_starts, rva)
                                   if version == '7.0'
                                   else method_for(new_methods, new_starts, rva)
                               )
-                              item = {
+                              hits.append({
                                   'slot': f'0x{disp:X}',
                                   'slot_label': slots[disp],
                                   'rva': f'0x{rva:X}',
@@ -198,38 +226,28 @@ jobs:
                                   'operand_index': operand_index,
                                   'access': access,
                                   'method': method,
-                                  'context': list(previous) + [row],
-                                  '_remaining': 8,
-                              }
-                              hits.append(item)
-                              active.append(item)
-                          previous.append(row)
-              for item in hits:
-                  item.pop('_remaining', None)
+                              })
               return hits
 
-          old_hits = scan('/tmp/gi70/GenshinImpact.exe', OLD_SLOTS, '7.0')
-          new_hits = scan('/tmp/gi71/GenshinImpact.exe', NEW_SLOTS, '7.1')
+          old_owner_hits = scan_methods('/tmp/gi70/GenshinImpact.exe', old_owner_methods, OLD_SLOTS)
+          new_owner_hits = scan_methods('/tmp/gi71/GenshinImpact.exe', new_owner_methods, NEW_SLOTS)
+          old_global_hits = scan_sections('/tmp/gi70/GenshinImpact.exe', OLD_SLOTS, '7.0')
+          new_global_hits = scan_sections('/tmp/gi71/GenshinImpact.exe', NEW_SLOTS, '7.1')
 
           def summarize(hits):
               out = {}
               for item in hits:
-                  label = item['slot_label']
-                  entry = out.setdefault(label, {'total': 0, 'access': Counter(), 'methods': Counter()})
+                  entry = out.setdefault(item['slot_label'], {'total': 0, 'access': Counter(), 'methods': Counter()})
                   entry['total'] += 1
                   entry['access'][item['access']] += 1
                   method = item.get('method')
-                  if method:
-                      entry['methods'][f"{method.get('type_name')}.{method.get('method_name')}@0x{method['start']:X}"] += 1
-                  else:
-                      entry['methods']['<unmapped>'] += 1
+                  key = '<unmapped>' if not method else f"{method.get('type_name')}.{method.get('method_name')}@0x{method['start']:X}"
+                  entry['methods'][key] += 1
               for entry in out.values():
                   entry['access'] = dict(entry['access'])
                   entry['methods'] = dict(entry['methods'])
               return out
 
-          # The canonical field index is useful for checking whether nearby native slots are
-          # backed by adjacent/repeated metadata fields on the current scene owner.
           current_fields = []
           with open('versions/7.1.0-global/windows-x64/metadata/fields.csv', encoding='utf-8', newline='') as f:
               for row in csv.DictReader(f):
@@ -241,17 +259,19 @@ jobs:
               'new_owner': NEW_OWNER,
               'old_slots': {f'0x{k:X}': v for k, v in OLD_SLOTS.items()},
               'new_slots': {f'0x{k:X}': v for k, v in NEW_SLOTS.items()},
-              'old_summary': summarize(old_hits),
-              'new_summary': summarize(new_hits),
-              'old_hits': old_hits,
-              'new_hits': new_hits,
-              'old_owner_fields': old_owner.get('fields', []),
+              'old_owner_summary': summarize(old_owner_hits),
+              'new_owner_summary': summarize(new_owner_hits),
+              'old_global_summary': summarize(old_global_hits),
+              'new_global_summary': summarize(new_global_hits),
+              'old_owner_hits': old_owner_hits,
+              'new_owner_hits': new_owner_hits,
+              'old_global_hits': old_global_hits,
+              'new_global_hits': new_global_hits,
               'new_owner_fields': current_fields,
               'notes': [
-                  'Exact non-RIP memory displacement matches only; RIP-relative references are excluded.',
-                  'Capstone operand access flags distinguish reads and writes when available.',
-                  '7.0 method ownership is reported for KGCKOFPFBLA; 7.1 hits are mapped against the full current method index.',
-                  'The sender and GetSceneAreaRsp slots are controls; candidate identity requires a discriminating writer/registration relation, not address proximity alone.',
+                  'Method-boundary scans are authoritative for the named scene owners; section scans use skipdata only as a wider xref supplement.',
+                  'Exact non-RIP displacement matches only. Address proximity alone is not identity evidence.',
+                  'Sender and GetSceneAreaRsp are controls for interpreting candidate registration/write patterns.',
               ],
           }
           print(json.dumps(report, indent=2))
@@ -260,14 +280,14 @@ jobs:
           python - <<'PY'
           import json
           d = json.load(open('/tmp/scene-delegate-slot-xrefs.json'))
-          print('7.0 summary')
-          print(json.dumps(d['old_summary'], indent=2))
-          print('7.1 summary')
-          print(json.dumps(d['new_summary'], indent=2))
+          for key in ('old_owner_summary','new_owner_summary','old_global_summary','new_global_summary'):
+              print(key)
+              print(json.dumps(d[key], indent=2))
           print('7.1 scene owner fields:', len(d['new_owner_fields']))
-          for hit in d['new_hits']:
-              if 'write' in hit['access']:
-                  print('WRITE', hit['slot_label'], hit['rva'], hit['op_str'], hit.get('method'))
+          for key in ('old_owner_hits','new_owner_hits','old_global_hits','new_global_hits'):
+              for hit in d[key]:
+                  if 'write' in hit['access']:
+                      print(key, 'WRITE', hit['slot_label'], hit['rva'], hit['op_str'], hit.get('method'))
           PY
 
       - name: Upload evidence
