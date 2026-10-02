@@ -1,6 +1,13 @@
 # UnlockTransPoint protocol recovery
 
-Status: **UNRESOLVED** for the response; request side is **CONFIRMED**.
+Status: request side **CONFIRMED**; response remains an **UNRESOLVED STATIC TIE** between two current-7.1 identities.
+
+Pinned official global 7.1 sample:
+
+```text
+GenshinImpact.exe    08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
+global-metadata.dat 05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0
+```
 
 ## Confirmed request anchor
 
@@ -10,117 +17,215 @@ UnlockTransPointReq
 client type:            DMMJNICDOHM
 typeDefinition:         84249
 type slot RVA:          0x057E6498
-usage destination:      37523
 registry store RVA:     0x07F852AB
 field start/count:      417613 / 2
 GetCmdId:               DMMJNICDOHM.AEGNNPENLNM @ 0x0C87EA60
 parser-like method:     DMMJNICDOHM.IENGFLPCLNM @ 0x0C87E6A0
 constructor:            DMMJNICDOHM..ctor @ 0x0C87E8F0
+sender:                 KLLNGCPBLMM.OIFANGMCKNJ @ 0x0F0452B0
 ```
 
-The public 7.1 dumped proto independently agrees with the recovered type:
+Recovered current wire shape:
 
 ```proto
 // CmdId: 9369
 message DMMJNICDOHM {
-    uint32 NEAFKBADNDA = 12;
-    uint32 GKPKNPFEPBF = 1;
+    uint32 NEAFKBADNDA = 12; // scene_id
+    uint32 GKPKNPFEPBF = 1;  // point_id
 }
 ```
 
-AstaPS interprets those fields as `scene_id = 12` and `point_id = 1`. The preserved registry row has flag `1`; together with the 22899 receive-side control this supports `1 = C2S` for this sample.
+## Response candidate state
 
-The canonical request row is now stored in `../../registry/registry.csv`.
-
-## Unresolved response
-
-`UnlockTransPointRsp` remains unresolved for the current 7.1 client. AstaPS `play/rino` still has `UnlockTransPointRsp = 0`.
-
-The local/generated response proto says `int32 retcode = 6`. Current-client evidence has not yet proved that field number, so it remains a structural clue.
-
-## Current AstaPS workaround
-
-After a successful unlock, `HandlerUnlockTransPointReq` sends `GetScenePointRsp` so the client refreshes the scene-point list, then constructs `PacketUnlockTransPointRsp` using the unresolved opcode.
-
-Runtime validation of a future response candidate must initially suppress the extra `GetScenePointRsp` refresh. That isolates whether the recovered response itself completes the interaction and whether an additional point-state packet is genuinely required.
-
-## Historical clue
-
-Genshin 7.0 mapped:
+Historical 7.0 control:
 
 ```text
-UnlockTransPointRsp = 1776
-obfuscated type = CPKAHGFBBIH
-shape = int32 retcode field 6
+UnlockTransPointRsp
+CmdId      1776
+client type CPKAHGFBBIH
+wire shape int32 retcode = 6
+handler    KGCKOFPFBLA.NDKDCLAKKIG @ 0x0B6F18D0
 ```
 
-The number `1776` is historical-only. It must not be copied into the 7.1 table.
+The old numeric CmdId is historical evidence only.
 
-## 7.1 structural search
+Current 7.1 candidate reduction:
 
-The 7.1 dump uses the common obfuscated retcode field name `BLPJNJBFDJJ` on many responses. Use the repository shape filter to reproduce the old `find_retcode6_candidates.py` style search:
+```text
+40 one-field int32-field-6 shapes
+        |
+        | protected handler-parameter recovery
+        v
+36641 / 20290 / 2666
+        |
+        | historical handler-class controls
+        v
+36641 / 20290
+```
+
+Surviving current identities:
+
+```text
+candidate A
+  CmdId        36641
+  type         NCBEHBOCBJJ
+  typeDef      70557
+  registry idx 4878
+  type slot    0x57F9080
+  GetCmdId     0x13BEF180
+  handler      KLLNGCPBLMM.GDILHLIGMPI @ 0xF045790
+  method idx   615758
+
+candidate B
+  CmdId        20290
+  type         MAFFAFNMEBM
+  typeDef      76295
+  registry idx 2466
+  type slot    0x57F63D0
+  GetCmdId     0x114767D0
+  handler      KLLNGCPBLMM.OAEILOAJOML @ 0xF0462A0
+  method idx   615762
+```
+
+Both parse the expected `int32 retcode = 6` shape. Both are consumed by the same generic 112-byte scene ACK-handler template. Neither currently has a unique static semantic binding to `UnlockTransPointRsp`.
+
+Do not describe `36641` as preferred. The earlier local-neighborhood preference was invalidated by later controls.
+
+## Current lifecycle controls
+
+```text
+ScenePointUnlockNotify
+  CmdId        25567
+  type         DBNMIKBJIPE
+  handler      KLLNGCPBLMM.IPADDHFIGMF @ 0xF05F0F0
+  method idx   615937
+
+GetSceneAreaRsp
+  CmdId        23366
+  type         DKJCMHENKAI
+  handler      KLLNGCPBLMM.GCDHLNLACDK @ 0xF046780
+```
+
+The large distance from the candidate ACKs to the confirmed current `ScenePointUnlockNotify` handler is one of the controls proving that the compact 7.0 lifecycle neighborhood did not survive owner-method reordering.
+
+## Static boundary
+
+The following paths have already been tested and must not be reused as promotion evidence without a changed premise:
+
+- ACK body/native equality: unrelated responses share the same tiny retcode template;
+- local current owner distance and 7.0 -> 7.1 owner-order interpolation: method order is heavily rearranged and mixes protocol families;
+- `0x4B2Axx` slot proximity: these are per-method ILFix/hotfix storage, advancing by exactly eight bytes with method index;
+- direct handler pointers and decoded signature consumers: each candidate exposes only its own scene handler, matching known controls;
+- generic submit fan-out: `EDKMMIPJHJA.DMLCLHCBOBJ @ 0x7246860` has about 491 callers;
+- hidden submit `MethodInfo` / rgctx: the native calling convention does not carry a response type at the unlock submit edge;
+- registry or TypeDefinition order interpolation: unstable against controls;
+- semantic message-name strings: absent from the exact current EXE and metadata in ASCII/UTF-16;
+- standard generated protobuf descriptor Base64: absent even for confirmed `ScenePointUnlockNotify` and `GetSceneAreaRsp` controls;
+- same-version public server forks: useful controls, but the unlock pair remains unresolved there too;
+- forcing either candidate on a private server and judging visible success: both handlers accept the same empty-success shape and simply return.
+
+Detailed chronology and the 🕳️ list are in `RESEARCH_LOG.md`. The compact static boundary is in `STATIC_BOUNDARY_2026-10-02.md`.
+
+## Maintained runtime capture path
+
+The current-client framing/XOR boundaries were recovered from the pinned 7.1 executable itself. They are not copied from an older version.
+
+```text
+S2C post-XOR plaintext boundary   RVA 0xA01846A
+C2S pre-XOR plaintext boundary    RVA 0xA01A0EF
+```
+
+Recovery evidence is preserved in `RUNTIME_CAPTURE_RECOVERY_2026-10-02.md`.
+
+The Frida collector is:
+
+```text
+tools/runtime/capture_game_packets_71.js
+tools/runtime/capture_game_packets_71.py
+```
+
+It validates the `0x4567 ... 0x89AB` game-packet framing, records surrounding packet headers, and preserves full frames for:
+
+```text
+9369   confirmed UnlockTransPointReq
+36641  candidate A
+20290  candidate B
+25567  confirmed ScenePointUnlockNotify
+```
+
+Typical capture command:
 
 ```bash
-python -m genshinre.proto_shape \
-  path/to/7.1.0/Obfuscated.proto \
-  --field-type int32 \
-  --field-number 6 \
-  --field-name BLPJNJBFDJJ \
-  --single-field \
-  --translations path/to/7.1.0/nameTranslation.txt \
-  --output work/unlock-trans-point-retcode6.json
+python -m pip install frida
+python tools/runtime/capture_game_packets_71.py \
+  --output work/unlock-trans-point-71.ndjson
 ```
 
-This is candidate generation only. Every candidate still needs receive-direction evidence plus a handler/state-machine relationship or equivalent static proof.
+Use a genuine known-correct current-7.1 unlock flow. A private server that has been manually forced to send one candidate cannot establish semantic identity.
 
-## External type-slot xref checkpoint
+## Automatic transaction correlation
 
-A 7.1 executable scan traced RIP-relative references to the request slot, the scene-point notify control, the born-point control pair, and every current single-field response candidate. The workflow artifact is from run `36869811621`, artifact `11166782212`, digest `sha256:0f7fb2f4629499127cd2edfb403837a8a8f683cc86a930c915e07d2e28c2563f`.
+After capture, run:
 
-The registry identity for CmdId `9369` is still `DMMJNICDOHM`. The external owner type `KLLNGCPBLMM` seen in the xref artifact is the declaring type of a method that references the `DMMJNICDOHM` type slot; it is not the message type. This resolves the apparent `DMMJNICDOHM` / `KLLNGCPBLMM` conflict.
+```bash
+python tools/runtime/analyze_unlock_trans_point_capture_71.py \
+  work/unlock-trans-point-71.ndjson \
+  --json work/unlock-trans-point-71-analysis.json
+```
 
-Control observations from that scan:
+The analyzer:
+
+1. verifies that the capture's ready event uses the maintained current-client S2C/C2S hook RVAs;
+2. finds each `C2S 9369` request;
+3. decodes PacketHead protobuf field 3 (`client_sequence_id`, independently retained by same-version 7.1 protocol controls);
+4. inspects the narrow following S2C window for `36641`, `20290`, and `25567`;
+5. marks a transaction `promotable` only when exactly one response candidate shares the request `client_sequence_id`.
+
+If both candidates appear, no candidate matches the sequence, or PacketHead field 3 is unavailable, preserve the full capture and review the surrounding traffic rather than promoting a mapping from proximity alone.
+
+## Promotion rule
+
+A response mapping can be promoted when a known-correct 7.1 transaction establishes:
 
 ```text
-26105 external owner types: EDKMMIPJHJA
-4385  external owner types: none
-9369  external owner types: KLLNGCPBLMM
-25567 external owner types: NHFPOGNBPPE
+C2S  9369   UnlockTransPointReq     seq = N
+S2C  X      candidate response      seq = N
 ```
 
-The born request/response control pair had no shared external owner type, and `9369` shared no external owner type with the scene-point notify control. None of the current single-field response candidates shared an external owner type with `9369`; all `shared_count` values were zero. The simple "same controller type references both request and response slots" heuristic therefore produced no response identity and should not be treated as positive evidence for any candidate.
-
-## Recovery path
-
-1. Generate the exact single-field `int32 field #6` candidate set from the 7.1 proto dump.
-2. Remove candidates already translated or mapped to unrelated current messages.
-3. Resolve remaining types through the client registry / metadata indexes.
-4. Locate S2C handlers and identify the one tied to teleport-point interaction state.
-5. Confirm its `GetCmdId()` and parser field number directly in the 7.1 executable.
-6. Validate the smallest possible response at runtime, preferably empty payload for `retcode = 0`.
-7. Record rejected candidates and their rejection evidence in `candidates.csv`.
-8. Promote the mapping only after static identity and runtime behavior agree.
-
-## Runtime validation target
-
-For a fresh locked waypoint:
+with exactly one of:
 
 ```text
-client sends 9369
-server changes unlock state once
-server sends recovered UnlockTransPointRsp
-client finishes the interaction without timeout/retry
-client shows the waypoint unlocked
+X = 36641
+X = 20290
 ```
 
-If a confirmed Rsp still requires a separate point-state Notify or scene-point refresh, record that as a distinct lifecycle requirement.
+`ScenePointUnlockNotify / 25567` may appear in the same lifecycle, but it does not replace the request/response sequence correlation.
 
-## Desired reusable outputs
+Until that observation or another independent semantic binding exists, keep both candidates alive and do not assign `PacketOpcodes.UnlockTransPointRsp` in AstaPS.
 
-- full 7.1 registry row for the response;
-- response handler/type relation;
-- parser/message shape;
-- accepted/rejected candidate table;
-- runtime trace proving interaction completion.
+## AstaPS integration rule
+
+Once the response identity is confirmed, update the server lifecycle separately from opcode recovery:
+
+```text
+receive UnlockTransPointReq(sceneId, pointId)
+    -> if newly unlocked:
+         update player state
+         persist
+         send ScenePointUnlockNotify(sceneId, pointId)
+    -> send UnlockTransPointRsp(retcode = 0)
+```
+
+Do not remove the current gameplay refresh/fallback behavior merely because the opcode has been recovered. Its necessity must be validated independently against the current client.
+
+## Primary references
+
+```text
+RESEARCH_LOG.md
+STATIC_BOUNDARY_2026-10-02.md
+RUNTIME_PROBE.md
+RUNTIME_CAPTURE_RECOVERY_2026-10-02.md
+docs/case-studies/unlock-trans-point-7.1.md
+```
 
 The target sample identity is recorded in `../../hashes.json`.
