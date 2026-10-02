@@ -206,7 +206,7 @@ if [[ -n "$ASTAPS" ]]; then
     fi
   done
   if [[ -n "$PACKET_OPCODES" ]]; then
-    if "$PYTHON" -m genshinre import-opcodes-java "$PACKET_OPCODES" "$OUTPUT/known-opcodes.csv"; then
+    if "$PYTHON" -m genshinre import-opcodes-java "$PACKET_OPCODES" "$OUTPUT/control-set.csv"; then
       control_set_ok=true
     else
       optional_failure astaps-control-set
@@ -215,14 +215,14 @@ if [[ -n "$ASTAPS" ]]; then
     optional_failure astaps-packet-opcodes-not-found
   fi
 else
-  echo '      skipped; pass --astaps DIR to generate known-opcodes.csv'
+  echo '      skipped; pass --astaps DIR to generate control-set.csv'
 fi
 
 printf '[optional 11/13] Candidate graph diagnostics\n'
 if [[ "$control_set_ok" == true && "$graph_ok" == true ]]; then
   if ! "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-candidate-graph.csv" \
-    "$OUTPUT/known-opcodes.csv" \
+    "$OUTPUT/control-set.csv" \
     --output "$OUTPUT/registry-candidate-graph.diagnostic.json" \
     > /dev/null; then
     optional_failure registry-candidate-diagnostics
@@ -235,7 +235,7 @@ printf '[optional 12/13] Strict candidate diagnostics\n'
 if [[ "$control_set_ok" == true && "$static_candidates_ok" == true ]]; then
   if ! "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-static-candidates.csv" \
-    "$OUTPUT/known-opcodes.csv" \
+    "$OUTPUT/control-set.csv" \
     --output "$OUTPUT/registry-static-candidates.diagnostic.json" \
     > /dev/null; then
     optional_failure registry-static-diagnostics
@@ -254,7 +254,7 @@ if [[ "$graph_ok" == true ]]; then
     --focus 186,9369,22899,26105
   )
   if [[ "$control_set_ok" == true ]]; then
-    REPORT_ARGS+=(--known-opcodes "$OUTPUT/known-opcodes.csv")
+    REPORT_ARGS+=(--known-opcodes "$OUTPUT/control-set.csv")
   fi
   if ! "$PYTHON" "${REPORT_ARGS[@]}" > "$OUTPUT/registry-candidate-report.summary.json"; then
     optional_failure registry-convergence-report
