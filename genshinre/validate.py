@@ -245,7 +245,7 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
 
     optional = data.get("optional_registry_artifacts_published", [])
     _validate_manifest_paths(
-        path / "registry", optional, "optional_registry_artifacts_published", errors
+        path, optional, "optional_registry_artifacts_published", errors
     )
 
     if data.get("canonical_registry_published") is True:
