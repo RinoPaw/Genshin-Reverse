@@ -11,6 +11,7 @@ on:
       - 'genshinre/artifactpublish.py'
       - 'genshinre/metadata.py'
       - 'genshinre/mhy71.py'
+      - 'genshinre/validate.py'
   workflow_dispatch:
 
 permissions:
