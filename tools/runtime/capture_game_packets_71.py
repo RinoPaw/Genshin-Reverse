@@ -1,14 +1,25 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+EXPECTED_EXE_SHA256 = "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main() -> None:
@@ -19,6 +30,12 @@ def main() -> None:
         )
     )
     parser.add_argument("--process", default="GenshinImpact.exe")
+    parser.add_argument(
+        "--exe",
+        type=Path,
+        required=True,
+        help="exact GenshinImpact.exe to hash before attaching; must match the pinned global 7.1 sample",
+    )
     parser.add_argument("--output", type=Path, default=Path("game-packets-71.ndjson"))
     parser.add_argument(
         "--script",
@@ -26,6 +43,17 @@ def main() -> None:
         default=Path(__file__).with_name("capture_game_packets_71.js"),
     )
     args = parser.parse_args()
+
+    if not args.exe.is_file():
+        raise SystemExit(f"executable does not exist: {args.exe}")
+    exe_sha256 = sha256_file(args.exe)
+    if exe_sha256.lower() != EXPECTED_EXE_SHA256:
+        raise SystemExit(
+            "refusing to attach with build-specific RVAs: executable SHA-256 mismatch\n"
+            f"expected: {EXPECTED_EXE_SHA256}\n"
+            f"actual:   {exe_sha256}\n"
+            f"file:     {args.exe}"
+        )
 
     try:
         import frida
@@ -42,6 +70,18 @@ def main() -> None:
     def record(kind: str, payload: object) -> None:
         row = {"timestamp_utc": utc_now(), "kind": kind, "payload": payload}
         output.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+    record(
+        "capture_session",
+        {
+            "process": args.process,
+            "exe": str(args.exe.resolve()),
+            "exe_sha256": exe_sha256,
+            "expected_exe_sha256": EXPECTED_EXE_SHA256,
+            "build_verified": True,
+            "script": str(args.script.resolve()),
+        },
+    )
 
     def on_message(message, data) -> None:
         if message.get("type") == "send":
@@ -77,6 +117,7 @@ def main() -> None:
     script.on("message", on_message)
     script.load()
 
+    print(f"verified global 7.1 executable: {exe_sha256}")
     print(f"capturing {args.process} -> {args.output}")
     print("trigger one genuine teleport-point unlock; press Enter when the narrow window is captured")
     try:
