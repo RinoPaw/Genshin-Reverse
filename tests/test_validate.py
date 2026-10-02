@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import csv
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
+from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 from genshinre.validate import _validate_generated_artifacts
 
 
@@ -17,7 +19,24 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
     def _write_canonical_registry(self, root: Path) -> None:
         registry = root / "registry"
         registry.mkdir(exist_ok=True)
-        (registry / "registry.csv").write_text("cmd_id\n1\n", encoding="utf-8")
+        row = {column: "" for column in CANONICAL_REGISTRY_COLUMNS}
+        row.update(
+            {
+                "index": "0",
+                "cmd_id": "1",
+                "type_name": "TYPE_1",
+                "type_definition_index": "1",
+                "direction": "C2S",
+                "direction_status": "control-confirmed",
+                "type_slot_rva": "0x1000",
+                "status": "static-verified-identity",
+                "evidence": "unit test",
+            }
+        )
+        with (registry / "registry.csv").open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=CANONICAL_REGISTRY_COLUMNS)
+            writer.writeheader()
+            writer.writerow(row)
         (registry / "registry.summary.json").write_text(
             json.dumps(
                 {
@@ -153,6 +172,29 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             _validate_generated_artifacts(root, errors, [])
 
             self.assertTrue(any("registry/registry.summary.json is missing" in error for error in errors))
+
+    def test_registry_publication_requires_exact_canonical_header(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_canonical_registry(root)
+            (root / "registry" / "registry.csv").write_text("cmd_id\n1\n", encoding="utf-8")
+            self._write_manifest(
+                root,
+                {
+                    "canonical_registry_published": True,
+                    "optional_registry_artifacts_published": [],
+                    "artifacts": [
+                        "generated-artifacts.json",
+                        "registry/registry.csv",
+                        "registry/registry.summary.json",
+                    ],
+                },
+            )
+
+            errors: list[str] = []
+            _validate_generated_artifacts(root, errors, [])
+
+            self.assertTrue(any("canonical header mismatch" in error for error in errors))
 
     def test_registry_summary_must_match_csv(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
