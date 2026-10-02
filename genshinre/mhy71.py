@@ -190,7 +190,10 @@ def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: in
         encrypted = _u64(metadata, offset)
         stream = (key + chunk_index * 0x6B0B40C349AE61E5) & MASK64
         chunks.extend(struct.pack("<Q", encrypted ^ stream))
-    return bytes(chunks[:length]).decode("utf-8", errors="replace")
+    try:
+        return bytes(chunks[:length]).decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"string token 0x{token:08X} is not valid UTF-8") from exc
 
 
 def _header_layout(header: bytes) -> dict[str, int]:
@@ -220,10 +223,20 @@ def _owner_array(count: int, types: list[dict[str, object]], start_key: str, cou
     for item in types:
         start = int(item[start_key])
         span = int(item[count_key])
-        if start < 0 or span <= 0 or start >= count:
+        if span == 0:
             continue
-        end = min(start + span, count)
-        owners[start:end] = array("i", [int(item["type_definition_index"])]) * (end - start)
+        if span < 0:
+            raise ValueError(f"negative {count_key} for type {item['type_definition_index']}")
+        if start < 0 or start >= count:
+            raise ValueError(
+                f"invalid {start_key}={start} for type {item['type_definition_index']} with {count_key}={span}"
+            )
+        end = start + span
+        if end > count:
+            raise ValueError(
+                f"{start_key}/{count_key} span exceeds decoded table for type {item['type_definition_index']}"
+            )
+        owners[start:end] = array("i", [int(item["type_definition_index"])]) * span
     return owners
 
 
@@ -236,8 +249,14 @@ def _decode_parameter_span(
 ) -> tuple[list[int], list[str]]:
     type_indices: list[int] = []
     type_names: list[str] = []
-    if parameter_start < 0 or parameter_count <= 0:
+    if parameter_count == 0:
         return type_indices, type_names
+    if parameter_count < 0:
+        raise ValueError(f"negative parameter count {parameter_count}")
+    if parameter_start < 0:
+        raise ValueError(
+            f"negative parameter start {parameter_start} with nonzero count {parameter_count}"
+        )
 
     for ordinal in range(parameter_count):
         index = parameter_start + ordinal
@@ -330,7 +349,7 @@ def decode_metadata_71(
             method_owners = _owner_array(method_count, types, "method_start", "method_count")
 
             type_array_pointer = image.read_rva(TYPE_ARRAY_POINTER_RVA, 8)
-            if len(type_array_pointer) < 8:
+            if len(type_array_pointer) != 8:
                 raise ValueError("cannot read IL2CPP type-array pointer")
             type_array_va = _u64(type_array_pointer)
             type_array_rva = type_array_va - image.image_base
@@ -343,15 +362,18 @@ def decode_metadata_71(
                 if cached is not None:
                     return cached
                 entry = image.read_rva(type_array_rva + type_index * 16, 16)
-                if len(entry) < 16:
-                    value = f"type_index:{type_index}"
+                if len(entry) != 16:
+                    raise ValueError(f"IL2CPP type entry {type_index} is truncated")
+                kind = entry[0x0A]
+                if kind in (0x11, 0x12):
+                    definition = _u32(entry, 0)
+                    if definition not in type_names:
+                        raise ValueError(
+                            f"IL2CPP type entry {type_index} references unknown type definition {definition}"
+                        )
+                    value = type_names[definition]
                 else:
-                    kind = entry[0x0A]
-                    if kind in (0x11, 0x12):
-                        definition = _u32(entry, 0)
-                        value = type_names.get(definition, f"typeDefinition:{definition}")
-                    else:
-                        value = PRIMITIVE_KINDS.get(kind, f"kind_0x{kind:02X}")
+                    value = PRIMITIVE_KINDS.get(kind, f"kind_0x{kind:02X}")
                 type_cache[type_index] = value
                 return value
 
@@ -425,6 +447,10 @@ def decode_metadata_71(
                     }
 
             _write_csv(output_dir / "methods.csv", METHOD_COLUMNS, method_rows())
+            if owner_mismatches:
+                raise ValueError(
+                    f"decoded method owners disagree with type ranges for {owner_mismatches} rows"
+                )
 
             def pointer_rows():
                 for index in range(method_count):

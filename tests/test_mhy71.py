@@ -5,7 +5,9 @@ import unittest
 
 from genshinre.mhy71 import (
     MASK32,
+    MASK64,
     _decode_parameter_span,
+    _owner_array,
     decode_field_record,
     decode_method_record,
     decode_string_token,
@@ -41,7 +43,6 @@ class Mhy71FormulaTests(unittest.TestCase):
 
     def test_field_record_formulas_round_trip(self) -> None:
         index = 417613
-        # Reuse the decoder's public behavior to derive a deterministic encoded fixture.
         from genshinre.mhy71 import _field_key
 
         key = _field_key(index)
@@ -100,8 +101,35 @@ class Mhy71FormulaTests(unittest.TestCase):
         self.assertEqual([248_305, 248_269], indices)
         self.assertEqual(["ONKOPMILDMF", "PGAMFBPNNIC"], resolved)
 
+    def test_parameter_span_rejects_negative_start_with_nonzero_count(self) -> None:
+        with self.assertRaisesRegex(ValueError, "negative parameter start"):
+            _decode_parameter_span(b"", 0, -1, 1, lambda index: str(index))
+
+    def test_owner_array_rejects_truncated_span(self) -> None:
+        with self.assertRaisesRegex(ValueError, "span exceeds decoded table"):
+            _owner_array(
+                3,
+                [
+                    {
+                        "type_definition_index": 7,
+                        "field_start": 2,
+                        "field_count": 2,
+                    }
+                ],
+                "field_start",
+                "field_count",
+            )
+
     def test_anonymous_string_sentinel_is_empty(self) -> None:
         self.assertEqual("", decode_string_token(b"", 0, MASK32))
+
+    def test_string_token_rejects_invalid_utf8(self) -> None:
+        token = 1 << 24
+        key = (0x55A357D81EF0E48B * 0x5C2B4E660E2D0544) & MASK64
+        encrypted = key ^ 0xFF
+        metadata = struct.pack("<Q", encrypted)
+        with self.assertRaisesRegex(ValueError, "not valid UTF-8"):
+            decode_string_token(metadata, 0, token)
 
 
 if __name__ == "__main__":
