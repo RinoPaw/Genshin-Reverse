@@ -1,19 +1,32 @@
 # Barbara C6 revive chain
 
-Status: client-side trigger chain is **CONFIRMED** from 7.1 BinOutput; cooldown authority and the exact network/server commit path remain **UNRESOLVED**.
+Status: client Ability trigger and 900-second skill cooldown are **CONFIG-CONFIRMED** on current 7.1 data; the exact Barbara C6 wire invoke is **UNRESOLVED**.
 
 ## Scope
 
-This note separates two questions:
+This analysis separates two responsibilities:
 
-1. who decides that Barbara C6 should trigger;
-2. who commits the dead avatar back to an authoritative alive state.
+1. who decides that Barbara C6 should fire after an avatar dies;
+2. who commits and synchronizes the dead avatar back to an authoritative alive state.
 
-Those two responsibilities do not need to live on the same side of the client/server boundary.
+The 7.1 configuration gives a strong answer to the first question. The second still needs an exact wire/native trace.
 
-## 7.1 constellation entry
+## Current 7.1 resource checkpoint
 
-The 7.1 talent config for `Barbara_Constellation_6` attaches four dynamic abilities:
+Current-version Ability evidence was checked against:
+
+```text
+DimbreathBot/AnimeGameData
+commit 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+CNRELWin7.1.0_R48379043_S48511369_D48533839
+2026-10-01
+```
+
+These resources establish Ability/config semantics. Concrete wire-local IDs and payloads are not promoted without packet or native evidence.
+
+## C6 installs four abilities
+
+`BinOutput/Talent/AvatarTalents/ConfigTalent_Barbara.json` maps `Barbara_Constellation_6` to four added abilities:
 
 ```text
 Avatar_Barbara_ReBorn_Pre
@@ -22,172 +35,188 @@ Avatar_Barbara_ReBornEffect_01
 Avatar_Barbara_ReBornEffect_02
 ```
 
-Source:
+The important trigger/execution pair is `ReBorn_Pre` + `ReBorn`.
+
+## Death trigger
+
+`Avatar_Barbara_ReBorn_Pre` contains a `DoReviveMixin` with `type = OffStage`.
+
+The two action-list field names are obfuscated in the current output, but the embedded debug strings expose their roles. The kill-side list contains:
 
 ```text
-iam-akuzihs/binout
-commit 6736c676c273ea5da50712e1c5a6d58aa0e69749
-v7.1.0-9587d1afbd/BinOutput/Talent/AvatarTalents/ConfigTalent_Barbara.json
+DebugLog "onKillActions Start!!!!!!"
+EntityDoSkill skillID=10076 doOffStage=true
 ```
 
-This confirms that C6 installs a dedicated revive ability chain instead of relying only on Barbara's ordinary base skill logic.
-
-## Confirmed 7.1 trigger chain
-
-`Avatar_Barbara_ReBorn_Pre` contains a `DoReviveMixin` configured for `OffStage` operation.
-
-Its kill-side actions are:
+The revive-side list contains:
 
 ```text
-DoReviveMixin
-  type = OffStage
-  onKillActions
-    -> DebugLog("onKillActions Start!!!!!!")
-    -> EntityDoSkill(skillID = 10076, doOffStage = true)
+EntityDoSkill skillID=10079 doOffStage=true
+EntityDoSkill skillID=10080 doOffStage=true
+DebugLog "onReviveActions Start!!!!!!"
 ```
 
-The same ability unlocks the hidden skill on add:
+`ReBorn_Pre.onAdded` also contains:
 
 ```text
-Avatar_Barbara_ReBorn_Pre.onAdded
-  -> UnlockSkill(skillID = 10076)
+UnlockSkill skillID=10076
 ```
 
-The revive-side actions then execute the two presentation/effect skills:
+So the C6 ability itself observes the off-stage death/revive lifecycle and starts hidden skill `10076` from the kill path.
+
+Older deobfuscated client metadata independently shows `AbilityDoReviveMixin : BaseAbilityMixin` implementing event-listener methods such as `ListenEvent`, `AddEventListener`, and `RemoveEventListener`. That is structural continuity evidence only; current 7.1 BinOutput is the version-specific evidence used above.
+
+## Cooldown identity: skill 10076
+
+Current 7.1 `ExcelBinOutput/AvatarSkillExcelConfigData.json` contains:
 
 ```text
-onReviveActions
-  -> EntityDoSkill(skillID = 10079)
-  -> EntityDoSkill(skillID = 10080)
+id          = 10076
+cdTime      = 900.0
+buffIcon    = Skill_B_Barbara_01
+abilityName = Avatar_Barbara_ReBorn
 ```
 
-The actual revive ability begins by starting skill `10076`, then performs a revive action:
+`900 s = 15 min`.
+
+This closes the earlier cooldown uncertainty: Barbara C6 has a concrete hidden avatar-skill cooldown identity in 7.1. The cooldown is not merely an arbitrary 15-minute constant embedded in `DoReviveMixin`.
+
+An official server can still validate, restore, or persist that skill cooldown. What the resource does not support is treating a Barbara-specific wall-clock timer in the generic server death hook as the native source of the C6 trigger decision.
+
+## Revive action
+
+`Avatar_Barbara_ReBorn.onAbilityStart` contains:
 
 ```text
-Avatar_Barbara_ReBorn.onAbilityStart
-  -> AvatarSkillStart(skillID = 10076, cdRatio = 1, doOffStage = true)
-  -> DebugLog("10076 Start!!!!!!")
-  -> ReviveAvatar(
-       amountByTargetMaxHPRatio = "HealHP",
-       target = AllPlayerAvatars,
-       doOffStage = true)
+AvatarSkillStart skillID=10076 cdRatio=1 doOffStage=true
+DebugLog "10076 Start!!!!!!"
+ReviveAvatar target=AllPlayerAvatars doOffStage=true
+```
 
+The same ability defines:
+
+```text
 abilitySpecials:
-  HealHP = 1
+  HealHP = 1.0
 ```
 
-So the resource-level chain is:
+The current configured sequence is therefore:
 
 ```text
-Barbara C6 talent
-  -> add ReBorn abilities
-  -> off-stage DoReviveMixin observes the kill/death condition
+Barbara C6 installed
+  -> Avatar_Barbara_ReBorn_Pre
+  -> off-stage DoReviveMixin receives the kill lifecycle event
   -> EntityDoSkill(10076)
-  -> AvatarSkillStart(10076)
-  -> ReviveAvatar(AllPlayerAvatars, 100% target max HP)
-  -> effect skills 10079 / 10080
-```
-
-Source:
-
-```text
-iam-akuzihs/binout
-commit 6736c676c273ea5da50712e1c5a6d58aa0e69749
-v7.1.0-9587d1afbd/BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json
+  -> Avatar_Barbara_ReBorn
+  -> AvatarSkillStart(10076), using the 900 s skill cooldown
+  -> ReviveAvatar(AllPlayerAvatars, HealHP=1.0)
+  -> revive lifecycle runs effect skills 10079 / 10080
 ```
 
 ### Naming correction
 
-The concrete 7.1 Barbara C6 action recovered here is named `ReviveAvatar` in the extracted BinOutput. Earlier generic references to `ReviveDeadAvatar` should not be used as evidence for this specific 7.1 chain.
+The concrete Barbara C6 action in current 7.1 BinOutput is `ReviveAvatar`.
 
-The Barbara 7.1 block also contains no visible `byServer` field on this `ReviveAvatar` action. That absence does not prove which side is authoritative; it only means the ownership question cannot be resolved from a `byServer` value in this block.
-
-## Cooldown evidence
-
-The hidden skill structure strongly suggests that the 15-minute C6 cooldown is represented through the skill system rather than a Barbara-specific timer embedded directly in `DoReviveMixin`.
-
-Historical `AvatarSkillData` from 2.8 contains:
-
-```text
-10076  Avatar_Barbara_ReBorn           skill CD = 900
-10079  Avatar_Barbara_ReBornEffect_01  skill CD = 900
-10080  Avatar_Barbara_ReBornEffect_02  skill CD = 900
-```
-
-and marks skill `10076` as ignoring cooldown-reduction effects.
-
-Historical source:
-
-```text
-Ahanlei123/2.8_live_data
-commit f25e3155e38f9dc8f647493bf23a935147caf59e
-txt/AvatarSkillData.txt
-```
-
-`900 s = 15 min`, matching Barbara C6's documented cooldown. This is strong continuity evidence, but it is still historical-only until the exact 7.1 `AvatarSkillExcelConfigData` row for skill `10076` is recovered.
-
-Current status:
-
-```text
-PROBABLE: 10076 remains the cooldown carrier in 7.1.
-UNKNOWN:  exact 7.1 skill-table fields / persistence flags.
-UNKNOWN:  whether the official server independently validates or stores this cooldown.
-```
+Generic/historical references to `ReviveDeadAvatar` are useful for understanding the action family, but they must not be cited as the action name of this specific Barbara 7.1 chain.
 
 ## Network boundary
 
-AstaPS exposes the normal client-to-server Ability path through `AbilityInvocationsNotify`: each client-provided `AbilityInvokeEntry` is passed to `AbilityManager.onAbilityInvoke()` and then forwarded according to its forward type.
-
-That architecture proves that client-executed Ability state routinely crosses the C2S boundary, but the present evidence does **not** yet prove which concrete `AbilityInvokeArgument` carries Barbara's `ReviveAvatar` result in 7.1.
-
-Therefore the current model is:
+Current 7.1 protocol mappings identify:
 
 ```text
-CONFIRMED:
-  client resource contains the C6 death-trigger and revive ability chain.
-
-PROBABLE:
-  the client executes the trigger/cooldown skill logic and reports resulting Ability state/invokes.
-
-UNKNOWN:
-  exact 7.1 AbilityInvokeEntry argument(s) produced by this chain.
-  exact 7.1 AbilityInvocationsNotify opcode/type identity in the recovered registry.
-  whether the server validates skill 10076 cooldown independently.
-  whether the final authoritative LIFE_ALIVE transition is committed directly from the invoke
-  or through a separate server-side life-state path after receiving it.
+AbilityInvocationsNotify = 6622
 ```
 
-## AstaPS implication
+The local 7.1 registry independently has CmdId `6622` as obfuscated protobuf type `ALPCFFANJPJ` with a high-confidence return-constant `GetCmdId` candidate.
 
-AstaPS currently supplements this missing path with server-side `PartyReviveHelper` logic and a server-owned 15-minute cooldown. That is useful gameplay fallback, but it should not be treated as evidence of the official ownership model.
+AstaPS's current C2S handler parses `AbilityInvocationsNotify`, iterates its `AbilityInvokeEntry` values, and calls `AbilityManager.onAbilityInvoke(entry)`.
 
-For protocol-faithful implementation, do not remove the fallback until the 7.1 invoke path is captured or statically identified. When that path is understood, the server should accept/validate the official revive transition without allowing duplicate revival from both the client-driven path and the fallback.
+For an entry whose `head.local_id != 0`, AstaPS resolves the instanced ability/modifier, maps the local ID through the deterministic `localIdToAction` / `localIdToMixin` tables, and executes the corresponding resource action. The local-ID generator assigns those action IDs deterministically from the Ability config structure.
 
-This also supports keeping generic damage/hit processing permissive: character abilities may depend on client Ability events around death, even when the associated combat event does not directly reduce HP.
+That gives the Barbara chain a normal client-Ability-to-server execution route without requiring a dedicated `BarbaraReviveReq` message.
 
-## Next recovery steps
-
-1. Recover the exact 7.1 `AvatarSkillExcelConfigData` entry for `10076`, plus `10079` and `10080`, and confirm the 900-second cooldown and persistence/share fields.
-2. Capture or statically trace `AbilityInvocationsNotify` while Barbara C6 triggers.
-3. Identify the emitted `AbilityInvokeEntry.argument_type`, entity id, head/ability identifier, and payload.
-4. Recover the 7.1 CmdId/type for `AbilityInvocationsNotify` in the client registry.
-5. Trace the receive-side handler from that invoke to the client's post-revive life-state handling.
-6. Repeat once with C6 off cooldown and once while skill `10076` is still cooling down. Compare emitted invokes.
-7. Test reconnect / scene transition during cooldown to determine whether cooldown persistence is client-local, server-restored, or both.
-
-## Runtime validation target
-
-A useful trace should contain this sequence around one lethal hit:
+Still unresolved:
 
 ```text
-victim reaches death state
-Barbara is off-stage and C6 is installed
-DoReviveMixin kill path fires
-skill 10076 starts
-revive-related AbilityInvokeEntry/entries are sent
-server replies/forwards/synchronizes
-victim transitions back to alive at full HP
-skill 10076 remains unavailable for ~900 s
+exact AbilityInvokeEntry emitted when Barbara C6 fires
+exact head.local_id for the ReBorn action in the live client instance
+exact argument_type and ability_data payload
+whether hidden skill 10076 also emits EvtDoSkillSuccNotify
+exact official-server cooldown validation/persistence behavior
 ```
 
-A second lethal hit during that window should show whether the client suppresses the revive chain before any C2S revive invoke is emitted.
+Do not promote any of those values until a current 7.1 capture or native sender xref proves them.
+
+## Implication for AstaPS
+
+AstaPS currently has two potential trigger routes:
+
+```text
+A. Ability-driven
+   client Ability invoke
+     -> ActionReviveAvatar
+     -> server Dead -> Alive commit/sync
+
+B. server fallback
+   generic death handling
+     -> PartyReviveHelper.tryBarbaraC6AfterDeath()
+     -> BARBARA_CD_UNTIL wall-clock timer
+     -> automatic revive
+```
+
+The current 7.1 resource model supports A as the native trigger model. B is gameplay fallback/emulation and must not be used as evidence that the official server independently decides to fire C6 on every death.
+
+`ActionReviveAvatar` remains useful: receiving a client Ability action does not remove the server's responsibility to validate and synchronize the resulting life state.
+
+The known persistent-dead-state failure also means HP restoration alone is insufficient. A successful revive must explicitly complete the Dead -> Alive transition and clear any protected dead flag before later combat processing.
+
+### Cooldown migration rule
+
+Do not delete `BARBARA_CD_UNTIL` merely because skill `10076` is now identified.
+
+Until AstaPS has generic avatar-skill cooldown validation/state for this hidden skill, the existing timer can remain as a temporary anti-replay guard. It should stop being the thing that *decides* C6 fires once the Ability-driven route is runtime-confirmed.
+
+The long-term server model should validate the cooldown identity `skill 10076 / 900 s`, not maintain a parallel Barbara-specific trigger lifecycle.
+
+## Confidence table
+
+| Claim | Status | Evidence |
+| --- | --- | --- |
+| Barbara C6 adds the four `ReBorn*` abilities | CONFIRMED | current 7.1 talent config |
+| `ReBorn_Pre` uses off-stage `DoReviveMixin` | CONFIRMED | current 7.1 ability config |
+| kill lifecycle starts hidden skill 10076 | CONFIRMED | current 7.1 ability config + embedded debug semantic |
+| skill 10076 is `Avatar_Barbara_ReBorn` | CONFIRMED | current 7.1 AvatarSkillExcel config |
+| skill 10076 has `cdTime = 900` | CONFIRMED | current 7.1 AvatarSkillExcel config |
+| `ReBorn` starts skill 10076 then runs `ReviveAvatar` | CONFIRMED | current 7.1 ability config |
+| revive target is `AllPlayerAvatars` with `HealHP = 1.0` | CONFIRMED | current 7.1 ability config |
+| current Ability C2S channel is CmdId 6622 | CONFIRMED | current 7.1 protocol mapping + registry candidate |
+| Barbara C6 specifically uses 6622 with a recovered concrete local ID | PROBABLE / UNRESOLVED | generic Ability pipeline is known; exact live entry not captured |
+| official server independently auto-triggers C6 from generic death handling | NO POSITIVE EVIDENCE | current config defines a dedicated client Ability lifecycle trigger |
+
+## Runtime proof target
+
+Capture three otherwise identical lethal events:
+
+```text
+A. Barbara C6 present, skill 10076 ready
+B. Barbara C6 present, skill 10076 cooling down
+C. Barbara absent / C6 unavailable
+```
+
+For CmdId `6622`, decode every batched `AbilityInvokeEntry` and compare:
+
+```text
+entity_id
+head.instanced_ability_id
+head.instanced_modifier_id
+head.local_id
+head.target_id
+argument_type
+ability_data
+```
+
+Also watch `EvtDoSkillSuccNotify` for skill `10076`, but do not assume the off-stage hidden skill sends it until observed.
+
+The decisive result is an invoke/action sequence unique to case A that resolves to `Avatar_Barbara_ReBorn` / `ReviveAvatar`. A second death during the 900-second cooldown should suppress that trigger sequence.
+
+Once the exact entry is captured, record its local-ID mapping here. At that point `PartyReviveHelper.tryBarbaraC6AfterDeath()` can be evaluated for removal while retaining authoritative revive-state synchronization and cooldown validation.
