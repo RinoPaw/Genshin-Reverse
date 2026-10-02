@@ -10,7 +10,7 @@ from .dumpcs import import_dump_cs
 from .extractors import run_mhydump
 from .fingerprint import fingerprint
 from .getcmdid import scan_constant_cmdids
-from .metadata import build_type_methods, query_methods
+from .metadata import build_type_methods, query_fields, query_methods
 from .mhy71 import decode_metadata_71
 from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
 from .registry import normalize_registry, query_registry
@@ -78,11 +78,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("methods_csv", type=Path)
     p.add_argument("output_json", type=Path)
 
-    p = sub.add_parser("query-methods", help="query metadata/methods.csv")
+    p = sub.add_parser("query-methods", help="stream-query metadata/methods.csv")
     p.add_argument("methods_csv", type=Path)
     p.add_argument("--type")
+    p.add_argument("--type-definition-index", type=int)
     p.add_argument("--parameter-type")
     p.add_argument("--method-name")
+
+    p = sub.add_parser("query-fields", help="stream-query metadata/fields.csv")
+    p.add_argument("fields_csv", type=Path)
+    p.add_argument("--type")
+    p.add_argument("--type-definition-index", type=int)
+    p.add_argument("--field-name")
+    p.add_argument("--field-type")
+    p.add_argument("--field-type-index", type=int)
 
     p = sub.add_parser("scan-constant-cmdids", help="scan method RVAs for conservative constant-return CmdId candidates")
     p.add_argument("exe", type=Path)
@@ -184,9 +193,39 @@ def main() -> None:
         index = build_type_methods(args.methods_csv, args.output_json)
         print(json.dumps({"keys": len(index)}, indent=2))
     elif args.command == "query-methods":
-        if not any((args.type, args.parameter_type, args.method_name)):
-            raise SystemExit("provide --type, --parameter-type or --method-name")
-        rows = query_methods(args.methods_csv, args.type, args.parameter_type, args.method_name)
+        if not any((args.type, args.parameter_type, args.method_name, args.type_definition_index is not None)):
+            raise SystemExit("provide --type, --type-definition-index, --parameter-type or --method-name")
+        rows = query_methods(
+            args.methods_csv,
+            type_name=args.type,
+            parameter_type=args.parameter_type,
+            method_name=args.method_name,
+            type_definition_index=args.type_definition_index,
+        )
+        print(json.dumps(rows, indent=2, ensure_ascii=False))
+        if not rows:
+            raise SystemExit(1)
+    elif args.command == "query-fields":
+        if not any(
+            (
+                args.type,
+                args.field_name,
+                args.field_type,
+                args.type_definition_index is not None,
+                args.field_type_index is not None,
+            )
+        ):
+            raise SystemExit(
+                "provide --type, --type-definition-index, --field-name, --field-type or --field-type-index"
+            )
+        rows = query_fields(
+            args.fields_csv,
+            type_name=args.type,
+            field_name=args.field_name,
+            field_type=args.field_type,
+            type_definition_index=args.type_definition_index,
+            field_type_index=args.field_type_index,
+        )
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
             raise SystemExit(1)
