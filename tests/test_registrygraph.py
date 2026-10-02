@@ -107,7 +107,8 @@ class RegistryGraphTests(unittest.TestCase):
             self.assertTrue(result["all_preserved_anchors_pass"])
             self.assertEqual(-4893, result["distance_from_historical_scale"])
 
-            rows = list(csv.DictReader(output.open("r", encoding="utf-8", newline="")))
+            with output.open("r", encoding="utf-8", newline="") as f:
+                rows = list(csv.DictReader(f))
             self.assertEqual(3, len(rows))
             row9369 = next(row for row in rows if row["cmd_id"] == "9369")
             self.assertEqual("37523", row9369["usage_destination"])
@@ -147,7 +148,8 @@ class RegistryGraphTests(unittest.TestCase):
             result = build_registry_candidate_graph(usage, getcmdid, output)
             self.assertEqual(1, result["unique_cmd_ids"])
             self.assertEqual(1, result["ambiguous_getcmdid_candidates"])
-            rows = list(csv.DictReader(output.open("r", encoding="utf-8", newline="")))
+            with output.open("r", encoding="utf-8", newline="") as f:
+                rows = list(csv.DictReader(f))
             self.assertEqual(2, len(rows))
             self.assertTrue(all(row["status"] == "JOINED_AMBIGUOUS_USAGE" for row in rows))
 
