@@ -106,7 +106,9 @@ class ArtifactPublishTests(unittest.TestCase):
 
             self.assertFalse(result["canonical_registry_published"])
             self.assertTrue((version / "metadata/types.csv").is_file())
+            self.assertTrue((version / "metadata/fields.csv").is_file())
             self.assertTrue((version / "metadata/methods.csv").is_file())
+            self.assertTrue((version / "metadata/method-pointers.csv").is_file())
             self.assertTrue((version / "metadata/type-methods.json").is_file())
             self.assertTrue((version / "metadata/runtime-types.csv").is_file())
             self.assertTrue((version / "registry/getcmdid-candidates.csv").is_file())
@@ -114,6 +116,8 @@ class ArtifactPublishTests(unittest.TestCase):
             self.assertTrue((version / "registry/registry-candidate-graph.csv").is_file())
             self.assertFalse((version / "registry/registry.csv").exists())
             self.assertTrue((version / "generated-artifacts.json").is_file())
+            self.assertEqual(result["files"], result["artifacts"])
+            self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
 
     def test_rejects_seed_sized_metadata_even_when_summary_claims_full_fixture(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -122,6 +126,18 @@ class ArtifactPublishTests(unittest.TestCase):
             # Remove one method row while keeping the summary untouched.
             self._write_csv(work / "metadata/methods.csv", 1)
             with self.assertRaisesRegex(ValueError, "CSV row count mismatch"):
+                publish_generated_artifacts_71(
+                    work,
+                    version,
+                    expected_counts=(2, 3, 4),
+                )
+
+    def test_rejects_incomplete_method_pointer_table(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            work, version = self._fixture(root)
+            self._write_csv(work / "metadata/method-pointers.csv", 3)
+            with self.assertRaisesRegex(ValueError, "method-pointer CSV row count mismatch"):
                 publish_generated_artifacts_71(
                     work,
                     version,
