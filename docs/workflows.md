@@ -88,6 +88,7 @@ The following obsolete shells were retired after their reusable behavior or evid
 - `publish-7.1-from-artifact.yml` — hard-coded an old Actions run and duplicate publisher;
 - `publish-7.1-registry.yml` — inline legacy registry publisher superseded by `genshinre.registryxrefpublish`;
 - `inspect-usage-artifact.yml` — hard-coded an old failed-work Actions run and only performed ad-hoc grep/printing;
+- `compare-7.0-7.1-typedef-direct.yml` — one-off direct TypeDef-order heuristic whose controls were unstable; its rejected result is preserved in the UnlockTransPoint 7.1 case study and must not drive confirmation;
 - the old GetCmdId-only `registry-candidate-graph.*` alias — reproduced under `getcmdid-candidate-graph.*`, leaving `registry-candidate-graph.*` available for the usage-join graph.
 
 ## Adding a workflow
