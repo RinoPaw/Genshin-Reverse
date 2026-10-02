@@ -86,7 +86,7 @@ jobs:
                   for oi,op in enumerate(insn.operands):
                       if op.type!=X86_OP_MEM or op.mem.base==X86_REG_RIP:continue
                       if int(op.mem.disp)!=expected_disp:continue
-                      key=(irva,insn.bytes,oi)
+                      key=(irva,bytes(insn.bytes),oi)
                       if key in seen:continue
                       seen.add(key)
                       out.append({
@@ -95,7 +95,7 @@ jobs:
                           'disp':f'0x{expected_disp:X}',
                           'mnemonic':insn.mnemonic,
                           'op_str':insn.op_str,
-                          'bytes':insn.bytes.hex(),
+                          'bytes':bytes(insn.bytes).hex(),
                           'operand_index':oi,
                           'access':access_name(op,insn,oi),
                           'base_reg':insn.reg_name(op.mem.base),
