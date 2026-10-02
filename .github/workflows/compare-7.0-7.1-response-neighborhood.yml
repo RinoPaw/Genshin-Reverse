@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/compare-7.0-7.1-response-neighborhood.yml'
       - 'tools/compare_scene_response_neighborhood_70_71.py'
+      - 'tools/compare_current_scene_cluster_to_70.py'
   workflow_dispatch:
 
 permissions:
@@ -53,10 +54,22 @@ jobs:
             /tmp/response-neighborhood-70-71.json \
             --old-target-rva 0xB6F18D0 \
             --radius 14
+      - name: Map current unlock scene cluster to 7.0
+        run: |
+          python tools/compare_current_scene_cluster_to_70.py \
+            /tmp/gi70/GenshinImpact.exe \
+            /tmp/data/data/dump.json \
+            /tmp/gi71/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            /tmp/current-scene-cluster-to-70.json \
+            --start-rva 0xF0452B0 \
+            --end-rva 0xF046C00
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: response-neighborhood-70-71
-          path: /tmp/response-neighborhood-70-71.json
+          path: |
+            /tmp/response-neighborhood-70-71.json
+            /tmp/current-scene-cluster-to-70.json
           if-no-files-found: warn
