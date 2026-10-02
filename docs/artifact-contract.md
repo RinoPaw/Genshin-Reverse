@@ -11,16 +11,15 @@ Every generated dataset should answer four questions without relying on someone'
 
 A version/platform directory binds generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, recording the publisher, validation result, compact metadata row counts, canonical-registry state, and the fixed canonical files published by that run.
 
-The current manifest contract is version 2:
+The current manifest contract is version 3:
 
 ```text
-manifest_version = 2
+manifest_version = 3
 artifacts = canonical files published by this run
-optional_artifacts_published = []
 canonical_registry_published = true
 ```
 
-`optional_artifacts_published` is retained as an empty v2 schema field so existing manifest readers stay structurally stable. The canonical publisher never fills it. Research artifacts are published by their own explicit research workflows.
+There is no optional publication surface. Research artifacts are published by their own explicit research workflows and never ride the canonical publisher.
 
 Published paths are relative to the version/platform root, for example:
 
@@ -32,7 +31,7 @@ registry/getcmdid-candidates.csv
 
 Every path listed in `artifacts` must exist after publication.
 
-The retired v1 aliases `files` and `optional_registry_artifacts_published` are rejected. Current tooling must not emit or depend on them. Ordinary CI validates the committed manifest without downloading the client.
+The retired fields `files`, `optional_registry_artifacts_published`, and `optional_artifacts_published` are rejected. Current tooling must not emit or depend on them. Ordinary CI validates the committed manifest without downloading the client.
 
 ## Work output versus canonical published indexes
 
