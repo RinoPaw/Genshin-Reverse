@@ -5,7 +5,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-CANONICAL_COLUMNS = (
+NORMALIZED_REGISTRY_COLUMNS = (
     "cmd_id",
     "type_name",
     "type_definition_index",
@@ -74,6 +74,11 @@ def normalize_registry(
     direction_map: dict[str, str] | None = None,
     provenance: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    """Normalize arbitrary registry-like CSV into a stable generic interchange shape.
+
+    This helper does not establish the current target-version canonical registry.
+    Canonical publication requires the version-specific evidence gate.
+    """
     direction_map = direction_map or {}
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,29 +88,29 @@ def normalize_registry(
             raise ValueError("registry CSV has no header")
         rows = []
         for raw in reader:
-            canonical: dict[str, str] = {key: "" for key in CANONICAL_COLUMNS}
+            normalized: dict[str, str] = {key: "" for key in NORMALIZED_REGISTRY_COLUMNS}
             for key, value in raw.items():
                 if key is None:
                     continue
                 target = ALIASES.get(key.strip().lower(), key.strip().lower())
-                if target in canonical:
-                    canonical[target] = (value or "").strip()
+                if target in normalized:
+                    normalized[target] = (value or "").strip()
 
-            if not canonical["cmd_id"]:
+            if not normalized["cmd_id"]:
                 raise ValueError("registry row is missing cmd_id")
-            cmd_id = int(canonical["cmd_id"], 0)
+            cmd_id = int(normalized["cmd_id"], 0)
             if not 0 <= cmd_id <= 65535:
                 raise ValueError(f"cmd_id out of range: {cmd_id}")
-            canonical["cmd_id"] = str(cmd_id)
+            normalized["cmd_id"] = str(cmd_id)
 
-            if canonical["type_definition_index"]:
-                canonical["type_definition_index"] = str(int(canonical["type_definition_index"], 0))
-            canonical["type_cache_rva"] = _normalize_address(canonical["type_cache_rva"])
-            canonical["get_cmd_id_rva"] = _normalize_address(canonical["get_cmd_id_rva"])
-            canonical["direction"] = _normalize_direction(canonical["direction"], direction_map)
-            if canonical["status"] not in ALLOWED_STATUS:
-                raise ValueError(f"unsupported status: {canonical['status']}")
-            rows.append(canonical)
+            if normalized["type_definition_index"]:
+                normalized["type_definition_index"] = str(int(normalized["type_definition_index"], 0))
+            normalized["type_cache_rva"] = _normalize_address(normalized["type_cache_rva"])
+            normalized["get_cmd_id_rva"] = _normalize_address(normalized["get_cmd_id_rva"])
+            normalized["direction"] = _normalize_direction(normalized["direction"], direction_map)
+            if normalized["status"] not in ALLOWED_STATUS:
+                raise ValueError(f"unsupported status: {normalized['status']}")
+            rows.append(normalized)
 
     ids = [int(row["cmd_id"]) for row in rows]
     duplicates = sorted(cmd for cmd, count in Counter(ids).items() if count > 1)
@@ -115,7 +120,7 @@ def normalize_registry(
     rows.sort(key=lambda row: int(row["cmd_id"]))
     csv_path = output_dir / "registry.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CANONICAL_COLUMNS)
+        writer = csv.DictWriter(f, fieldnames=NORMALIZED_REGISTRY_COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -124,6 +129,8 @@ def normalize_registry(
     )
 
     summary: dict[str, object] = {
+        "format": "generic-normalized-registry",
+        "canonical_publication": False,
         "row_count": len(rows),
         "unique_cmd_ids": len(ids),
         "cmd_id_min": min(ids) if ids else None,
