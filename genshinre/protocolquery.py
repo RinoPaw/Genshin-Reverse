@@ -62,6 +62,28 @@ def _message_shapes(path: Path, cmd_id: int) -> list[dict[str, object]]:
     return result
 
 
+def _analysis_cases(version_dir: Path, cmd_id: int) -> list[dict[str, object]]:
+    case_dir = version_dir / "analyses" / f"cmdid-{cmd_id}"
+    if not case_dir.is_dir():
+        return []
+
+    item: dict[str, object] = {
+        "topic": case_dir.name,
+        "readme_path": str((case_dir / "README.md").relative_to(version_dir))
+        if (case_dir / "README.md").is_file()
+        else None,
+        "evidence_path": str((case_dir / "evidence.json").relative_to(version_dir))
+        if (case_dir / "evidence.json").is_file()
+        else None,
+    }
+    evidence_path = case_dir / "evidence.json"
+    if evidence_path.is_file():
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        if isinstance(evidence, dict):
+            item["evidence"] = evidence
+    return [item]
+
+
 def query_protocol(
     version_dir: Path,
     *,
@@ -121,6 +143,7 @@ def query_protocol(
             identity_cmd,
         )
         shapes = _message_shapes(version_dir / "proto" / "message-shapes.json", identity_cmd)
+        analyses = _analysis_cases(version_dir, identity_cmd)
 
         results.append(
             {
@@ -133,6 +156,7 @@ def query_protocol(
                 "runtime_observations": observations,
                 "known_opcodes": known_opcodes,
                 "message_shapes": shapes,
+                "analyses": analyses,
                 "counts": {
                     "fields": len(fields),
                     "methods": len(methods),
@@ -142,6 +166,7 @@ def query_protocol(
                     "runtime_observations": len(observations),
                     "known_opcodes": len(known_opcodes),
                     "message_shapes": len(shapes),
+                    "analyses": len(analyses),
                 },
             }
         )
