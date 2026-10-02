@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: generate-7.1-reverse-artifacts
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   generate:
