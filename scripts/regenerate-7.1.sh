@@ -196,22 +196,15 @@ fi
 printf '[optional 10/13] Importing AstaPS control set\n'
 control_set_ok=false
 if [[ -n "$ASTAPS" ]]; then
-  PACKET_OPCODES=""
-  for candidate in \
-    "$ASTAPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java" \
-    "$ASTAPS/src/main/java/emu/grasscutter/net/proto/PacketOpcodes.java"; do
-    if [[ -f "$candidate" ]]; then
-      PACKET_OPCODES="$candidate"
-      break
-    fi
-  done
-  if [[ -n "$PACKET_OPCODES" ]]; then
+  PACKET_OPCODES="$ASTAPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java"
+  if [[ -f "$PACKET_OPCODES" ]]; then
     if "$PYTHON" -m genshinre import-opcodes-java "$PACKET_OPCODES" "$OUTPUT/control-set.csv"; then
       control_set_ok=true
     else
       optional_failure astaps-control-set
     fi
   else
+    printf '      expected current AstaPS PacketOpcodes.java at: %s\n' "$PACKET_OPCODES" >&2
     optional_failure astaps-packet-opcodes-not-found
   fi
 else
