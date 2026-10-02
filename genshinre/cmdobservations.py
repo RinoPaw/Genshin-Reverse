@@ -63,3 +63,67 @@ def validate_observation_summary(path: Path) -> list[str]:
         errors.append(f"{path.name}: {exc}")
 
     return errors
+
+
+def validate_confirmed_semantic_alignment(
+    observations_path: Path,
+    known_opcodes_path: Path,
+) -> list[str]:
+    """Ensure confirmed observation-summary rows agree with canonical semantics.
+
+    Candidate and unresolved rows intentionally remain outside this gate. The
+    observation summary may also be a subset of the canonical semantic table.
+    """
+
+    errors: list[str] = []
+    try:
+        with known_opcodes_path.open("r", encoding="utf-8-sig", newline="") as f:
+            known_rows = list(csv.DictReader(f))
+        known_by_cmd = {
+            int(str(row["cmd_id"]).strip(), 0): row
+            for row in known_rows
+            if str(row.get("cmd_id", "")).strip()
+        }
+
+        with observations_path.open("r", encoding="utf-8-sig", newline="") as f:
+            for line_no, row in enumerate(csv.DictReader(f), start=2):
+                if str(row.get("status", "")).strip() != "CONFIRMED":
+                    continue
+                cmd_text = str(row.get("cmd_id", "")).strip()
+                if not cmd_text:
+                    errors.append(
+                        f"{observations_path.name}:{line_no}: CONFIRMED row must have cmd_id"
+                    )
+                    continue
+                try:
+                    cmd_id = int(cmd_text, 0)
+                except ValueError:
+                    continue
+
+                known = known_by_cmd.get(cmd_id)
+                if known is None:
+                    errors.append(
+                        f"{observations_path.name}:{line_no}: confirmed CmdId {cmd_id} "
+                        "is absent from proto/known-opcodes.csv"
+                    )
+                    continue
+
+                name = str(row.get("name", "")).strip()
+                known_name = str(known.get("semantic_name", "")).strip()
+                if name != known_name:
+                    errors.append(
+                        f"{observations_path.name}:{line_no}: CmdId {cmd_id} name {name!r} "
+                        f"does not match known-opcodes {known_name!r}"
+                    )
+
+                direction = str(row.get("direction", "")).strip()
+                known_direction = str(known.get("direction", "")).strip()
+                if direction != known_direction:
+                    errors.append(
+                        f"{observations_path.name}:{line_no}: CmdId {cmd_id} direction "
+                        f"{direction!r} does not match known-opcodes {known_direction!r}"
+                    )
+    except Exception as exc:
+        errors.append(f"confirmed observation alignment: {exc}")
+
+    return errors
