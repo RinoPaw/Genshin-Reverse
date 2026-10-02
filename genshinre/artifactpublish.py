@@ -312,7 +312,7 @@ def publish_generated_artifacts_71(
     published_files = sorted(set(published_files))
 
     manifest: dict[str, object] = {
-        "manifest_version": 2,
+        "manifest_version": 3,
         "source": "genshinre.artifactpublish",
         "work": str(work_dir),
         "status": "generated-artifacts-published",
@@ -323,7 +323,6 @@ def publish_generated_artifacts_71(
         },
         "canonical_registry_published": True,
         "artifacts": published_files,
-        "optional_artifacts_published": [],
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "publication requires the current canonical 7.1 registry and exact sample identities",
