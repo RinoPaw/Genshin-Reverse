@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/recover-7.1-type-cache-xrefs.yml'
       - 'genshinre/typecachexref.py'
+      - 'versions/7.1.0-global/windows-x64/metadata/methods.csv'
+      - 'versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv'
+      - 'versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv'
 
 permissions:
   contents: write
@@ -13,7 +16,7 @@ permissions:
 jobs:
   recover:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,24 +27,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e . zstandard capstone
+        run: python -m pip install -e . zstandard capstone
 
-      - name: Handle anonymous 7.1 metadata string sentinel
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('genshinre/mhy71.py')
-          text = path.read_text(encoding='utf-8')
-          needle = 'def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: int) -> str:\n    length = (token >> 24) & 0xFF\n'
-          replacement = 'def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: int) -> str:\n    if token == MASK32:\n        return ""\n    length = (token >> 24) & 0xFF\n'
-          if needle not in text:
-              raise SystemExit('decode_string_token shape changed; refusing runtime patch')
-          path.write_text(text.replace(needle, replacement, 1), encoding='utf-8')
-          PY
-
-      - name: Fetch exact official global 7.1 samples
+      - name: Fetch pinned global 7.1 samples
         run: |
           python tools/fetch_sophon_targets.py \
             --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
@@ -50,39 +38,26 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Regenerate metadata and GetCmdId candidates
-        shell: bash
-        run: |
-          set +e
-          bash scripts/regenerate-7.1.sh \
-            --exe /tmp/gi71/GenshinImpact.exe \
-            --metadata /tmp/gi71/global-metadata.dat \
-            --output work/7.1.0-global/windows-x64
-          status=$?
-          echo "regenerate exit=$status; required early artifacts are checked next"
-          set -e
-          test -s work/7.1.0-global/windows-x64/metadata/methods.csv
-          test -s work/7.1.0-global/windows-x64/getcmdid-candidates.csv
-
       - name: Cross-reference candidate type methods with verified registry slots
         run: |
-          OUT=work/7.1.0-global/windows-x64
-          DEST=versions/7.1.0-global/windows-x64/registry
-          test -s "$DEST/registry-type-slots.csv"
+          ROOT=versions/7.1.0-global/windows-x64
+          REGISTRY="$ROOT/registry"
+          test -s "$ROOT/metadata/methods.csv"
+          test -s "$REGISTRY/getcmdid-candidates.csv"
+          test -s "$REGISTRY/registry-type-slots.csv"
           python -m genshinre.typecachexref \
             /tmp/gi71/GenshinImpact.exe \
-            "$OUT/metadata/methods.csv" \
-            "$OUT/getcmdid-candidates.csv" \
-            "$DEST/registry-type-slots.csv" \
-            "$DEST/type-cache-xrefs.csv" \
-            --summary "$DEST/type-cache-xrefs.summary.json"
-          cat "$DEST/type-cache-xrefs.summary.json"
+            "$ROOT/metadata/methods.csv" \
+            "$REGISTRY/getcmdid-candidates.csv" \
+            "$REGISTRY/registry-type-slots.csv" \
+            "$REGISTRY/type-cache-xrefs.csv" \
+            --summary "$REGISTRY/type-cache-xrefs.summary.json"
+          cat "$REGISTRY/type-cache-xrefs.summary.json"
 
-      - name: Restore runtime-patched source and commit diagnostics
+      - name: Commit diagnostics
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -- genshinre/mhy71.py
           git add versions/7.1.0-global/windows-x64/registry/type-cache-xrefs.csv \
                   versions/7.1.0-global/windows-x64/registry/type-cache-xrefs.summary.json
           if git diff --cached --quiet; then
