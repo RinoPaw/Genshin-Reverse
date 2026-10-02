@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from genshinre.fingerprint import fingerprint
-from genshinre.registry import NORMALIZED_REGISTRY_COLUMNS, normalize_registry, query_registry
+from genshinre.registry import CANONICAL_REGISTRY_COLUMNS, NORMALIZED_REGISTRY_COLUMNS, normalize_registry, query_registry
 from genshinre.scaffold import scaffold
 from genshinre.validate import validate_version
 from genshinre.wire import parse_message
@@ -67,6 +67,8 @@ class RegistryTests(unittest.TestCase):
             self.assertTrue(warnings)
             data = json.loads((target / "hashes.json").read_text(encoding="utf-8"))
             self.assertEqual("9.9.9", data["game_version"])
+            with (target / "registry/registry.csv").open("r", encoding="utf-8", newline="") as f:
+                self.assertEqual(tuple(next(csv.reader(f))), CANONICAL_REGISTRY_COLUMNS)
 
     def test_validate_accepts_static_identity_registry(self) -> None:
         with tempfile.TemporaryDirectory() as td:
