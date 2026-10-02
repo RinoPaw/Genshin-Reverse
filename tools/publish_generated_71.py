@@ -93,9 +93,19 @@ def main() -> None:
         ("type_definition_index", "namespace", "type_name", "parent_type", "field_start", "field_count", "method_start", "method_count", "name_token", "record_file_offset"),
     )
     compact_csv(
+        work / "metadata" / "fields.csv",
+        metadata / "fields.csv",
+        ("field_index", "type_definition_index", "type_name", "field_name", "field_type", "field_type_index", "name_token", "offset", "record_file_offset"),
+    )
+    compact_csv(
         work / "metadata" / "methods.csv",
         metadata / "methods.csv",
         ("method_index", "type_definition_index", "type_name", "method_name", "rva", "return_type", "parameter_types", "parameter_start", "parameter_count", "name_token"),
+    )
+    compact_csv(
+        work / "metadata" / "method-pointers.csv",
+        metadata / "method-pointers.csv",
+        ("method_index", "rva", "va"),
     )
     build_type_methods(metadata / "methods.csv", metadata / "type-methods.json")
 
