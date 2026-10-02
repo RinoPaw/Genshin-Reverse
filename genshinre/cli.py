@@ -45,11 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("wire", help="decode protobuf wire fields from hex")
     p.add_argument("hex_payload")
 
-    p = sub.add_parser("query-registry", help="query a registry.csv by CmdId or type")
+    p = sub.add_parser("query-registry", help="stream-query a registry.csv by identity fields")
     p.add_argument("registry", type=Path)
-    group = p.add_mutually_exclusive_group(required=True)
-    group.add_argument("--cmd-id", type=int)
-    group.add_argument("--type")
+    p.add_argument("--cmd-id", type=int)
+    p.add_argument("--type")
+    p.add_argument("--type-definition-index", type=int)
+    p.add_argument("--index", type=int, dest="registry_index")
 
     p = sub.add_parser(
         "normalize-registry",
@@ -168,7 +169,22 @@ def main() -> None:
         payload = bytes.fromhex(args.hex_payload.replace(" ", ""))
         print(json.dumps(parse_message(payload), indent=2, ensure_ascii=False))
     elif args.command == "query-registry":
-        rows = query_registry(args.registry, cmd_id=args.cmd_id, type_name=args.type)
+        if not any(
+            (
+                args.cmd_id is not None,
+                args.type,
+                args.type_definition_index is not None,
+                args.registry_index is not None,
+            )
+        ):
+            raise SystemExit("provide --cmd-id, --type, --type-definition-index or --index")
+        rows = query_registry(
+            args.registry,
+            cmd_id=args.cmd_id,
+            type_name=args.type,
+            type_definition_index=args.type_definition_index,
+            registry_index=args.registry_index,
+        )
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
             raise SystemExit(1)
