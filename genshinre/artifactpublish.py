@@ -335,6 +335,7 @@ def publish_generated_artifacts_71(
     published_files = sorted(set(published_files))
     optional_files = sorted(set(optional_files))
     manifest: dict[str, object] = {
+        "manifest_version": 2,
         "source": "genshinre.artifactpublish",
         "work": str(work_dir),
         "status": "generated-artifacts-published",
@@ -344,9 +345,8 @@ def publish_generated_artifacts_71(
             "metadata_rows": compact_counts,
         },
         "canonical_registry_published": canonical_published,
-        "files": published_files,
         "artifacts": published_files,
-        "optional_registry_artifacts_published": optional_files,
+        "optional_artifacts_published": optional_files,
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "metadata publication is gated independently from experimental registry heuristics",
