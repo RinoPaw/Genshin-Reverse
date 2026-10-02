@@ -13,7 +13,7 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1] / "versions/7.1.0-global/windows-x64"
         self.assertEqual([], validate_generated_manifest(root))
 
-    def test_rejects_legacy_aliases(self) -> None:
+    def test_rejects_retired_aliases(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "ok.csv").write_text("x\n", encoding="utf-8")
@@ -21,7 +21,7 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
                 json.dumps(
                     {
                         "manifest_version": 2,
-                        "canonical_registry_published": False,
+                        "canonical_registry_published": True,
                         "files": ["ok.csv"],
                         "artifacts": ["ok.csv"],
                         "optional_registry_artifacts_published": [],
@@ -31,29 +31,49 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
                 encoding="utf-8",
             )
             errors = validate_generated_manifest(root)
-            self.assertTrue(any("legacy field 'files'" in error for error in errors))
+            self.assertTrue(any("retired field 'files'" in error for error in errors))
             self.assertTrue(
                 any("optional_registry_artifacts_published" in error for error in errors)
             )
 
-    def test_optional_entries_must_be_published_artifacts(self) -> None:
+    def test_rejects_nonempty_optional_publication(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "required.csv").write_text("x\n", encoding="utf-8")
-            (root / "optional.csv").write_text("x\n", encoding="utf-8")
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
                         "manifest_version": 2,
-                        "canonical_registry_published": False,
+                        "canonical_registry_published": True,
                         "artifacts": ["required.csv"],
-                        "optional_artifacts_published": ["optional.csv"],
+                        "optional_artifacts_published": ["required.csv"],
                     }
                 ),
                 encoding="utf-8",
             )
             errors = validate_generated_manifest(root)
-            self.assertTrue(any("must be a subset of artifacts" in error for error in errors))
+            self.assertTrue(
+                any("optional_artifacts_published must be an empty array" in error for error in errors)
+            )
+
+    def test_requires_canonical_registry_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "generated-artifacts.json").write_text(
+                json.dumps(
+                    {
+                        "manifest_version": 2,
+                        "canonical_registry_published": False,
+                        "artifacts": [],
+                        "optional_artifacts_published": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            errors = validate_generated_manifest(root)
+            self.assertTrue(
+                any("canonical_registry_published must be true" in error for error in errors)
+            )
 
     def test_rejects_missing_and_parent_paths(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -62,7 +82,7 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
                 json.dumps(
                     {
                         "manifest_version": 2,
-                        "canonical_registry_published": False,
+                        "canonical_registry_published": True,
                         "artifacts": ["missing.csv", "../escape.csv"],
                         "optional_artifacts_published": [],
                     }
