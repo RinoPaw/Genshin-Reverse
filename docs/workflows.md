@@ -24,6 +24,8 @@ It may run:
 
 It must not download a game client, decode full metadata, scan the executable, or run packet-specific investigations.
 
+CI uses per-ref concurrency with `cancel-in-progress: true`, so a newer push replaces stale test runs on the same branch/ref instead of queueing every intermediate maintenance commit.
+
 ## 2. Maintained reusable 7.1 data workflows
 
 These workflows orchestrate reusable tooling and canonical/supporting datasets. Heavy jobs are `workflow_dispatch` or narrowly path-triggered.
@@ -73,7 +75,7 @@ They may be packet-, method-, version-, or hypothesis-specific. Maintainers shou
 
 1. its useful algorithm lives in `genshinre/` or a retained `tools/` command;
 2. its exact sample/parameters are documented or represented in an analysis artifact;
-3. any unique evidence/results that matter are committed under `versions/`;
+3. any unique evidence/results that matter are committed under `versions/` or a maintained case study;
 4. no active investigation depends on the workflow shell itself.
 
 The current packet-specific workflow families are primarily the 7.0/7.1 `UnlockTransPoint` comparison/inspection chain, scene-handler comparison work, and targeted usage/initializer diagnostics. They remain investigation scaffolding. Repository maintenance may improve shared setup or safety around them, but does not own their reverse-engineering conclusions.
@@ -89,6 +91,8 @@ The following obsolete shells were retired after their reusable behavior or evid
 - `publish-7.1-registry.yml` — inline legacy registry publisher superseded by `genshinre.registryxrefpublish`;
 - `inspect-usage-artifact.yml` — hard-coded an old failed-work Actions run and only performed ad-hoc grep/printing;
 - `compare-7.0-7.1-typedef-direct.yml` — one-off direct TypeDef-order heuristic whose controls were unstable; its rejected result is preserved in the UnlockTransPoint 7.1 case study and must not drive confirmation;
+- `compare-7.0-7.1-registry-order.yml` — thin shell around retained `tools/compare_registry_order_70_71.py`; the weak `20290` preference and the reason it is excluded from confirmation are preserved in the UnlockTransPoint case study;
+- `compare-7.0-proto-7.1-typedef.yml` — thin shell around retained `tools/compare_proto_order_typedef_70_71.py`; the weak `36641` preference and unstable-control caveat are preserved in the case study;
 - the old GetCmdId-only `registry-candidate-graph.*` alias — reproduced under `getcmdid-candidate-graph.*`, leaving `registry-candidate-graph.*` available for the usage-join graph.
 
 ## Adding a workflow
