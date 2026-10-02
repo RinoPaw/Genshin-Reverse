@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from .metadata import load_methods
+from .mhy71 import EXPECTED_EXE_SHA256
 from .pe import PEImage
 
 CANDIDATE_COLUMNS = (
@@ -22,13 +23,7 @@ CANDIDATE_COLUMNS = (
 
 
 def decode_constant_return(code: bytes) -> tuple[int, str] | None:
-    """Recognize deliberately narrow x86/x64 constant-return stubs.
-
-    Genshin 7.1 protocol GetCmdId methods commonly use `mov ax, imm16; ret`
-    (`66 B8 xx xx C3`), while other constant-return methods use
-    `mov eax, imm32; ret`.  Accept both forms, plus optional ENDBR64/NOP
-    prefixes and a small NOP run before the return.
-    """
+    """Recognize deliberately narrow x86/x64 constant-return stubs."""
 
     offset = 0
     if code.startswith(b"\xF3\x0F\x1E\xFA"):
@@ -75,20 +70,26 @@ def scan_constant_cmdids(
     min_cmd_id: int = 1,
     max_cmd_id: int = 65535,
 ) -> dict[str, object]:
+    exe_sha = _sha256(exe)
+    if exe_sha != EXPECTED_EXE_SHA256:
+        raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
+
     rows = load_methods(methods_csv)
     candidates: list[dict[str, str]] = []
     readable_methods = 0
     seen: set[tuple[str, str, int]] = set()
 
     with PEImage(exe) as image:
-        for row in rows:
+        for line_no, row in enumerate(rows, start=2):
             rva_text = str(row.get("rva", "")).strip()
             if not rva_text:
                 continue
             try:
                 rva = int(rva_text, 0)
-            except ValueError:
-                continue
+            except ValueError as exc:
+                raise ValueError(
+                    f"{methods_csv}:{line_no}: invalid method RVA {rva_text!r}"
+                ) from exc
             if rva <= 0:
                 continue
             key = (str(row.get("type_name", "")), str(row.get("method_name", "")), rva)
@@ -97,7 +98,9 @@ def scan_constant_cmdids(
             seen.add(key)
             code = image.read_rva(rva, 32)
             if not code:
-                continue
+                raise ValueError(
+                    f"{methods_csv}:{line_no}: method RVA 0x{rva:X} is unreadable in exact sample"
+                )
             readable_methods += 1
             decoded = decode_constant_return(code)
             if decoded is None:
@@ -118,7 +121,9 @@ def scan_constant_cmdids(
                 }
             )
 
-    candidates.sort(key=lambda row: (int(row["cmd_id"]), row["type_name"], row["get_cmd_id_rva"]))
+    candidates.sort(
+        key=lambda row: (int(row["cmd_id"]), row["type_name"], row["get_cmd_id_rva"])
+    )
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     with output_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CANDIDATE_COLUMNS)
@@ -134,9 +139,10 @@ def scan_constant_cmdids(
         and row["type_name"] == "HJDNCHODGOL"
         and int(row["get_cmd_id_rva"], 0) == 0x10587260
     ]
+    anchor_found = bool(anchor_rows)
     summary: dict[str, object] = {
         "exe": str(exe),
-        "exe_sha256": _sha256(exe),
+        "exe_sha256": exe_sha,
         "methods_csv": str(methods_csv),
         "method_rows": len(rows),
         "readable_unique_methods": readable_methods,
@@ -144,16 +150,23 @@ def scan_constant_cmdids(
         "unique_cmd_ids": len(counts),
         "duplicate_cmd_ids": duplicates,
         "cmd_id_range": [min_cmd_id, max_cmd_id],
-        "anchor_26105_HJDNCHODGOL_0x10587260": bool(anchor_rows),
+        "anchor_26105_HJDNCHODGOL_0x10587260": anchor_found,
         "status": "candidate-scan-only",
         "notes": [
             "constant-return methods include non-protocol code; this file is not a canonical registry",
             "Genshin 7.1 GetCmdId controls include 16-bit AX immediate returns",
-            "promote rows only after client registration-table/control-set evidence closes the identity",
+            "the preserved 26105/HJDNCHODGOL anchor is mandatory for the exact-sample scan",
         ],
     }
     if summary_json is None:
         summary_json = output_csv.with_suffix(".summary.json")
     summary_json.parent.mkdir(parents=True, exist_ok=True)
-    summary_json.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    summary_json.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    if not anchor_found:
+        raise ValueError(
+            "GetCmdId scan failed mandatory 26105/HJDNCHODGOL/0x10587260 anchor"
+        )
     return summary
