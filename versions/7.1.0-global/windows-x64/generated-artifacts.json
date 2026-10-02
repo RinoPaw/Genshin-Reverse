@@ -38,8 +38,7 @@
     "metadata/type-methods.json",
     "metadata/types.csv",
     "registry/getcmdid-candidates.csv",
-    "registry/getcmdid-candidates.summary.json",
-    "registry/known-opcodes.csv"
+    "registry/getcmdid-candidates.summary.json"
   ],
   "artifacts": [
     "metadata/fields.csv",
@@ -51,8 +50,7 @@
     "metadata/type-methods.json",
     "metadata/types.csv",
     "registry/getcmdid-candidates.csv",
-    "registry/getcmdid-candidates.summary.json",
-    "registry/known-opcodes.csv"
+    "registry/getcmdid-candidates.summary.json"
   ],
   "optional_registry_artifacts_published": [],
   "notes": [
