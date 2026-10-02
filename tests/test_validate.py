@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from genshinre.artifactmanifest import REQUIRED_PUBLICATION_ROWS
+from genshinre.artifactmanifest import CANONICAL_ARTIFACTS, REQUIRED_PUBLICATION_ROWS
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
 from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
 
@@ -34,7 +34,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        for rel in REQUIRED_PUBLICATION_ROWS:
+        for rel in CANONICAL_ARTIFACTS:
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("fixture\n", encoding="utf-8")
@@ -66,7 +66,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
                             rel: 1 for rel in REQUIRED_PUBLICATION_ROWS
                         },
                     },
-                    "artifacts": list(REQUIRED_PUBLICATION_ROWS),
+                    "artifacts": list(CANONICAL_ARTIFACTS),
                 }
             ),
             encoding="utf-8",

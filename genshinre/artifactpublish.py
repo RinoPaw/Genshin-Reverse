@@ -6,6 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
+from .artifactmanifest import CANONICAL_ARTIFACTS
 from .metadata import build_type_methods
 from .mhy71 import (
     EXPECTED_FIELD_COUNT,
@@ -310,6 +311,11 @@ def publish_generated_artifacts_71(
     published_files.append("metadata/type-methods.json")
     published_files.extend(_copy_required_files(work_dir, version_dir))
     published_files = sorted(set(published_files))
+    if tuple(published_files) != CANONICAL_ARTIFACTS:
+        raise RuntimeError(
+            "canonical publisher artifact set drift: "
+            f"expected {CANONICAL_ARTIFACTS}; got {tuple(published_files)}"
+        )
 
     manifest: dict[str, object] = {
         "manifest_version": 3,

@@ -6,15 +6,74 @@ import unittest
 from pathlib import Path
 
 from genshinre.artifactmanifest import (
+    CANONICAL_ARTIFACTS,
     REQUIRED_PUBLICATION_ROWS,
     validate_generated_manifest,
 )
 
 
 class GeneratedArtifactManifestV3Tests(unittest.TestCase):
+    def _write_valid_fixture(self, root: Path) -> dict[str, object]:
+        exe_sha = "e" * 64
+        metadata_sha = "d" * 64
+        (root / "hashes.json").write_text(
+            json.dumps(
+                {
+                    "game_version": "7.1.0",
+                    "region": "global",
+                    "platform": "windows-x64",
+                    "samples": {
+                        "GenshinImpact.exe": {"sha256": exe_sha},
+                        "global-metadata.dat": {"sha256": metadata_sha},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        for rel in CANONICAL_ARTIFACTS:
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+
+        data: dict[str, object] = {
+            "manifest_version": 3,
+            "source": "genshinre.artifactpublish",
+            "status": "generated-artifacts-published",
+            "canonical_registry_published": True,
+            "validation": {
+                "metadata_counts": {
+                    "types": 1,
+                    "fields": 1,
+                    "methods": 1,
+                    "method_pointers": 1,
+                },
+                "sample": {
+                    "exe_sha256": exe_sha,
+                    "metadata_sha256": metadata_sha,
+                },
+                "runtime_type_anchor": True,
+                "getcmdid_anchor": True,
+            },
+            "publication": {
+                "metadata_format": "compact-query-indexes",
+                "metadata_rows": {rel: 1 for rel in REQUIRED_PUBLICATION_ROWS},
+            },
+            "artifacts": list(CANONICAL_ARTIFACTS),
+        }
+        (root / "generated-artifacts.json").write_text(
+            json.dumps(data), encoding="utf-8"
+        )
+        return data
+
     def test_committed_manifest_matches_v3_contract(self) -> None:
         root = Path(__file__).resolve().parents[1] / "versions/7.1.0-global/windows-x64"
         self.assertEqual([], validate_generated_manifest(root))
+
+    def test_valid_fixture_matches_v3_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_valid_fixture(root)
+            self.assertEqual([], validate_generated_manifest(root))
 
     def test_rejects_retired_fields(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -95,62 +154,37 @@ class GeneratedArtifactManifestV3Tests(unittest.TestCase):
     def test_rejects_sample_hash_drift(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            exe_sha = "e" * 64
-            metadata_sha = "d" * 64
-            (root / "hashes.json").write_text(
-                json.dumps(
-                    {
-                        "game_version": "7.1.0",
-                        "region": "global",
-                        "platform": "windows-x64",
-                        "samples": {
-                            "GenshinImpact.exe": {"sha256": exe_sha},
-                            "global-metadata.dat": {"sha256": metadata_sha},
-                        },
-                    }
-                ),
-                encoding="utf-8",
-            )
-            for rel in REQUIRED_PUBLICATION_ROWS:
-                path = root / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("fixture\n", encoding="utf-8")
-
-            metadata_rows = {rel: 1 for rel in REQUIRED_PUBLICATION_ROWS}
+            data = self._write_valid_fixture(root)
+            validation = data["validation"]
+            assert isinstance(validation, dict)
+            sample = validation["sample"]
+            assert isinstance(sample, dict)
+            sample["exe_sha256"] = "0" * 64
             (root / "generated-artifacts.json").write_text(
-                json.dumps(
-                    {
-                        "manifest_version": 3,
-                        "source": "genshinre.artifactpublish",
-                        "status": "generated-artifacts-published",
-                        "canonical_registry_published": True,
-                        "validation": {
-                            "metadata_counts": {
-                                "types": 1,
-                                "fields": 1,
-                                "methods": 1,
-                                "method_pointers": 1,
-                            },
-                            "sample": {
-                                "exe_sha256": "0" * 64,
-                                "metadata_sha256": metadata_sha,
-                            },
-                            "runtime_type_anchor": True,
-                            "getcmdid_anchor": True,
-                        },
-                        "publication": {
-                            "metadata_format": "compact-query-indexes",
-                            "metadata_rows": metadata_rows,
-                        },
-                        "artifacts": list(REQUIRED_PUBLICATION_ROWS),
-                    }
-                ),
-                encoding="utf-8",
+                json.dumps(data), encoding="utf-8"
             )
 
             errors = validate_generated_manifest(root)
             self.assertTrue(
                 any("exe_sha256 does not match hashes.json" in error for error in errors)
+            )
+
+    def test_rejects_extra_publication_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            data = self._write_valid_fixture(root)
+            extra = root / "registry" / "control-set.csv"
+            extra.write_text("cmd_id\n1\n", encoding="utf-8")
+            artifacts = data["artifacts"]
+            assert isinstance(artifacts, list)
+            artifacts.append("registry/control-set.csv")
+            (root / "generated-artifacts.json").write_text(
+                json.dumps(data), encoding="utf-8"
+            )
+
+            errors = validate_generated_manifest(root)
+            self.assertTrue(
+                any("artifacts must equal the canonical publication set" in error for error in errors)
             )
 
 

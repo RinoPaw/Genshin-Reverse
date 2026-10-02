@@ -26,6 +26,18 @@ REQUIRED_PUBLICATION_ROWS = (
     "metadata/method-pointers.csv",
     "metadata/runtime-types.csv",
 )
+CANONICAL_ARTIFACTS = (
+    "metadata/fields.csv",
+    "metadata/method-pointers.csv",
+    "metadata/methods.csv",
+    "metadata/native-decoder-summary.json",
+    "metadata/runtime-types.csv",
+    "metadata/runtime-types.summary.json",
+    "metadata/type-methods.json",
+    "metadata/types.csv",
+    "registry/getcmdid-candidates.csv",
+    "registry/getcmdid-candidates.summary.json",
+)
 SAMPLE_HASH_MAP = {
     "exe_sha256": "GenshinImpact.exe",
     "metadata_sha256": "global-metadata.dat",
@@ -178,6 +190,14 @@ def validate_generated_manifest(root: Path) -> list[str]:
             )
 
     artifacts = _validate_paths(root, data.get("artifacts"), "artifacts", errors)
+    expected_artifacts = set(CANONICAL_ARTIFACTS)
+    if artifacts != expected_artifacts:
+        missing = sorted(expected_artifacts - artifacts)
+        extra = sorted(artifacts - expected_artifacts)
+        errors.append(
+            "generated-artifacts.json: artifacts must equal the canonical publication set; "
+            f"missing={missing} extra={extra}"
+        )
 
     if data.get("canonical_registry_published") is not True:
         errors.append(
@@ -220,12 +240,6 @@ def validate_generated_manifest(root: Path) -> list[str]:
             REQUIRED_PUBLICATION_ROWS,
             errors,
         )
-
-    for rel in REQUIRED_PUBLICATION_ROWS:
-        if rel not in artifacts:
-            errors.append(
-                f"generated-artifacts.json: canonical publication artifact missing from artifacts: {rel}"
-            )
 
     if metadata_counts is not None and publication_rows is not None:
         crosswalk = {
