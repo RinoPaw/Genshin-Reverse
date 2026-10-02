@@ -1,6 +1,6 @@
 # Workflow map and maintenance policy
 
-GitHub Actions in this repository fall into three classes. Keep the classes separate so ordinary maintenance does not accidentally turn every push into a full-client reverse-engineering run.
+GitHub Actions in this repository fall into three classes. Keep the classes separate so ordinary maintenance never turns into a full-client reverse-engineering run.
 
 Pinned 7.1 sample acquisition is centralized in:
 
@@ -9,13 +9,13 @@ scripts/fetch-7.1-samples.sh
 scripts/fetch-7.1-samples.ps1
 ```
 
-Maintained workflows should call that entry point instead of copying the Sophon manifest URL and SHA-256 values into YAML. Packet-specific research workflows may migrate to it when their owners are ready; maintenance does not rewrite active experiment environments solely for deduplication.
+Maintained canonical workflows call those entry points. Packet-specific research workflows may keep their own pinned experiment inputs when required by an active investigation.
 
 ## 1. Fast repository CI
 
 `ci.yml` is the only general push/PR workflow.
 
-It may run:
+It runs:
 
 - Python unit tests;
 - committed-version validation;
@@ -24,88 +24,70 @@ It may run:
 
 It must not download a game client, decode full metadata, scan the executable, or run packet-specific investigations.
 
-CI uses per-ref concurrency with `cancel-in-progress: true`, so a newer push replaces stale test runs on the same branch/ref instead of queueing every intermediate maintenance commit.
+CI uses per-ref concurrency with `cancel-in-progress: true`, so a newer push replaces stale test runs on the same ref.
 
-## 2. Maintained reusable 7.1 data workflows
-
-These workflows orchestrate reusable tooling and canonical/supporting datasets. Heavy jobs are `workflow_dispatch` or narrowly path-triggered.
+## 2. Canonical 7.1 data workflows
 
 ### `generate-7.1-data.yml`
 
 Maintained exact-sample generation entry point.
 
-- fetches the pinned 7.1 sample through `scripts/fetch-7.1-samples.sh`;
-- runs the required metadata/runtime/GetCmdId regeneration stages;
-- runs applicable research intermediates without changing the canonical registry contract;
-- publishes compact query-oriented metadata through `genshinre.artifactpublish` while retaining full decoder provenance in `work/`;
-- validates the resulting version tree;
-- preserves full work output as a short-lived Actions artifact.
+It performs only the canonical chain:
 
-This is the general heavy generation workflow. Do not add a second workflow that repeats the same pipeline.
+1. fetch the pinned 7.1 sample;
+2. decode exact-sample metadata;
+3. verify metadata anchors;
+4. build the runtime type index;
+5. scan constant-return GetCmdId candidates;
+6. publish the fixed canonical artifact set;
+7. validate the version tree.
 
-### `refresh-7.1-fast.yml`
+Every stage is required. The workflow does not clone AstaPS, run candidate-graph research, perform usage recovery, or continue after a failed canonical stage.
 
-Focused refresh for GetCmdId candidates and native registry slot/array support artifacts. It uses reusable Python modules and the shared pinned-sample fetch entry point.
-
-### `publish-7.1-candidate-graph.yml`
-
-Thin publisher for the GetCmdId-only structural candidate graph. The implementation lives in `genshinre.getcmdidgraph`; published artifacts are `registry/getcmdid-candidate-graph.*`.
-
-This graph is intentionally distinct from `registry-candidate-graph.*`, which is reserved for the metadata-usage join implemented by `genshinre.registrygraph`.
-
-### `recover-7.1-type-cache-xrefs.yml`
-
-Focused producer for `registry/type-cache-xrefs.*`. It consumes the published metadata/GetCmdId/slot datasets and scans only the exact executable required for the xref operation. It must not patch source files or regenerate unrelated metadata.
-
-### `recover-7.1-metadata-usage-types.yml`
-
-Focused producer for xref-backed metadata usage/type identities. It consumes published methods and type-cache xrefs.
+Full work output is kept as a short-lived Actions artifact for provenance/debugging. The Git publisher writes only the current canonical publication set.
 
 ### `publish-7.1-registry-xrefs.yml`
 
 Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract.
 
-General artifact publication must preserve this canonical registry in place.
+The general artifact publisher requires this canonical registry to already exist and pass its schema/bijection gate.
 
 ## 3. Research workflows
 
-Files named `inspect-*`, `compare-*`, `diagnose-*`, `map-*`, or `resolve-*` are research scaffolding unless explicitly promoted above.
+All other workflows that inspect, compare, diagnose, map, recover, resolve, refresh, or publish investigation-specific graphs are research workflows unless explicitly promoted into the canonical section above.
 
-They may be packet-, method-, version-, or hypothesis-specific. Maintainers should not silently convert their conclusions into canonical mappings. A research workflow may be retired when:
+Examples include:
 
-1. its useful algorithm lives in `genshinre/` or a retained `tools/` command;
+- `refresh-7.1-fast.yml`;
+- `publish-7.1-candidate-graph.yml`;
+- `recover-7.1-type-cache-xrefs.yml`;
+- `recover-7.1-metadata-usage-types.yml`;
+- the 7.0/7.1 UnlockTransPoint comparison/inspection chain;
+- scene-handler comparison work;
+- targeted usage/initializer diagnostics.
+
+These workflows may produce useful evidence, but their output is not silently copied by canonical publication. Each research workflow owns its explicit inputs, output paths, and evidence gate.
+
+Maintainers should retire a research workflow when:
+
+1. its reusable algorithm lives in `genshinre/` or a retained `tools/` command;
 2. its exact sample/parameters are documented or represented in an analysis artifact;
-3. any unique evidence/results that matter are committed under `versions/` or a maintained case study;
+3. unique evidence/results are committed under `versions/` or a maintained case study;
 4. no active investigation depends on the workflow shell itself.
 
-The current packet-specific workflow families are primarily the 7.0/7.1 `UnlockTransPoint` comparison/inspection chain, scene-handler comparison work, and targeted usage/initializer diagnostics. They remain investigation scaffolding. Repository maintenance may improve shared setup or safety around them, but does not own their reverse-engineering conclusions.
+Repository maintenance may improve shared setup and safety around active research workflows, but it does not own their reverse-engineering conclusions.
 
-Heavy research workflows that download the client or perform long executable scans should use per-ref concurrency with `cancel-in-progress: true` when newer iterations supersede older runs. This is an orchestration safeguard only; it must not change experiment inputs or evidence semantics.
-
-`inspect-native-anchors.yml` still contains a small fixed-target disassembly probe. It is retained as research scaffolding because its targets are investigation-specific; new generally reusable disassembly logic should go into `genshinre/` or `tools/` instead of expanding that YAML.
-
-## Retired workflow debt
-
-The following obsolete shells were retired after their reusable behavior or evidence was preserved elsewhere:
-
-- `generate-7.1-artifacts.yml` — duplicate full 7.1 generation pipeline;
-- `publish-7.1-from-artifact.yml` — hard-coded an old Actions run and duplicate publisher;
-- `publish-7.1-registry.yml` — inline registry publisher superseded by `genshinre.registryxrefpublish`;
-- `inspect-usage-artifact.yml` — hard-coded an old failed-work Actions run and only performed ad-hoc grep/printing;
-- `compare-7.0-7.1-typedef-direct.yml` — one-off direct TypeDef-order heuristic whose controls were unstable;
-- `compare-7.0-7.1-registry-order.yml` — thin shell around retained `tools/compare_registry_order_70_71.py`;
-- `compare-7.0-proto-7.1-typedef.yml` — thin shell around retained `tools/compare_proto_order_typedef_70_71.py`;
-- the old GetCmdId-only `registry-candidate-graph.*` alias — reproduced under `getcmdid-candidate-graph.*`, leaving `registry-candidate-graph.*` available for the usage-join graph.
+Heavy research workflows that download the client or perform long executable scans should use same-ref stale-run cancellation when a newer iteration supersedes an older one.
 
 ## Adding a workflow
 
-Before adding a new workflow, prefer this order:
+Before adding a new workflow:
 
-1. implement/test the reusable operation in `genshinre/` or `tools/`;
-2. use an existing maintained workflow if only orchestration changes;
+1. implement/test reusable logic in `genshinre/` or `tools/`;
+2. use the canonical generation workflow only for canonical artifacts;
 3. add a narrowly triggered research workflow only when the investigation genuinely needs a distinct environment or sequence;
-4. keep exact sample hashes and provenance visible through the shared sample fetch entry point or an investigation-specific pinned source;
-5. avoid auto-running full-client work on unrelated pushes;
-6. add stale-run cancellation for long same-ref jobs whose newest iteration supersedes older ones.
+4. keep exact sample hashes and provenance explicit;
+5. avoid full-client work on unrelated pushes;
+6. keep research publication separate from canonical publication.
 
 A workflow is orchestration, not the canonical implementation of a reverse-engineering method.
