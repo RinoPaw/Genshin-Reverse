@@ -1,0 +1,55 @@
+name: Probe 7.1 network symbol anchors
+
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-7.1-network-symbols.yml'
+      - 'versions/7.1.0-global/windows-x64/metadata/types.csv'
+      - 'versions/7.1.0-global/windows-x64/metadata/methods.csv'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search decoded type and method names
+        run: |
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+
+          needles = ('kcp', 'packet', 'xor', 'encrypt', 'decrypt', 'dequeue', 'recvmsg', 'network')
+          result = {'needles': needles, 'types': [], 'methods': []}
+
+          with Path('versions/7.1.0-global/windows-x64/metadata/types.csv').open(encoding='utf-8-sig', newline='') as f:
+              for row in csv.DictReader(f):
+                  hay = ' '.join((row.get('namespace') or '', row.get('type_name') or '')).lower()
+                  if any(n in hay for n in needles):
+                      result['types'].append(row)
+
+          with Path('versions/7.1.0-global/windows-x64/metadata/methods.csv').open(encoding='utf-8-sig', newline='') as f:
+              for row in csv.DictReader(f):
+                  hay = ' '.join((row.get('type_name') or '', row.get('method_name') or '', row.get('parameter_types') or '')).lower()
+                  if any(n in hay for n in needles):
+                      result['methods'].append(row)
+
+          Path('/tmp/network-symbol-anchors-71.json').write_text(
+              json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+          )
+          print('type matches', len(result['types']))
+          for row in result['types'][:100]:
+              print('TYPE', row.get('type_definition_index'), row.get('namespace'), row.get('type_name'))
+          print('method matches', len(result['methods']))
+          for row in result['methods'][:200]:
+              print('METHOD', row.get('method_index'), row.get('rva'), row.get('type_name'), row.get('method_name'), row.get('parameter_types'))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: network-symbol-anchors-71
+          path: /tmp/network-symbol-anchors-71.json
+          if-no-files-found: error
