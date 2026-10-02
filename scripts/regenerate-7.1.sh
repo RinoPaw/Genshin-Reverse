@@ -6,9 +6,9 @@ usage() {
 Usage:
   scripts/regenerate-7.1.sh --exe PATH --metadata PATH [--output DIR] [--python PYTHON] [--astaps DIR]
 
-The exact-sample metadata/runtime/GetCmdId stages are required. Registry/usage
-recovery stages are exploratory and best-effort: failures are reported but do
-not invalidate successfully regenerated canonical metadata indexes.
+The exact-sample metadata/runtime/GetCmdId stages are required. Research stages
+may remain unresolved, but no alternate recovery path is substituted when a
+stage fails.
 EOF
 }
 
@@ -72,7 +72,7 @@ printf '[core 5/5] Scanning conservative constant-return CmdId candidates\n'
   "$OUTPUT/getcmdid-candidates.csv" \
   --summary "$OUTPUT/getcmdid-candidates.summary.json"
 
-printf '[optional 1/13] Auditing metadata-usage initializer call sites\n'
+printf '[optional 1/11] Auditing metadata-usage initializer call sites\n'
 if ! "$PYTHON" -m genshinre.usage \
   "$EXE" \
   "$OUTPUT/metadata-usage-sites.csv" \
@@ -81,7 +81,7 @@ if ! "$PYTHON" -m genshinre.usage \
   optional_failure metadata-usage-sites
 fi
 
-printf '[optional 2/13] Probing metadata registration structure\n'
+printf '[optional 2/11] Probing metadata registration structure\n'
 if ! "$PYTHON" -m genshinre.metareg \
   "$EXE" \
   "$OUTPUT/metadata-registration-probe.json" \
@@ -89,7 +89,7 @@ if ! "$PYTHON" -m genshinre.metareg \
   optional_failure metadata-registration-probe
 fi
 
-printf '[optional 3/13] Recovering metadata usage destination table\n'
+printf '[optional 3/11] Recovering metadata usage destination table\n'
 usage_slots_ok=false
 if "$PYTHON" -m genshinre.metausage \
   "$EXE" \
@@ -99,21 +99,9 @@ if "$PYTHON" -m genshinre.metausage \
   usage_slots_ok=true
 else
   optional_failure metadata-usage-table
-  if [[ -s "$OUTPUT/metadata-usage-sites.csv" ]]; then
-    printf '      falling back to direct initializer call-site evidence\n'
-    if "$PYTHON" -m genshinre.usageslots \
-      "$OUTPUT/metadata-usage-sites.csv" \
-      "$OUTPUT/metadata-usage-slots.csv" \
-      --summary "$OUTPUT/metadata-usage-slots.summary.json" \
-      > /dev/null; then
-      usage_slots_ok=true
-    else
-      optional_failure metadata-usage-slots-fallback
-    fi
-  fi
 fi
 
-printf '[optional 4/13] Joining metadata usages to runtime types\n'
+printf '[optional 4/11] Joining metadata usages to runtime types\n'
 usage_types_ok=false
 if [[ "$usage_slots_ok" == true ]]; then
   if "$PYTHON" -m genshinre.usagejoin \
@@ -131,7 +119,7 @@ else
   echo '      skipped; metadata usage slots unavailable'
 fi
 
-printf '[optional 5/13] Building registry candidate graph\n'
+printf '[optional 5/11] Building registry candidate graph\n'
 graph_ok=false
 if [[ "$usage_types_ok" == true ]]; then
   if "$PYTHON" -m genshinre.registrygraph \
@@ -148,7 +136,7 @@ else
   echo '      skipped; metadata usage/type join unavailable'
 fi
 
-printf '[optional 6/13] Refining one-to-one static registry candidates\n'
+printf '[optional 6/11] Refining one-to-one static registry candidates\n'
 static_candidates_ok=false
 if [[ "$graph_ok" == true ]]; then
   if "$PYTHON" -m genshinre.registryselect \
@@ -164,7 +152,7 @@ else
   echo '      skipped; registry candidate graph unavailable'
 fi
 
-printf '[optional 7/13] Probing preserved registry type-slot anchors\n'
+printf '[optional 7/11] Probing preserved registry type-slot anchors\n'
 if ! "$PYTHON" -m genshinre probe-registry-71 \
   "$EXE" \
   "$OUTPUT/registry-probe-71.json" \
@@ -172,28 +160,7 @@ if ! "$PYTHON" -m genshinre probe-registry-71 \
   optional_failure registry-anchor-probe
 fi
 
-printf '[optional 8/13] Inferring direct-slot native protocol-registry layout\n'
-if ! "$PYTHON" -m genshinre.registrylayout \
-  "$EXE" \
-  "$OUTPUT/registry-layout-probe.json" \
-  > /dev/null; then
-  optional_failure registry-direct-layout
-fi
-
-printf '[optional 9/13] Inferring usage-backed native protocol-registry layout\n'
-if [[ "$usage_types_ok" == true ]]; then
-  if ! "$PYTHON" -m genshinre.registryusagelayout \
-    "$EXE" \
-    "$OUTPUT/metadata-usage-types.csv" \
-    "$OUTPUT/registry-usage-layout-probe.json" \
-    > /dev/null; then
-    optional_failure registry-usage-layout
-  fi
-else
-  echo '      skipped; metadata usage/type join unavailable'
-fi
-
-printf '[optional 10/13] Importing AstaPS control set\n'
+printf '[optional 8/11] Importing AstaPS control set\n'
 control_set_ok=false
 if [[ -n "$ASTAPS" ]]; then
   PACKET_OPCODES="$ASTAPS/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java"
@@ -211,7 +178,7 @@ else
   echo '      skipped; pass --astaps DIR to generate control-set.csv'
 fi
 
-printf '[optional 11/13] Candidate graph diagnostics\n'
+printf '[optional 9/11] Candidate graph diagnostics\n'
 if [[ "$control_set_ok" == true && "$graph_ok" == true ]]; then
   if ! "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-candidate-graph.csv" \
@@ -224,7 +191,7 @@ else
   echo '      skipped; candidate graph or control set unavailable'
 fi
 
-printf '[optional 12/13] Strict candidate diagnostics\n'
+printf '[optional 10/11] Strict candidate diagnostics\n'
 if [[ "$control_set_ok" == true && "$static_candidates_ok" == true ]]; then
   if ! "$PYTHON" -m genshinre.graphdiag \
     "$OUTPUT/registry-static-candidates.csv" \
@@ -237,7 +204,7 @@ else
   echo '      skipped; static candidates or control set unavailable'
 fi
 
-printf '[optional 13/13] Human-readable registry convergence report\n'
+printf '[optional 11/11] Human-readable registry convergence report\n'
 if [[ "$graph_ok" == true ]]; then
   REPORT_ARGS=(
     -m genshinre.registryreport
@@ -258,7 +225,7 @@ fi
 
 printf 'Core regeneration complete: %s\n' "$OUTPUT"
 if ((${#OPTIONAL_FAILURES[@]})); then
-  printf 'Optional registry/research stages with unresolved results: %s\n' "${OPTIONAL_FAILURES[*]}"
+  printf 'Optional research stages with unresolved results: %s\n' "${OPTIONAL_FAILURES[*]}"
 else
-  printf 'All optional registry/research stages completed.\n'
+  printf 'All optional research stages completed.\n'
 fi
