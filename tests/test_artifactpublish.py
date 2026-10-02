@@ -204,9 +204,9 @@ class ArtifactPublishTests(unittest.TestCase):
                 work, version, expected_counts=(2, 3, 4)
             )
 
-            self.assertEqual(result["manifest_version"], 2)
+            self.assertEqual(result["manifest_version"], 3)
             self.assertTrue(result["canonical_registry_published"])
-            self.assertEqual(result["optional_artifacts_published"], [])
+            self.assertNotIn("optional_artifacts_published", result)
             self.assertNotIn("optional_registry_checks", result["validation"])
 
             for rel in (
