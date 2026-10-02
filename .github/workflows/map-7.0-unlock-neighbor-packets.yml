@@ -16,13 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch published 7.0 dump
+      - name: Fetch published 7.0 dump and packet map
         run: |
           curl --fail --location \
             'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' \
             -o /tmp/data.7z
           mkdir -p /tmp/data
           7z x -y /tmp/data.7z -o/tmp/data >/dev/null
+
+          curl --fail --location \
+            'https://raw.githubusercontent.com/kuma-dayo/protos/7f33521385a3e257b939786c02c5a40faec71fd6/7.0.0/packetIds.json' \
+            -o /tmp/packetIds70.json
 
       - name: Recover packet identities around historical UnlockTransPointRsp
         run: |
@@ -33,42 +37,11 @@ jobs:
           from pathlib import Path
 
           root = Path('/tmp/data')
-          dump_paths = list(root.rglob('dump.json'))
-          if not dump_paths:
-              raise RuntimeError('dump.json not found after extraction')
-          dump_path = dump_paths[0]
-
-          # Do not rely on an archive filename convention. Locate the packet map by
-          # a historical type whose identity is already independently confirmed.
-          packet_path = None
-          packet_map = None
-          json_diagnostics = []
-          for path in root.rglob('*.json'):
-              try:
-                  obj = json.loads(path.read_text(encoding='utf-8'))
-              except Exception as exc:
-                  json_diagnostics.append({'path': str(path), 'error': type(exc).__name__})
-                  continue
-              if isinstance(obj, dict):
-                  json_diagnostics.append({
-                      'path': str(path),
-                      'kind': 'dict',
-                      'key_count': len(obj),
-                      'has_unlock_rsp_type': 'CPKAHGFBBIH' in obj,
-                  })
-                  if 'CPKAHGFBBIH' in obj:
-                      packet_path = path
-                      packet_map = obj
-                      break
-              else:
-                  json_diagnostics.append({'path': str(path), 'kind': type(obj).__name__})
-
-          Path('/tmp/unlock-neighbor-json-diagnostics.json').write_text(
-              json.dumps(json_diagnostics, indent=2, ensure_ascii=False) + '\n',
-              encoding='utf-8',
-          )
-          if packet_path is None or packet_map is None:
-              raise RuntimeError('no JSON object containing historical type CPKAHGFBBIH')
+          dump_path = next(root.rglob('dump.json'))
+          packet_path = Path('/tmp/packetIds70.json')
+          packet_map = json.loads(packet_path.read_text(encoding='utf-8'))
+          if int(packet_map.get('CPKAHGFBBIH', -1)) != 1776:
+              raise RuntimeError('7.0 packet map failed UnlockTransPointRsp control')
 
           owner_name = 'KGCKOFPFBLA'
           owner = None
@@ -83,7 +56,6 @@ jobs:
           if owner is None:
               raise RuntimeError(f'owner {owner_name} not found')
 
-          # Independent semantic CmdId -> name control from a known 7.0 LunaGC snapshot.
           opcodes_url = 'https://raw.githubusercontent.com/girluh/LunaGC/d3391deafc1e1f6be13ba7fea8ebfe5d7b89f0e0/src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java'
           with urllib.request.urlopen(opcodes_url, timeout=30) as r:
               opcodes_text = r.read().decode('utf-8', errors='replace')
@@ -122,7 +94,7 @@ jobs:
           )
           result = {
               'dump': str(dump_path),
-              'packet_map': str(packet_path),
+              'packet_map_source': 'kuma-dayo/protos@7f335213/7.0.0/packetIds.json',
               'owner': owner_name,
               'window': [120, 190],
               'historical_unlock_rsp_type': 'CPKAHGFBBIH',
@@ -130,15 +102,14 @@ jobs:
               'target_row': target,
               'packet_handler_rows': rows,
               'notes': [
-                  'The packet-id JSON is selected by the independently confirmed CPKAHGFBBIH key, not by archive filename.',
-                  'Only parameters present in the published 7.0 packet-id map are included.',
-                  'semantic_names come from the pinned girluh/LunaGC 7.0-era opcode snapshot and are cross-check evidence, not a source for current 7.1 IDs.',
+                  'Only parameters present in the pinned 7.0 packet-id map are included.',
+                  'semantic_names come from the pinned girluh/LunaGC opcode snapshot and are cross-check evidence.',
               ],
           }
           out = Path('/tmp/unlock-neighbor-packets-70.json')
           out.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
 
-          print('packet map:', packet_path)
+          print('target:', target)
           for row in rows:
               print(row['owner_position'], row['rva'], row['method_name'])
               for p in row['packet_parameters']:
@@ -146,11 +117,8 @@ jobs:
           PY
 
       - name: Upload evidence
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unlock-neighbor-packets-70
-          path: |
-            /tmp/unlock-neighbor-packets-70.json
-            /tmp/unlock-neighbor-json-diagnostics.json
-          if-no-files-found: warn
+          path: /tmp/unlock-neighbor-packets-70.json
+          if-no-files-found: error
