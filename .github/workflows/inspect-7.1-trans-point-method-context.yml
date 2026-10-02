@@ -9,6 +9,7 @@ on:
       - 'tools/decode_method_parameters_71.py'
       - 'tools/trace_protocol_delegate_slots_71.py'
       - 'tools/scan_owner_rpc_submit_layout_71.py'
+      - 'tools/inspect_scene_handler_table_71.py'
       - 'genshinre/param71.py'
   workflow_dispatch:
 
@@ -143,6 +144,12 @@ jobs:
             --neighbor-count 16 \
             --max-body 0x2000
 
+      - name: Identify scene handler dispatch table
+        run: |
+          python tools/inspect_scene_handler_table_71.py \
+            /tmp/gi71/GenshinImpact.exe \
+            /tmp/scene-handler-table-71.json
+
       - name: Upload evidence
         uses: actions/upload-artifact@v4
         with:
@@ -154,3 +161,4 @@ jobs:
             /tmp/scene-method-band.json
             /tmp/adjacent-protocol-shapes.json
             /tmp/methods-decoded.summary.json
+            /tmp/scene-handler-table-71.json
