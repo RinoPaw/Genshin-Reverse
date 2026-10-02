@@ -10,6 +10,7 @@ from genshinre.registryxrefpublish import (
     SUMMARY_IDENTITY_METHOD,
     SUMMARY_PRODUCER,
     SUMMARY_SEMANTIC_ENRICHMENT,
+    _validated_known_opcodes,
 )
 
 
@@ -39,6 +40,41 @@ class RegistrySchemaContractTests(unittest.TestCase):
         self.assertEqual(SUMMARY_PRODUCER, summary["producer"])
         self.assertEqual(SUMMARY_IDENTITY_METHOD, summary["identity_method"])
         self.assertEqual(SUMMARY_SEMANTIC_ENRICHMENT, summary["semantic_enrichment"])
+
+    def test_known_opcode_enrichment_requires_confirmed_evidence(self) -> None:
+        valid = {
+            "semantic_name": "KnownReq",
+            "cmd_id": "123",
+            "direction": "C2S",
+            "status": "CONFIRMED",
+            "evidence": "unit-test current-client evidence",
+            "notes": "",
+        }
+        self.assertEqual({123: valid}, _validated_known_opcodes([valid]))
+
+        invalid_rows = [
+            {**valid, "status": "CANDIDATE"},
+            {**valid, "direction": "unknown"},
+            {**valid, "semantic_name": ""},
+            {**valid, "evidence": ""},
+        ]
+        for row in invalid_rows:
+            with self.subTest(row=row):
+                with self.assertRaises(ValueError):
+                    _validated_known_opcodes([row])
+
+    def test_known_opcode_enrichment_rejects_duplicate_cmd_ids(self) -> None:
+        first = {
+            "semantic_name": "KnownReq",
+            "cmd_id": "123",
+            "direction": "C2S",
+            "status": "CONFIRMED",
+            "evidence": "unit-test current-client evidence",
+            "notes": "",
+        }
+        second = {**first, "semantic_name": "OtherReq"}
+        with self.assertRaises(ValueError):
+            _validated_known_opcodes([first, second])
 
 
 if __name__ == "__main__":
