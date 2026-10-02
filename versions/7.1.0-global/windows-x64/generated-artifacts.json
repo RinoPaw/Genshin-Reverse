@@ -1,4 +1,5 @@
 {
+  "manifest_version": 2,
   "source": "genshinre.artifactpublish",
   "work": "work/7.1.0-global/windows-x64",
   "status": "generated-artifacts-published",
@@ -28,19 +29,6 @@
     }
   },
   "canonical_registry_published": true,
-  "files": [
-    "metadata/fields.csv",
-    "metadata/method-pointers.csv",
-    "metadata/methods.csv",
-    "metadata/native-decoder-summary.json",
-    "metadata/runtime-types.csv",
-    "metadata/runtime-types.summary.json",
-    "metadata/type-methods.json",
-    "metadata/types.csv",
-    "registry/control-set.csv",
-    "registry/getcmdid-candidates.csv",
-    "registry/getcmdid-candidates.summary.json"
-  ],
   "artifacts": [
     "metadata/fields.csv",
     "metadata/method-pointers.csv",
@@ -54,7 +42,7 @@
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json"
   ],
-  "optional_registry_artifacts_published": [
+  "optional_artifacts_published": [
     "registry/control-set.csv"
   ],
   "notes": [
