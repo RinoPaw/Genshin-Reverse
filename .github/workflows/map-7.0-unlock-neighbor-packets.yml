@@ -33,15 +33,42 @@ jobs:
           from pathlib import Path
 
           root = Path('/tmp/data')
-          dump_path = next(root.rglob('dump.json'))
-          packet_candidates = [
-              p for p in root.rglob('*.json')
-              if 'packet' in p.name.lower() and 'id' in p.name.lower()
-          ]
-          if not packet_candidates:
-              raise RuntimeError('no packet-id JSON found; files=' + ', '.join(str(p) for p in root.rglob('*') if p.is_file()))
-          packet_path = packet_candidates[0]
-          packet_map = json.loads(packet_path.read_text(encoding='utf-8'))
+          dump_paths = list(root.rglob('dump.json'))
+          if not dump_paths:
+              raise RuntimeError('dump.json not found after extraction')
+          dump_path = dump_paths[0]
+
+          # Do not rely on an archive filename convention. Locate the packet map by
+          # a historical type whose identity is already independently confirmed.
+          packet_path = None
+          packet_map = None
+          json_diagnostics = []
+          for path in root.rglob('*.json'):
+              try:
+                  obj = json.loads(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  json_diagnostics.append({'path': str(path), 'error': type(exc).__name__})
+                  continue
+              if isinstance(obj, dict):
+                  json_diagnostics.append({
+                      'path': str(path),
+                      'kind': 'dict',
+                      'key_count': len(obj),
+                      'has_unlock_rsp_type': 'CPKAHGFBBIH' in obj,
+                  })
+                  if 'CPKAHGFBBIH' in obj:
+                      packet_path = path
+                      packet_map = obj
+                      break
+              else:
+                  json_diagnostics.append({'path': str(path), 'kind': type(obj).__name__})
+
+          Path('/tmp/unlock-neighbor-json-diagnostics.json').write_text(
+              json.dumps(json_diagnostics, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          if packet_path is None or packet_map is None:
+              raise RuntimeError('no JSON object containing historical type CPKAHGFBBIH')
 
           owner_name = 'KGCKOFPFBLA'
           owner = None
@@ -68,9 +95,8 @@ jobs:
           for pos, method in enumerate(owner.get('methods', [])):
               if not (120 <= pos <= 190):
                   continue
-              params = method.get('params') or []
               mapped = []
-              for param in params:
+              for param in method.get('params') or []:
                   typ = param.get('type') or ''
                   if typ not in packet_map:
                       continue
@@ -90,7 +116,10 @@ jobs:
                       'packet_parameters': mapped,
                   })
 
-          target = next((r for r in rows if any(p['type'] == 'CPKAHGFBBIH' for p in r['packet_parameters'])), None)
+          target = next(
+              (r for r in rows if any(p['type'] == 'CPKAHGFBBIH' for p in r['packet_parameters'])),
+              None,
+          )
           result = {
               'dump': str(dump_path),
               'packet_map': str(packet_path),
@@ -101,6 +130,7 @@ jobs:
               'target_row': target,
               'packet_handler_rows': rows,
               'notes': [
+                  'The packet-id JSON is selected by the independently confirmed CPKAHGFBBIH key, not by archive filename.',
                   'Only parameters present in the published 7.0 packet-id map are included.',
                   'semantic_names come from the pinned girluh/LunaGC 7.0-era opcode snapshot and are cross-check evidence, not a source for current 7.1 IDs.',
               ],
@@ -116,8 +146,11 @@ jobs:
           PY
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unlock-neighbor-packets-70
-          path: /tmp/unlock-neighbor-packets-70.json
-          if-no-files-found: error
+          path: |
+            /tmp/unlock-neighbor-packets-70.json
+            /tmp/unlock-neighbor-json-diagnostics.json
+          if-no-files-found: warn
