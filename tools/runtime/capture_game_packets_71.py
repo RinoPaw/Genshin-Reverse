@@ -33,8 +33,11 @@ def main() -> None:
     parser.add_argument(
         "--exe",
         type=Path,
-        required=True,
-        help="exact GenshinImpact.exe to hash before attaching; must match the pinned global 7.1 sample",
+        default=Path("GenshinImpact.exe"),
+        help=(
+            "exact GenshinImpact.exe to hash before attaching; defaults to ./GenshinImpact.exe "
+            "and must match the pinned global 7.1 sample"
+        ),
     )
     parser.add_argument("--output", type=Path, default=Path("game-packets-71.ndjson"))
     parser.add_argument(
@@ -45,7 +48,10 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.exe.is_file():
-        raise SystemExit(f"executable does not exist: {args.exe}")
+        raise SystemExit(
+            f"executable does not exist: {args.exe}\n"
+            "run from the game directory or pass --exe <path-to-GenshinImpact.exe>"
+        )
     exe_sha256 = sha256_file(args.exe)
     if exe_sha256.lower() != EXPECTED_EXE_SHA256:
         raise SystemExit(
