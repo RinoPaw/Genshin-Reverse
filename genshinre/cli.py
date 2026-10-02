@@ -39,22 +39,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="genshinre")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("fingerprint", help="hash local samples and inspect basic PE metadata")
+    p = sub.add_parser("fingerprint", help="hash local samples and identify basic file/PE format")
     p.add_argument("files", nargs="+", type=Path)
 
     p = sub.add_parser("wire", help="decode protobuf wire fields from hex")
     p.add_argument("hex_payload")
 
-    p = sub.add_parser("query-registry", help="query canonical registry.csv")
+    p = sub.add_parser("query-registry", help="query a registry.csv by CmdId or type")
     p.add_argument("registry", type=Path)
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--cmd-id", type=int)
     group.add_argument("--type")
 
-    p = sub.add_parser("normalize-registry", help="normalize a recovered registry into canonical CSV/JSON/summary")
+    p = sub.add_parser(
+        "normalize-registry",
+        help="normalize a registry-like CSV into a generic interchange CSV/JSON/summary",
+    )
     p.add_argument("input_csv", type=Path)
     p.add_argument("output_dir", type=Path)
-    p.add_argument("--direction-map", help="raw-to-canonical mapping, e.g. 0=S2C,1=C2S")
+    p.add_argument("--direction-map", help="raw-to-normalized mapping, e.g. 0=S2C,1=C2S")
     p.add_argument("--provenance", type=Path, help="JSON file copied into summary provenance")
 
     p = sub.add_parser("import-opcodes-java", help="extract a numeric opcode control set from PacketOpcodes.java")
@@ -63,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("crosscheck-registry", help="verify that a registry contains every control-set CmdId")
     p.add_argument("registry", type=Path)
-    p.add_argument("known_opcodes", type=Path)
+    p.add_argument("control_set", type=Path)
     p.add_argument("--output", type=Path)
 
     p = sub.add_parser("import-trace", help="turn server RECV/SEND trace lines into observations CSV")
@@ -113,7 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("output_dir", type=Path)
     p.add_argument("--allow-unknown-sample", action="store_true")
 
-    p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into canonical metadata indexes")
+    p = sub.add_parser("import-dump-cs", help="convert an Il2CppDumper-style dump.cs into metadata indexes")
     p.add_argument("dump_cs", type=Path)
     p.add_argument("output_dir", type=Path)
     p.add_argument("--source-tool", default="Il2CppDumper-style dump.cs")
@@ -132,7 +135,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("metadata_dir", type=Path)
     p.add_argument("anchors_json", type=Path)
 
-    p = sub.add_parser("scaffold", help="create a canonical version/platform artifact tree")
+    p = sub.add_parser("scaffold", help="create a version/platform artifact tree")
     p.add_argument("--root", type=Path, default=Path("."))
     p.add_argument("--version", required=True)
     p.add_argument("--region", default="global")
@@ -169,7 +172,7 @@ def main() -> None:
     elif args.command == "import-opcodes-java":
         print(import_java_opcodes(args.java_file, args.output_csv))
     elif args.command == "crosscheck-registry":
-        result = crosscheck_registry(args.registry, args.known_opcodes)
+        result = crosscheck_registry(args.registry, args.control_set)
         if args.output:
             write_crosscheck(result, args.output)
         print(json.dumps(result, indent=2))
