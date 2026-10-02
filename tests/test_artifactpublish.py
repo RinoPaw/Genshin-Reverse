@@ -8,6 +8,7 @@ from pathlib import Path
 
 from genshinre.artifactpublish import publish_generated_artifacts_71
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
+from genshinre.typearray import EXPECTED_RUNTIME_TYPE_COUNT
 
 
 class ArtifactPublishTests(unittest.TestCase):
@@ -177,6 +178,15 @@ class ArtifactPublishTests(unittest.TestCase):
             json.dumps(
                 {
                     "exe_sha256": exe_sha,
+                    "status": "canonical-exact-runtime-type-index",
+                    "runtime_type_count": EXPECTED_RUNTIME_TYPE_COUNT,
+                    "type_array_rva": "0x1000",
+                    "boundary_rva": "0xA6F360",
+                    "boundary_entry_hex": "8988883b0000000060da9e4501000000",
+                    "boundary_entry_valid_type": False,
+                    "structural_validation_passed": True,
+                    "emitted_rows": 2,
+                    "named_definition_entries": 2,
                     "anchor_405772_class_84249_DMMJNICDOHM": True,
                 }
             ),
@@ -204,8 +214,11 @@ class ArtifactPublishTests(unittest.TestCase):
                 work, version, expected_counts=(2, 3, 4)
             )
 
-            self.assertEqual(result["manifest_version"], 3)
+            self.assertEqual(result["manifest_version"], 4)
             self.assertTrue(result["canonical_registry_published"])
+            self.assertEqual(result["validation"]["runtime_type_count"], 683_574)
+            self.assertEqual(result["validation"]["runtime_type_boundary_rva"], "0xA6F360")
+            self.assertTrue(result["validation"]["runtime_type_boundary_verified"])
             self.assertNotIn("optional_artifacts_published", result)
             self.assertNotIn("optional_registry_checks", result["validation"])
 
@@ -301,6 +314,47 @@ class ArtifactPublishTests(unittest.TestCase):
             data["exe_sha256"] = "0" * 64
             summary.write_text(json.dumps(data), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "runtime type index EXE hash"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_rejects_runtime_count_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td))
+            summary = work / "metadata/runtime-types.summary.json"
+            data = json.loads(summary.read_text(encoding="utf-8"))
+            data["runtime_type_count"] = EXPECTED_RUNTIME_TYPE_COUNT - 1
+            summary.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "runtime type count"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_rejects_runtime_boundary_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td))
+            summary = work / "metadata/runtime-types.summary.json"
+            data = json.loads(summary.read_text(encoding="utf-8"))
+            data["boundary_rva"] = "0xA6F370"
+            summary.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "type_array_rva \+ runtime_type_count \* 16"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_rejects_runtime_structural_gate_loss(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td))
+            summary = work / "metadata/runtime-types.summary.json"
+            data = json.loads(summary.read_text(encoding="utf-8"))
+            data["structural_validation_passed"] = False
+            summary.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "complete structural validation"):
+                publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
+
+    def test_rejects_runtime_csv_summary_row_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            work, version = self._fixture(Path(td))
+            summary = work / "metadata/runtime-types.summary.json"
+            data = json.loads(summary.read_text(encoding="utf-8"))
+            data["emitted_rows"] = 3
+            data["named_definition_entries"] = 3
+            summary.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "runtime type CSV row count"):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
 

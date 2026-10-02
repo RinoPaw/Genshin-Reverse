@@ -14,6 +14,7 @@ from .mhy71 import (
     EXPECTED_TYPE_COUNT,
 )
 from .registry import CANONICAL_REGISTRY_COLUMNS, EXPECTED_REGISTRY_ROW_COUNT
+from .typearray import ENTRY_SIZE, EXPECTED_RUNTIME_TYPE_COUNT
 
 
 REQUIRED_WORK_FILES = (
@@ -87,9 +88,14 @@ DIRECT_FILES = {
     "getcmdid-candidates.summary.json": "registry/getcmdid-candidates.summary.json",
 }
 
+EXPECTED_RUNTIME_STATUS = "canonical-exact-runtime-type-index"
+
 
 def _load_json(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8-sig"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(data, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return data
 
 
 def _csv_row_count(path: Path) -> int:
@@ -138,6 +144,15 @@ def _sample_hashes(version_dir: Path) -> tuple[str, str]:
     return exe_sha, metadata_sha
 
 
+def _parse_hex_rva(value: object, label: str) -> int:
+    if not isinstance(value, str) or not value.startswith("0x"):
+        raise ValueError(f"{label} must be a hexadecimal RVA")
+    try:
+        return int(value, 16)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be a hexadecimal RVA") from exc
+
+
 def _require_canonical_registry(version_dir: Path) -> None:
     registry_csv = version_dir / "registry" / "registry.csv"
     summary_json = version_dir / "registry" / "registry.summary.json"
@@ -174,6 +189,62 @@ def _require_canonical_registry(version_dir: Path) -> None:
         raise ValueError("canonical registry CSV contains an invalid CmdId") from exc
     if len(set(cmd_ids)) != EXPECTED_REGISTRY_ROW_COUNT:
         raise ValueError("canonical registry CSV does not contain 4,896 unique CmdIds")
+
+
+def _validate_runtime_type_summary(
+    runtime: dict[str, object],
+    runtime_csv_rows: int,
+    expected_exe_sha: str,
+) -> tuple[int, str]:
+    if str(runtime.get("exe_sha256", "")) != expected_exe_sha:
+        raise ValueError("runtime type index EXE hash does not match the version manifest")
+    if runtime.get("status") != EXPECTED_RUNTIME_STATUS:
+        raise ValueError(
+            f"runtime type index status must be {EXPECTED_RUNTIME_STATUS}"
+        )
+    if runtime.get("anchor_405772_class_84249_DMMJNICDOHM") is not True:
+        raise ValueError("runtime type index failed the preserved 405772 -> DMMJNICDOHM anchor")
+    if runtime.get("structural_validation_passed") is not True:
+        raise ValueError("runtime type index did not pass complete structural validation")
+    if runtime.get("boundary_entry_valid_type") is not False:
+        raise ValueError("runtime type boundary entry must fail the Il2CppType structural gate")
+
+    count = runtime.get("runtime_type_count")
+    if isinstance(count, bool) or not isinstance(count, int):
+        raise ValueError("runtime type index is missing an integer runtime_type_count")
+    if count != EXPECTED_RUNTIME_TYPE_COUNT:
+        raise ValueError(
+            f"runtime type count {count} != preserved {EXPECTED_RUNTIME_TYPE_COUNT}"
+        )
+
+    type_array_rva = _parse_hex_rva(runtime.get("type_array_rva"), "runtime type_array_rva")
+    boundary_rva = _parse_hex_rva(runtime.get("boundary_rva"), "runtime boundary_rva")
+    expected_boundary = type_array_rva + count * ENTRY_SIZE
+    if boundary_rva != expected_boundary:
+        raise ValueError(
+            "runtime type boundary does not equal type_array_rva + runtime_type_count * 16"
+        )
+
+    boundary_hex = runtime.get("boundary_entry_hex")
+    if not isinstance(boundary_hex, str) or len(boundary_hex) != ENTRY_SIZE * 2:
+        raise ValueError("runtime type boundary entry must contain exactly 16 bytes")
+    try:
+        bytes.fromhex(boundary_hex)
+    except ValueError as exc:
+        raise ValueError("runtime type boundary entry is not valid hex") from exc
+
+    emitted_rows = runtime.get("emitted_rows")
+    named_rows = runtime.get("named_definition_entries")
+    if isinstance(emitted_rows, bool) or not isinstance(emitted_rows, int) or emitted_rows <= 0:
+        raise ValueError("runtime type summary emitted_rows must be a positive integer")
+    if named_rows != emitted_rows:
+        raise ValueError("runtime type summary named_definition_entries must equal emitted_rows")
+    if runtime_csv_rows != emitted_rows:
+        raise ValueError(
+            "runtime type CSV row count does not match the exact-boundary runtime summary"
+        )
+
+    return count, f"0x{boundary_rva:X}"
 
 
 def validate_generated_artifacts_71(
@@ -230,10 +301,12 @@ def validate_generated_artifacts_71(
         raise ValueError("native decoder metadata hash does not match the version manifest")
 
     runtime = _load_json(work_dir / "metadata/runtime-types.summary.json")
-    if str(runtime.get("exe_sha256", "")) != expected_exe_sha:
-        raise ValueError("runtime type index EXE hash does not match the version manifest")
-    if runtime.get("anchor_405772_class_84249_DMMJNICDOHM") is not True:
-        raise ValueError("runtime type index failed the preserved 405772 -> DMMJNICDOHM anchor")
+    runtime_csv_rows = _csv_row_count(work_dir / "metadata/runtime-types.csv")
+    runtime_type_count, runtime_boundary_rva = _validate_runtime_type_summary(
+        runtime,
+        runtime_csv_rows,
+        expected_exe_sha,
+    )
 
     getcmd = _load_json(work_dir / "getcmdid-candidates.summary.json")
     if str(getcmd.get("exe_sha256", "")) != expected_exe_sha:
@@ -255,6 +328,9 @@ def validate_generated_artifacts_71(
             "metadata_sha256": expected_metadata_sha,
         },
         "runtime_type_anchor": True,
+        "runtime_type_count": runtime_type_count,
+        "runtime_type_boundary_rva": runtime_boundary_rva,
+        "runtime_type_boundary_verified": True,
         "getcmdid_anchor": True,
     }
 
@@ -285,6 +361,8 @@ def publish_generated_artifacts_71(
         version_dir,
         expected_counts=expected_counts,
     )
+    runtime = _load_json(work_dir / "metadata/runtime-types.summary.json")
+    runtime_rows = int(runtime["emitted_rows"])
 
     published_files: list[str] = []
     compact_counts: dict[str, int] = {}
@@ -298,6 +376,7 @@ def publish_generated_artifacts_71(
         "metadata/fields.csv": expected_counts[1],
         "metadata/methods.csv": expected_counts[2],
         "metadata/method-pointers.csv": expected_counts[2],
+        "metadata/runtime-types.csv": runtime_rows,
     }
     for rel, expected in expected_by_rel.items():
         if compact_counts[rel] != expected:
@@ -318,7 +397,7 @@ def publish_generated_artifacts_71(
         )
 
     manifest: dict[str, object] = {
-        "manifest_version": 3,
+        "manifest_version": 4,
         "source": "genshinre.artifactpublish",
         "work": str(work_dir),
         "status": "generated-artifacts-published",
@@ -332,6 +411,7 @@ def publish_generated_artifacts_71(
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "publication requires the current canonical 7.1 registry and exact sample identities",
+            "runtime type publication is bound to the verified exact 683,574-entry Il2CppType boundary",
             "research intermediates are maintained by their own explicit research workflows",
         ],
     }

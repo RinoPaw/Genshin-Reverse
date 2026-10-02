@@ -30,8 +30,11 @@ The decoder and publication path are bound to the exact 7.1 sample hashes. The r
 - 440,172 fields
 - 733,442 methods
 - 733,442 method-pointer rows
+- 683,574 runtime `Il2CppType` entries
 
-These counts are regression evidence. They are not used to pad or trim generated output. Publication validates the exact sample hashes, native decoder counts, CSV row counts and the complete method-pointer table before copying canonical metadata artifacts into this version directory.
+The runtime type array starts at RVA `0x2E1EA20` and its verified half-open boundary is RVA `0x388CD80`. All indexes `0..683573` pass the exact-sample structural gate; index `683574` is the first boundary record and fails that gate. The compact published `runtime-types.csv` contains 228,519 named class/valuetype rows derived from that exact table.
+
+These counts are regression evidence. They are not used to pad or trim generated output. Publication validates the exact sample hashes, native decoder counts, runtime type boundary, CSV row counts and the complete method-pointer table before copying canonical metadata artifacts into this version directory.
 
 Canonical published CSVs are compact query indexes. Full decoder provenance columns remain in the regeneration work output and short-lived Actions artifact rather than being duplicated into Git.
 

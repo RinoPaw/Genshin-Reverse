@@ -4,10 +4,14 @@ import json
 import re
 from pathlib import Path, PurePosixPath
 
-MANIFEST_VERSION = 3
+from .typearray import ENTRY_SIZE, EXPECTED_RUNTIME_TYPE_COUNT
+
+MANIFEST_VERSION = 4
 EXPECTED_SOURCE = "genshinre.artifactpublish"
 EXPECTED_STATUS = "generated-artifacts-published"
+EXPECTED_RUNTIME_STATUS = "canonical-exact-runtime-type-index"
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
+HEX_RVA = re.compile(r"^0x[0-9a-fA-F]+$")
 RETIRED_FIELDS = {
     "files",
     "optional_registry_artifacts_published",
@@ -77,18 +81,28 @@ def _validate_paths(
     return seen
 
 
-def _load_hash_samples(root: Path, errors: list[str]) -> dict[str, object] | None:
-    hashes_path = root / "hashes.json"
-    if not hashes_path.is_file():
-        errors.append("generated-artifacts.json: hashes.json is required for publication provenance")
+def _load_json_object(path: Path, label: str, errors: list[str]) -> dict[str, object] | None:
+    if not path.is_file():
+        errors.append(f"{label}: required file is missing")
         return None
     try:
-        data = json.loads(hashes_path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
     except Exception as exc:
-        errors.append(f"generated-artifacts.json: cannot read hashes.json: {exc}")
+        errors.append(f"{label}: cannot read JSON: {exc}")
         return None
     if not isinstance(data, dict):
-        errors.append("generated-artifacts.json: hashes.json root must be an object")
+        errors.append(f"{label}: root must be an object")
+        return None
+    return data
+
+
+def _load_hash_samples(root: Path, errors: list[str]) -> dict[str, object] | None:
+    data = _load_json_object(
+        root / "hashes.json",
+        "generated-artifacts.json: hashes.json",
+        errors,
+    )
+    if data is None:
         return None
     samples = data.get("samples")
     if not isinstance(samples, dict):
@@ -120,13 +134,14 @@ def _validate_sample_provenance(
     root: Path,
     validation: dict[str, object],
     errors: list[str],
-) -> None:
+) -> dict[str, str] | None:
     sample = validation.get("sample")
     if not isinstance(sample, dict):
         errors.append("generated-artifacts.json: validation.sample must be an object")
-        return
+        return None
 
     hash_samples = _load_hash_samples(root, errors)
+    result: dict[str, str] = {}
     for manifest_key, sample_name in SAMPLE_HASH_MAP.items():
         value = sample.get(manifest_key)
         if not isinstance(value, str) or not HEX64.fullmatch(value):
@@ -134,6 +149,7 @@ def _validate_sample_provenance(
                 f"generated-artifacts.json: validation.sample.{manifest_key} must be a SHA-256"
             )
             continue
+        result[manifest_key] = value.lower()
         if hash_samples is None:
             continue
         sample_entry = hash_samples.get(sample_name)
@@ -151,6 +167,161 @@ def _validate_sample_provenance(
         if value.lower() != expected.lower():
             errors.append(
                 f"generated-artifacts.json: validation.sample.{manifest_key} does not match hashes.json"
+            )
+    return result or None
+
+
+def _parse_rva(value: object, label: str, errors: list[str]) -> int | None:
+    if not isinstance(value, str) or not HEX_RVA.fullmatch(value):
+        errors.append(f"{label}: must be a hexadecimal RVA")
+        return None
+    try:
+        return int(value, 16)
+    except ValueError:
+        errors.append(f"{label}: must be a hexadecimal RVA")
+        return None
+
+
+def _validate_runtime_type_provenance(
+    root: Path,
+    validation: dict[str, object],
+    publication_rows: dict[str, int] | None,
+    sample_hashes: dict[str, str] | None,
+    errors: list[str],
+) -> None:
+    count = validation.get("runtime_type_count")
+    if isinstance(count, bool) or not isinstance(count, int):
+        errors.append("generated-artifacts.json: validation.runtime_type_count must be an integer")
+        manifest_count: int | None = None
+    else:
+        manifest_count = count
+        if count != EXPECTED_RUNTIME_TYPE_COUNT:
+            errors.append(
+                "generated-artifacts.json: validation.runtime_type_count must be "
+                f"{EXPECTED_RUNTIME_TYPE_COUNT}"
+            )
+
+    manifest_boundary = _parse_rva(
+        validation.get("runtime_type_boundary_rva"),
+        "generated-artifacts.json: validation.runtime_type_boundary_rva",
+        errors,
+    )
+    if validation.get("runtime_type_boundary_verified") is not True:
+        errors.append(
+            "generated-artifacts.json: validation.runtime_type_boundary_verified must be true"
+        )
+
+    summary = _load_json_object(
+        root / "metadata/runtime-types.summary.json",
+        "generated-artifacts.json: metadata/runtime-types.summary.json",
+        errors,
+    )
+    if summary is None:
+        return
+
+    if summary.get("status") != EXPECTED_RUNTIME_STATUS:
+        errors.append(
+            "generated-artifacts.json: runtime type summary status must be "
+            f"{EXPECTED_RUNTIME_STATUS}"
+        )
+    if summary.get("structural_validation_passed") is not True:
+        errors.append(
+            "generated-artifacts.json: runtime type summary structural_validation_passed must be true"
+        )
+    if summary.get("boundary_entry_valid_type") is not False:
+        errors.append(
+            "generated-artifacts.json: runtime type boundary entry must fail the Il2CppType structural gate"
+        )
+    if summary.get("anchor_405772_class_84249_DMMJNICDOHM") is not True:
+        errors.append(
+            "generated-artifacts.json: runtime type summary lost the 405772 -> DMMJNICDOHM anchor"
+        )
+
+    summary_count = summary.get("runtime_type_count")
+    if isinstance(summary_count, bool) or not isinstance(summary_count, int):
+        errors.append(
+            "generated-artifacts.json: runtime type summary runtime_type_count must be an integer"
+        )
+        summary_count_int: int | None = None
+    else:
+        summary_count_int = summary_count
+        if summary_count != EXPECTED_RUNTIME_TYPE_COUNT:
+            errors.append(
+                "generated-artifacts.json: runtime type summary count must be "
+                f"{EXPECTED_RUNTIME_TYPE_COUNT}"
+            )
+        if manifest_count is not None and summary_count != manifest_count:
+            errors.append(
+                "generated-artifacts.json: runtime type count disagrees with runtime-types.summary.json"
+            )
+
+    summary_type_array = _parse_rva(
+        summary.get("type_array_rva"),
+        "generated-artifacts.json: runtime type summary type_array_rva",
+        errors,
+    )
+    summary_boundary = _parse_rva(
+        summary.get("boundary_rva"),
+        "generated-artifacts.json: runtime type summary boundary_rva",
+        errors,
+    )
+    if (
+        summary_type_array is not None
+        and summary_boundary is not None
+        and summary_count_int is not None
+        and summary_boundary != summary_type_array + summary_count_int * ENTRY_SIZE
+    ):
+        errors.append(
+            "generated-artifacts.json: runtime type boundary does not equal "
+            "type_array_rva + runtime_type_count * 16"
+        )
+    if (
+        manifest_boundary is not None
+        and summary_boundary is not None
+        and manifest_boundary != summary_boundary
+    ):
+        errors.append(
+            "generated-artifacts.json: runtime type boundary disagrees with runtime-types.summary.json"
+        )
+
+    boundary_hex = summary.get("boundary_entry_hex")
+    if (
+        not isinstance(boundary_hex, str)
+        or len(boundary_hex) != ENTRY_SIZE * 2
+        or re.fullmatch(r"[0-9a-fA-F]+", boundary_hex) is None
+    ):
+        errors.append(
+            "generated-artifacts.json: runtime type summary boundary_entry_hex must be exactly 16 bytes"
+        )
+
+    emitted_rows = summary.get("emitted_rows")
+    named_rows = summary.get("named_definition_entries")
+    if isinstance(emitted_rows, bool) or not isinstance(emitted_rows, int) or emitted_rows <= 0:
+        errors.append(
+            "generated-artifacts.json: runtime type summary emitted_rows must be a positive integer"
+        )
+    else:
+        if named_rows != emitted_rows:
+            errors.append(
+                "generated-artifacts.json: runtime type summary named_definition_entries must equal emitted_rows"
+            )
+        if publication_rows is not None:
+            published_rows = publication_rows.get("metadata/runtime-types.csv")
+            if published_rows is not None and published_rows != emitted_rows:
+                errors.append(
+                    "generated-artifacts.json: runtime-types.csv publication row count disagrees with runtime summary"
+                )
+
+    if sample_hashes is not None:
+        summary_exe = summary.get("exe_sha256")
+        expected_exe = sample_hashes.get("exe_sha256")
+        if not isinstance(summary_exe, str) or not HEX64.fullmatch(summary_exe):
+            errors.append(
+                "generated-artifacts.json: runtime type summary exe_sha256 must be a SHA-256"
+            )
+        elif expected_exe is not None and summary_exe.lower() != expected_exe.lower():
+            errors.append(
+                "generated-artifacts.json: runtime type summary EXE hash disagrees with publication provenance"
             )
 
 
@@ -206,6 +377,7 @@ def validate_generated_manifest(root: Path) -> list[str]:
 
     validation = data.get("validation")
     metadata_counts: dict[str, int] | None = None
+    sample_hashes: dict[str, str] | None = None
     if not isinstance(validation, dict):
         errors.append("generated-artifacts.json: validation must be an object")
     else:
@@ -223,7 +395,7 @@ def validate_generated_manifest(root: Path) -> list[str]:
             errors.append(
                 "generated-artifacts.json: validation.getcmdid_anchor must be true"
             )
-        _validate_sample_provenance(root, validation, errors)
+        sample_hashes = _validate_sample_provenance(root, validation, errors)
 
     publication = data.get("publication")
     publication_rows: dict[str, int] | None = None
@@ -238,6 +410,15 @@ def validate_generated_manifest(root: Path) -> list[str]:
             publication.get("metadata_rows"),
             "generated-artifacts.json: publication.metadata_rows",
             REQUIRED_PUBLICATION_ROWS,
+            errors,
+        )
+
+    if isinstance(validation, dict):
+        _validate_runtime_type_provenance(
+            root,
+            validation,
+            publication_rows,
+            sample_hashes,
             errors,
         )
 

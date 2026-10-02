@@ -9,15 +9,20 @@ Every generated dataset should answer four questions without relying on someone'
 
 ## Version provenance
 
-A version/platform directory binds generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, recording the publisher, validation result, compact metadata row counts, canonical-registry state, and the fixed canonical files published by that run.
+A version/platform directory binds generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, recording the publisher, validation result, compact metadata row counts, canonical-registry state, exact runtime-type boundary evidence, and the fixed canonical files published by that run.
 
-The current manifest contract is version 3:
+The current manifest contract is version 4:
 
 ```text
-manifest_version = 3
+manifest_version = 4
 artifacts = canonical files published by this run
 canonical_registry_published = true
+validation.runtime_type_count = 683574
+validation.runtime_type_boundary_rva = 0x388CD80
+validation.runtime_type_boundary_verified = true
 ```
+
+The runtime-type fields are publication gates. The manifest validator cross-checks them against `metadata/runtime-types.summary.json`, including exact sample identity, summary status, structural validation, the first boundary record, the `type_array_rva + count * 16` relation, and the compact runtime-type CSV row count.
 
 There is no optional publication surface. Research artifacts are published by their own explicit research workflows and never ride the canonical publisher.
 
@@ -31,13 +36,15 @@ registry/getcmdid-candidates.csv
 
 Every path listed in `artifacts` must exist after publication.
 
-The retired fields `files`, `optional_registry_artifacts_published`, and `optional_artifacts_published` are rejected. Current tooling must not emit or depend on them. Ordinary CI validates the committed manifest without downloading the client.
+The retired fields `files`, `optional_registry_artifacts_published`, and `optional_artifacts_published` are rejected. Earlier manifest versions are rejected as well. Current tooling must not emit or depend on those contracts. Ordinary CI validates the committed manifest without downloading the client.
 
 ## Work output versus canonical published indexes
 
 Exact-sample regeneration writes rich decoder/provenance data under `work/`. Git-published metadata under `versions/` is a compact query-oriented projection. Detailed decoder provenance stays in work output and explicit summary artifacts.
 
-Canonical publication is fail-closed. It requires the pinned sample hashes, exact metadata counts, complete method-pointer table, runtime/GetCmdId anchors, and the current canonical registry. Research probes are outside this publication path and cannot substitute for a failed canonical gate.
+Canonical publication is fail-closed. It requires the pinned sample hashes, exact metadata counts, complete method-pointer table, the exact 683,574-entry runtime Il2CppType boundary, runtime/GetCmdId anchors, and the current canonical registry. Research probes are outside this publication path and cannot substitute for a failed canonical gate.
+
+`metadata/runtime-types.csv` is the compact named class/valuetype index derived from the exact runtime type table. Its row count is validated against `metadata/runtime-types.summary.json`; it is not the total Il2CppType count.
 
 ## Stable identities
 

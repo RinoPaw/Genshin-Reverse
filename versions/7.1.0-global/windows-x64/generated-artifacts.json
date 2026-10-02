@@ -1,5 +1,5 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 4,
   "source": "genshinre.artifactpublish",
   "work": "work/7.1.0-global/windows-x64",
   "status": "generated-artifacts-published",
@@ -15,6 +15,9 @@
       "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
     },
     "runtime_type_anchor": true,
+    "runtime_type_count": 683574,
+    "runtime_type_boundary_rva": "0x388CD80",
+    "runtime_type_boundary_verified": true,
     "getcmdid_anchor": true
   },
   "publication": {
@@ -43,6 +46,7 @@
   "notes": [
     "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
     "publication requires the current canonical 7.1 registry and exact sample identities",
+    "runtime type publication is bound to the verified exact 683,574-entry Il2CppType boundary",
     "research intermediates are maintained by their own explicit research workflows"
   ]
 }

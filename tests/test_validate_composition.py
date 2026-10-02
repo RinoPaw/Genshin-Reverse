@@ -9,23 +9,21 @@ from genshinre.validate import validate_version
 
 
 class ValidatorCompositionTests(unittest.TestCase):
-    def test_manifest_v3_contract_runs_through_validator(self) -> None:
+    def test_manifest_v4_contract_runs_through_validator(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
-                        "manifest_version": 2,
+                        "manifest_version": 3,
                         "canonical_registry_published": True,
                         "artifacts": [],
-                        "optional_artifacts_published": [],
                     }
                 ),
                 encoding="utf-8",
             )
             errors, _ = validate_version(root, allow_partial=True)
-            self.assertTrue(any("manifest_version must be 3" in error for error in errors))
-            self.assertTrue(any("optional_artifacts_published" in error for error in errors))
+            self.assertTrue(any("manifest_version must be 4" in error for error in errors))
 
     def test_cmd_observation_contract_runs_through_validator(self) -> None:
         with tempfile.TemporaryDirectory() as td:

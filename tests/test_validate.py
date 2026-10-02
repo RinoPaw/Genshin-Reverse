@@ -8,6 +8,7 @@ from pathlib import Path
 
 from genshinre.artifactmanifest import CANONICAL_ARTIFACTS, REQUIRED_PUBLICATION_ROWS
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
+from genshinre.typearray import EXPECTED_RUNTIME_TYPE_COUNT
 from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
 
 
@@ -38,11 +39,29 @@ class ValidatorIntegrationTests(unittest.TestCase):
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("fixture\n", encoding="utf-8")
+        (root / "metadata/runtime-types.summary.json").write_text(
+            json.dumps(
+                {
+                    "exe_sha256": exe_sha,
+                    "status": "canonical-exact-runtime-type-index",
+                    "runtime_type_count": EXPECTED_RUNTIME_TYPE_COUNT,
+                    "type_array_rva": "0x1000",
+                    "boundary_rva": "0xA6F360",
+                    "boundary_entry_hex": "8988883b0000000060da9e4501000000",
+                    "boundary_entry_valid_type": False,
+                    "structural_validation_passed": True,
+                    "emitted_rows": 1,
+                    "named_definition_entries": 1,
+                    "anchor_405772_class_84249_DMMJNICDOHM": True,
+                }
+            ),
+            encoding="utf-8",
+        )
 
         (root / "generated-artifacts.json").write_text(
             json.dumps(
                 {
-                    "manifest_version": 3,
+                    "manifest_version": 4,
                     "source": "genshinre.artifactpublish",
                     "status": "generated-artifacts-published",
                     "canonical_registry_published": canonical_registry_published,
@@ -58,13 +77,14 @@ class ValidatorIntegrationTests(unittest.TestCase):
                             "metadata_sha256": metadata_sha,
                         },
                         "runtime_type_anchor": True,
+                        "runtime_type_count": EXPECTED_RUNTIME_TYPE_COUNT,
+                        "runtime_type_boundary_rva": "0xA6F360",
+                        "runtime_type_boundary_verified": True,
                         "getcmdid_anchor": True,
                     },
                     "publication": {
                         "metadata_format": "compact-query-indexes",
-                        "metadata_rows": {
-                            rel: 1 for rel in REQUIRED_PUBLICATION_ROWS
-                        },
+                        "metadata_rows": {rel: 1 for rel in REQUIRED_PUBLICATION_ROWS},
                     },
                     "artifacts": list(CANONICAL_ARTIFACTS),
                 }
@@ -125,7 +145,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
             writer.writerows(rows)
         return path
 
-    def test_manifest_v3_runs_through_current_main_validator(self) -> None:
+    def test_manifest_v4_runs_through_current_main_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_canonical_registry(root)
@@ -133,9 +153,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
 
             errors: list[str] = []
             warnings: list[str] = []
-            _validate_generated_artifacts(
-                root, errors, warnings, allow_partial=False
-            )
+            _validate_generated_artifacts(root, errors, warnings, allow_partial=False)
 
             self.assertEqual([], errors)
             self.assertEqual([], warnings)
@@ -146,9 +164,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
             self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
-            _validate_generated_artifacts(
-                root, errors, [], allow_partial=False
-            )
+            _validate_generated_artifacts(root, errors, [], allow_partial=False)
 
             self.assertTrue(
                 any("canonical_registry_published is true" in error for error in errors)
@@ -165,9 +181,7 @@ class ValidatorIntegrationTests(unittest.TestCase):
             self._write_manifest(root, canonical_registry_published=True)
 
             errors: list[str] = []
-            _validate_generated_artifacts(
-                root, errors, [], allow_partial=False
-            )
+            _validate_generated_artifacts(root, errors, [], allow_partial=False)
 
             self.assertTrue(
                 any("row_count does not match registry.csv" in error for error in errors)
