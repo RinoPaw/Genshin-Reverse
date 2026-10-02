@@ -37,6 +37,7 @@
     "metadata/runtime-types.summary.json",
     "metadata/type-methods.json",
     "metadata/types.csv",
+    "registry/control-set.csv",
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json"
   ],
@@ -49,10 +50,13 @@
     "metadata/runtime-types.summary.json",
     "metadata/type-methods.json",
     "metadata/types.csv",
+    "registry/control-set.csv",
     "registry/getcmdid-candidates.csv",
     "registry/getcmdid-candidates.summary.json"
   ],
-  "optional_registry_artifacts_published": [],
+  "optional_registry_artifacts_published": [
+    "registry/control-set.csv"
+  ],
   "notes": [
     "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
     "metadata publication is gated independently from experimental registry heuristics",
