@@ -6,7 +6,7 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .registry import CANONICAL_COLUMNS
+from .registry import NORMALIZED_REGISTRY_COLUMNS
 from .registrylayout import HISTORICAL_ROW_COUNT
 
 
@@ -36,7 +36,6 @@ def _semantic_names(rows: list[dict[str, str]]) -> dict[int, str]:
         name = str(row.get("semantic_name", "")).strip()
         if cmd_id is None or not name:
             continue
-        # The importer deduplicates numeric opcode values. Retain that invariant here.
         if cmd_id in result and result[cmd_id] != name:
             raise ValueError(f"control set gives CmdId {cmd_id} multiple semantic names")
         result[cmd_id] = name
@@ -67,12 +66,12 @@ def _row_index(rows: list[dict[str, str]], name: str) -> dict[int, dict[str, str
     return result
 
 
-def publish_canonical_registry_71(
+def publish_historical_native_registry_71(
     direct_raw_csv: Path,
     usage_raw_csv: Path,
     compare_json: Path,
     direction_audit_json: Path,
-    known_opcodes_csv: Path,
+    control_set_csv: Path,
     getcmd_candidates_csv: Path,
     hashes_json: Path,
     output_dir: Path,
@@ -97,7 +96,7 @@ def publish_canonical_registry_71(
 
     direct_rows = _load_csv(direct_raw_csv)
     usage_rows = _load_csv(usage_raw_csv)
-    known_rows = _load_csv(known_opcodes_csv)
+    control_rows = _load_csv(control_set_csv)
     getcmd_rows = _load_csv(getcmd_candidates_csv)
 
     direct_by_index = _row_index(direct_rows, "direct raw registry")
@@ -109,11 +108,11 @@ def publish_canonical_registry_71(
     if set(usage_by_index) != set(range(HISTORICAL_ROW_COUNT)):
         raise ValueError("usage-backed raw registry indices are not contiguous 0..4895")
 
-    semantic_by_cmd = _semantic_names(known_rows)
-    known_ids = set(semantic_by_cmd)
+    semantic_by_cmd = _semantic_names(control_rows)
+    control_ids = set(semantic_by_cmd)
     getcmd_by_identity = _getcmd_index(getcmd_rows)
 
-    canonical: list[dict[str, str]] = []
+    projection: list[dict[str, str]] = []
     raw_ids: set[int] = set()
     missing_type_rows: list[int] = []
     ambiguous_getcmd: list[dict[str, object]] = []
@@ -172,7 +171,7 @@ def publish_canonical_registry_71(
             "row agreement verified; direction validated by independent Req/Rsp controls"
         )
         notes = "semantic name imported from AstaPS control set" if semantic_name else "semantic name unresolved"
-        canonical.append(
+        projection.append(
             {
                 "cmd_id": str(cmd_id),
                 "type_name": type_name,
@@ -197,35 +196,35 @@ def publish_canonical_registry_71(
             f"{len(ambiguous_getcmd)} rows have multiple GetCmdId RVA candidates; "
             f"first: {ambiguous_getcmd[:5]}"
         )
-    if len(canonical) != HISTORICAL_ROW_COUNT or len(raw_ids) != HISTORICAL_ROW_COUNT:
-        raise ValueError("canonical projection did not preserve the exact 4,896-entry population")
+    if len(projection) != HISTORICAL_ROW_COUNT or len(raw_ids) != HISTORICAL_ROW_COUNT:
+        raise ValueError("historical projection did not preserve the exact 4,896-entry population")
 
-    missing_controls = sorted(known_ids - raw_ids)
+    missing_controls = sorted(control_ids - raw_ids)
     if missing_controls:
         raise ValueError(
             f"native registry misses {len(missing_controls)} current control-set CmdIds; "
             f"first: {missing_controls[:20]}"
         )
 
-    canonical.sort(key=lambda row: int(row["cmd_id"]))
+    projection.sort(key=lambda row: int(row["cmd_id"]))
     output_dir.mkdir(parents=True, exist_ok=True)
     with (output_dir / "registry.csv").open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CANONICAL_COLUMNS)
+        writer = csv.DictWriter(f, fieldnames=NORMALIZED_REGISTRY_COLUMNS)
         writer.writeheader()
-        writer.writerows(canonical)
+        writer.writerows(projection)
     (output_dir / "registry.json").write_text(
-        json.dumps(canonical, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps(projection, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
     samples = dict(hashes.get("samples", {}))
     summary: dict[str, object] = {
-        "row_count": len(canonical),
+        "row_count": len(projection),
         "unique_cmd_ids": len(raw_ids),
-        "direction_counts": dict(Counter(row["direction"] for row in canonical)),
-        "semantic_name_count": sum(bool(row["semantic_name"]) for row in canonical),
-        "missing_semantic_name": sum(not row["semantic_name"] for row in canonical),
-        "get_cmd_id_rva_count": sum(bool(row["get_cmd_id_rva"]) for row in canonical),
-        "control_set_unique_cmd_ids": len(known_ids),
+        "direction_counts": dict(Counter(row["direction"] for row in projection)),
+        "semantic_name_count": sum(bool(row["semantic_name"]) for row in projection),
+        "missing_semantic_name": sum(not row["semantic_name"] for row in projection),
+        "get_cmd_id_rva_count": sum(bool(row["get_cmd_id_rva"]) for row in projection),
+        "control_set_unique_cmd_ids": len(control_ids),
         "control_set_missing": 0,
         "native_comparison_status": comparison.get("status"),
         "direction_audit_status": direction.get("status"),
@@ -239,12 +238,14 @@ def publish_canonical_registry_71(
             "usage_raw_csv": str(usage_raw_csv),
             "comparison_json": str(compare_json),
             "direction_audit_json": str(direction_audit_json),
-            "known_opcodes_csv": str(known_opcodes_csv),
+            "control_set_csv": str(control_set_csv),
             "getcmd_candidates_csv": str(getcmd_candidates_csv),
         },
-        "status": "canonical-static-registry",
+        "status": "historical-native-registry-projection",
+        "canonical_publication": False,
         "notes": [
-            "numeric membership, obfuscated client type identity, type slot and direction passed the publication gates",
+            "historical reproduction only; current canonical registry is published by registryxrefpublish",
+            "numeric membership, obfuscated client type identity, type slot and direction passed the historical native-layout gates",
             "semantic names are supplemental independent control-set labels; blank names remain intentionally unresolved",
             "static-verified does not imply runtime observation of every packet",
         ],
@@ -258,24 +259,27 @@ def publish_canonical_registry_71(
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.registrypublish",
-        description="Publish canonical 7.1 registry artifacts only after all structural and direction gates pass.",
+        description=(
+            "Reproduce the historical 7.1 native-layout registry projection after structural "
+            "and direction gates pass. This is not the current canonical publisher."
+        ),
     )
     parser.add_argument("direct_raw_csv", type=Path)
     parser.add_argument("usage_raw_csv", type=Path)
     parser.add_argument("compare_json", type=Path)
     parser.add_argument("direction_audit_json", type=Path)
-    parser.add_argument("known_opcodes_csv", type=Path)
+    parser.add_argument("control_set_csv", type=Path)
     parser.add_argument("getcmd_candidates_csv", type=Path)
     parser.add_argument("hashes_json", type=Path)
     parser.add_argument("output_dir", type=Path)
     args = parser.parse_args()
 
-    result = publish_canonical_registry_71(
+    result = publish_historical_native_registry_71(
         args.direct_raw_csv,
         args.usage_raw_csv,
         args.compare_json,
         args.direction_audit_json,
-        args.known_opcodes_csv,
+        args.control_set_csv,
         args.getcmd_candidates_csv,
         args.hashes_json,
         args.output_dir,
