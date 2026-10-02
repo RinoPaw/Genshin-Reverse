@@ -39,6 +39,7 @@ jobs:
             --packet-ids /tmp/packetIds-7.0.json \
             --target CPKAHGFBBIH \
             --target CFBLHIJCOEN \
+            --target CEDKGNBPJBL \
             --neighbors 24 \
             | tee /tmp/trans-point-consumers-7.0.txt
 
@@ -47,7 +48,7 @@ jobs:
           python - <<'PY' | tee /tmp/trans-point-reference-hits.txt
           from pathlib import Path
           roots=list(Path('/tmp/data').rglob('*'))
-          needles=['CPKAHGFBBIH','CFBLHIJCOEN']
+          needles=['CPKAHGFBBIH','CFBLHIJCOEN','CEDKGNBPJBL']
           for needle in needles:
               print('===', needle, '===')
               total=0
