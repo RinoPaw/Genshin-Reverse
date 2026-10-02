@@ -37,10 +37,6 @@ NORMALIZED_REGISTRY_COLUMNS = (
     "notes",
 )
 
-# Historical native-layout projector compatibility only. Do not use this name
-# for new code; current canonical publication uses CANONICAL_REGISTRY_COLUMNS.
-CANONICAL_COLUMNS = NORMALIZED_REGISTRY_COLUMNS
-
 ALLOWED_STATUS = {
     "",
     "CONFIRMED",
