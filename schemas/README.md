@@ -75,11 +75,25 @@ cmd_id,type_name,constructor_rva,context,status,evidence
 
 These three currently published xref tables are partial evidence seeds. Their maintained CSV contracts live in `genshinre.xrefartifacts`; blank recovered type/method names are allowed, while CmdId/RVA/status/evidence/context structure is validated by ordinary CI. Broader `method-xrefs.csv` and `type-xrefs.csv` are reserved future surfaces and are not currently published artifacts.
 
-## runtime observations
+## cmdids/observations.csv
+
+Version-level semantic observation summary:
+
+```text
+name,cmd_id,direction,status,evidence
+```
+
+This is a compact investigation-state table, not a raw packet trace. A blank `cmd_id` is allowed for a named semantic target whose current numeric identity remains unresolved. Ordinary CI validates the committed 7.1 table through `genshinre.cmdobservations`.
+
+## trace-import CSV
+
+`genshinre import-trace` produces packet-by-packet work data with a separate contract:
 
 ```text
 timestamp,offset_ms,direction,cmd_id,name,length,payload_hex,source
 ```
+
+Trace-import output normally stays under `work/` or inside a focused analysis artifact. Do not append those rows to `cmdids/observations.csv`.
 
 ## proto/message-shapes.json
 
