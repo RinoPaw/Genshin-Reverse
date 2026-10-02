@@ -12,17 +12,6 @@ HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
 HEXBYTES = re.compile(r"^(?:[0-9a-fA-F]{2})*$")
 
-REGISTRY_REQUIRED_COLUMNS = (
-    "cmd_id",
-    "type_name",
-    "type_definition_index",
-    "direction",
-    "get_cmd_id_rva",
-    "semantic_name",
-    "status",
-    "evidence",
-)
-REGISTRY_SLOT_COLUMNS = ("type_cache_rva", "type_slot_rva")
 KNOWN_OPCODE_REQUIRED_COLUMNS = (
     "semantic_name",
     "cmd_id",
@@ -253,15 +242,20 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
     if not isinstance(data, dict):
         errors.append("generated-artifacts.json: root must be an object")
         return
+    if data.get("manifest_version") != 2:
+        errors.append("generated-artifacts.json: manifest_version must be 2")
 
     _validate_manifest_paths(path, data.get("artifacts"), "artifacts", errors)
-
-    optional = data.get("optional_registry_artifacts_published", [])
     _validate_manifest_paths(
-        path, optional, "optional_registry_artifacts_published", errors
+        path,
+        data.get("optional_artifacts_published"),
+        "optional_artifacts_published",
+        errors,
     )
 
-    if data.get("canonical_registry_published") is True:
+    if data.get("canonical_registry_published") is not True:
+        errors.append("generated-artifacts.json: canonical_registry_published must be true")
+    else:
         _validate_canonical_registry_publication(path, errors)
 
 
@@ -315,7 +309,7 @@ def _validate_known_opcodes(
             errors.append(
                 f"registry/registry.csv: CmdId {cmd_id} direction does not match known-opcodes.csv"
             )
-        if "direction_status" in registry and registry.get("direction_status") != "control-confirmed":
+        if registry.get("direction_status") != "control-confirmed":
             errors.append(
                 f"registry/registry.csv: CmdId {cmd_id} direction_status must be control-confirmed"
             )
@@ -325,12 +319,13 @@ def _validate_known_opcodes(
     if summary_path.exists():
         try:
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
-            canonical = (
-                isinstance(summary, dict)
-                and summary.get("status") == "canonical-static-identity-registry"
-            )
-        except Exception:
-            pass
+        except Exception as exc:
+            errors.append(f"registry/registry.summary.json: {exc}")
+            return
+        if not isinstance(summary, dict):
+            errors.append("registry/registry.summary.json: root must be an object")
+            return
+        canonical = summary.get("status") == "canonical-static-identity-registry"
 
     if canonical:
         enriched_cmds = {
@@ -477,14 +472,10 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
             with registry_path.open("r", encoding="utf-8-sig", newline="") as f:
                 reader = csv.DictReader(f)
                 fields = tuple(reader.fieldnames or ())
-                missing = [column for column in REGISTRY_REQUIRED_COLUMNS if column not in fields]
-                if missing:
-                    errors.append(f"registry.csv missing columns: {', '.join(missing)}")
-
-                slot_column = next((column for column in REGISTRY_SLOT_COLUMNS if column in fields), None)
-                if slot_column is None:
+                if fields != CANONICAL_REGISTRY_COLUMNS:
                     errors.append(
-                        "registry.csv missing type slot column: type_cache_rva or type_slot_rva"
+                        "registry.csv canonical header mismatch; "
+                        f"expected {','.join(CANONICAL_REGISTRY_COLUMNS)}; got {','.join(fields)}"
                     )
 
                 seen: set[int] = set()
@@ -501,10 +492,7 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
                     status = row.get("status", "")
                     if status not in ALLOWED_STATUS:
                         errors.append(f"registry.csv:{line_no}: bad status {status}")
-                    address_columns = ["get_cmd_id_rva"]
-                    if slot_column is not None:
-                        address_columns.insert(0, slot_column)
-                    for column in address_columns:
+                    for column in ("type_slot_rva", "get_cmd_id_rva"):
                         value = row.get(column, "")
                         if value and not HEXADDR.fullmatch(value):
                             errors.append(f"registry.csv:{line_no}: bad {column} {value}")
