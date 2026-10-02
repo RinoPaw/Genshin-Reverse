@@ -40,12 +40,7 @@ def _validate_paths(
 
 
 def validate_generated_manifest(root: Path) -> list[str]:
-    """Validate the current generated-artifacts.json publication contract.
-
-    This deliberately validates only the manifest's own structure/path contract.
-    Dataset-specific publication gates remain owned by their corresponding
-    validators/publishers.
-    """
+    """Validate the current fail-closed generated-artifacts.json contract."""
 
     manifest_path = root / "generated-artifacts.json"
     if not manifest_path.is_file():
@@ -66,31 +61,24 @@ def validate_generated_manifest(root: Path) -> list[str]:
         )
 
     if "files" in data:
-        errors.append("generated-artifacts.json: legacy field 'files' is not allowed in manifest v2")
+        errors.append("generated-artifacts.json: retired field 'files' is not allowed")
     if "optional_registry_artifacts_published" in data:
         errors.append(
-            "generated-artifacts.json: legacy field "
-            "'optional_registry_artifacts_published' is not allowed in manifest v2"
+            "generated-artifacts.json: retired field "
+            "'optional_registry_artifacts_published' is not allowed"
         )
 
-    artifacts = _validate_paths(root, data.get("artifacts"), "artifacts", errors)
-    optional = _validate_paths(
-        root,
-        data.get("optional_artifacts_published", []),
-        "optional_artifacts_published",
-        errors,
-    )
+    _validate_paths(root, data.get("artifacts"), "artifacts", errors)
 
-    outside = sorted(optional - artifacts)
-    if outside:
+    optional = data.get("optional_artifacts_published")
+    if optional != []:
         errors.append(
-            "generated-artifacts.json: optional_artifacts_published must be a subset "
-            f"of artifacts; outside={outside}"
+            "generated-artifacts.json: optional_artifacts_published must be an empty array"
         )
 
-    if not isinstance(data.get("canonical_registry_published"), bool):
+    if data.get("canonical_registry_published") is not True:
         errors.append(
-            "generated-artifacts.json: canonical_registry_published must be a boolean"
+            "generated-artifacts.json: canonical_registry_published must be true"
         )
 
     return errors
