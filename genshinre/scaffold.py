@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .registry import CANONICAL_REGISTRY_COLUMNS
 
-DIRECTORIES = ("registry", "metadata", "proto", "xrefs", "analyses", "reports")
+DIRECTORIES = ("registry", "metadata", "proto", "cmdids", "xrefs", "analyses", "reports")
 
 
 def scaffold(root: Path, version: str, region: str, platform: str) -> Path:
