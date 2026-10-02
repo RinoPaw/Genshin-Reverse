@@ -39,13 +39,7 @@ def load_methods(methods_csv: Path) -> list[dict[str, object]]:
 
 
 def build_type_methods(methods_csv: Path, output_json: Path) -> dict[str, dict[str, list[int]]]:
-    """Build a compact type -> method-index lookup.
-
-    The methods CSV remains the source of method details. Repeating complete method
-    rows inside JSON made the 7.1 index hundreds of megabytes and duplicated data
-    already present in methods.csv. The canonical index stores only method indices,
-    separated by semantic type name and numeric type-definition index.
-    """
+    """Build a compact type -> method-index lookup."""
 
     by_name: dict[str, list[int]] = defaultdict(list)
     by_index: dict[str, list[int]] = defaultdict(list)
@@ -58,14 +52,16 @@ def build_type_methods(methods_csv: Path, output_json: Path) -> dict[str, dict[s
             raise ValueError(
                 f"{methods_csv} missing columns required for type-method index: {', '.join(missing)}"
             )
-        for row in reader:
+        for line_no, row in enumerate(reader, start=2):
             text = str(row.get("method_index", "")).strip()
             if not text:
-                continue
+                raise ValueError(f"{methods_csv}:{line_no}: missing method_index")
             try:
                 method_index = int(text, 0)
             except ValueError as exc:
-                raise ValueError(f"bad method_index {text!r} in {methods_csv}") from exc
+                raise ValueError(
+                    f"{methods_csv}:{line_no}: bad method_index {text!r}"
+                ) from exc
 
             type_name = str(row.get("type_name", "")).strip()
             type_definition_index = str(row.get("type_definition_index", "")).strip()
