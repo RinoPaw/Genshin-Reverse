@@ -141,7 +141,6 @@ def decode_type_record(record: bytes) -> dict[str, int]:
 
 
 def _field_key(index: int) -> int:
-    # Exact recovered Python arithmetic: mask the 64-bit product, then shift.
     product = ((((index * 0x87DE) ^ 0x59B1DB19) * 0x6CB83B74) & MASK64)
     return ((product >> 16) + 0x540C1A0D) & MASK32
 
@@ -258,18 +257,15 @@ def decode_metadata_71(
     exe: Path,
     metadata_path: Path,
     output_dir: Path,
-    allow_unknown_sample: bool = False,
 ) -> dict[str, object]:
     exe_sha = _sha256(exe)
     metadata_sha = _sha256(metadata_path)
-    if not allow_unknown_sample:
-        if exe_sha != EXPECTED_EXE_SHA256:
-            raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
-        if metadata_sha != EXPECTED_METADATA_SHA256:
-            raise ValueError(f"unexpected global-metadata.dat SHA-256: {metadata_sha}")
+    if exe_sha != EXPECTED_EXE_SHA256:
+        raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
+    if metadata_sha != EXPECTED_METADATA_SHA256:
+        raise ValueError(f"unexpected global-metadata.dat SHA-256: {metadata_sha}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    warnings: list[str] = []
 
     with PEImage(exe) as image, metadata_path.open("rb") as metadata_file:
         metadata = mmap.mmap(metadata_file.fileno(), 0, access=mmap.ACCESS_READ)
@@ -279,11 +275,9 @@ def decode_metadata_71(
             header = image.read_rva(EMBEDDED_HEADER_RVA, EMBEDDED_HEADER_SIZE)
             layout = _header_layout(header)
             if layout["type_count"] != EXPECTED_TYPE_COUNT:
-                message = f"decoded type count {layout['type_count']} != preserved {EXPECTED_TYPE_COUNT}"
-                if allow_unknown_sample:
-                    warnings.append(message)
-                else:
-                    raise ValueError(message)
+                raise ValueError(
+                    f"decoded type count {layout['type_count']} != preserved {EXPECTED_TYPE_COUNT}"
+                )
 
             type_base = BODY_SKIP + layout["type_offset"]
             field_base = BODY_SKIP + layout["field_offset"]
@@ -332,11 +326,7 @@ def decode_metadata_71(
                 ("method", method_count, EXPECTED_METHOD_COUNT),
             ):
                 if actual != expected:
-                    message = f"decoded {label} count {actual} != preserved {expected}"
-                    if allow_unknown_sample:
-                        warnings.append(message)
-                    else:
-                        raise ValueError(message)
+                    raise ValueError(f"decoded {label} count {actual} != preserved {expected}")
 
             field_owners = _owner_array(field_count, types, "field_start", "field_count")
             method_owners = _owner_array(method_count, types, "method_start", "method_count")
@@ -474,7 +464,6 @@ def decode_metadata_71(
         "parameter_record_size": PARAMETER_RECORD_SIZE,
         "method_owner_range_mismatches": owner_mismatches,
         "parameter_records_decoded": True,
-        "warnings": warnings,
         "provenance": {
             "embedded_header_rva": f"0x{EMBEDDED_HEADER_RVA:X}",
             "metadata_body_skip": f"0x{BODY_SKIP:X}",
