@@ -19,13 +19,14 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             root = Path(tmp)
             (root / "registry").mkdir()
             (root / "registry" / "registry.csv").write_text("cmd_id\n", encoding="utf-8")
+            (root / "registry" / "probe.json").write_text("{}\n", encoding="utf-8")
             (root / "metadata").mkdir()
             (root / "metadata" / "types.csv").write_text("type_name\n", encoding="utf-8")
             self._write_manifest(
                 root,
                 {
                     "canonical_registry_published": True,
-                    "optional_registry_artifacts_published": [],
+                    "optional_registry_artifacts_published": ["probe.json"],
                     "artifacts": [
                         "generated-artifacts.json",
                         "registry/registry.csv",
@@ -77,7 +78,7 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             _validate_generated_artifacts(root, errors, [])
 
             self.assertTrue(any("duplicate path ok.csv" in error for error in errors))
-            self.assertTrue(any("must stay inside the version directory" in error for error in errors))
+            self.assertTrue(any("must stay inside the publication directory" in error for error in errors))
 
     def test_registry_publication_flag_requires_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
