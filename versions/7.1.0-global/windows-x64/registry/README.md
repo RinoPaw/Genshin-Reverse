@@ -19,6 +19,17 @@ Current canonical columns:
 index,cmd_id,type_name,type_definition_index,direction,direction_status,semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,store_rva,xref_count,xref_method_count,status,evidence
 ```
 
+Use the streaming registry query instead of loading the full CSV into a custom script for routine lookups:
+
+```bash
+genshinre query-registry registry.csv --cmd-id 186
+genshinre query-registry registry.csv --type NLOMEGMJDGJ
+genshinre query-registry registry.csv --type-definition-index 61556
+genshinre query-registry registry.csv --index 48
+```
+
+Filters may be combined when a lookup should assert multiple identity fields at once.
+
 `registry.json` and `summary.json` belong to an older native-layout publication path and are not canonical filenames for the current xref-published dataset. Do not regenerate or overwrite the current registry through that legacy contract.
 
 ## Control set versus confirmed semantic mappings
