@@ -135,6 +135,7 @@ jobs:
             --focus post_rsp_20290:0xF046310 \
             --focus get_scene_area_rsp_23366:0xF046780 \
             --focus rsp_2666:0xF050780 \
+            --focus enter_world_area_rsp_6774:0xF054180 \
             --focus get_scene_point_rsp_26:0xF058EF0 \
             --focus scene_point_unlock_notify_25567:0xF05F0F0 \
             --focus scene_trans_to_point_rsp_23515:0xF063210 \
