@@ -21,6 +21,19 @@ index,cmd_id,type_name,type_definition_index,direction,direction_status,semantic
 
 `registry.json` and `summary.json` belong to an older native-layout publication path and are not canonical filenames for the current xref-published dataset. Do not regenerate or overwrite the current registry through that legacy contract.
 
+## Control set versus confirmed semantic mappings
+
+`control-set.csv` is an imported AstaPS `PacketOpcodes.java` control set used to cross-check candidate graphs and diagnostics. Its rows are mostly `mapped-not-observed`; membership in this file does not by itself establish a target-client semantic identity.
+
+The small, evidence-gated semantic mapping lives separately at `../proto/known-opcodes.csv`. Those rows are explicitly confirmed for the current 7.1 investigation state.
+
+Keep these two roles separate:
+
+- `registry/control-set.csv` — broad external/server mapping used as a comparison/control surface;
+- `proto/known-opcodes.csv` — target-client semantic names that passed the repository evidence gate.
+
+The older `registry/known-opcodes.csv` filename was retired because it blurred that distinction.
+
 ## Candidate graph namespaces
 
 Two structurally different graph families must keep different names:
