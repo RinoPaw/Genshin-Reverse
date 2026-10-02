@@ -47,7 +47,7 @@ jobs:
         run: |
           git clone --depth 1 --branch play/rino https://github.com/RinoPaw/AstaPS.git ../AstaPS
 
-      - name: Regenerate 7.1 intermediate artifacts
+      - name: Regenerate exact-sample data and best-effort research intermediates
         run: |
           bash scripts/regenerate-7.1.sh \
             --exe inputs/7.1.0-global/GenshinImpact.exe \
@@ -56,40 +56,15 @@ jobs:
             --python python \
             --astaps ../AstaPS
 
-      - name: Attempt strict native registry closure
-        id: close_registry
-        continue-on-error: true
+      - name: Publish validated artifacts into version tree
         run: |
-          bash scripts/close-registry-7.1.sh \
-            --exe inputs/7.1.0-global/GenshinImpact.exe \
-            --output work/7.1.0-global/windows-x64 \
-            --python python \
-            --require-direction-perfect
-
-      - name: Attempt canonical registry publication
-        id: publish_registry
-        if: steps.close_registry.outcome == 'success'
-        continue-on-error: true
-        run: |
-          bash scripts/publish-registry-7.1.sh \
+          bash scripts/publish-artifacts-7.1.sh \
             --work work/7.1.0-global/windows-x64 \
-            --destination work/7.1.0-global/windows-x64/canonical-registry \
+            --version versions/7.1.0-global/windows-x64 \
             --python python
 
-      - name: Publish validated intermediate artifacts into version tree
-        run: |
-          if [[ -d work/7.1.0-global/windows-x64/canonical-registry ]]; then
-            bash scripts/publish-artifacts-7.1.sh \
-              --work work/7.1.0-global/windows-x64 \
-              --version versions/7.1.0-global/windows-x64 \
-              --canonical-registry work/7.1.0-global/windows-x64/canonical-registry \
-              --python python
-          else
-            bash scripts/publish-artifacts-7.1.sh \
-              --work work/7.1.0-global/windows-x64 \
-              --version versions/7.1.0-global/windows-x64 \
-              --python python
-          fi
+      - name: Validate published version tree
+        run: genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 
       - name: Show generated file sizes
         run: |
@@ -123,4 +98,5 @@ jobs:
             exit 1
           fi
           git commit -m 'data: publish generated global 7.1 reverse artifacts'
+          git pull --rebase origin main
           git push origin HEAD:main
