@@ -49,6 +49,8 @@ jobs:
           import csv
           import json
           import re
+          import sqlite3
+          import struct
           from collections import Counter
           from pathlib import Path
 
@@ -70,7 +72,54 @@ jobs:
               0x4B2AC0: 'get_scene_area_rsp_control',
           }
 
-          # Historical owner + global historical method RVAs for exact method ends.
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def access_name(op, insn, operand_index):
+              flags = []
+              if op.access & CS_AC_READ:
+                  flags.append('read')
+              if op.access & CS_AC_WRITE:
+                  flags.append('write')
+              if flags:
+                  return '+'.join(flags)
+              if insn.mnemonic == 'lea':
+                  return 'address'
+              if operand_index == 0 and insn.mnemonic in {'mov','movq','movdqu','movups','xchg','cmpxchg','inc','dec','add','sub','and','or','xor'}:
+                  return 'write-or-rmw'
+              return 'unknown'
+
+          def matching_operands(insn, slot):
+              rows = []
+              for operand_index, op in enumerate(insn.operands):
+                  if op.type != X86_OP_MEM or op.mem.base == X86_REG_RIP:
+                      continue
+                  if int(op.mem.disp) == slot:
+                      rows.append((operand_index, access_name(op, insn, operand_index)))
+              return rows
+
+          def raw_occurrences(image, slots):
+              out = []
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for slot, label in slots.items():
+                      needle = struct.pack('<I', slot)
+                      pos = blob.find(needle)
+                      while pos >= 0:
+                          out.append({
+                              'slot': slot,
+                              'slot_label': label,
+                              'byte_rva': sec.virtual_address + pos,
+                              'section': sec.name,
+                          })
+                          pos = blob.find(needle, pos + 1)
+              out.sort(key=lambda row: (row['byte_rva'], row['slot']))
+              return out
+
+          # Parse only the historical scene owner. Its known sender/response/control methods
+          # provide method-boundary controls; global 7.0 references can still be locally decoded.
           rva_re = re.compile(r'"rva":(\d+)')
           old_owner = None
           old_all_rvas = set()
@@ -85,7 +134,7 @@ jobs:
           if old_owner is None:
               raise RuntimeError('historical scene owner missing')
           old_all_rvas = sorted(old_all_rvas)
-          old_owner_methods = []
+          old_methods = []
           for position, method in enumerate(old_owner.get('methods', [])):
               start = int(method.get('rva') or 0)
               if start <= 0:
@@ -93,7 +142,7 @@ jobs:
               i = bisect.bisect_right(old_all_rvas, start)
               if i >= len(old_all_rvas):
                   continue
-              old_owner_methods.append({
+              old_methods.append({
                   'start': start,
                   'end': old_all_rvas[i],
                   'type_name': OLD_OWNER,
@@ -102,150 +151,164 @@ jobs:
                   'owner_position': position,
                   'parameter_types': [p.get('type') for p in (method.get('params') or [])],
               })
-          old_owner_methods.sort(key=lambda row: row['start'])
-          old_owner_starts = [row['start'] for row in old_owner_methods]
+          old_methods.sort(key=lambda row: row['start'])
+          old_starts = [row['start'] for row in old_methods]
 
-          # Full 7.1 method index gives both exact owner ranges and mapping for global hits.
-          new_methods = []
-          with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8', newline='') as f:
-              for row in csv.DictReader(f):
-                  start = int(row['rva'], 0) if row.get('rva') else 0
-                  if start <= 0:
-                      continue
-                  try:
-                      params = json.loads(row.get('parameter_types') or '[]')
-                  except Exception:
-                      params = []
-                  new_methods.append({
-                      'start': start,
-                      'type_name': row.get('type_name'),
-                      'method_name': row.get('method_name'),
-                      'method_index': int(row['method_index']),
-                      'type_definition_index': int(row['type_definition_index']),
-                      'parameter_types': params,
-                  })
-          new_methods.sort(key=lambda row: row['start'])
-          for i, row in enumerate(new_methods):
-              row['end'] = new_methods[i + 1]['start'] if i + 1 < len(new_methods) else row['start'] + 0x1000
-          new_starts = [row['start'] for row in new_methods]
-          new_owner_methods = [row for row in new_methods if row['type_name'] == NEW_OWNER]
-
-          def method_for(methods, starts, rva):
-              i = bisect.bisect_right(starts, rva) - 1
+          def old_method_for(rva):
+              i = bisect.bisect_right(old_starts, rva) - 1
               if i < 0:
                   return None
-              row = methods[i]
+              row = old_methods[i]
               return row if rva < row['end'] else None
 
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = True
+          # Disk-backed RVA index avoids holding 733k decoded 7.1 method rows in memory.
+          db = sqlite3.connect('/tmp/methods.sqlite')
+          db.execute('CREATE TABLE methods (rva INTEGER, type_name TEXT, method_name TEXT, method_index INTEGER, type_definition_index INTEGER, parameter_types TEXT)')
+          batch = []
+          with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8', newline='') as f:
+              for row in csv.DictReader(f):
+                  rva = int(row['rva'], 0) if row.get('rva') else 0
+                  if rva <= 0:
+                      continue
+                  batch.append((rva, row.get('type_name',''), row.get('method_name',''), int(row['method_index']), int(row['type_definition_index']), row.get('parameter_types','[]')))
+                  if len(batch) >= 10000:
+                      db.executemany('INSERT INTO methods VALUES (?,?,?,?,?,?)', batch)
+                      batch.clear()
+          if batch:
+              db.executemany('INSERT INTO methods VALUES (?,?,?,?,?,?)', batch)
+          db.execute('CREATE INDEX methods_rva ON methods(rva)')
+          db.commit()
 
-          def access_name(op):
-              flags = []
-              if op.access & CS_AC_READ:
-                  flags.append('read')
-              if op.access & CS_AC_WRITE:
-                  flags.append('write')
-              return '+'.join(flags) if flags else 'unknown'
+          def new_method_for(rva):
+              lower = db.execute('SELECT rva FROM methods WHERE rva<=? ORDER BY rva DESC LIMIT 1', (rva,)).fetchone()
+              if lower is None:
+                  return None
+              start = int(lower[0])
+              upper = db.execute('SELECT rva FROM methods WHERE rva>? ORDER BY rva ASC LIMIT 1', (start,)).fetchone()
+              end = int(upper[0]) if upper else start + 0x1000
+              if not (start <= rva < end):
+                  return None
+              aliases = []
+              for row in db.execute('SELECT type_name,method_name,method_index,type_definition_index,parameter_types FROM methods WHERE rva=?', (start,)):
+                  try:
+                      params = json.loads(row[4] or '[]')
+                  except Exception:
+                      params = []
+                  aliases.append({
+                      'type_name': row[0],
+                      'method_name': row[1],
+                      'method_index': row[2],
+                      'type_definition_index': row[3],
+                      'parameter_types': params,
+                  })
+              return {'start': start, 'end': end, 'aliases': aliases}
 
-          def instruction_row(image, insn):
+          def insn_json(image, insn):
               return {
-                  'rva': f'0x{insn.address - image.image_base:X}',
+                  'rva': f'0x{insn.address-image.image_base:X}',
                   'mnemonic': insn.mnemonic,
                   'op_str': insn.op_str,
                   'bytes': insn.bytes.hex(),
               }
 
-          def matches(insn, slots):
-              out = []
-              for operand_index, op in enumerate(insn.operands):
-                  if op.type != X86_OP_MEM or op.mem.base == X86_REG_RIP:
+          def decode_from_method(image, occurrence, method):
+              start, end = method['start'], method['end']
+              size = end - start
+              if size <= 0 or size > 0x20000:
+                  return []
+              blob = image.read_rva(start, size)
+              rows = list(md.disasm(blob, image.image_base + start))
+              target = occurrence['byte_rva']
+              hits = []
+              for i, insn in enumerate(rows):
+                  irva = insn.address - image.image_base
+                  if not (irva <= target and target + 4 <= irva + insn.size):
                       continue
-                  disp = int(op.mem.disp)
-                  if disp in slots:
-                      out.append((disp, operand_index, access_name(op)))
+                  for operand_index, access in matching_operands(insn, occurrence['slot']):
+                      hits.append({
+                          'instruction': insn_json(image, insn),
+                          'operand_index': operand_index,
+                          'access': access,
+                          'context': [insn_json(image, x) for x in rows[max(0,i-6):i+7]],
+                      })
+              return hits
+
+          def decode_local(image, occurrence):
+              target = occurrence['byte_rva']
+              out = []
+              seen = set()
+              for start in range(max(0, target-14), target+1):
+                  blob = image.read_rva(start, 24)
+                  rows = list(md.disasm(blob, image.image_base + start, count=1))
+                  if not rows:
+                      continue
+                  insn = rows[0]
+                  irva = insn.address - image.image_base
+                  if not (irva <= target and target + 4 <= irva + insn.size):
+                      continue
+                  for operand_index, access in matching_operands(insn, occurrence['slot']):
+                      key = (irva, insn.bytes, operand_index)
+                      if key in seen:
+                          continue
+                      seen.add(key)
+                      out.append({
+                          'instruction': insn_json(image, insn),
+                          'operand_index': operand_index,
+                          'access': access,
+                      })
               return out
 
-          # Primary scan: start at every metadata method boundary so Capstone cannot lose
-          # synchronization because of unrelated bytes earlier in the PE section.
-          def scan_methods(exe_path, methods, slots):
-              hits = []
+          def resolve(exe_path, slots, version):
+              resolved = []
               with PEImage(Path(exe_path)) as image:
-                  for method in methods:
-                      size = method['end'] - method['start']
-                      if size <= 0 or size > 0x20000:
+                  occurrences = raw_occurrences(image, slots)
+                  for occ in occurrences:
+                      method = old_method_for(occ['byte_rva']) if version == '7.0' else new_method_for(occ['byte_rva'])
+                      decoded = decode_from_method(image, occ, method) if method else []
+                      confidence = 'method-boundary' if decoded else 'local-byte-window'
+                      if not decoded:
+                          decoded = decode_local(image, occ)
+                      if not decoded:
                           continue
-                      try:
-                          blob = image.read_rva(method['start'], size)
-                      except Exception:
-                          continue
-                      rows = list(md.disasm(blob, image.image_base + method['start']))
-                      for i, insn in enumerate(rows):
-                          for disp, operand_index, access in matches(insn, slots):
-                              hits.append({
-                                  'slot': f'0x{disp:X}',
-                                  'slot_label': slots[disp],
-                                  'rva': f'0x{insn.address-image.image_base:X}',
-                                  'mnemonic': insn.mnemonic,
-                                  'op_str': insn.op_str,
-                                  'operand_index': operand_index,
-                                  'access': access,
-                                  'method': method,
-                                  'context': [instruction_row(image, x) for x in rows[max(0, i-8):i+9]],
-                              })
-              return hits
+                      for hit in decoded:
+                          resolved.append({
+                              'slot': f"0x{occ['slot']:X}",
+                              'slot_label': occ['slot_label'],
+                              'byte_rva': f"0x{occ['byte_rva']:X}",
+                              'section': occ['section'],
+                              'confidence': confidence,
+                              'method': method,
+                              **hit,
+                          })
+              dedup = {}
+              for row in resolved:
+                  key = (row['slot'], row['instruction']['rva'], row['operand_index'])
+                  old = dedup.get(key)
+                  if old is None or (old['confidence'] != 'method-boundary' and row['confidence'] == 'method-boundary'):
+                      dedup[key] = row
+              return sorted(dedup.values(), key=lambda row: (int(row['instruction']['rva'],0), int(row['slot'],0)))
 
-          # Secondary scan: executable sections with skipdata enabled catches references made
-          # by methods outside the scene owner. Current hits can be mapped through methods.csv.
-          def scan_sections(exe_path, slots, version):
-              hits = []
-              scan_md = Cs(CS_ARCH_X86, CS_MODE_64)
-              scan_md.detail = True
-              scan_md.skipdata = True
-              with PEImage(Path(exe_path)) as image:
-                  for sec in image.sections:
-                      if not (sec.characteristics & 0x20000000):
-                          continue
-                      blob = image.read_rva(sec.virtual_address, sec.raw_size)
-                      for insn in scan_md.disasm(blob, image.image_base + sec.virtual_address):
-                          if insn.id == 0:
-                              continue
-                          for disp, operand_index, access in matches(insn, slots):
-                              rva = insn.address - image.image_base
-                              method = (
-                                  method_for(old_owner_methods, old_owner_starts, rva)
-                                  if version == '7.0'
-                                  else method_for(new_methods, new_starts, rva)
-                              )
-                              hits.append({
-                                  'slot': f'0x{disp:X}',
-                                  'slot_label': slots[disp],
-                                  'rva': f'0x{rva:X}',
-                                  'mnemonic': insn.mnemonic,
-                                  'op_str': insn.op_str,
-                                  'operand_index': operand_index,
-                                  'access': access,
-                                  'method': method,
-                              })
-              return hits
-
-          old_owner_hits = scan_methods('/tmp/gi70/GenshinImpact.exe', old_owner_methods, OLD_SLOTS)
-          new_owner_hits = scan_methods('/tmp/gi71/GenshinImpact.exe', new_owner_methods, NEW_SLOTS)
-          old_global_hits = scan_sections('/tmp/gi70/GenshinImpact.exe', OLD_SLOTS, '7.0')
-          new_global_hits = scan_sections('/tmp/gi71/GenshinImpact.exe', NEW_SLOTS, '7.1')
+          old_hits = resolve('/tmp/gi70/GenshinImpact.exe', OLD_SLOTS, '7.0')
+          new_hits = resolve('/tmp/gi71/GenshinImpact.exe', NEW_SLOTS, '7.1')
 
           def summarize(hits):
               out = {}
-              for item in hits:
-                  entry = out.setdefault(item['slot_label'], {'total': 0, 'access': Counter(), 'methods': Counter()})
-                  entry['total'] += 1
-                  entry['access'][item['access']] += 1
-                  method = item.get('method')
-                  key = '<unmapped>' if not method else f"{method.get('type_name')}.{method.get('method_name')}@0x{method['start']:X}"
-                  entry['methods'][key] += 1
-              for entry in out.values():
-                  entry['access'] = dict(entry['access'])
-                  entry['methods'] = dict(entry['methods'])
+              for row in hits:
+                  item = out.setdefault(row['slot_label'], {'total':0,'access':Counter(),'confidence':Counter(),'methods':Counter()})
+                  item['total'] += 1
+                  item['access'][row['access']] += 1
+                  item['confidence'][row['confidence']] += 1
+                  method = row.get('method')
+                  if not method:
+                      key = '<unmapped>'
+                  elif 'aliases' in method:
+                      key = ' | '.join(f"{a['type_name']}.{a['method_name']}" for a in method['aliases'][:6]) + f"@0x{method['start']:X}"
+                  else:
+                      key = f"{method['type_name']}.{method['method_name']}@0x{method['start']:X}"
+                  item['methods'][key] += 1
+              for item in out.values():
+                  for key in ('access','confidence','methods'):
+                      item[key] = dict(item[key])
               return out
 
           current_fields = []
@@ -254,40 +317,34 @@ jobs:
                   if row.get('type_name') == NEW_OWNER:
                       current_fields.append(row)
 
-          report = {
+          print(json.dumps({
               'old_owner': OLD_OWNER,
               'new_owner': NEW_OWNER,
-              'old_slots': {f'0x{k:X}': v for k, v in OLD_SLOTS.items()},
-              'new_slots': {f'0x{k:X}': v for k, v in NEW_SLOTS.items()},
-              'old_owner_summary': summarize(old_owner_hits),
-              'new_owner_summary': summarize(new_owner_hits),
-              'old_global_summary': summarize(old_global_hits),
-              'new_global_summary': summarize(new_global_hits),
-              'old_owner_hits': old_owner_hits,
-              'new_owner_hits': new_owner_hits,
-              'old_global_hits': old_global_hits,
-              'new_global_hits': new_global_hits,
+              'old_slots': {f'0x{k:X}':v for k,v in OLD_SLOTS.items()},
+              'new_slots': {f'0x{k:X}':v for k,v in NEW_SLOTS.items()},
+              'old_summary': summarize(old_hits),
+              'new_summary': summarize(new_hits),
+              'old_hits': old_hits,
+              'new_hits': new_hits,
               'new_owner_fields': current_fields,
               'notes': [
-                  'Method-boundary scans are authoritative for the named scene owners; section scans use skipdata only as a wider xref supplement.',
-                  'Exact non-RIP displacement matches only. Address proximity alone is not identity evidence.',
-                  'Sender and GetSceneAreaRsp are controls for interpreting candidate registration/write patterns.',
+                  'Executable sections are searched for exact little-endian disp32 bytes, then only validated x86 instructions with a matching non-RIP memory displacement are retained.',
+                  'Method-boundary decoding is authoritative when metadata ownership is known; local-byte-window hits are retained separately and must not alone establish identity.',
+                  '7.1 method lookup is disk-backed so the full 733k-row method index does not need to reside in memory.',
+                  'Sender and GetSceneAreaRsp slots are controls. Address proximity alone is not identity evidence.',
               ],
-          }
-          print(json.dumps(report, indent=2))
+          }, indent=2))
           PY
 
           python - <<'PY'
           import json
-          d = json.load(open('/tmp/scene-delegate-slot-xrefs.json'))
-          for key in ('old_owner_summary','new_owner_summary','old_global_summary','new_global_summary'):
-              print(key)
-              print(json.dumps(d[key], indent=2))
-          print('7.1 scene owner fields:', len(d['new_owner_fields']))
-          for key in ('old_owner_hits','new_owner_hits','old_global_hits','new_global_hits'):
-              for hit in d[key]:
-                  if 'write' in hit['access']:
-                      print(key, 'WRITE', hit['slot_label'], hit['rva'], hit['op_str'], hit.get('method'))
+          d=json.load(open('/tmp/scene-delegate-slot-xrefs.json'))
+          print('OLD',json.dumps(d['old_summary'],indent=2))
+          print('NEW',json.dumps(d['new_summary'],indent=2))
+          for key in ('old_hits','new_hits'):
+              for h in d[key]:
+                  if h['access'] in ('write','read+write','write-or-rmw','address'):
+                      print(key,h['slot_label'],h['access'],h['instruction']['rva'],h['instruction']['op_str'],h.get('method'))
           PY
 
       - name: Upload evidence
