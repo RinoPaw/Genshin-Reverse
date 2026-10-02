@@ -8,19 +8,19 @@ from pathlib import Path
 from genshinre.artifactmanifest import validate_generated_manifest
 
 
-class GeneratedArtifactManifestV2Tests(unittest.TestCase):
-    def test_committed_manifest_matches_v2_contract(self) -> None:
+class GeneratedArtifactManifestV3Tests(unittest.TestCase):
+    def test_committed_manifest_matches_v3_contract(self) -> None:
         root = Path(__file__).resolve().parents[1] / "versions/7.1.0-global/windows-x64"
         self.assertEqual([], validate_generated_manifest(root))
 
-    def test_rejects_retired_aliases(self) -> None:
+    def test_rejects_retired_fields(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "ok.csv").write_text("x\n", encoding="utf-8")
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
-                        "manifest_version": 2,
+                        "manifest_version": 3,
                         "canonical_registry_published": True,
                         "files": ["ok.csv"],
                         "artifacts": ["ok.csv"],
@@ -31,30 +31,28 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
                 encoding="utf-8",
             )
             errors = validate_generated_manifest(root)
-            self.assertTrue(any("retired field 'files'" in error for error in errors))
-            self.assertTrue(
-                any("optional_registry_artifacts_published" in error for error in errors)
-            )
+            for field in (
+                "files",
+                "optional_registry_artifacts_published",
+                "optional_artifacts_published",
+            ):
+                self.assertTrue(any(field in error for error in errors), field)
 
-    def test_rejects_nonempty_optional_publication(self) -> None:
+    def test_rejects_manifest_v2(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            (root / "required.csv").write_text("x\n", encoding="utf-8")
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
                         "manifest_version": 2,
                         "canonical_registry_published": True,
-                        "artifacts": ["required.csv"],
-                        "optional_artifacts_published": ["required.csv"],
+                        "artifacts": [],
                     }
                 ),
                 encoding="utf-8",
             )
             errors = validate_generated_manifest(root)
-            self.assertTrue(
-                any("optional_artifacts_published must be an empty array" in error for error in errors)
-            )
+            self.assertTrue(any("manifest_version must be 3" in error for error in errors))
 
     def test_requires_canonical_registry_publication(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -62,10 +60,9 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
-                        "manifest_version": 2,
+                        "manifest_version": 3,
                         "canonical_registry_published": False,
                         "artifacts": [],
-                        "optional_artifacts_published": [],
                     }
                 ),
                 encoding="utf-8",
@@ -81,10 +78,9 @@ class GeneratedArtifactManifestV2Tests(unittest.TestCase):
             (root / "generated-artifacts.json").write_text(
                 json.dumps(
                     {
-                        "manifest_version": 2,
+                        "manifest_version": 3,
                         "canonical_registry_published": True,
                         "artifacts": ["missing.csv", "../escape.csv"],
-                        "optional_artifacts_published": [],
                     }
                 ),
                 encoding="utf-8",
