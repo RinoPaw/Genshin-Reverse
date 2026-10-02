@@ -3,45 +3,60 @@
 Every generated dataset should answer four questions without relying on someone's memory:
 
 1. Which exact client sample produced this?
-2. Which tool and revision produced it?
+2. Which reusable tool produced it?
 3. What transformation was performed?
 4. How strong is the semantic conclusion?
 
-## Provenance manifest
+## Version provenance
 
-A version/platform directory should contain `hashes.json` and generated datasets should carry either embedded provenance fields or a sibling manifest. Recommended fields:
+A version/platform directory must bind generated data to exact samples through `hashes.json`. The maintained 7.1 publication path also writes `generated-artifacts.json`, which records the publisher, validation result, compact metadata row counts, canonical-registry publication state, and the files actually published by that run.
 
-```json
-{
-  "game_version": "7.1.0",
-  "region": "global",
-  "platform": "windows-x64",
-  "exe_sha256": "...",
-  "metadata_sha256": "...",
-  "generated_by": "tools/decode_registry.py",
-  "tool_commit": "...",
-  "command": "python tools/decode_registry.py ..."
-}
+Published paths in `generated-artifacts.json` are relative to the version/platform root, for example:
+
+```text
+metadata/methods.csv
+registry/getcmdid-candidates.csv
+registry/control-set.csv
 ```
+
+`optional_registry_artifacts_published` follows the same version-root-relative convention. A file listed in the manifest must exist after publication.
+
+## Work output versus canonical published indexes
+
+Exact-sample regeneration writes rich intermediate/provenance data under `work/`. Git-published metadata under `versions/` is a compact query-oriented projection. Do not add provenance columns back into canonical CSVs solely because the decoder work file contains them; keep detailed decoder evidence in `work/`, summaries, or focused evidence artifacts.
+
+The maintained publisher validates sample hashes and complete native row counts before publication. Experimental registry recovery may fail without suppressing valid canonical metadata publication.
 
 ## Stable identities
 
-Obfuscated IL2CPP type names are valid stable node identities when they are bound to the same sample. Preserve `typeDefinitionIndex`, method indexes, RVAs and type-cache RVAs whenever available. Semantic names may be added in separate columns so later corrections do not destroy the original identity.
+Obfuscated IL2CPP type names are valid stable node identities when they are bound to the same sample. Preserve `type_definition_index`, method indexes, RVAs, and the relevant runtime/registration slot identity whenever available. The current canonical registry uses `type_slot_rva`; metadata/runtime research artifacts may also expose type-cache-related addresses where that is the actual recovered identity.
+
+Semantic names should stay in separate fields so later corrections do not destroy original static identities.
 
 ## Addresses
 
 Prefer RVA as the portable stored address. If VA is also useful, record image base and both values explicitly. Never mix RVA and VA in one column.
 
-## Evidence
+## Evidence layers
 
-Machine-readable mappings should include a `status` or `confidence` field. For protocol mappings, a strong final row usually contains:
+Machine-readable mappings should include a `status` or `confidence` field appropriate to that dataset. Keep evidence layers distinct:
 
-- static evidence (`GetCmdId`, parser shape, handler/sender relationship);
-- matching runtime behavior or packet observation;
-- sample hashes.
+- exact-client static identities and xrefs;
+- runtime packet observations;
+- target-client confirmed semantic mappings in `proto/known-opcodes.csv`;
+- imported comparison/control mappings such as `registry/control-set.csv`;
+- historical-version clues.
 
-Cross-project mappings are supporting evidence. Older-version numeric matches are historical clues.
+Membership in an external/control mapping is supporting evidence and does not promote a target-client semantic name by itself.
+
+For focused investigations, use `analyses/<topic>/evidence.json` and the promotion rules in `docs/analysis-contract.md`.
+
+## Canonical registry
+
+For current 7.1, `registry/registry.csv` plus `registry/registry.summary.json` is the canonical numeric/type identity dataset. Candidate graphs, usage joins, layout probes, imported control sets, and historical recovery files remain supporting/intermediate artifacts unless an explicit publication gate promotes a replacement.
+
+General artifact publication must validate and preserve this canonical registry rather than overwrite it through an experimental recovery path.
 
 ## Keep computation-friendly data
 
-A report is allowed to summarize a result, but the underlying CSV/JSON should remain available whenever practical. Examples: registry, metadata indexes, parser shapes, handler/sender xrefs, candidate lists and rejected-candidate tables.
+A report may summarize a result, but the underlying compact CSV/JSON should remain available whenever practical. Examples include registry identities, metadata indexes, parser shapes, handler/sender xrefs, candidate lists and rejected-candidate tables.
