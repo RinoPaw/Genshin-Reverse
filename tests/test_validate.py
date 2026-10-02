@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
-from genshinre.validate import _validate_generated_artifacts
+from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
 
 
 class GeneratedArtifactManifestTests(unittest.TestCase):
@@ -48,6 +48,26 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+
+    def _write_known_opcodes(self, root: Path, rows: list[dict[str, str]]) -> Path:
+        proto = root / "proto"
+        proto.mkdir(exist_ok=True)
+        path = proto / "known-opcodes.csv"
+        with path.open("w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=(
+                    "semantic_name",
+                    "cmd_id",
+                    "direction",
+                    "status",
+                    "evidence",
+                    "notes",
+                ),
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        return path
 
     def test_valid_manifest_accepts_existing_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -221,6 +241,65 @@ class GeneratedArtifactManifestTests(unittest.TestCase):
             _validate_generated_artifacts(root, errors, [])
 
             self.assertTrue(any("row_count does not match registry.csv" in error for error in errors))
+
+    def test_known_opcodes_reject_non_confirmed_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_canonical_registry(root)
+            known_path = self._write_known_opcodes(
+                root,
+                [
+                    {
+                        "semantic_name": "KnownReq",
+                        "cmd_id": "1",
+                        "direction": "C2S",
+                        "status": "CANDIDATE",
+                        "evidence": "unit test",
+                        "notes": "",
+                    }
+                ],
+            )
+
+            errors: list[str] = []
+            _validate_known_opcodes(known_path, root / "registry" / "registry.csv", errors)
+
+            self.assertTrue(any("must be CONFIRMED" in error for error in errors))
+
+    def test_known_opcodes_must_match_registry_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_canonical_registry(root)
+            known_path = self._write_known_opcodes(
+                root,
+                [
+                    {
+                        "semantic_name": "KnownReq",
+                        "cmd_id": "1",
+                        "direction": "C2S",
+                        "status": "CONFIRMED",
+                        "evidence": "unit test",
+                        "notes": "",
+                    }
+                ],
+            )
+
+            errors: list[str] = []
+            _validate_known_opcodes(known_path, root / "registry" / "registry.csv", errors)
+
+            self.assertTrue(any("semantic_name does not match" in error for error in errors))
+
+    def test_canonical_registry_cannot_keep_semantics_missing_from_known_opcodes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_canonical_registry(root)
+            known_path = self._write_known_opcodes(root, [])
+
+            errors: list[str] = []
+            _validate_known_opcodes(known_path, root / "registry" / "registry.csv", errors)
+
+            self.assertTrue(
+                any("canonical semantic enrichment does not match" in error for error in errors)
+            )
 
 
 if __name__ == "__main__":
