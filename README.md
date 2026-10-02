@@ -19,23 +19,13 @@ python -m venv .venv
 python -m pip install -e .
 
 genshinre wire 7202d027
-genshinre query-registry versions/7.1.0-global/windows-x64/registry/registry.csv --cmd-id 26105
+genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 186
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-For the pinned 7.1 client, the maintained data path is deliberately split by responsibility:
+The maintained 7.1 path accepts only the pinned exact client sample. A sample/hash mismatch is a hard error.
 
-```text
-regenerate
-  -> exact-sample metadata, runtime types and GetCmdId evidence
-  -> optional registry/research probes are best-effort
-publish artifacts
-  -> validate and publish canonical metadata + reusable intermediates
-canonical registry
-  -> independently published from verified slot/xref identity evidence
-```
-
-Entry points:
+Maintained entry points:
 
 ```text
 scripts/regenerate-7.1.{sh,ps1}
@@ -79,19 +69,15 @@ runtime observation
 → confirmed semantic mapping
 ```
 
-A target count is never used to pad or trim generated output.
-
 ## Current 7.1 artifact status
 
 The canonical 7.1 registry is published and statically closed at **4,896 unique CmdIds**, with a strict one-to-one mapping between CmdId, IL2CPP type definition and registry slot. Its canonical files are `registry/registry.csv` and `registry/registry.summary.json`. Direction and semantic identity are separate evidence layers and remain unresolved for most rows.
 
 The canonical metadata index set is also published: `types.csv`, `methods.csv`, `fields.csv`, `type-methods.json`, `method-pointers.csv` and `runtime-types.csv`. Exact-sample regeneration reproduces **88,904 types, 440,172 fields and 733,442 methods / method pointers** and validates those counts before publication.
 
-The repository therefore treats registry identity and metadata recovery as available infrastructure for focused investigations. New investigations should begin from the canonical artifacts before adding executable-specific probes.
+The repository treats registry identity and metadata recovery as available infrastructure for focused investigations. New investigations should begin from the canonical artifacts before adding executable-specific probes.
 
 ## Highest-value artifacts
-
-The long-term priority order is:
 
 1. `registry/registry.csv`: current client registration map.
 2. `metadata/types.csv`, `methods.csv`, `fields.csv`, `type-methods.json`, `method-pointers.csv`.
@@ -99,19 +85,17 @@ The long-term priority order is:
 4. `xrefs/message-handlers.csv` and `message-senders.csv`.
 5. `analyses/<topic>/`: evidence, candidates, rejected paths and current state.
 
-The highest-value maintenance work is now to expand reusable semantic/xref tooling, keep published artifacts internally consistent, and retire one-off research scaffolding once its method has been generalized.
-
 ## Evidence boundaries
 
-Use `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED`, and `UNRESOLVED`. More specific machine-readable provenance states (`runtime-verified`, `static-verified`, `historical-only`, etc.) may be used where useful.
+Use `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED`, and `UNRESOLVED`. Historical information may be cited as evidence, but historical numeric equality or old-format compatibility is never accepted as a current mapping or current data path.
 
-Historical numeric CmdId equality is never enough to establish a current mapping. Candidate graphs and layout probes never overwrite canonical registry data. `registry_flag` direction semantics stay provisional until independent Req/Rsp controls validate them. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed.
+Candidate graphs and probes never overwrite canonical registry data. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed.
 
 ## Maintenance boundary
 
 Repository maintenance and protocol investigations are tracked separately. Maintainers keep schemas, tooling, documentation, generated-artifact contracts, tests and CI coherent. Focused reverse-engineering work belongs under `versions/<target>/analyses/` or an issue and should be promoted into canonical artifacts only after its stated evidence gate is satisfied.
 
-Heavy reverse-engineering jobs should remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests; it should not repeatedly download or analyze full game samples.
+Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests.
 
 ## Current target
 
