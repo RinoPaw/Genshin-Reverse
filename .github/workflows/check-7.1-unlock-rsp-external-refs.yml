@@ -1,0 +1,90 @@
+name: Check 7.1 UnlockTransPointRsp external refs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/check-7.1-unlock-rsp-external-refs.yml'
+      - 'versions/7.1.0-global/windows-x64/metadata/methods.csv'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan decoded method signatures
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+
+          path = Path('versions/7.1.0-global/windows-x64/metadata/methods.csv')
+          targets = {
+              'NCBEHBOCBJJ': 36641,
+              'MAFFAFNMEBM': 20290,
+              'DMMJNICDOHM': 9369,
+              'DBNMIKBJIPE': 25567,
+              'DKJCMHENKAI': 23366,
+          }
+          out = {name: {'cmd_id': cmd, 'references': []} for name, cmd in targets.items()}
+
+          with path.open(encoding='utf-8-sig', newline='') as f:
+              for row in csv.DictReader(f):
+                  declaring = row.get('type_name') or ''
+                  raw_params = row.get('parameter_types') or '[]'
+                  ret = row.get('return_type') or ''
+                  try:
+                      params = json.loads(raw_params)
+                  except Exception:
+                      params = []
+                  for name in targets:
+                      in_params = name in params
+                      in_return = ret == name or name in ret
+                      if not in_params and not in_return:
+                          continue
+                      out[name]['references'].append({
+                          'declaring_type': declaring,
+                          'self_type': declaring == name,
+                          'method_index': row.get('method_index', ''),
+                          'method_name': row.get('method_name', ''),
+                          'rva': row.get('rva', ''),
+                          'parameter_types': params,
+                          'return_type': ret,
+                          'match_parameter': in_params,
+                          'match_return': in_return,
+                      })
+
+          for name, item in out.items():
+              item['reference_count'] = len(item['references'])
+              item['external_references'] = [r for r in item['references'] if not r['self_type']]
+              item['external_reference_count'] = len(item['external_references'])
+
+          report = {
+              'source': str(path),
+              'targets': out,
+              'notes': [
+                  'This scan uses the current checked-in decoded parameter_types column.',
+                  'External signature references are semantic leads only; absence matters here because the ACK handlers otherwise have no success-path callback.',
+              ],
+          }
+          Path('/tmp/unlock-rsp-external-refs-71.json').write_text(
+              json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
+          )
+          for name, item in out.items():
+              print(name, 'cmd', item['cmd_id'], 'refs', item['reference_count'], 'external', item['external_reference_count'])
+              for row in item['external_references']:
+                  print(' ', row['method_index'], row['rva'], row['declaring_type'], row['method_name'], row['parameter_types'], row['return_type'])
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: unlock-rsp-external-refs-71
+          path: /tmp/unlock-rsp-external-refs-71.json
+          if-no-files-found: error
