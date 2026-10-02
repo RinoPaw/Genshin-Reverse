@@ -2,25 +2,32 @@
 
 This directory contains protocol-registry artifacts for the exact 7.1 sample in `../hashes.json`.
 
-Canonical filenames are reserved for the complete, publication-gated 7.1 dataset:
+## Canonical identity registry
 
-- `registry.csv`: complete primary query surface
-- `registry.json`: complete JSON equivalent
-- `summary.json`: completeness and generation statistics
+The current publication-gated 7.1 identity dataset is present:
 
-They are intentionally absent until the native registry recovery closes and the publication gates pass. A small historical seed must never occupy these canonical filenames.
+- `registry.csv`: complete 4,896-row primary query surface
+- `registry.summary.json`: closure statistics, control anchors and publication status
+
+The canonical registry was closed from verified constructor/type slots plus dominant declaring-type code xrefs. The summary requires a strict one-to-one registry-slot / type-definition / CmdId mapping across all 4,896 rows.
+
+Direction and semantic names are independent evidence layers. Blank or unresolved values do not invalidate the closed numeric/type identity registry.
+
+Current canonical columns:
+
+```text
+index,cmd_id,type_name,type_definition_index,direction,direction_status,semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,store_rva,xref_count,xref_method_count,status,evidence
+```
+
+`registry.json` and `summary.json` belong to an older native-layout publication path and are not canonical filenames for the current xref-published dataset. Do not regenerate or overwrite the current registry through that legacy contract.
+
+## Supporting evidence
 
 Preserved historical evidence remains in:
 
 - `historical-recovery-samples.csv`
 - `historical-recovery-schema.md`
 
-Canonical columns:
+Registry candidate graphs, metadata-usage joins, layout probes and similar files are research intermediates. They may be useful evidence, but they do not replace `registry.csv` unless a publication gate explicitly promotes a new complete identity dataset.
 
-```text
-cmd_id,type_name,type_definition_index,type_cache_rva,direction,get_cmd_id_rva,semantic_name,status,evidence,notes
-```
-
-The earlier 7.1 analysis recovered 4,896 unique CmdIds and cross-checked all 1,540 then-known AstaPS numeric opcodes. The regenerated canonical files may be published only after the current native direct-slot and usage-backed recovery paths agree row-for-row, direction controls pass, and the current AstaPS control set is covered.
-
-Use `scripts/publish-registry-7.1.ps1` or `scripts/publish-registry-7.1.sh` after strict closure. The publisher rejects incomplete or ambiguous input.
+The current canonical publisher is `genshinre.registryxrefpublish`. General metadata/artifact publication validates and preserves the canonical registry in place; it does not attempt to re-close the registry through experimental heuristics.
