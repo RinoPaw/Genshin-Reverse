@@ -163,6 +163,69 @@ def _validate_manifest_paths(
             errors.append(f"{item_label}: listed artifact does not exist: {normalized}")
 
 
+def _validate_canonical_registry_publication(path: Path, errors: list[str]) -> None:
+    registry_path = path / "registry" / "registry.csv"
+    summary_path = path / "registry" / "registry.summary.json"
+
+    if not registry_path.is_file():
+        errors.append(
+            "generated-artifacts.json: canonical_registry_published is true but registry/registry.csv is missing"
+        )
+        return
+    if not summary_path.is_file():
+        errors.append(
+            "generated-artifacts.json: canonical_registry_published is true but registry/registry.summary.json is missing"
+        )
+        return
+
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"registry/registry.summary.json: {exc}")
+        return
+    if not isinstance(summary, dict):
+        errors.append("registry/registry.summary.json: root must be an object")
+        return
+
+    if summary.get("status") != "canonical-static-identity-registry":
+        errors.append(
+            "registry/registry.summary.json: status must be canonical-static-identity-registry"
+        )
+    if summary.get("strict_slot_type_cmd_bijection") is not True:
+        errors.append(
+            "registry/registry.summary.json: strict_slot_type_cmd_bijection must be true"
+        )
+
+    try:
+        with registry_path.open("r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            if "cmd_id" not in (reader.fieldnames or []):
+                errors.append("registry/registry.csv: missing cmd_id column")
+                return
+            rows = list(reader)
+        cmd_ids = {int(row["cmd_id"]) for row in rows}
+    except Exception as exc:
+        errors.append(f"registry/registry.csv canonical publication check: {exc}")
+        return
+
+    row_count = len(rows)
+    unique_cmd_ids = len(cmd_ids)
+    if summary.get("row_count") != row_count:
+        errors.append(
+            "registry/registry.summary.json: row_count does not match registry.csv "
+            f"({summary.get('row_count')} != {row_count})"
+        )
+    if summary.get("unique_cmd_ids") != unique_cmd_ids:
+        errors.append(
+            "registry/registry.summary.json: unique_cmd_ids does not match registry.csv "
+            f"({summary.get('unique_cmd_ids')} != {unique_cmd_ids})"
+        )
+    if unique_cmd_ids != row_count:
+        errors.append(
+            "registry/registry.csv: canonical publication contains duplicate CmdIds"
+        )
+
+
 def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[str]) -> None:
     manifest_path = path / "generated-artifacts.json"
     if not manifest_path.exists():
@@ -186,11 +249,7 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
     )
 
     if data.get("canonical_registry_published") is True:
-        registry_path = path / "registry" / "registry.csv"
-        if not registry_path.exists():
-            errors.append(
-                "generated-artifacts.json: canonical_registry_published is true but registry/registry.csv is missing"
-            )
+        _validate_canonical_registry_publication(path, errors)
 
 
 def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str], list[str]]:
