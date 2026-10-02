@@ -3,10 +3,16 @@ from __future__ import annotations
 import csv
 import json
 import re
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
+from .artifactmanifest import validate_generated_manifest
+from .cmdobservations import (
+    validate_confirmed_semantic_alignment,
+    validate_observation_summary,
+)
 from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
 from .registryxrefpublish import _validated_known_opcodes
+from .xrefartifacts import XREF_TABLE_CONTRACTS, validate_xref_table
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
@@ -23,6 +29,14 @@ ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
 ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
 MESSAGE_DIRECTIONS = {"C2S", "S2C", "unknown"}
 PROTOBUF_WIRE_TYPES = {0, 1, 2, 3, 4, 5}
+
+
+def _extend_unique(target: list[str], values: list[str]) -> None:
+    seen = set(target)
+    for value in values:
+        if value not in seen:
+            target.append(value)
+            seen.add(value)
 
 
 def _validate_string_list(value: object, label: str, errors: list[str]) -> None:
@@ -132,37 +146,6 @@ def _validate_analysis_evidence(evidence_path: Path, errors: list[str]) -> None:
                 _validate_evidence_refs(item["evidence"], f"{prefix}.evidence", errors)
 
 
-def _validate_manifest_paths(
-    path: Path,
-    values: object,
-    label: str,
-    errors: list[str],
-) -> None:
-    if not isinstance(values, list):
-        errors.append(f"generated-artifacts.json:{label}: must be an array")
-        return
-
-    seen: set[str] = set()
-    for index, value in enumerate(values):
-        item_label = f"generated-artifacts.json:{label}[{index}]"
-        if not isinstance(value, str) or not value.strip():
-            errors.append(f"{item_label}: must be a non-empty string")
-            continue
-
-        rel = PurePosixPath(value)
-        if rel.is_absolute() or ".." in rel.parts:
-            errors.append(f"{item_label}: must stay inside the publication directory")
-            continue
-        normalized = rel.as_posix()
-        if normalized in seen:
-            errors.append(f"{item_label}: duplicate path {normalized}")
-            continue
-        seen.add(normalized)
-
-        if not (path / Path(*rel.parts)).exists():
-            errors.append(f"{item_label}: listed artifact does not exist: {normalized}")
-
-
 def _validate_canonical_registry_publication(path: Path, errors: list[str]) -> None:
     registry_path = path / "registry" / "registry.csv"
     summary_path = path / "registry" / "registry.summary.json"
@@ -234,24 +217,13 @@ def _validate_generated_artifacts(path: Path, errors: list[str], warnings: list[
         warnings.append("missing generated-artifacts.json publication manifest")
         return
 
+    _extend_unique(errors, validate_generated_manifest(path))
     try:
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        errors.append(f"generated-artifacts.json: {exc}")
+    except Exception:
         return
     if not isinstance(data, dict):
-        errors.append("generated-artifacts.json: root must be an object")
         return
-    if data.get("manifest_version") != 2:
-        errors.append("generated-artifacts.json: manifest_version must be 2")
-
-    _validate_manifest_paths(path, data.get("artifacts"), "artifacts", errors)
-    _validate_manifest_paths(
-        path,
-        data.get("optional_artifacts_published"),
-        "optional_artifacts_published",
-        errors,
-    )
 
     if data.get("canonical_registry_published") is not True:
         errors.append("generated-artifacts.json: canonical_registry_published must be true")
@@ -523,6 +495,21 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
             _validate_analysis_evidence(evidence_path, errors)
 
     _validate_generated_artifacts(path, errors, warnings)
+
+    observations = path / "cmdids" / "observations.csv"
+    if observations.is_file():
+        _extend_unique(errors, validate_observation_summary(observations))
+        if known_path.is_file():
+            _extend_unique(
+                errors,
+                validate_confirmed_semantic_alignment(observations, known_path),
+            )
+
+    xref_dir = path / "xrefs"
+    for filename in XREF_TABLE_CONTRACTS:
+        table = xref_dir / filename
+        if table.is_file():
+            _extend_unique(errors, validate_xref_table(table))
 
     for rel in (
         "metadata/types.csv",
