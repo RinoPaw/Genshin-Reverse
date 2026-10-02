@@ -35,11 +35,19 @@ These counts are regression evidence. They are not used to pad or trim generated
 
 Canonical published CSVs are compact query indexes. Full decoder provenance columns remain in the regeneration work output and short-lived Actions artifact rather than being duplicated into Git.
 
-Common query:
+Use the streaming query commands instead of loading or grepping the large canonical CSVs by hand:
 
 ```bash
+genshinre query-methods methods.csv --type NLOMEGMJDGJ
+genshinre query-methods methods.csv --type-definition-index 61556
 genshinre query-methods methods.csv --parameter-type ONKOPMILDMF
+
+genshinre query-fields fields.csv --type NLOMEGMJDGJ
+genshinre query-fields fields.csv --type-definition-index 61556
+genshinre query-fields fields.csv --field-type-index 476942
 ```
+
+Text filters can be combined with exact numeric type/type-field indexes. `query-methods` and `query-fields` stream the CSV input so a focused lookup does not materialize the complete 7.1 table in memory.
 
 The key traversal is `CmdId -> obfuscated type -> typeDefinitionIndex -> methods/fields -> handler/sender/parser/xrefs`.
 
