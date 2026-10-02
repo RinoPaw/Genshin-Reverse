@@ -2,6 +2,15 @@
 
 GitHub Actions in this repository fall into three classes. Keep the classes separate so ordinary maintenance does not accidentally turn every push into a full-client reverse-engineering run.
 
+Pinned 7.1 sample acquisition is centralized in:
+
+```text
+scripts/fetch-7.1-samples.sh
+scripts/fetch-7.1-samples.ps1
+```
+
+Maintained workflows should call that entry point instead of copying the Sophon manifest URL and SHA-256 values into YAML. Packet-specific research workflows may migrate to it when their owners are ready; maintenance does not rewrite active experiment environments solely for deduplication.
+
 ## 1. Fast repository CI
 
 `ci.yml` is the only general push/PR workflow.
@@ -23,10 +32,10 @@ These workflows orchestrate reusable tooling and canonical/supporting datasets. 
 
 Maintained exact-sample generation entry point.
 
-- fetches the pinned 7.1 Sophon manifest and verifies both sample hashes;
+- fetches the pinned 7.1 sample through `scripts/fetch-7.1-samples.sh`;
 - runs the required metadata/runtime/GetCmdId regeneration stages;
 - permits exploratory registry probes to fail without invalidating canonical metadata;
-- publishes through `genshinre.artifactpublish`;
+- publishes compact query-oriented metadata through `genshinre.artifactpublish` while retaining full decoder provenance in `work/`;
 - validates the resulting version tree;
 - preserves full work output as a short-lived Actions artifact.
 
@@ -34,7 +43,7 @@ This is the general heavy generation workflow. Do not add a second workflow that
 
 ### `refresh-7.1-fast.yml`
 
-Focused refresh for GetCmdId candidates and native registry slot/array support artifacts. It uses reusable Python modules and the pinned exact sample.
+Focused refresh for GetCmdId candidates and native registry slot/array support artifacts. It uses reusable Python modules and the shared pinned-sample fetch entry point.
 
 ### `recover-7.1-type-cache-xrefs.yml`
 
@@ -82,7 +91,7 @@ Before adding a new workflow, prefer this order:
 1. implement/test the reusable operation in `genshinre/` or `tools/`;
 2. use an existing maintained workflow if only orchestration changes;
 3. add a narrowly triggered research workflow only when the investigation genuinely needs a distinct environment or sequence;
-4. keep exact sample hashes and provenance visible;
+4. keep exact sample hashes and provenance visible through the shared sample fetch entry point or an investigation-specific pinned source;
 5. avoid auto-running full-client work on unrelated pushes.
 
 A workflow is orchestration, not the canonical implementation of a reverse-engineering method.
