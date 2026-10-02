@@ -1,6 +1,6 @@
 # UnlockTransPointRsp research log (Genshin 7.1)
 
-This log records the investigation path, evidence strength, dead ends, and reusable artifacts for the current `UnlockTransPointRsp` recovery. It intentionally keeps failed approaches that should not be repeated without a changed premise. The compact case study in `docs/case-studies/unlock-trans-point-7.1.md` remains the place for stable conclusions.
+This log records the investigation path, evidence strength, dead ends, corrections, and reusable artifacts for the current `UnlockTransPointRsp` recovery. Failed approaches are intentionally retained so later work does not repeat them without a changed premise. Stable conclusions belong in `docs/case-studies/unlock-trans-point-7.1.md`.
 
 ## Scope and promotion rule
 
@@ -9,11 +9,11 @@ Target: official global Genshin 7.1 Windows x64 client.
 Pinned sample hashes used by the successful research workflows:
 
 ```text
-GenshinImpact.exe   08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
+GenshinImpact.exe    08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
 global-metadata.dat 05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0
 ```
 
-Current promotion rule: do not assign `UnlockTransPointRsp` in the canonical opcode table until current-client evidence uniquely binds the confirmed request lifecycle to one surviving response type/handler. Native similarity, local ordering, field shape, slot proximity, or cross-version ordering may support a candidate but cannot individually promote it to confirmed.
+Do not assign `UnlockTransPointRsp` in the canonical semantic opcode table until current-client evidence uniquely binds the unlock lifecycle to one surviving response type/handler. Wire shape, local ordering, duplicated ACK machine code, registry ordering, or cross-version ordering cannot individually promote a candidate.
 
 ## Current snapshot
 
@@ -26,55 +26,94 @@ UnlockTransPointReq
 UnlockTransPointRsp candidate A
   CmdId        36641
   proto type   NCBEHBOCBJJ
+  typeDef      70557
+  registry idx 4878
+  type slot    0x57F9080
   handler      KLLNGCPBLMM.GDILHLIGMPI @ 0xF045790
-  delegate     0x4B2A90
-  status       preferred strong candidate, not confirmed
+  status       preferred candidate, not confirmed
 
 UnlockTransPointRsp candidate B
   CmdId        20290
   proto type   MAFFAFNMEBM
+  typeDef      76295
+  registry idx 2466
+  type slot    0x57F63D0
   handler      KLLNGCPBLMM.OAEILOAJOML @ 0xF0462A0
-  delegate     0x4B2AB0
   status       surviving alternate, not confirmed
 
 ScenePointUnlockNotify
   CmdId        25567
   status       confirmed
+
+GetSceneAreaRsp
+  CmdId        23366
+  status       confirmed control
 ```
 
-Both response candidates parse the expected one-field `int32 field 6` response shape and both compile to the same 112-byte scene ACK-handler template. That equivalence is the central reason the final identity is still open.
+Both response candidates parse the expected one-field `int32 field 6` response shape and both compile to the same 112-byte scene ACK-handler template.
+
+## Important correction: `0x4B2Axx` is hotfix method storage
+
+Earlier investigation temporarily treated offsets such as `0x4B2A90` and `0x4B2AB0` as protocol/delegate registration slots. That interpretation is wrong.
+
+The current method band proves that these offsets are per-method ILFix/hotfix delegate/cache slots. They advance by exactly eight bytes with method index, including ordinary helper methods:
+
+```text
+method_index  method                                   hotfix slot
+615754        KLLNGCPBLMM.OIFANGMCKNJ                  0x4B2A70
+615755        KLLNGCPBLMM.CHOHMONDPNJ                  0x4B2A78
+615756        KLLNGCPBLMM.HBLEMPNBAAO                  0x4B2A80
+615757        KLLNGCPBLMM.CJJIJIHCAHM                  0x4B2A88
+615758        KLLNGCPBLMM.GDILHLIGMPI   / 36641        0x4B2A90
+615759        KLLNGCPBLMM.GJHPOFKNMEB                  0x4B2A98
+615760        KLLNGCPBLMM.OEHHCMEMGNA                  0x4B2AA0
+615761        KLLNGCPBLMM.HMICLHMGNCB                  0x4B2AA8
+615762        KLLNGCPBLMM.OAEILOAJOML   / 20290        0x4B2AB0
+615763        KLLNGCPBLMM.LHDHFIHDFNM                  0x4B2AB8
+615764        KLLNGCPBLMM.GCDHLNLACDK   / 23366        0x4B2AC0
+615765        KLLNGCPBLMM.LCMIADIHLOF                  0x4B2AC8
+615766        KLLNGCPBLMM.JOKPKODHAGM                  0x4B2AD0
+615767        KLLNGCPBLMM.OPBPNIKCFKL                  0x4B2AD8
+```
+
+The methods read the same runtime root, dereference `[root + 0x24F40]`, then load the per-method slot and branch through an ILFix wrapper. The slot is therefore a hotfix implementation override/cache for that method, not a protocol identity or request/response registration record.
+
+Consequences:
+
+- `36641` being closer to the unlock sender in the `0x4B2Axx` range adds **zero independent evidence**; it only restates method ordering.
+- the absence of direct writes to `0x4B2Axx` is no longer evidence about protocol registration;
+- the old “protocol slot domain” / “delegate slot proximity” terminology must not be reused;
+- the real protocol identity slots are the canonical registry `type_slot_rva` values such as `0x57F9080` and `0x57F63D0`.
+
+This correction is one of the most important outcomes of the continuation because it removes a seemingly attractive but circular evidence source.
 
 ## Research path
 
-### 1. Establish the current request and semantic controls
+### 1. Establish the request and semantic controls
 
-`UnlockTransPointReq` was recovered as `DMMJNICDOHM / CmdId 9369`, with two `uint32` fields matching scene id and point id. `ScenePointUnlockNotify / CmdId 25567` was independently recovered as a current 7.1 control for the unlock lifecycle.
-
-This gave a reliable semantic anchor without copying historical opcodes forward from 7.0.
+`UnlockTransPointReq` was recovered as `DMMJNICDOHM / CmdId 9369`, with two `uint32` fields matching scene id and point id. `ScenePointUnlockNotify / CmdId 25567` was independently recovered as a current 7.1 lifecycle control. `GetSceneAreaRsp / CmdId 23366` is a useful nearby scene-handler control.
 
 ### 2. Reduce response candidates by wire shape
 
-Starting from current 7.1 protocol types whose parser matched a single `int32 field 6`, 40 structural candidates survived. Protected method-parameter metadata recovery reduced those to three real scene-controller handler parameters:
+Starting from current 7.1 protocol types matching a one-field `int32 field 6` message, 40 structural candidates survived. Protected method-parameter metadata recovery reduced those to three real scene-controller handler parameters:
 
 ```text
 36641 / NCBEHBOCBJJ
 20290 / MAFFAFNMEBM
-2666  / another special-handler shape
+2666  / special-handler candidate
 ```
 
-Comparison with the known 7.0 `UnlockTransPointRsp` native handler removed `2666`. The remaining pair both match the generic scene ACK template.
-
-Reusable result from this step: the protected 7.1 method-parameter decoder is valuable beyond this case because it turns an obfuscated method body into a concrete protocol parameter type.
+Comparison against the known 7.0 `UnlockTransPointRsp` handler removed `2666`. The remaining pair both match the generic ACK template.
 
 ### 3. Identify the current unlock sender
 
-The current scene owner method is:
+The current scene sender is:
 
 ```text
 KLLNGCPBLMM.OIFANGMCKNJ @ 0xF0452B0
 ```
 
-Near the submit call it constructs and fills the request object, then passes it as `rdx`:
+Near the submit call it constructs and fills `DMMJNICDOHM`, then passes it as the request object:
 
 ```text
 0xF0453D0  write request field
@@ -84,26 +123,27 @@ Near the submit call it constructs and fills the request object, then passes it 
 0xF04541B  call EDKMMIPJHJA.DMLCLHCBOBJ @ 0x7246860
 ```
 
-The generic submitter has 491 direct callers. Its arguments do not expose an obvious response protocol type or response handler pointer. This establishes the request send edge, but does not close the request/response pair.
+The generic submitter has 491 direct callers. The unlock call site contains no obvious response-type or response-handler argument. Chasing ordinary callers of the generic submitter therefore does not close the pair.
 
 ### 4. Recover exact candidate handler parameter types
 
-A successful pre-existing method-context artifact decoded the local owner band around the sender:
+The protected parameter decoder gives the local owner band:
 
 ```text
-0xF0452B0  KLLNGCPBLMM.OIFANGMCKNJ      confirmed unlock sender
-0xF045640  KLLNGCPBLMM.CHOHMONDPNJ      helper
-0xF045710  KLLNGCPBLMM.HBLEMPNBAAO      helper
-0xF045720  KLLNGCPBLMM.CJJIJIHCAHM      HAKKLGNCKJM / CmdId 26552
-0xF045790  KLLNGCPBLMM.GDILHLIGMPI      NCBEHBOCBJJ / CmdId 36641
-0xF045800  KLLNGCPBLMM.GJHPOFKNM        helper/other
+0xF0452B0  OIFANGMCKNJ      confirmed unlock sender
+0xF045640  CHOHMONDPNJ      helper
+0xF045710  HBLEMPNBAAO      helper
+0xF045720  CJJIJIHCAHM      HAKKLGNCKJM / CmdId 26552
+0xF045790  GDILHLIGMPI      NCBEHBOCBJJ / CmdId 36641
+0xF045800  GJHPOFKNMEB      helper/other
 ...
-0xF0460C0  KLLNGCPBLMM.HMICLHMGNCB      BFGEIFDEOKH handler
-0xF0462A0  KLLNGCPBLMM.OAEILOAJOML      MAFFAFNMEBM / CmdId 20290
-0xF046310  KLLNGCPBLMM.LHDHFIHDFNM      helper/other
+0xF0460C0  HMICLHMGNCB      BFGEIFDEOKH handler
+0xF0462A0  OAEILOAJOML      MAFFAFNMEBM / CmdId 20290
+0xF046310  LHDHFIHDFNM      helper/other
+0xF046780  GCDHLNLACDK      DKJCMHENKAI / GetSceneAreaRsp 23366
 ```
 
-This is strong local evidence for `36641`: it is the first surviving one-field ACK candidate immediately after the unlock sender cluster. It is still neighborhood evidence, so it is not sufficient for confirmation.
+This method neighborhood still favors `36641`: it is the first surviving retcode-only ACK candidate directly after the unlock sender/helper cluster. This remains a heuristic until the neighboring methods are semantically mapped.
 
 ### 5. Cross-version sender fingerprint
 
@@ -117,7 +157,7 @@ mnemonic similarity   97.27%
 token similarity      81.39%
 ```
 
-The known 7.0 response is:
+Known 7.0 response:
 
 ```text
 UnlockTransPointRsp
@@ -126,54 +166,70 @@ UnlockTransPointRsp
   handler    KGCKOFPFBLA.NDKDCLAKKIG @ 0xB6F18D0
 ```
 
-This validates the sender identity and provides a historical control, but the response layout is not stable enough across versions to transfer the handler by simple position.
+The sender mapping is strong. The response handler cannot be transferred by local position because the generic ACK template is repeated and the scene owner layout drifted.
 
-### 6. Compare delegate/static slots
+### 6. Recover the canonical 7.1 numeric/type identities
 
-Observed slots:
+The repository's published 4,896-row canonical registry already closes CmdId ↔ obfuscated protobuf type identity independently of semantic naming.
 
-```text
-7.0 unlock sender      0x36E6E8
-7.0 unlock response    0x36E970
-
-7.1 unlock sender      0x4B2A70
-7.1 candidate 36641    0x4B2A90
-7.1 candidate 20290    0x4B2AB0
-7.1 GetSceneAreaRsp    0x4B2AC0   control
-```
-
-The two 7.1 candidates are both real one-parameter scene protocol handlers, and `36641` is closer to the sender slot. The 7.0 sender-to-response slot spacing is very different, so cross-version slot distance is not an identity mapping.
-
-### 7. Trace exact delegate-slot xrefs
-
-A full exact-displacement trace for the scene controls found only reads for all relevant slots:
+Relevant rows:
 
 ```text
-0x4B2A70  unlock sender      read only
-0x4B2A90  rsp 36641          read only
-0x4B2AB0  rsp 20290          read only
-0x4B2AC0  GetSceneAreaRsp    read only
+36641
+  type_name              NCBEHBOCBJJ
+  type_definition_index  70557
+  type_slot_rva          0x57F9080
+  get_cmd_id_rva         0x13BEF180
+  get_cmd_id_method      AEGNNPENLNM
+  load/store             0x7F8E358 / 0x7F8E35F
+  status                 static-verified-identity
+
+20290
+  type_name              MAFFAFNMEBM
+  type_definition_index  76295
+  type_slot_rva          0x57F63D0
+  get_cmd_id_rva         0x114767D0
+  get_cmd_id_method      AEGNNPENLNM
+  load/store             0x7F85F70 / 0x7F85F77
+  status                 static-verified-identity
 ```
 
-No direct write to either candidate slot was found. The handlers read the delegate and dispatch through it, but the registration edge is hidden behind the IL2CPP static/runtime initialization machinery.
+The unresolved layer is semantic naming only: which of these two numeric/type identities is `UnlockTransPointRsp`.
 
-### 8. Scan the whole protocol slot domain for writers
+### 7. Verify why ACK handler code cannot close semantics
 
-The wider current-client scan covered aligned displacements in `0x4B0000..0x4B7fff` and explicitly retained writes, RMW operations, and address-taking instructions.
-
-Result:
+Both candidates have the same success/error behavior:
 
 ```text
-raw slot candidates       12360
-aligned slot candidates    4142
-validated slot writes         0
+read response retcode at +0x18
+if non-zero -> common error handling
+if zero     -> return
+hotfix branch -> per-method ILFix slot
 ```
 
-The upstream `0x24F40` table access is extremely common (over one million validated reads), while the protocol-slot domain has no visible direct writer in executable code. This closes the direct-native-write hypothesis: expanding the same xref scan is not useful.
+There is no success-specific waypoint behavior in either handler. That makes native body similarity a handler-class classifier, not a semantic discriminator.
 
-### 9. Inspect the scene static constructor
+Likewise, the request submit path carries no explicit response callback/type argument. For this flow, searching for a direct request -> response callback edge is low-value unless a new registration layer is identified.
 
-`KLLNGCPBLMM..cctor @ 0xF074540` is only 96 bytes and initializes a separate static object/field path. It does not directly initialize the `0x4B2Axx` protocol delegate slots. Therefore the candidate binding is not recoverable by treating the class static constructor as a simple list of handler assignments.
+### 8. External same-version cross-check
+
+`capyb2222/LunaGC_7.1.0` provides a useful independent control surface:
+
+```text
+ScenePointUnlockNotify = 25567
+GetSceneAreaRsp         = 23366
+```
+
+Those agree with the current-client recovery. However that same project leaves:
+
+```text
+UnlockTransPointReq = -119
+UnlockTransPointRsp = -120
+```
+
+as unresolved placeholders, while its `UnlockTransPointRsp.proto` still has the expected `int32 retcode = 6` schema. `invoker-bot/LunaGC` carries the same unresolved placeholders.
+
+Conclusion: current public 7.1 server forks confirm the semantic schema and useful controls, but do **not** independently identify `36641` or `20290` as the response. Do not treat the placeholders or their absence as positive evidence.
 
 ## Candidate evidence matrix
 
@@ -182,129 +238,145 @@ The upstream `0x24F40` table access is extremely common (over one million valida
 | expected `int32 field 6` parser | yes | yes | tie |
 | 112-byte ACK handler template | yes | yes | tie |
 | exact scene handler parameter type | `NCBEHBOCBJJ` | `MAFFAFNMEBM` | tie |
+| canonical CmdId/type identity | closed | closed | semantic tie |
 | same current scene owner | yes | yes | tie |
-| local sender neighborhood | stronger | weaker | supports 36641 |
-| native-neighborhood score | 0.4076 | 0.3223 | supports 36641 |
-| delegate slot proximity | closer | farther | weak support only |
-| direct slot write / registration edge | none found | none found | unresolved |
+| local method neighborhood | stronger | weaker | supports 36641 |
+| native-neighborhood score | 0.4076 | 0.3223 | weak support for 36641 |
+| `0x4B2Axx` hotfix-slot proximity | derived from method order | derived from method order | **no independent value** |
 | independent external 7.1 semantic mapping | none | none | unresolved |
 
 Current verdict: keep `36641` preferred, keep `20290` alive, confirm neither.
 
-## 🕳️ Dead ends and traps
+## 🕳️ Dead ends, traps, and corrections
+
+### 🕳️ Mistaking ILFix hotfix slots for protocol dispatch slots
+
+This was the major correction. `0x4B2A70`, `0x4B2A78`, `0x4B2A80`, ... advance exactly with method index, including non-protocol helpers. They are per-method hotfix storage. Slot distance is just method distance in disguise.
+
+### 🕳️ Scanning the hotfix slot range for writers
+
+Exact candidate scans and a wider `0x4B0000..0x4B7fff` scan found reads but no direct writes. After the hotfix-slot correction this result is expected and says nothing about protocol request/response registration. Do not extend this scan as an opcode-recovery strategy.
 
 ### 🕳️ Generic RPC submitter caller explosion
 
-`EDKMMIPJHJA.DMLCLHCBOBJ @ 0x7246860` has 491 direct callers. Following ordinary callers of the generic sender creates a huge graph and does not encode the response identity. Only a concrete response callback/type edge would make this path useful again.
+`EDKMMIPJHJA.DMLCLHCBOBJ @ 0x7246860` has 491 direct callers. Following them creates a huge graph and does not encode response identity at the unlock call site.
 
-### 🕳️ ACK-handler machine code looks unique but is template-generated
+### 🕳️ ACK-handler machine code looks semantic but is template-generated
 
-Both surviving candidates and the known historical control share a tiny retcode-check/delegate-dispatch pattern. Native similarity confirms handler class, not semantic message identity.
+Both surviving candidates and multiple unrelated scene ACKs share the same tiny retcode-check/error-dispatch body. Exact machine-code similarity proves handler shape only.
 
 ### 🕳️ Direct response-handler function-pointer xrefs
 
-Useful direct code xrefs to the response handlers are absent. Registration is mediated through metadata/method-pointer/static runtime structures. Re-running ordinary direct-call or direct-pointer searches is low value.
+Useful direct code xrefs to the handlers are absent. Re-running ordinary direct-call/direct-pointer searches is low value without a new registration anchor.
 
-### 🕳️ Direct delegate-slot write search
+### 🕳️ Treating cross-version local position as identity
 
-Exact candidate-slot scans and a domain-wide `0x4B0000..0x4B7fff` scan found zero direct writes/address-taking operations. The premise that registration will appear as `mov [base + 0x4B2A90], ...` is disproven for this build.
-
-### 🕳️ Treating slot distance as cross-version identity
-
-7.0 and 7.1 slot layouts drift. `36641` being closer to the sender is useful local evidence, not a stable cross-version mapping rule.
+The scene owner method layout drifts between 7.0 and 7.1. The strong sender match does not imply a fixed method-distance to its response handler.
 
 ### 🕳️ Registry / TypeDefinition ordering interpolation
 
-Global registry order and TypeDefinition order were tested against controls and are unstable across 7.0 -> 7.1. A control produced poor/negative correlation. Ordering heuristics must not decide the final CmdId.
+Global registry order and TypeDefinition order were tested against controls and are unstable across 7.0 -> 7.1. Ordering cannot decide the final semantic name.
 
 ### 🕳️ Shared-owner inference from type-slot xrefs
 
-The attractive assumption that Req/Rsp types should expose a shared external owner failed even on a known request/response control pair. Absence of a shared xref is not negative evidence.
+Req/Rsp types do not reliably expose a shared external type-slot owner even for known control pairs. Absence of a shared owner is not negative evidence.
 
 ### 🕳️ Looking for a contiguous native CmdId/flags table
 
-The expected simple native array layout was not present in the protected current build. Treat the registry as reconstructed structure, not as an assumed contiguous C array.
+The expected simple native array layout is not present in the protected current build. The canonical registry is reconstructed from verified constructor/type identities and xrefs.
 
 ### 🕳️ Metadata-usage anchor shortcuts
 
-Protected metadata-usage recovery did not yield a unique stable anchor for the response. Published/fallback mappings were also insufficient for the exact request anchor.
+Protected metadata-usage recovery did not yield a unique response semantic anchor. Published/fallback usage mappings were also insufficient.
 
-### 🕳️ Successful response packet capture can be empty
+### 🕳️ Successful response payload capture can be empty
 
-For `retcode = 0`, `UnlockTransPointRsp` normally serializes to an empty protobuf body. Capturing only the payload cannot distinguish two empty-response protocol types. A runtime probe must observe the packet CmdId/header or deliberately force a non-zero response with understood semantics.
+For `retcode = 0`, the response normally serializes to an empty protobuf body. Runtime validation must observe the packet header/CmdId, not only protobuf payload bytes.
 
 ### 🕳️ Static constructor as a registration list
 
-`KLLNGCPBLMM..cctor` does not enumerate or directly fill the candidate protocol slots. The actual mapping is deeper in IL2CPP runtime/static-field machinery.
+`KLLNGCPBLMM..cctor @ 0xF074540` does not enumerate the response identities. Treating it as a simple handler-registration list did not work.
+
+### 🕳️ Assuming a same-version private-server fork has every current opcode
+
+LunaGC 7.1 agrees on several controls but explicitly leaves this pair unresolved. A project being version-labelled `7.1` is not evidence that every semantic opcode is solved.
 
 ### 🕳️ Re-running CI when a valid artifact already exists
 
-Several later research workflows failed after tooling changed, while older successful artifacts remain valid for the same pinned client hashes. Prefer recovering the successful artifact by commit SHA and run id instead of spending time reproducing it.
+Several later workflows failed after tooling changed while earlier successful artifacts still match the same pinned client hashes. Recover the older artifact first.
 
 ### 🕳️ GitHub connector workflow-runs endpoint quirk
 
-With the current connector, querying runs through the workflow-file endpoint can fail even though repository-level Actions runs are readable. Reliable recovery path:
+The workflow-file runs endpoint can fail while repository-level runs remain readable. Reliable recovery path:
 
 ```text
-workflow file -> commits touching that file -> head SHA
+workflow file -> commits touching file -> head SHA
              -> repository Actions runs filtered by head_sha
-             -> successful workflow run -> artifact
+             -> successful run -> artifact
 ```
-
-This path recovered all artifacts used in the current continuation without starting a new CI run.
 
 ### 🕳️ Large checked-in metadata files through the connector
 
-Large files such as `type-methods.json` can exceed connector fetch limits. Prefer the smaller indexed CSV queries, purpose-built scripts, or already-produced Actions artifacts. Do not repeatedly attempt full-file fetches when the connector has already rejected the size.
+Large `methods.csv`, `fields.csv`, `type-methods.json`, and `registry.csv` files can exceed connector fetch limits. Prefer `genshinre query-*`, narrow research scripts, small derived artifacts, or already-produced Actions artifacts.
 
-## Reusable successful artifacts recovered in this continuation
-
-These artifacts were reused instead of rerunning CI. They are ephemeral Actions artifacts, so durable conclusions are copied into this log/case study.
+## Reused successful artifacts
 
 ```text
 unlock-trans-point-rpc-lifecycle
   run       36874705860
   artifact  11168019318
-  use       confirmed request submit edge; showed generic sender fan-out
+  use       request submit edge; generic sender fan-out
 
 trans-point-method-context
   run       36887732493
   artifact  11174923824
-  use       exact candidate parameter types, method band, delegate slots
+  use       exact candidate parameters and current owner method band
 
 unlock-sender-fingerprint-70-71
   run       36957449474
   artifact  11206785178
-  use       7.0/7.1 sender fingerprint and static-slot controls
+  use       strong 7.0/7.1 sender fingerprint
+
+response-neighborhood-70-71
+  run       36957244143
+  artifact  11205354947
+  use       neighborhood heuristic; demonstrates duplicated ACK templates
 
 scene-delegate-slot-xrefs
   run       36978637970
   artifact  11214118342
-  use       proved candidate/control slots are read-only in direct native xrefs
+  corrected use
+            evidence that 0x4B2Axx accesses are method hotfix reads, not protocol registration
 
 scene-static-layout-71
   run       36979394339
   artifact  11215245557
-  use       enumerated scene slot domain and 91 owner fields / 28 generic field types
+  corrected use
+            exposed exact 8-byte method-index progression and triggered the hotfix-slot correction
 
 kllngcpblmm-cctor
   run       36980959091
   artifact  11214369782
-  use       ruled out simple .cctor-based candidate registration
+  use       rules out a simple class-.cctor semantic registration list
 
 protocol-dispatch-root-71
   run       36981016005
   artifact  11215945062
-  use       domain-wide scan: zero direct protocol-slot writers
+  corrected interpretation
+            the scanned 0x4Bxxxx storage belongs to the ILFix/hotfix runtime path; it is not the canonical protocol registry
+
+trans-point-xrefs
+  artifact  11166782212
+  use       canonical candidate registry rows and external type-slot xrefs
 ```
 
 ## Next decisive probes
 
-Do not spend another iteration on candidate ranking. The next work should seek a new class of edge:
+Do not spend another iteration ranking the two retcode-only handlers by byte similarity or hotfix-slot distance. Seek a new semantic edge:
 
-1. decode `KLLNGCPBLMM` generic static-field types far enough to recover the delegate generic argument associated with candidate/control slots;
-2. use known controls such as `GetSceneAreaRsp`, `EnterWorldAreaRsp`, `ScenePointUnlockNotify`, and `SceneTransToPointRsp` to validate any field-ordinal -> native-slot mapping before applying it to `0x4B2A90/0x4B2AB0`;
-3. recover the IL2CPP/static-field registration structure behind the `0x24F40` indirection rather than scanning for direct native slot writes;
-4. if static recovery remains ambiguous, perform a minimal runtime experiment that observes the packet CmdId/header, not merely the protobuf body.
+1. **Semantic elimination by neighboring rich messages.** Identify `BFGEIFDEOKH` and other richer protocol parameters in the same current scene-owner cluster. If the neighborhood around `20290` maps to a different known RPC family, eliminate `20290`; do the symmetric test around `36641`.
+2. **Reflection/descriptor evidence.** Search current-client protobuf reflection, descriptor holders, string/registration objects, or other metadata that can connect an obfuscated type to a semantic message name.
+3. **Real registry semantic consumers.** Use the canonical `type_slot_rva` / type identity, not `0x4B2Axx`, and look for current-client business consumers whose semantics can be independently named.
+4. **Minimal runtime header probe if static recovery remains ambiguous.** Observe the response packet CmdId/header. An empty successful protobuf body alone is insufficient.
 
-The result is considered closed only when one surviving candidate gains a unique current-client semantic binding or the other is independently identified as a different protocol message.
+The response is closed only when one candidate gains a unique current-client semantic binding or the other is independently identified as a different message.
