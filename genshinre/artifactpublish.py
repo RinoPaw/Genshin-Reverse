@@ -326,11 +326,14 @@ def publish_generated_artifacts_71(
     build_type_methods(version_dir / "metadata/methods.csv", type_methods_path)
     published_files.append("metadata/type-methods.json")
 
-    published_files.extend(_copy_map(work_dir, version_dir, DIRECT_FILES))
-    published_files.extend(_copy_map(work_dir, version_dir, OPTIONAL_FILES))
+    direct_files = _copy_map(work_dir, version_dir, DIRECT_FILES)
+    optional_files = _copy_map(work_dir, version_dir, OPTIONAL_FILES)
+    published_files.extend(direct_files)
+    published_files.extend(optional_files)
     canonical_published = _canonical_registry_published(version_dir)
 
     published_files = sorted(set(published_files))
+    optional_files = sorted(set(optional_files))
     manifest: dict[str, object] = {
         "source": "genshinre.artifactpublish",
         "work": str(work_dir),
@@ -343,7 +346,7 @@ def publish_generated_artifacts_71(
         "canonical_registry_published": canonical_published,
         "files": published_files,
         "artifacts": published_files,
-        "optional_registry_artifacts_published": [],
+        "optional_registry_artifacts_published": optional_files,
         "notes": [
             "native decoder work files retain full provenance columns; canonical metadata CSVs publish the query-relevant compact projection",
             "metadata publication is gated independently from experimental registry heuristics",
