@@ -52,7 +52,7 @@ jobs:
             --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
             --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
 
-      - name: Trace table and slot-domain displacement candidates
+      - name: Trace table and aligned slot-domain displacement candidates
         run: |
           python - <<'PY' > /tmp/protocol-dispatch-root-71.json
           import json, struct
@@ -108,7 +108,7 @@ jobs:
                       })
               return out
 
-          table_hits=[]; slot_hits=[]
+          table_hits=[]; slot_hits=[]; raw_slot_candidates=0; aligned_slot_candidates=0
           with PEImage(Path('/tmp/gi71/GenshinImpact.exe')) as image:
               root_bytes=image.read_rva(ROOT_RVA,0x40).hex()
               for sec in image.sections:
@@ -123,9 +123,11 @@ jobs:
 
                   pos=blob.find(b'\x4b\x00',2)
                   while pos>=0:
+                      raw_slot_candidates += 1
                       start=pos-2
                       low=blob[start] | (blob[start+1]<<8)
-                      if low<0x8000:
+                      if low<0x8000 and (low & 7)==0:
+                          aligned_slot_candidates += 1
                           disp=0x4B0000+low
                           for hit in decode_occurrence(image,sec.virtual_address+start,disp):
                               if hit['access'] in {'write','read+write','write-or-rmw','address'}:
@@ -143,13 +145,15 @@ jobs:
               'root_file_bytes':root_bytes,
               'table_disp':f'0x{TABLE_DISP:X}',
               'slot_domain':[f'0x{SLOT_MIN:X}',f'0x{SLOT_MAX:X}'],
+              'raw_slot_candidate_count':raw_slot_candidates,
+              'aligned_slot_candidate_count':aligned_slot_candidates,
               'table_summary':{'count':len(table_hits),'access':dict(Counter(x['access'] for x in table_hits))},
               'slot_write_summary':{'count':len(slot_hits),'access':dict(Counter(x['access'] for x in slot_hits))},
               'table_refs':table_hits,
               'slot_writes':slot_hits,
               'notes':[
                   'Raw executable bytes first locate exact disp32 candidates; local x86 decoding then validates the containing instruction and operand.',
-                  'This avoids full-section linear disassembly and remains valid across interleaved data/alignment bytes.',
+                  'The observed protocol delegate slots are 8-byte aligned, so the wide 0x4Bxxxx scan rejects unaligned disp32 candidates before disassembly.',
                   'slot_writes includes write/RMW/address-taking operands in 0x4B0000..0x4B7fff; read-only handler dispatches are intentionally excluded.',
               ],
           },indent=2))
@@ -157,6 +161,7 @@ jobs:
           python - <<'PY'
           import json
           d=json.load(open('/tmp/protocol-dispatch-root-71.json'))
+          print('raw/aligned candidates',d['raw_slot_candidate_count'],d['aligned_slot_candidate_count'])
           print('table',json.dumps(d['table_summary'],indent=2))
           print('slot writes',json.dumps(d['slot_write_summary'],indent=2))
           for key in ('table_refs','slot_writes'):
