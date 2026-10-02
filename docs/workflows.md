@@ -19,7 +19,7 @@ It may run:
 
 - Python unit tests;
 - committed-version validation;
-- small wire/CLI smoke tests;
+- small wire/CLI/protocol-query smoke tests;
 - cheap Bash and PowerShell syntax checks.
 
 It must not download a game client, decode full metadata, scan the executable, or run packet-specific investigations.
@@ -36,7 +36,7 @@ Maintained exact-sample generation entry point.
 
 - fetches the pinned 7.1 sample through `scripts/fetch-7.1-samples.sh`;
 - runs the required metadata/runtime/GetCmdId regeneration stages;
-- permits exploratory registry probes to fail without invalidating canonical metadata;
+- runs applicable research intermediates without changing the canonical registry contract;
 - publishes compact query-oriented metadata through `genshinre.artifactpublish` while retaining full decoder provenance in `work/`;
 - validates the resulting version tree;
 - preserves full work output as a short-lived Actions artifact.
@@ -65,7 +65,7 @@ Focused producer for xref-backed metadata usage/type identities. It consumes pub
 
 Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract.
 
-General artifact publication must preserve this canonical registry in place. Alternate historical recovery paths must not overwrite it.
+General artifact publication must preserve this canonical registry in place.
 
 ## 3. Research workflows
 
@@ -90,11 +90,11 @@ The following obsolete shells were retired after their reusable behavior or evid
 
 - `generate-7.1-artifacts.yml` — duplicate full 7.1 generation pipeline;
 - `publish-7.1-from-artifact.yml` — hard-coded an old Actions run and duplicate publisher;
-- `publish-7.1-registry.yml` — inline legacy registry publisher superseded by `genshinre.registryxrefpublish`;
+- `publish-7.1-registry.yml` — inline registry publisher superseded by `genshinre.registryxrefpublish`;
 - `inspect-usage-artifact.yml` — hard-coded an old failed-work Actions run and only performed ad-hoc grep/printing;
-- `compare-7.0-7.1-typedef-direct.yml` — one-off direct TypeDef-order heuristic whose controls were unstable; its rejected result is preserved in the UnlockTransPoint 7.1 case study and must not drive confirmation;
-- `compare-7.0-7.1-registry-order.yml` — thin shell around retained `tools/compare_registry_order_70_71.py`; the weak `20290` preference and the reason it is excluded from confirmation are preserved in the UnlockTransPoint case study;
-- `compare-7.0-proto-7.1-typedef.yml` — thin shell around retained `tools/compare_proto_order_typedef_70_71.py`; the weak `36641` preference and unstable-control caveat are preserved in the case study;
+- `compare-7.0-7.1-typedef-direct.yml` — one-off direct TypeDef-order heuristic whose controls were unstable;
+- `compare-7.0-7.1-registry-order.yml` — thin shell around retained `tools/compare_registry_order_70_71.py`;
+- `compare-7.0-proto-7.1-typedef.yml` — thin shell around retained `tools/compare_proto_order_typedef_70_71.py`;
 - the old GetCmdId-only `registry-candidate-graph.*` alias — reproduced under `getcmdid-candidate-graph.*`, leaving `registry-candidate-graph.*` available for the usage-join graph.
 
 ## Adding a workflow
