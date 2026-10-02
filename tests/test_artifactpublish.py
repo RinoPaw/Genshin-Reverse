@@ -119,6 +119,30 @@ class ArtifactPublishTests(unittest.TestCase):
             self.assertEqual(result["files"], result["artifacts"])
             self.assertEqual(result["validation"]["metadata_counts"]["method_pointers"], 4)
 
+    def test_metadata_publication_does_not_require_registry_heuristics(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            work, version = self._fixture(root)
+            for rel in (
+                "metadata-usage-types.csv",
+                "metadata-usage-types.summary.json",
+                "registry-candidate-graph.csv",
+                "registry-candidate-graph.summary.json",
+            ):
+                (work / rel).unlink()
+
+            result = publish_generated_artifacts_71(
+                work,
+                version,
+                expected_counts=(2, 3, 4),
+            )
+
+            self.assertTrue((version / "metadata/fields.csv").is_file())
+            self.assertTrue((version / "metadata/method-pointers.csv").is_file())
+            self.assertNotIn("registry/metadata-usage-types.csv", result["files"])
+            self.assertNotIn("registry/registry-candidate-graph.csv", result["files"])
+            self.assertEqual(result["validation"]["optional_registry_checks"], {})
+
     def test_rejects_seed_sized_metadata_even_when_summary_claims_full_fixture(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
