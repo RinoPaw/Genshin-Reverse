@@ -1,4 +1,4 @@
-name: Inspect 7.1 native anchors
+name: Verify 7.1 runtime type boundary
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: runtime-type-boundary-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   inspect:
@@ -19,172 +23,87 @@ jobs:
           python-version: '3.12'
 
       - name: Install tooling
-        run: python -m pip install -e . zstandard capstone
+        run: python -m pip install -e . zstandard
 
       - name: Fetch pinned global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output /tmp/gi71 --python python
 
-      - name: Pinpoint runtime type-array structural boundary
+      - name: Verify exact runtime type-array boundary
         run: |
           python - <<'PY'
-          from genshinre.mhy71 import EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
-          from genshinre.pe import PEImage
           from pathlib import Path
           import struct
 
+          from genshinre.mhy71 import EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
+          from genshinre.pe import PEImage
+
           exe = Path('/tmp/gi71/GenshinImpact.exe')
           ENTRY_SIZE = 16
-          START = 640_000
-          END = 700_000
-          BLOCK = 512
+          EXPECTED_RUNTIME_TYPE_COUNT = 683_574
           TYPE_KINDS = {
               0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
               0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
               0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-              0x18, 0x19, 0x1B, 0x1C, 0x1D, 0x1E,
-              0x41, 0x45, 0x55,
+              0x18, 0x19, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21,
+              0x40, 0x41, 0x45, 0x55,
           }
 
-          def shape(entry: bytes):
-              data64 = struct.unpack_from('<Q', entry, 0)[0]
-              data32 = data64 & 0xFFFFFFFF
+          def valid_type_entry(entry: bytes) -> bool:
+              if len(entry) != ENTRY_SIZE:
+                  return False
               kind = entry[0x0A]
-              padding_zero = entry[0x0C:0x10] == b'\0' * 4
-              definition_ok = True
-              definition_upper_zero = True
+              if kind not in TYPE_KINDS:
+                  return False
+              if entry[0x0C:0x10] != b'\0' * 4:
+                  return False
               if kind in (0x11, 0x12):
-                  definition_ok = data32 < EXPECTED_TYPE_COUNT
-                  definition_upper_zero = (data64 >> 32) == 0
-              valid = (
-                  kind in TYPE_KINDS
-                  and padding_zero
-                  and definition_ok
-                  and definition_upper_zero
-              )
-              return {
-                  'kind': kind,
-                  'data64': data64,
-                  'data32': data32,
-                  'padding_zero': padding_zero,
-                  'definition_ok': definition_ok,
-                  'definition_upper_zero': definition_upper_zero,
-                  'valid': valid,
-              }
+                  data64 = struct.unpack_from('<Q', entry, 0)[0]
+                  if (data64 >> 32) != 0 or (data64 & 0xFFFFFFFF) >= EXPECTED_TYPE_COUNT:
+                      return False
+              return True
 
           with PEImage(exe) as image:
-              type_array_va = struct.unpack('<Q', image.read_rva(TYPE_ARRAY_POINTER_RVA, 8))[0]
+              pointer = image.read_rva(TYPE_ARRAY_POINTER_RVA, 8)
+              if len(pointer) != 8:
+                  raise SystemExit('cannot read runtime type-array pointer')
+              type_array_va = struct.unpack('<Q', pointer)[0]
               type_array_rva = type_array_va - image.image_base
-              data = image.read_rva(type_array_rva + START * ENTRY_SIZE, (END - START) * ENTRY_SIZE)
-              if len(data) != (END - START) * ENTRY_SIZE:
-                  raise SystemExit('truncated boundary window')
+              total = EXPECTED_RUNTIME_TYPE_COUNT + 1
+              data = image.read_rva(type_array_rva, total * ENTRY_SIZE)
+              if len(data) != total * ENTRY_SIZE:
+                  raise SystemExit('truncated runtime type-array boundary read')
 
-              rows = []
-              for index in range(START, END):
-                  off = (index - START) * ENTRY_SIZE
-                  entry = data[off:off + ENTRY_SIZE]
-                  rows.append((index, entry, shape(entry)))
+              invalid = []
+              kind_counts = {}
+              for index in range(EXPECTED_RUNTIME_TYPE_COUNT):
+                  entry = data[index * ENTRY_SIZE:(index + 1) * ENTRY_SIZE]
+                  kind = entry[0x0A]
+                  kind_counts[kind] = kind_counts.get(kind, 0) + 1
+                  if not valid_type_entry(entry):
+                      invalid.append((index, entry.hex(), kind))
+                      if len(invalid) >= 16:
+                          break
+
+              boundary = data[
+                  EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE:
+                  (EXPECTED_RUNTIME_TYPE_COUNT + 1) * ENTRY_SIZE
+              ]
 
               print('type_array_rva', hex(type_array_rva))
-              print('window', START, END)
-              print('=== 512-entry structural blocks ===')
-              for block_start in range(START, END, BLOCK):
-                  block = rows[block_start - START : min(END, block_start + BLOCK) - START]
-                  valid = sum(item[2]['valid'] for item in block)
-                  known_kind = sum(item[2]['kind'] in TYPE_KINDS for item in block)
-                  padding_zero = sum(item[2]['padding_zero'] for item in block)
-                  definition_rows = [item for item in block if item[2]['kind'] in (0x11, 0x12)]
-                  definition_ok = sum(item[2]['definition_ok'] and item[2]['definition_upper_zero'] for item in definition_rows)
-                  print({
-                      'start': block_start,
-                      'end': block_start + len(block),
-                      'valid': valid,
-                      'known_kind': known_kind,
-                      'padding_zero': padding_zero,
-                      'definition_rows': len(definition_rows),
-                      'definition_ok': definition_ok,
-                  })
+              print('expected_runtime_type_count', EXPECTED_RUNTIME_TYPE_COUNT)
+              print('expected_boundary_rva', hex(type_array_rva + EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE))
+              print('invalid_inside_count', len(invalid))
+              print('invalid_inside_examples', invalid)
+              print('boundary_entry', boundary.hex())
+              print('boundary_entry_valid_type', valid_type_entry(boundary))
+              print('kind_counts', {f'0x{k:02X}': v for k, v in sorted(kind_counts.items())})
+              print('last_entries')
+              for index in range(EXPECTED_RUNTIME_TYPE_COUNT - 8, EXPECTED_RUNTIME_TYPE_COUNT):
+                  entry = data[index * ENTRY_SIZE:(index + 1) * ENTRY_SIZE]
+                  print(index, hex(type_array_rva + index * ENTRY_SIZE), entry.hex())
 
-              first_invalid_after_670k = next((item[0] for item in rows if item[0] >= 670_000 and not item[2]['valid']), None)
-              sustained = None
-              RUN = 64
-              for pos in range(max(670_000, START), END - RUN):
-                  rel = pos - START
-                  if all(not rows[rel + j][2]['valid'] for j in range(RUN)):
-                      sustained = pos
-                      break
-              print('first_invalid_after_670k', first_invalid_after_670k)
-              print('first_64_entry_invalid_run', sustained)
-
-              focus = sustained if sustained is not None else first_invalid_after_670k
-              if focus is not None:
-                  print('=== exact transition neighborhood ===')
-                  for index in range(max(START, focus - 48), min(END, focus + 96)):
-                      _, entry, decoded = rows[index - START]
-                      print(
-                          index,
-                          f'rva=0x{type_array_rva + index * ENTRY_SIZE:X}',
-                          entry.hex(),
-                          f'kind=0x{decoded["kind"]:02X}',
-                          f'data64=0x{decoded["data64"]:016X}',
-                          f'padding_zero={decoded["padding_zero"]}',
-                          f'definition_ok={decoded["definition_ok"]}',
-                          f'valid={decoded["valid"]}',
-                      )
-          PY
-
-      - name: Trace the 88904 type-definition-count controls
-        run: |
-          python - <<'PY'
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-          from genshinre.mhy71 import EXPECTED_TYPE_COUNT
-          from genshinre.pe import PEImage
-          from genshinre.xrefs import scan_rip_xrefs
-          from pathlib import Path
-          import json
-          import struct
-
-          exe = Path('/tmp/gi71/GenshinImpact.exe')
-          needle = struct.pack('<I', EXPECTED_TYPE_COUNT)
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = False
-          hits = []
-
-          with PEImage(exe) as image:
-              for section in image.sections:
-                  data = image.read_rva(section.virtual_address, section.raw_size)
-                  start = 0
-                  while True:
-                      off = data.find(needle, start)
-                      if off < 0:
-                          break
-                      hits.append((section.name, section.characteristics, section.virtual_address + off))
-                      start = off + 1
-
-              print('count_hits', [(name, hex(rva), hex(chars)) for name, chars, rva in hits])
-              rdata_hit = next((rva for name, _, rva in hits if name == '.rdata'), None)
-              if rdata_hit is not None:
-                  print('rdata_count_hit', hex(rdata_hit))
-                  print('direct_rip_xrefs', json.dumps(scan_rip_xrefs(exe, [rdata_hit], window=96)['matches'], indent=2))
-                  print('=== qwords around .rdata count hit ===')
-                  start = rdata_hit - 0x80
-                  for rva in range(start, rdata_hit + 0x88, 8):
-                      blob = image.read_rva(rva, 8)
-                      if len(blob) != 8:
-                          continue
-                      qword = struct.unpack('<Q', blob)[0]
-                      as_rva = qword - image.image_base if image.image_base <= qword < image.image_base + 0x50000000 else None
-                      marker = ' <== COUNT' if rva == rdata_hit else ''
-                      print(hex(rva), hex(qword), 'as_rva', None if as_rva is None else hex(as_rva), marker)
-
-              print('=== executable hit disassembly ===')
-              for name, chars, hit in hits:
-                  if not (chars & 0x20000000):
-                      continue
-                  start = max(0, hit - 64)
-                  blob = image.read_rva(start, 160)
-                  print(f'--- {name} hit 0x{hit:X} ---')
-                  for insn in md.disasm(blob, image.image_base + start):
-                      irva = insn.address - image.image_base
-                      marker = ' <== contains count bytes' if irva <= hit < irva + insn.size else ''
-                      print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
+              if invalid:
+                  raise SystemExit('runtime type-array contains structurally invalid entries before expected boundary')
+              if valid_type_entry(boundary):
+                  raise SystemExit('first entry after expected runtime type-array boundary still looks like Il2CppType')
           PY
