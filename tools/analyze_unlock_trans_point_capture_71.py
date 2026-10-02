@@ -10,25 +10,45 @@ from parse_decrypted_game_packet import parse_frames
 REQUEST_CMD = 9369
 CANDIDATE_CMDS = {36641, 20290}
 UNLOCK_NOTIFY_CMD = 25567
+EXPECTED_EXE_SHA256 = "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+EXPECTED_S2C_POST_XOR_RVA = 0xA01846A
+EXPECTED_C2S_PRE_XOR_RVA = 0xA01A0EF
 
 
 def parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def load_events(path: Path) -> list[dict[str, object]]:
-    events = []
+def parse_rva(value: object) -> int:
+    return int(str(value), 0)
+
+
+def load_capture(path: Path) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    sessions: list[dict[str, object]] = []
+    ready_events: list[dict[str, object]] = []
+    events: list[dict[str, object]] = []
     with path.open("r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, 1):
             line = line.strip()
             if not line:
                 continue
             row = json.loads(line)
+            payload = row.get("payload")
+            if not isinstance(payload, dict):
+                continue
+
+            if row.get("kind") == "capture_session":
+                sessions.append({"line": line_no, **payload})
+                continue
+
             if row.get("kind") != "packet_probe":
                 continue
-            payload = row.get("payload")
-            if not isinstance(payload, dict) or "cmd_id" not in payload:
+            if payload.get("ready") is True:
+                ready_events.append({"line": line_no, **payload})
                 continue
+            if "cmd_id" not in payload:
+                continue
+
             event = {
                 "line": line_no,
                 "timestamp": parse_timestamp(str(row["timestamp_utc"])),
@@ -55,7 +75,53 @@ def load_events(path: Path) -> list[dict[str, object]]:
                         f"line {line_no}: event frame size {event['frame_size']} != parsed {packet.size}"
                     )
             events.append(event)
-    return events
+    return sessions, ready_events, events
+
+
+def verify_capture_provenance(
+    sessions: list[dict[str, object]],
+    ready_events: list[dict[str, object]],
+) -> dict[str, object]:
+    if len(sessions) != 1:
+        raise ValueError(
+            f"expected exactly one capture_session row, found {len(sessions)}; use one output file per capture"
+        )
+    session = sessions[0]
+    actual_hash = str(session.get("exe_sha256") or "").lower()
+    if session.get("build_verified") is not True or actual_hash != EXPECTED_EXE_SHA256:
+        raise ValueError(
+            "capture_session does not prove the pinned global 7.1 executable: "
+            f"build_verified={session.get('build_verified')!r}, exe_sha256={actual_hash!r}"
+        )
+
+    matching_ready = []
+    for event in ready_events:
+        try:
+            s2c = parse_rva(event.get("s2c_post_xor_rva"))
+            c2s = parse_rva(event.get("c2s_pre_xor_rva"))
+        except (TypeError, ValueError):
+            continue
+        if s2c == EXPECTED_S2C_POST_XOR_RVA and c2s == EXPECTED_C2S_PRE_XOR_RVA:
+            matching_ready.append(event)
+    if len(matching_ready) != 1:
+        raise ValueError(
+            "expected exactly one probe-ready event with the maintained 7.1 hook RVAs "
+            f"0x{EXPECTED_S2C_POST_XOR_RVA:X}/0x{EXPECTED_C2S_PRE_XOR_RVA:X}; "
+            f"found {len(matching_ready)}"
+        )
+
+    ready = matching_ready[0]
+    return {
+        "verified": True,
+        "exe": session.get("exe"),
+        "exe_sha256": actual_hash,
+        "capture_session_line": session["line"],
+        "probe_ready_line": ready["line"],
+        "module": ready.get("module"),
+        "module_base": ready.get("module_base"),
+        "s2c_post_xor_rva": f"0x{EXPECTED_S2C_POST_XOR_RVA:X}",
+        "c2s_pre_xor_rva": f"0x{EXPECTED_C2S_PRE_XOR_RVA:X}",
+    }
 
 
 def summarize_event(event: dict[str, object], request_time: datetime) -> dict[str, object]:
@@ -84,7 +150,8 @@ def main() -> None:
     p.add_argument("--max-events", type=int, default=120)
     args = p.parse_args()
 
-    events = load_events(args.capture)
+    sessions, ready_events, events = load_capture(args.capture)
+    provenance = verify_capture_provenance(sessions, ready_events)
     requests = [
         (i, event)
         for i, event in enumerate(events)
@@ -139,13 +206,14 @@ def main() -> None:
 
     result = {
         "capture": str(args.capture),
+        "capture_provenance": provenance,
         "window_seconds": args.window_seconds,
         "packet_event_count": len(events),
         "unlock_request_count": len(requests),
         "transactions": transactions,
         "promotion_note": (
-            "unique_candidate_observed is a packet-level observation only. Promote the semantic mapping "
-            "only when the capture source is a known-correct pinned 7.1 client/server transaction."
+            "capture provenance and hook RVAs are verified, but semantic promotion still requires "
+            "the captured server side to be independently known-correct for Genshin 7.1."
         ),
     }
     print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
