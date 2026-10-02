@@ -29,8 +29,8 @@ jobs:
             --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
             --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
             --output /tmp/gi70 \
-            --expected-exe-sha256 '0000000000000000000000000000000000000000000000000000000000000000' \
-            --expected-metadata-sha256 '0000000000000000000000000000000000000000000000000000000000000000'
+            --expected-exe-sha256 'a1a23cb76d941df28c5156ca3152fa49421ec98842221b7d71633d42ee76ca45' \
+            --expected-metadata-sha256 'd361ff11f6ca123f4126004db13cdf1956e00d95231f84c1e5437f560e79128b'
           python tools/fetch_sophon_targets.py \
             --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
             --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
