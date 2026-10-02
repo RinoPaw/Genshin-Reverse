@@ -37,57 +37,74 @@ function bytesToHex(buffer) {
     return out;
 }
 
-function emitFrame(direction, arrayObject, availableLength, hookRva) {
+function emitFrames(direction, arrayObject, availableLength, hookRva) {
     try {
         if (arrayObject.isNull() || availableLength < 12 || availableLength > MAX_FRAME_SIZE) {
             return;
         }
 
         const data = arrayObject.add(BYTE_ARRAY_DATA_OFFSET);
-        if (be16(data) !== 0x4567) {
-            return;
-        }
+        let offset = 0;
+        let frameIndex = 0;
 
-        const cmdId = be16(data.add(2));
-        const headSize = be16(data.add(4));
-        const bodySize = be32(data.add(6));
-        const frameSize = 12 + headSize + bodySize;
-        if (frameSize < 12 || frameSize > availableLength || frameSize > MAX_FRAME_SIZE) {
-            return;
-        }
-        if (be16(data.add(frameSize - 2)) !== 0x89AB) {
-            return;
-        }
+        // The receive-side parser may be handed more than one complete framed
+        // packet in the same plaintext byte[] window. Walk every contiguous
+        // 0x4567 ... 0x89AB frame so a watched packet cannot be missed merely
+        // because it is not the first frame in the buffer.
+        while (offset + 12 <= availableLength) {
+            const frame = data.add(offset);
+            if (be16(frame) !== 0x4567) {
+                break;
+            }
 
-        const headBuffer = headSize > 0 ? data.add(10).readByteArray(headSize) : new ArrayBuffer(0);
-        const watched = WATCHED.has(cmdId);
-        const payload = {
-            direction,
-            cmd_id: cmdId,
-            hook_rva: '0x' + hookRva.toString(16).toUpperCase(),
-            available_length: availableLength,
-            frame_size: frameSize,
-            head_size: headSize,
-            body_size: bodySize,
-            head_hex: bytesToHex(headBuffer),
-            watched,
-        };
+            const cmdId = be16(frame.add(2));
+            const headSize = be16(frame.add(4));
+            const bodySize = be32(frame.add(6));
+            const frameSize = 12 + headSize + bodySize;
+            const remaining = availableLength - offset;
+            if (frameSize < 12 || frameSize > remaining || frameSize > MAX_FRAME_SIZE) {
+                break;
+            }
+            if (be16(frame.add(frameSize - 2)) !== 0x89AB) {
+                break;
+            }
 
-        // Preserve full bytes for the request, both response candidates, and
-        // ScenePointUnlockNotify. Adjacent packets still emit header metadata,
-        // which is enough to reconstruct the narrow transaction window.
-        if (watched) {
-            payload.frame_hex = bytesToHex(data.readByteArray(frameSize));
+            const headBuffer = headSize > 0 ? frame.add(10).readByteArray(headSize) : new ArrayBuffer(0);
+            const watched = WATCHED.has(cmdId);
+            const payload = {
+                direction,
+                cmd_id: cmdId,
+                hook_rva: '0x' + hookRva.toString(16).toUpperCase(),
+                available_length: availableLength,
+                buffer_offset: offset,
+                frame_index: frameIndex,
+                frame_size: frameSize,
+                head_size: headSize,
+                body_size: bodySize,
+                head_hex: bytesToHex(headBuffer),
+                watched,
+            };
+
+            // Preserve full bytes for the request, both response candidates, and
+            // ScenePointUnlockNotify. Adjacent packets still emit header metadata,
+            // which is enough to reconstruct the narrow transaction window.
+            if (watched) {
+                payload.frame_hex = bytesToHex(frame.readByteArray(frameSize));
+            }
+
+            send(payload);
+            console.log(
+                '[' + direction + '] cmd=' + cmdId +
+                ' frame=' + frameSize +
+                ' head=' + headSize +
+                ' body=' + bodySize +
+                ' offset=' + offset +
+                (watched ? '  <WATCH>' : '')
+            );
+
+            offset += frameSize;
+            frameIndex += 1;
         }
-
-        send(payload);
-        console.log(
-            '[' + direction + '] cmd=' + cmdId +
-            ' frame=' + frameSize +
-            ' head=' + headSize +
-            ' body=' + bodySize +
-            (watched ? '  <WATCH>' : '')
-        );
     } catch (e) {
         send({
             direction,
@@ -110,7 +127,7 @@ Interceptor.attach(module.base.add(S2C_POST_XOR_RVA), {
         const ref = this.context.r14;
         const length = this.context.r12.toUInt32();
         if (!ref.isNull()) {
-            emitFrame('S2C', ref.readPointer(), length, S2C_POST_XOR_RVA);
+            emitFrames('S2C', ref.readPointer(), length, S2C_POST_XOR_RVA);
         }
     },
 });
@@ -124,7 +141,7 @@ Interceptor.attach(module.base.add(C2S_PRE_XOR_RVA), {
         // 0xA01A110, so the bytes here are still plaintext.
         const arrayObject = this.context.r14;
         const length = this.context.rdi.toUInt32();
-        emitFrame('C2S', arrayObject, length, C2S_PRE_XOR_RVA);
+        emitFrames('C2S', arrayObject, length, C2S_PRE_XOR_RVA);
     },
 });
 
