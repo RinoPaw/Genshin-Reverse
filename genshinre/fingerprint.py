@@ -13,6 +13,16 @@ def _hash_file(path: Path, algorithm: str) -> str:
     return h.hexdigest()
 
 
+def _format_name(magic: bytes) -> str:
+    if magic.startswith(b"MZ"):
+        return "pe"
+    if magic.startswith(b"MHY\x00"):
+        return "mhy-obfuscated-metadata"
+    if magic.startswith(bytes.fromhex("af1bb1fa")):
+        return "standard-il2cpp-metadata"
+    return "unknown"
+
+
 def _pe_info(path: Path) -> dict[str, object]:
     with path.open("rb") as f:
         header = f.read(0x40)
@@ -45,11 +55,12 @@ def _pe_info(path: Path) -> dict[str, object]:
 def fingerprint(path: Path) -> dict[str, object]:
     stat = path.stat()
     with path.open("rb") as f:
-        magic = f.read(16)
+        magic = f.read(32)
     result: dict[str, object] = {
         "path": path.name,
         "size_bytes": stat.st_size,
-        "magic_hex": magic.hex(),
+        "magic_hex": magic[:16].hex(),
+        "format": _format_name(magic),
         "sha256": _hash_file(path, "sha256"),
         "sha1": _hash_file(path, "sha1"),
         "md5": _hash_file(path, "md5"),
