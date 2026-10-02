@@ -26,8 +26,24 @@
       "type_name": "LLCGIEDMIIG",
       "method_name": "MACAMCMOKOL",
       "rva": "0x0C227790",
-      "parameter_types": ["ONKOPMILDMF"],
+      "parameter_types": [
+        "ONKOPMILDMF"
+      ],
       "evidence": "method 322028; born notify handler"
+    },
+    {
+      "rva": "0x0C23BA20",
+      "parameter_types": [
+        "PGAMFBPNNIC"
+      ],
+      "evidence": "preserved 7.1 born-audit handler parameter anchor"
+    },
+    {
+      "rva": "0x0C2513A0",
+      "parameter_types": [
+        "OBOADLPIEPL"
+      ],
+      "evidence": "preserved 7.1 born-audit handler parameter anchor"
     },
     {
       "type_name": "HJDNCHODGOL",
