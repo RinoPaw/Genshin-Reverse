@@ -74,6 +74,38 @@ jobs:
               print('files_with_hits',total)
           PY
 
+      - name: Inspect historical unlock sender method neighborhood
+        run: |
+          python - <<'PY' > /tmp/scene-owner-sender-band-7.0.json
+          import json
+          from pathlib import Path
+          owner=None
+          with Path('/tmp/data/data/dump.json').open(encoding='utf-8',errors='replace') as f:
+              for line in f:
+                  if '"name":"KGCKOFPFBLA"' not in line:
+                      continue
+                  obj,_=json.JSONDecoder().raw_decode(line.strip())
+                  if obj.get('name')=='KGCKOFPFBLA':
+                      owner=obj
+                      break
+          if owner is None:
+              raise RuntimeError('KGCKOFPFBLA not found')
+          rows=[]
+          for pos,m in enumerate(owner.get('methods',[])):
+              idx=m.get('idx')
+              if 70 <= pos <= 86 or idx in (449753,449757,449834):
+                  rows.append({
+                      'owner_position':pos,
+                      'method_index':idx,
+                      'method_name':m.get('name'),
+                      'rva':f"0x{int(m.get('rva') or 0):X}",
+                      'return_type':m.get('ret'),
+                      'parameters':m.get('params') or [],
+                  })
+          print(json.dumps({'owner':'KGCKOFPFBLA','rows':rows},indent=2))
+          PY
+          cat /tmp/scene-owner-sender-band-7.0.json
+
       - name: Upload compact reference evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,4 +118,5 @@ jobs:
             /tmp/trans-point-consumers-7.0.json
             /tmp/trans-point-consumers-7.0.txt
             /tmp/trans-point-reference-hits.txt
+            /tmp/scene-owner-sender-band-7.0.json
           if-no-files-found: warn
