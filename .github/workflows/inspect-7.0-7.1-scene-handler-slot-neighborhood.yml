@@ -1,0 +1,164 @@
+name: Inspect 7.0 and 7.1 scene handler slot neighborhoods
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-7.0-7.1-scene-handler-slot-neighborhood.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tooling
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Fetch exact 7.0 and 7.1 samples plus 7.0 dump
+        run: |
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/3XnPviMfoILi/manifest_2efe39d995f47170_29ad2bc6e42fe4af2086ae58c7e81b33' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/3XnPviMfoILi' \
+            --output /tmp/gi70 \
+            --expected-exe-sha256 'a1a23cb76d941df28c5156ca3152fa49421ec98842221b7d71633d42ee76ca45' \
+            --expected-metadata-sha256 'd361ff11f6ca123f4126004db13cdf1956e00d95231f84c1e5437f560e79128b'
+          python tools/fetch_sophon_targets.py \
+            --manifest-url 'https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d' \
+            --chunk-prefix 'https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu' \
+            --output /tmp/gi71 \
+            --expected-exe-sha256 '08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d' \
+            --expected-metadata-sha256 '05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0'
+          curl --fail --location 'https://raw.githubusercontent.com/superhuap/genshin_7.0_dump/main/data.7z' -o /tmp/data.7z
+          curl --fail --location 'https://raw.githubusercontent.com/kuma-dayo/protos/main/7.0.0/packetIds.json' -o /tmp/packetIds-7.0.json
+          mkdir -p /tmp/data && 7z x -y /tmp/data.7z -o/tmp/data >/dev/null
+
+      - name: Extract protocol handler slot neighborhoods
+        run: |
+          python - <<'PY' > /tmp/scene-handler-slot-neighborhoods.json
+          import bisect, csv, json, re
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_MEM, X86_REG_RIP
+          from genshinre.pe import PEImage
+
+          OLD_OWNER='KGCKOFPFBLA'
+          NEW_OWNER='KLLNGCPBLMM'
+          OLD_TARGET=0x36E970
+          NEW_TARGETS=(0x4B2A90,0x4B2AB0)
+
+          old_ids=json.load(open('/tmp/packetIds-7.0.json',encoding='utf-8'))
+          old_type_to_cmd={k:int(v) for k,v in old_ids.items()}
+          new_type_to_cmd={}
+          with open('versions/7.1.0-global/windows-x64/registry/registry.csv',encoding='utf-8',newline='') as f:
+              for row in csv.DictReader(f):
+                  new_type_to_cmd[row['type_name']]=int(row['cmd_id'])
+
+          old_owner=None
+          all_old_rvas=set()
+          rva_re=re.compile(r'"rva":(\d+)')
+          with Path('/tmp/data/data/dump.json').open(encoding='utf-8',errors='replace') as f:
+              for line in f:
+                  if '"rva":' in line:
+                      all_old_rvas.update(int(x) for x in rva_re.findall(line) if int(x)>0)
+                  if old_owner is None and f'"name":"{OLD_OWNER}"' in line:
+                      obj,_=json.JSONDecoder().raw_decode(line.strip())
+                      if obj.get('name')==OLD_OWNER:
+                          old_owner=obj
+          if old_owner is None:
+              raise RuntimeError('historical scene owner missing')
+          all_old_rvas=sorted(all_old_rvas)
+
+          old_methods=[]
+          for pos,m in enumerate(old_owner.get('methods',[])):
+              start=int(m.get('rva') or 0)
+              if start<=0: continue
+              i=bisect.bisect_right(all_old_rvas,start)
+              if i>=len(all_old_rvas): continue
+              params=[p.get('type') for p in (m.get('params') or [])]
+              old_methods.append({'pos':pos,'name':m.get('name'),'index':m.get('idx'),'rva':start,'end':all_old_rvas[i],'params':params})
+
+          new_methods=[]
+          all_new_rvas=[]
+          with open('versions/7.1.0-global/windows-x64/metadata/methods.csv',encoding='utf-8',newline='') as f:
+              for row in csv.DictReader(f):
+                  rva=int(row['rva'],0) if row.get('rva') else 0
+                  if rva>0: all_new_rvas.append(rva)
+                  if row.get('type_name')!=NEW_OWNER or rva<=0: continue
+                  try: params=json.loads(row.get('parameter_types') or '[]')
+                  except Exception: params=[]
+                  new_methods.append({'name':row['method_name'],'index':int(row['method_index']),'rva':rva,'params':params})
+          all_new_rvas=sorted(set(all_new_rvas))
+          for pos,m in enumerate(new_methods):
+              m['pos']=pos
+              i=bisect.bisect_right(all_new_rvas,m['rva'])
+              m['end']=all_new_rvas[i] if i<len(all_new_rvas) else m['rva']+0x1000
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          def collect(image, methods, type_to_cmd, lo, hi):
+              rows=[]
+              for m in methods:
+                  if len(m['params'])!=1: continue
+                  p=m['params'][0]
+                  cmd=type_to_cmd.get(p)
+                  if cmd is None: continue
+                  try: blob=image.read_rva(m['rva'],m['end']-m['rva'])
+                  except Exception: continue
+                  slots=set()
+                  hits=[]
+                  for ins in md.disasm(blob,image.image_base+m['rva']):
+                      for op in ins.operands:
+                          if op.type!=X86_OP_MEM or op.mem.base==X86_REG_RIP: continue
+                          disp=int(op.mem.disp)
+                          if lo<=disp<=hi:
+                              slots.add(disp)
+                              hits.append({'slot':f'0x{disp:X}','rva':f'0x{ins.address-image.image_base:X}','mnemonic':ins.mnemonic,'op_str':ins.op_str})
+                  if slots:
+                      rows.append({'slots':[f'0x{x:X}' for x in sorted(slots)],'cmd_id':cmd,'type_name':p,
+                                   'method_name':m['name'],'method_index':m['index'],'method_position':m['pos'],
+                                   'rva':f"0x{m['rva']:X}",'size':m['end']-m['rva'],'hits':hits})
+              rows.sort(key=lambda r:min(int(x,0) for x in r['slots']))
+              return rows
+
+          with PEImage(Path('/tmp/gi70/GenshinImpact.exe')) as im70, PEImage(Path('/tmp/gi71/GenshinImpact.exe')) as im71:
+              old_rows=collect(im70,old_methods,old_type_to_cmd,OLD_TARGET-0x1000,OLD_TARGET+0x1000)
+              new_rows=collect(im71,new_methods,new_type_to_cmd,min(NEW_TARGETS)-0x1000,max(NEW_TARGETS)+0x1000)
+
+          result={
+              'old_owner':OLD_OWNER,'new_owner':NEW_OWNER,
+              'old_target_slot':f'0x{OLD_TARGET:X}',
+              'new_candidate_slots':[f'0x{x:X}' for x in NEW_TARGETS],
+              'old_rows':old_rows,'new_rows':new_rows,
+              'notes':[
+                  'Rows include only one-parameter scene-owner methods whose parameter type is a registered protocol type.',
+                  'Slots are non-RIP memory displacements in a narrow window around the known old/new delegate slots.',
+                  'Use local slot ordering and independently named controls; do not infer identity from absolute offset interpolation alone.'
+              ]
+          }
+          print(json.dumps(result,indent=2))
+          PY
+
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/scene-handler-slot-neighborhoods.json'))
+          print('OLD')
+          for r in d['old_rows']:
+              print(','.join(r['slots']), r['cmd_id'], r['type_name'], r['method_name'], r['rva'])
+          print('NEW')
+          for r in d['new_rows']:
+              print(','.join(r['slots']), r['cmd_id'], r['type_name'], r['method_name'], r['rva'])
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-handler-slot-neighborhoods-70-71
+          path: /tmp/scene-handler-slot-neighborhoods.json
