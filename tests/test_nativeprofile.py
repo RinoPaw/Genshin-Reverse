@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from genshinre import mhy71, registryslots
+from genshinre import mhy71, registryslots, registryslotxref, registryxrefpublish
 from genshinre.nativeprofile import PROFILE_71, get_native_profile
 
 
@@ -76,6 +76,21 @@ class NativeProfileTests(unittest.TestCase):
             self.assertEqual(anchor.type_slot_rva, observed["type_slot_rva"])
             self.assertEqual(anchor.store_rva, observed["store_rva"])
             self.assertEqual(anchor.name, observed["name"])
+
+    def test_registry_relationship_contract_matches_profile(self) -> None:
+        profile = PROFILE_71
+        by_index = {anchor.index: anchor for anchor in profile.registry_slot_anchors}
+
+        self.assertEqual(profile.registry_row_count, registryslotxref.EXPECTED_REGISTRY_ROWS)
+        self.assertEqual(profile.registry_row_count, registryxrefpublish.EXPECTED_ROWS)
+
+        for observed in registryslotxref.ANCHORS.values():
+            anchor = by_index[observed["registry_index"]]
+            self.assertEqual(anchor.type_slot_rva, observed["registry_slot_rva"])
+
+        for observed in registryxrefpublish.ANCHORS.values():
+            anchor = by_index[observed["index"]]
+            self.assertEqual(anchor.type_slot_rva, observed["slot"])
 
     def test_profile_lookup_is_exact(self) -> None:
         self.assertIs(PROFILE_71, get_native_profile(PROFILE_71.identity))
