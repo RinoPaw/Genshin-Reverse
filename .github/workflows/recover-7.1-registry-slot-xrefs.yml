@@ -1,15 +1,19 @@
-name: Recover 7.1 registry type-cache xrefs
+name: Recover 7.1 registry slot xrefs
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/recover-7.1-type-cache-xrefs.yml'
+      - '.github/workflows/recover-7.1-registry-slot-xrefs.yml'
       - 'scripts/fetch-7.1-samples.sh'
-      - 'genshinre/typecachexref.py'
+      - 'genshinre/registryslotxref.py'
       - 'versions/7.1.0-global/windows-x64/metadata/methods.csv'
       - 'versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv'
       - 'versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv'
+
+concurrency:
+  group: recover-7.1-registry-slot-xrefs-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -33,32 +37,32 @@ jobs:
       - name: Fetch pinned global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output /tmp/gi71 --python python
 
-      - name: Cross-reference candidate type methods with verified registry slots
+      - name: Cross-reference protocol types with verified registry slots
         run: |
           ROOT=versions/7.1.0-global/windows-x64
           REGISTRY="$ROOT/registry"
           test -s "$ROOT/metadata/methods.csv"
           test -s "$REGISTRY/getcmdid-candidates.csv"
           test -s "$REGISTRY/registry-type-slots.csv"
-          python -m genshinre.typecachexref \
+          python -m genshinre.registryslotxref \
             /tmp/gi71/GenshinImpact.exe \
             "$ROOT/metadata/methods.csv" \
             "$REGISTRY/getcmdid-candidates.csv" \
             "$REGISTRY/registry-type-slots.csv" \
-            "$REGISTRY/type-cache-xrefs.csv" \
-            --summary "$REGISTRY/type-cache-xrefs.summary.json"
-          cat "$REGISTRY/type-cache-xrefs.summary.json"
+            "$REGISTRY/registry-slot-xrefs.csv" \
+            --summary "$REGISTRY/registry-slot-xrefs.summary.json"
+          cat "$REGISTRY/registry-slot-xrefs.summary.json"
 
       - name: Commit diagnostics
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add versions/7.1.0-global/windows-x64/registry/type-cache-xrefs.csv \
-                  versions/7.1.0-global/windows-x64/registry/type-cache-xrefs.summary.json
+          git add versions/7.1.0-global/windows-x64/registry/registry-slot-xrefs.csv \
+                  versions/7.1.0-global/windows-x64/registry/registry-slot-xrefs.summary.json
           if git diff --cached --quiet; then
             echo 'No xref changes.'
             exit 0
           fi
-          git commit -m 'data: map 7.1 protocol types to registry slots by code xref'
+          git commit -m 'data: refresh 7.1 registry slot xrefs'
           git pull --rebase origin main
           git push origin HEAD:main

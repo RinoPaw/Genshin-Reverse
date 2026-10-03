@@ -52,10 +52,10 @@
     }
   },
   "all_anchor_top_slots_match": true,
-  "status": "xref-diagnostic",
+  "status": "registry-slot-xref-diagnostic",
   "notes": [
-    "constructor slots are independently verified; this artifact only asks whether methods declared on each GetCmdId candidate type reference those slots",
+    "constructor slots are independently verified; this artifact asks whether methods declared on each GetCmdId candidate type reference those slots",
     "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
-    "no row is promoted to canonical registry identity solely by this diagnostic"
+    "canonical registry publication independently requires a strict 4,896-row slot/type/CmdId bijection"
   ]
 }

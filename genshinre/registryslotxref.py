@@ -45,7 +45,7 @@ def _parse_int(value: object) -> int | None:
         return None
 
 
-def recover_type_slot_xrefs_71(
+def recover_registry_slot_xrefs_71(
     exe: Path,
     methods_csv: Path,
     getcmd_candidates_csv: Path,
@@ -59,7 +59,7 @@ def recover_type_slot_xrefs_71(
         from capstone import CS_ARCH_X86, CS_MODE_64, Cs
         from capstone.x86 import X86_OP_MEM, X86_REG_RIP
     except ImportError as exc:
-        raise RuntimeError("typecachexref requires the capstone Python package") from exc
+        raise RuntimeError("registryslotxref requires the capstone Python package") from exc
 
     method_rows = _rows(methods_csv)
     candidate_rows = [
@@ -76,7 +76,9 @@ def recover_type_slot_xrefs_71(
                 raise ValueError(f"registry slot 0x{slot:X} maps to multiple indices")
             slots[slot] = index
     if len(slot_rows) != 4896 or len(slots) != 4896:
-        raise ValueError(f"expected 4,896 unique verified registry slots, got rows={len(slot_rows)} unique={len(slots)}")
+        raise ValueError(
+            f"expected 4,896 unique verified registry slots, got rows={len(slot_rows)} unique={len(slots)}"
+        )
 
     methods_by_type: dict[int, list[dict[str, str]]] = defaultdict(list)
     all_method_rvas: set[int] = set()
@@ -120,8 +122,7 @@ def recover_type_slot_xrefs_71(
                     continue
                 method_label = f"{method.get('method_name', '')}@0x{rva:X}"
                 try:
-                    instructions = md.disasm(blob, rva)
-                    for insn in instructions:
+                    for insn in md.disasm(blob, rva):
                         for operand in insn.operands:
                             if operand.type != X86_OP_MEM or operand.mem.base != X86_REG_RIP:
                                 continue
@@ -167,7 +168,9 @@ def recover_type_slot_xrefs_71(
             if dominant:
                 types_with_dominant_registry_xref += 1
 
-            status = "UNIQUE_SLOT_XREF" if unique else ("DOMINANT_SLOT_XREF" if dominant else "AMBIGUOUS_SLOT_XREF")
+            status = "UNIQUE_SLOT_XREF" if unique else (
+                "DOMINANT_SLOT_XREF" if dominant else "AMBIGUOUS_SLOT_XREF"
+            )
             for rank, slot in enumerate(ordered):
                 row_status = status if rank == 0 else "SECONDARY_SLOT_XREF"
                 methods = sorted(hit_methods[slot])
@@ -209,18 +212,29 @@ def recover_type_slot_xrefs_71(
         rows = [row for row in emitted if _parse_int(row.get("cmd_id")) == cmd_id]
         expected_slot = int(anchor["registry_slot_rva"])
         exact = [row for row in rows if _parse_int(row.get("registry_slot_rva")) == expected_slot]
-        top = next((row for row in rows if row.get("status") in {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF", "AMBIGUOUS_SLOT_XREF"}), None)
+        top = next(
+            (
+                row
+                for row in rows
+                if row.get("status")
+                in {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF", "AMBIGUOUS_SLOT_XREF"}
+            ),
+            None,
+        )
         anchor_results[str(cmd_id)] = {
             "type_name": anchor["type_name"],
             "expected_registry_index": anchor["registry_index"],
             "expected_registry_slot_rva": f"0x{expected_slot:X}",
             "expected_slot_referenced": bool(exact),
-            "top_slot_matches": top is not None and _parse_int(top.get("registry_slot_rva")) == expected_slot,
+            "top_slot_matches": top is not None
+            and _parse_int(top.get("registry_slot_rva")) == expected_slot,
             "top": top,
         }
 
     slots_with_owner_candidates = len(slot_owner_candidates)
-    slots_with_single_owner_candidate = sum(len(owners) == 1 for owners in slot_owner_candidates.values())
+    slots_with_single_owner_candidate = sum(
+        len(owners) == 1 for owners in slot_owner_candidates.values()
+    )
     summary: dict[str, object] = {
         "method_name_filter": method_name,
         "candidate_type_count": len(candidate_rows),
@@ -231,22 +245,26 @@ def recover_type_slot_xrefs_71(
         "slots_with_owner_candidates": slots_with_owner_candidates,
         "slots_with_single_owner_candidate": slots_with_single_owner_candidate,
         "anchors": anchor_results,
-        "all_anchor_top_slots_match": all(bool(item["top_slot_matches"]) for item in anchor_results.values()),
-        "status": "xref-diagnostic",
+        "all_anchor_top_slots_match": all(
+            bool(item["top_slot_matches"]) for item in anchor_results.values()
+        ),
+        "status": "registry-slot-xref-diagnostic",
         "notes": [
-            "constructor slots are independently verified; this artifact only asks whether methods declared on each GetCmdId candidate type reference those slots",
+            "constructor slots are independently verified; this artifact asks whether methods declared on each GetCmdId candidate type reference those slots",
             "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
-            "no row is promoted to canonical registry identity solely by this diagnostic",
+            "canonical registry publication independently requires a strict 4,896-row slot/type/CmdId bijection",
         ],
     }
     if summary_json is None:
         summary_json = output_csv.with_suffix(".summary.json")
-    summary_json.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    summary_json.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return summary
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="python -m genshinre.typecachexref")
+    parser = argparse.ArgumentParser(prog="python -m genshinre.registryslotxref")
     parser.add_argument("exe", type=Path)
     parser.add_argument("methods_csv", type=Path)
     parser.add_argument("getcmd_candidates_csv", type=Path)
@@ -256,7 +274,7 @@ def main() -> None:
     parser.add_argument("--method-name", default="AEGNNPENLNM")
     parser.add_argument("--max-method-bytes", type=lambda value: int(value, 0), default=0x2000)
     args = parser.parse_args()
-    result = recover_type_slot_xrefs_71(
+    result = recover_registry_slot_xrefs_71(
         args.exe,
         args.methods_csv,
         args.getcmd_candidates_csv,

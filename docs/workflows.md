@@ -46,9 +46,15 @@ Every stage is required. The workflow does not clone AstaPS, run candidate-graph
 
 Full work output is kept as a short-lived Actions artifact for provenance/debugging. The Git publisher writes only the current canonical publication set.
 
+### `recover-7.1-registry-slot-xrefs.yml`
+
+Maintained exact-sample supporting-evidence workflow for canonical registry identity. It maps each GetCmdId candidate type to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
+
+The name is intentionally about registry slots. The older `type-cache` terminology was retired because these rows are slot-reference evidence, not a compatibility cache.
+
 ### `publish-7.1-registry-xrefs.yml`
 
-Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract.
+Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract. Publication consumes `registry-slot-xrefs.csv`, verified constructor slots, and evidence-gated known opcodes.
 
 The general artifact publisher requires this canonical registry to already exist and pass its schema/bijection gate.
 
@@ -60,14 +66,13 @@ Current retained examples include:
 
 - `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
 - `refresh-7.1-fast.yml` for focused current-client refresh work;
-- `publish-7.1-candidate-graph.yml` for explicit research graph publication;
-- `recover-7.1-type-cache-xrefs.yml` and `recover-7.1-metadata-usage-types.yml` for reusable recovery layers;
+- `publish-7.1-candidate-graph.yml` for the maintained GetCmdId structural graph;
 - `locate-7.1-game-packet-framing.yml` and `trace-7.1-game-packet-framing-edges.yml` for generic packet-framing provenance;
 - `probe-7.1-network-symbols.yml`, `trace-7.1-protocol-dispatch-root.yml`, and `search-7.1-protobuf-semantic-strings.yml` for reusable protocol/network investigation.
 
 `disassemble-7.1-rva.yml` and `inspect-7.0-reference-dump.yml` are retained as generic inspection/reference entry points rather than packet-specific case workflows.
 
-The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. Their historical runs remain available through Git/Actions history, while maintained conclusions live under `versions/7.1.0-global/windows-x64/analyses/` and reusable algorithms live in `genshinre/` or retained `tools/` commands.
+The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-graph recovery chain was also retired after canonical registry identity reached a strict 4,896-row bijection. Git history preserves those experiments.
 
 Research workflow output is never silently copied by canonical publication. Each retained workflow owns explicit inputs, outputs and an evidence gate.
 
