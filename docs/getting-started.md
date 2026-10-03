@@ -1,6 +1,6 @@
 # Getting started
 
-The base toolkit is intentionally standard-library only. Python 3.11+ is enough for querying, decoding the pinned 7.1 sample, and validating committed artifacts.
+The base toolkit is intentionally standard-library only. Python 3.11+ is enough for querying, decoding the pinned 7.1 sample, correlating already-decrypted captures, and validating committed artifacts.
 
 ```bash
 git clone https://github.com/RinoPaw/Genshin-Reverse.git
@@ -18,7 +18,9 @@ The maintained path is exact-sample and fail-closed:
 exact 7.1 samples
 → regenerate canonical metadata/runtime/GetCmdId evidence
 → publish validated canonical artifacts
-→ validate registry/protocol evidence
+→ query registry + metadata + relationship evidence
+→ run focused static/runtime investigations
+→ promote semantics only after the case evidence gate is satisfied
 ```
 
 The committed canonical registry is already closed at 4,896 identities:
@@ -85,7 +87,7 @@ POSIX shell:
 ./scripts/publish-artifacts-7.1.sh
 ```
 
-Publication verifies exact sample hashes, metadata counts, CSV row counts, the complete method-pointer table, runtime-type anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree. The manifest contract is `manifest_version: 3`; optional publication fields are retired.
+Publication verifies exact sample hashes, metadata counts, CSV row counts, the complete method-pointer table, runtime-type anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree. The current generated-artifact contract is `manifest_version: 4`.
 
 Published metadata includes:
 
@@ -132,9 +134,55 @@ genshinre protocol-query \
   --cmd-id 186
 ```
 
-`protocol-query` joins the canonical registry row with metadata fields/methods, handler/sender/constructor xrefs, runtime observation summaries, evidence-gated known opcodes and committed message shapes. It aggregates evidence only; it does not assign semantic names or promote confidence.
+`protocol-query` joins the canonical registry row with declared metadata fields/methods, inbound method-signature references, handler/sender/constructor xrefs, scene-handler dispatch evidence, runtime observations, evidence-gated known opcodes, committed message shapes and focused analysis records. It aggregates evidence only; it does not assign semantic names or promote confidence.
 
 The same command can start from `--type`, `--type-definition-index` or registry `--index`.
+
+## Follow inbound signature references
+
+The decoded method table can establish relationships where a protocol type appears as a method parameter or return type. `protocol-query` exposes both all signature references and the subset whose declaring type differs from the protocol type itself.
+
+For a direct parameter search:
+
+```bash
+genshinre query-methods \
+  versions/7.1.0-global/windows-x64/metadata/methods.csv \
+  --parameter-type ONKOPMILDMF
+```
+
+Signature membership is relationship evidence. It can locate consumers and handlers, but does not establish a semantic protobuf name by itself.
+
+## Reproduce scene-handler slot relations
+
+The current scene-handler investigation has been promoted into reusable tooling:
+
+```bash
+genshinre scene-handler-slots \
+  /path/to/GenshinImpact.exe \
+  versions/7.1.0-global/windows-x64/metadata/methods.csv \
+  versions/7.1.0-global/windows-x64/registry/registry.csv \
+  KLLNGCPBLMM \
+  0x4B1A90 \
+  0x4B3AB8 \
+  --output work/scene-handler-slots.json
+```
+
+The maintained decoder deliberately accepts only the exact slot-load instruction shape proven by the 7.0/7.1 investigation. The committed current-client evidence is under `versions/7.1.0-global/windows-x64/analyses/scene-handler-dispatch/`.
+
+## Correlate a decrypted runtime transaction
+
+Build-specific capture hooks stay in focused runtime tools. Once a collector has produced the standard NDJSON packet-probe events, request/response correlation is generic:
+
+```bash
+python -m genshinre.capture capture.ndjson \
+  --request-cmd 9369 \
+  --candidate-cmd 36641 \
+  --candidate-cmd 20290 \
+  --sequence-field 3 \
+  --json capture.analysis.json
+```
+
+The correlator closes a transaction at the next matching request, preserves the event window, and promotes only a unique response candidate with the same selected packet-head sequence value. A version-specific investigation may impose a stricter evidence gate on top of this generic result.
 
 ## Convert a server trace into reusable data
 
@@ -164,15 +212,19 @@ genshinre import-opcodes-java \
 
 This is comparison evidence. Evidence-gated target-client semantic mappings live in `proto/known-opcodes.csv`.
 
-## Query metadata by handler parameter type
+## Common traversal
 
-```bash
-genshinre query-methods \
-  versions/7.1.0-global/windows-x64/metadata/methods.csv \
-  --parameter-type ONKOPMILDMF
+```text
+CmdId
+→ obfuscated type
+→ typeDefinitionIndex
+→ methods / fields
+→ inbound signature references
+→ handler / sender / dispatch evidence
+→ parser / wire shape
+→ runtime transaction evidence
+→ semantic promotion
 ```
-
-The common traversal is `CmdId -> obfuscated type -> typeDefinitionIndex -> methods/fields -> handler/sender/parser/xrefs`.
 
 ## Fingerprint local samples
 
