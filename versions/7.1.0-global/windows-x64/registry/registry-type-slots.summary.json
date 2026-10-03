@@ -1,6 +1,6 @@
 {
   "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
-  "historical_row_count": 4896,
+  "expected_row_count": 4896,
   "matched_unique_indices": 4896,
   "missing_indices": [],
   "ambiguous_indices": [],
