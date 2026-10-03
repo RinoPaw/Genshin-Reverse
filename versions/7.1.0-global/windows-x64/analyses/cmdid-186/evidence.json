@@ -8,7 +8,6 @@
     "hashes_ref": "../../hashes.json"
   },
   "questions": [
-    "Which exact scalar FieldCodec factory overload is MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80?",
     "Which indirect/type-slot/registration sender path produces CmdId 186 during login initialization?",
     "Which semantic packet name is supported when static parser evidence and runtime context are combined?"
   ],
@@ -17,123 +16,63 @@
       "id": "runtime-c2s-observation",
       "status": "CONFIRMED",
       "statement": "CmdId 186 is observed client-to-server in the preserved fresh-account login trace with payload 7202d027, and the same CmdId recurs in multiple login-init runs.",
-      "evidence": [
-        {
-          "kind": "runtime-trace",
-          "source": "issue-1 / recovered login-init traces",
-          "locator": "README.md#runtime-observation",
-          "note": "Quest 351 startup was intentionally suspended in the primary probe, so temporal proximity alone is not semantic proof."
-        }
-      ]
+      "evidence": [{"kind":"runtime-trace","source":"issue-1 / recovered login-init traces","locator":"README.md#runtime-observation","note":"Quest 351 startup was intentionally suspended in the primary probe, so temporal proximity alone is not semantic proof."}]
     },
     {
       "id": "wire-field-14",
       "status": "CONFIRMED",
-      "statement": "Payload 7202d027 contains protobuf field 14 with wire type 2, length 2 and body d027.",
+      "statement": "Payload 7202d027 is protobuf field 14, wire type 2, carrying packed repeated uint32 value [5072].",
       "evidence": [
-        {
-          "kind": "wire-decode",
-          "source": "genshinre wire",
-          "locator": "7202d027",
-          "note": "Packed-varint decoding yields [5072]. Exact-client code independently proves field 14 uses a generated repeated-field structure; the exact scalar codec overload remains unresolved."
-        }
+        {"kind":"wire-decode","source":"genshinre wire","locator":"7202d027","note":"The wire decoder yields packed varint [5072]."},
+        {"kind":"exact-client-control","source":"uint32-codec-control.json","locator":"conclusion","note":"Exact 7.1 PlayerEnterSceneNotify proves factory 0xAABBD80 is the repeated uint32 FieldCodec factory."}
       ]
     },
     {
       "id": "static-client-identity",
       "status": "CONFIRMED",
       "statement": "The canonical 7.1 registry maps CmdId 186 to client type NLOMEGMJDGJ, typeDefinition 61556, registry index 48, type slot RVA 0x057F3858 and GetCmdId RVA 0x09ED2160.",
-      "evidence": [
-        {
-          "kind": "canonical-registry",
-          "source": "../../registry/registry.csv",
-          "locator": "cmd_id=186",
-          "note": "Identity status is static-verified-identity; semantic name remains unset."
-        }
-      ]
+      "evidence": [{"kind":"canonical-registry","source":"../../registry/registry.csv","locator":"cmd_id=186","note":"Identity status is static-verified-identity; semantic name remains unset."}]
     },
     {
       "id": "protobuf-parser-role",
       "status": "CONFIRMED",
       "statement": "NLOMEGMJDGJ.IENGFLPCLNM(EIBJNHDPEMB) @ 0x09ED2100 is the generated protobuf merge/parser path for the message and consumes the collection at object offset 0x18 together with the message's static field codec.",
-      "evidence": [
-        {
-          "kind": "exact-client-disassembly",
-          "source": "protobuf-structure.json",
-          "locator": "method_evidence[role=parser]",
-          "note": "Exact 7.1 executable SHA-256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d; source workflow run 37095178757."
-        }
-      ]
+      "evidence": [{"kind":"exact-client-disassembly","source":"protobuf-structure.json","locator":"method_evidence[role=parser]","note":"Exact 7.1 executable; source workflow run 37095178757."}]
     },
     {
-      "id": "field-14-repeated-structure",
+      "id": "field-14-repeated-uint32",
       "status": "CONFIRMED",
-      "statement": "Exact 7.1 client code implements field 14 as a generated repeated-field structure: the instance collection is stored at object offset 0x18 and a static codec is initialized with protobuf tag 0x72 then reused by CopyFrom, size and parser paths.",
+      "statement": "Exact 7.1 client code implements field 14 as packed repeated uint32: the collection lives at object offset 0x18 and FieldCodec<uint32> factory 0x0AABBD80 is initialized with tag 0x72.",
       "evidence": [
-        {
-          "kind": "exact-client-disassembly",
-          "source": "protobuf-structure.json",
-          "locator": "method_evidence",
-          "note": "The .cctor loads ecx=0x72, calls codec factory 0x0AABBD80 and stores its result at class static offset 0x30320. Parser/size/CopyFrom paths all operate on the collection at object offset 0x18."
-        },
-        {
-          "kind": "metadata-crosscheck",
-          "source": "../../metadata/fields.csv",
-          "locator": "field_type_index in {476942,476943}",
-          "note": "The same pair appears together in 1,042 generated message types; confirmed PlayerEnterSceneNotify is one control using both indexes."
-        }
-      ]
-    },
-    {
-      "id": "field-14-scalar-codec",
-      "status": "UNRESOLVED",
-      "statement": "The exact scalar FieldCodec overload for field 14 remains unresolved. MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80 accepts the uint32 protobuf tag, but that signature alone does not identify the repeated element scalar type.",
-      "evidence": [
-        {
-          "kind": "metadata-method",
-          "source": "../../metadata/methods.csv",
-          "locator": "rva=0xAABBD80",
-          "note": "method_index 700560, typeDefinition 84808, type MJKCIJEILLP, method OLACMCNHBHD, parameter_types=[uint32]."
-        }
+        {"kind":"exact-client-disassembly","source":"protobuf-structure.json","locator":"method_evidence","note":"The .cctor loads tag 0x72 and initializes the static codec; parser/size/CopyFrom all operate on the same collection."},
+        {"kind":"exact-client-control","source":"uint32-codec-control.json","locator":"current_client_control","note":"Confirmed PlayerEnterSceneNotify field 5 is repeated uint32 and its exact-client .cctor calls the same factory 0xAABBD80 with tag 0x2A."}
       ]
     },
     {
       "id": "genericinst-pair",
       "status": "CONFIRMED",
-      "statement": "NLOMEGMJDGJ fields use transformed IL2CPP genericinst type indexes 476942 and 476943; all 1,042 decoded message types that use either index use both, consistent with the generated repeated-field backing/codec pair seen in exact client code.",
-      "evidence": [
-        {
-          "kind": "metadata-crosscheck",
-          "source": "protobuf-structure.json",
-          "locator": "genericinst_reuse",
-          "note": "Raw runtime entries are preserved as 0x3565B00/0x3565B10 with kind 0x15 and transformed data values 0x7638/0x763F."
-        }
-      ]
+      "statement": "NLOMEGMJDGJ fields use transformed IL2CPP genericinst type indexes 476942 and 476943; all 1,042 decoded message types that use either index use both, consistent with the generated repeated-field backing/codec pair.",
+      "evidence": [{"kind":"metadata-crosscheck","source":"protobuf-structure.json","locator":"genericinst_reuse","note":"Raw runtime entries are preserved at 0x3565B00/0x3565B10."}]
     },
     {
       "id": "direct-call-sender-path",
       "status": "REJECTED",
       "statement": "A direct E8 rel32 call into the generated NLOMEGMJDGJ methods is not present in the exact 7.1 executable.",
-      "evidence": [
-        {
-          "kind": "exact-client-call-xrefs",
-          "source": "direct-call-xrefs.json",
-          "locator": "targets",
-          "note": "CopyFrom, size-like, constructor, static constructor, two generated methods, parser and GetCmdId each have call_count=0. Source workflow run 37095853357."
-        }
-      ]
+      "evidence": [{"kind":"exact-client-call-xrefs","source":"direct-call-xrefs.json","locator":"targets","note":"All eight scanned generated message methods have call_count=0."}]
+    },
+    {
+      "id": "external-type-slot-consumer",
+      "status": "CONFIRMED",
+      "statement": "The exact 7.1 type slot has one external code consumer outside registry construction and generated self-references: JKFCCMCAMGA.HMAPAFEOKJK @ 0x08EB3990, whose slot read occurs at 0x08EB39A2 and is followed by helper PFKFIFOEHNA.JGIBJCAEEBB(Il2CppRuntimeClassHandle) @ 0x1184DFE0.",
+      "evidence": [{"kind":"exact-client-type-slot-xrefs","source":"type-slot-xrefs.json","locator":"xrefs[role=external-type-slot-consumer]","note":"Source workflow run 37096025794."}]
     },
     {
       "id": "sender-context",
       "status": "UNRESOLVED",
-      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem. Exact-client direct-call scanning ruled out E8 rel32 calls to the generated message methods, so recovery should follow type-slot/static references, indirect/interface/delegate dispatch or registration/allocation helpers.",
+      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem. Direct generated-method calls are absent; the external type-slot consumer JKFCCMCAMGA.HMAPAFEOKJK is the next static path to classify.",
       "evidence": [
-        {
-          "kind": "negative-static-evidence",
-          "source": "direct-call-xrefs.json",
-          "locator": "conclusion",
-          "note": "Negative evidence narrows the sender search but does not identify the sender."
-        }
+        {"kind":"negative-static-evidence","source":"direct-call-xrefs.json","locator":"conclusion","note":"Direct E8 generated-method sender path rejected."},
+        {"kind":"static-consumer","source":"type-slot-xrefs.json","locator":"conclusion","note":"External type-slot consumer identified but not yet semantically classified."}
       ]
     },
     {
@@ -144,40 +83,22 @@
     }
   ],
   "rejected_paths": [
-    {
-      "statement": "Copy PlayerPropChangeNotify from an old version because that version also used numeric CmdId 186.",
-      "reason": "CmdIds are remapped across client versions; historical numeric equality is not current-client semantic evidence.",
-      "evidence": [
-        {
-          "kind": "historical-only",
-          "source": "older Genshin protocol mappings",
-          "note": "Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."
-        }
-      ]
-    },
-    {
-      "statement": "Find the sender by scanning only E8 rel32 calls to NLOMEGMJDGJ generated methods.",
-      "reason": "Exact 7.1 scanning found zero direct calls for all eight generated message methods that were tested.",
-      "evidence": [
-        {
-          "kind": "exact-client-call-xrefs",
-          "source": "direct-call-xrefs.json",
-          "note": "Continue with indirect/static/type-slot/registration evidence instead."
-        }
-      ]
-    }
+    {"statement":"Copy PlayerPropChangeNotify from an old version because that version also used numeric CmdId 186.","reason":"CmdIds are remapped across client versions; historical numeric equality is not current-client semantic evidence.","evidence":[{"kind":"historical-only","source":"older Genshin protocol mappings","note":"Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."}]},
+    {"statement":"Find the sender by scanning only E8 rel32 calls to NLOMEGMJDGJ generated methods.","reason":"Exact 7.1 scanning found zero direct calls for all eight generated message methods that were tested.","evidence":[{"kind":"exact-client-call-xrefs","source":"direct-call-xrefs.json","note":"Continue with indirect/static/type-slot/registration evidence."}]}
   ],
   "artifacts": [
     "README.md",
     "evidence.json",
     "protobuf-structure.json",
+    "uint32-codec-control.json",
     "copyfrom.disasm.json",
-    "direct-call-xrefs.json"
+    "direct-call-xrefs.json",
+    "type-slot-xrefs.json"
   ],
   "next_steps": [
-    "Identify the exact scalar FieldCodec overload implemented by MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80 using exact-client controls.",
-    "Trace NLOMEGMJDGJ through type-slot/static/registration references and indirect sender paths instead of direct E8 calls.",
-    "Cross-check semantic candidates against current-target evidence and related projects without importing historical numeric equality.",
+    "Classify JKFCCMCAMGA.HMAPAFEOKJK @ 0x08EB3990 and trace its callers/registration role.",
+    "Trace NLOMEGMJDGJ through indirect/interface/delegate sender paths and compare with repeated login-init observations.",
+    "Generate semantic candidates from exact 7.1 proto structures matching a single repeated uint32 field at field 14, then require current-client context before promotion.",
     "Promote a semantic name only when static identity, parser shape and runtime context agree."
   ]
 }
