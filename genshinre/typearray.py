@@ -6,15 +6,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from .mhy71 import EXPECTED_EXE_SHA256, EXPECTED_TYPE_COUNT, TYPE_ARRAY_POINTER_RVA
+from .nativeprofile import PROFILE_71
 from .pe import PEImage
 
 ENTRY_SIZE = 16
-EXPECTED_RUNTIME_TYPE_COUNT = 683_574
-ANCHOR_TYPE_INDEX = 405_772
-ANCHOR_KIND = 0x12
-ANCHOR_TYPE_DEFINITION = 84_249
-ANCHOR_TYPE_NAME = "DMMJNICDOHM"
 
 TYPE_KIND_NAMES = {
     0x01: "void",
@@ -87,7 +82,11 @@ def decode_type_entry(entry: bytes) -> dict[str, int | str]:
     }
 
 
-def is_valid_type_entry(entry: bytes, *, type_definition_count: int = EXPECTED_TYPE_COUNT) -> bool:
+def is_valid_type_entry(
+    entry: bytes,
+    *,
+    type_definition_count: int = PROFILE_71.type_definition_count,
+) -> bool:
     if len(entry) != ENTRY_SIZE:
         return False
     kind = entry[0x0A]
@@ -139,14 +138,16 @@ def scan_type_array_71(
     summary_json: Path | None = None,
     include_all_kinds: bool = False,
 ) -> dict[str, object]:
+    profile = PROFILE_71
+    anchor = profile.runtime_type_anchor
     exe_sha = _sha256(exe)
-    if exe_sha != EXPECTED_EXE_SHA256:
+    if exe_sha != profile.exe_sha256:
         raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
 
     names = _load_type_names(types_csv)
-    if len(names) != EXPECTED_TYPE_COUNT:
+    if len(names) != profile.type_definition_count:
         raise ValueError(
-            f"decoded metadata type count {len(names)} != preserved {EXPECTED_TYPE_COUNT}"
+            f"decoded metadata type count {len(names)} != preserved {profile.type_definition_count}"
         )
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -163,7 +164,7 @@ def scan_type_array_71(
     pointer_neighborhood: dict[str, str] = {}
 
     with PEImage(exe) as image, output_csv.open("w", encoding="utf-8", newline="") as out:
-        pointer_blob = image.read_rva(TYPE_ARRAY_POINTER_RVA, 8)
+        pointer_blob = image.read_rva(profile.type_array_pointer_rva, 8)
         if len(pointer_blob) != 8:
             raise ValueError("cannot read 7.1 IL2CPP type-array pointer")
         type_array_va = int.from_bytes(pointer_blob, "little", signed=False)
@@ -172,7 +173,7 @@ def scan_type_array_71(
             raise ValueError("invalid 7.1 IL2CPP type-array pointer")
 
         for delta in range(-0x20, 0x29, 8):
-            data = image.read_rva(TYPE_ARRAY_POINTER_RVA + delta, 8)
+            data = image.read_rva(profile.type_array_pointer_rva + delta, 8)
             if len(data) != 8:
                 raise ValueError(
                     f"cannot read type-array pointer neighborhood at delta {delta:+#x}"
@@ -195,12 +196,12 @@ def scan_type_array_71(
             0,
             (section.virtual_address + section.raw_size - type_array_rva) // ENTRY_SIZE,
         )
-        if capacity <= EXPECTED_RUNTIME_TYPE_COUNT:
+        if capacity <= profile.runtime_type_count:
             raise ValueError(
                 "containing PE section does not include the verified runtime type boundary"
             )
 
-        read_count = EXPECTED_RUNTIME_TYPE_COUNT + 1
+        read_count = profile.runtime_type_count + 1
         expected_bytes = read_count * ENTRY_SIZE
         blob = image.read_rva(type_array_rva, expected_bytes)
         if len(blob) != expected_bytes:
@@ -211,7 +212,7 @@ def scan_type_array_71(
 
         writer = csv.DictWriter(out, fieldnames=COLUMNS)
         writer.writeheader()
-        for index in range(EXPECTED_RUNTIME_TYPE_COUNT):
+        for index in range(profile.runtime_type_count):
             entry = blob[index * ENTRY_SIZE : (index + 1) * ENTRY_SIZE]
             if not is_valid_type_entry(entry):
                 raise ValueError(
@@ -234,10 +235,10 @@ def scan_type_array_71(
                     valid_named_rows += 1
 
             if (
-                index == ANCHOR_TYPE_INDEX
-                and kind == ANCHOR_KIND
-                and definition == ANCHOR_TYPE_DEFINITION
-                and name == ANCHOR_TYPE_NAME
+                index == anchor.type_index
+                and kind == anchor.kind
+                and definition == anchor.type_definition_index
+                and name == anchor.type_name
             ):
                 anchor_found = True
 
@@ -260,8 +261,8 @@ def scan_type_array_71(
             emitted += 1
 
         boundary_entry = blob[
-            EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE :
-            (EXPECTED_RUNTIME_TYPE_COUNT + 1) * ENTRY_SIZE
+            profile.runtime_type_count * ENTRY_SIZE :
+            (profile.runtime_type_count + 1) * ENTRY_SIZE
         ]
         boundary_entry_valid = is_valid_type_entry(boundary_entry)
         if boundary_entry_valid:
@@ -271,21 +272,32 @@ def scan_type_array_71(
 
     if not anchor_found:
         raise ValueError(
-            "runtime type index failed mandatory 405772 -> typeDef 84249 DMMJNICDOHM anchor"
+            "runtime type index failed mandatory "
+            f"{anchor.type_index} -> typeDef {anchor.type_definition_index} {anchor.type_name} anchor"
         )
 
-    boundary_rva = type_array_rva + EXPECTED_RUNTIME_TYPE_COUNT * ENTRY_SIZE
+    boundary_rva = type_array_rva + profile.runtime_type_count * ENTRY_SIZE
+    if boundary_rva != profile.runtime_type_boundary_rva:
+        raise ValueError(
+            "runtime type boundary RVA drift: "
+            f"computed 0x{boundary_rva:X}, expected 0x{profile.runtime_type_boundary_rva:X}"
+        )
+    anchor_kind_name = TYPE_KIND_NAMES[anchor.kind]
+    anchor_key = (
+        f"anchor_{anchor.type_index}_{anchor_kind_name}_"
+        f"{anchor.type_definition_index}_{anchor.type_name}"
+    )
     summary: dict[str, object] = {
         "exe": str(exe),
         "exe_sha256": exe_sha,
         "types_csv": str(types_csv),
-        "type_array_pointer_source_rva": f"0x{TYPE_ARRAY_POINTER_RVA:X}",
+        "type_array_pointer_source_rva": f"0x{profile.type_array_pointer_rva:X}",
         "type_array_va": f"0x{type_array_va:X}",
         "type_array_rva": f"0x{type_array_rva:X}",
         "pointer_source_neighborhood_qwords": pointer_neighborhood,
         "section": section.name,
         "section_capacity_entries": capacity,
-        "runtime_type_count": EXPECTED_RUNTIME_TYPE_COUNT,
+        "runtime_type_count": profile.runtime_type_count,
         "boundary_rva": f"0x{boundary_rva:X}",
         "boundary_entry_hex": boundary_entry.hex(),
         "boundary_entry_valid_type": boundary_entry_valid,
@@ -296,13 +308,22 @@ def scan_type_array_71(
         "valuetype_entries_seen": value_type_rows,
         "named_definition_entries": valid_named_rows,
         "kind_counts": kind_counts,
-        "anchor_405772_class_84249_DMMJNICDOHM": anchor_found,
+        anchor_key: anchor_found,
         "status": "canonical-exact-runtime-type-index",
         "notes": [
-            "all 683,574 entries pass the exact-sample Il2CppType structural gate",
-            "index 683,574 is the first boundary entry and is required to fail that structural gate",
+            (
+                f"all {profile.runtime_type_count:,} entries pass the exact-sample "
+                "Il2CppType structural gate"
+            ),
+            (
+                f"index {profile.runtime_type_count:,} is the first boundary entry and is "
+                "required to fail that structural gate"
+            ),
             "default CSV emits class/valuetype entries that resolve to decoded metadata type names",
-            "the preserved 405772 -> typeDef 84249 anchor is mandatory for this exact-sample index",
+            (
+                f"the preserved {anchor.type_index} -> typeDef {anchor.type_definition_index} "
+                f"{anchor.type_name} anchor is mandatory for this exact-sample index"
+            ),
         ],
     }
     summary_json.write_text(
