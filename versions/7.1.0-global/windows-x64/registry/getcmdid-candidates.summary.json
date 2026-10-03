@@ -210,6 +210,6 @@
   "notes": [
     "constant-return methods include non-protocol code; this file is not a canonical registry",
     "Genshin 7.1 GetCmdId controls include 16-bit AX immediate returns",
-    "the preserved 26105/HJDNCHODGOL anchor is mandatory for the exact-sample scan"
+    "the preserved 26105/HJDNCHODGOL/0x10587260 anchor is mandatory for the exact-sample scan"
   ]
 }

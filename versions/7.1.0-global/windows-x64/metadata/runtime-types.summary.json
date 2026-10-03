@@ -63,6 +63,6 @@
     "all 683,574 entries pass the exact-sample Il2CppType structural gate",
     "index 683,574 is the first boundary entry and is required to fail that structural gate",
     "default CSV emits class/valuetype entries that resolve to decoded metadata type names",
-    "the preserved 405772 -> typeDef 84249 anchor is mandatory for this exact-sample index"
+    "the preserved 405772 -> typeDef 84249 DMMJNICDOHM anchor is mandatory for this exact-sample index"
   ]
 }
