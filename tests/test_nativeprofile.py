@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from genshinre import mhy71
+from genshinre import mhy71, registryslots
 from genshinre.nativeprofile import PROFILE_71, get_native_profile
 
 
@@ -43,6 +43,14 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual("HJDNCHODGOL", anchor.type_name)
         self.assertEqual(0x10587260, anchor.rva)
 
+    def test_registry_slot_contract_is_part_of_profile(self) -> None:
+        profile = PROFILE_71
+
+        self.assertEqual(4_896, profile.registry_row_count)
+        self.assertEqual(0x07F7D800, profile.registry_code_min_rva)
+        self.assertEqual(0x07F8E500, profile.registry_code_max_rva)
+        self.assertEqual((2_232, 3_118), tuple(anchor.index for anchor in profile.registry_slot_anchors))
+
     def test_metadata_decoder_contract_matches_profile(self) -> None:
         profile = PROFILE_71
 
@@ -56,6 +64,18 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual(profile.embedded_header_size, mhy71.EMBEDDED_HEADER_SIZE)
         self.assertEqual(profile.type_array_pointer_rva, mhy71.TYPE_ARRAY_POINTER_RVA)
         self.assertEqual(profile.method_pointer_table_rva, mhy71.METHOD_POINTER_TABLE_RVA)
+
+    def test_registry_slot_decoder_contract_matches_profile(self) -> None:
+        profile = PROFILE_71
+
+        self.assertEqual(profile.registry_row_count, registryslots.EXPECTED_REGISTRY_ROWS)
+        self.assertEqual(profile.registry_code_min_rva, registryslots.REGISTRY_CODE_MIN_RVA)
+        self.assertEqual(profile.registry_code_max_rva, registryslots.REGISTRY_CODE_MAX_RVA)
+        for anchor in profile.registry_slot_anchors:
+            observed = registryslots.ANCHORS[anchor.index]
+            self.assertEqual(anchor.type_slot_rva, observed["type_slot_rva"])
+            self.assertEqual(anchor.store_rva, observed["store_rva"])
+            self.assertEqual(anchor.name, observed["name"])
 
     def test_profile_lookup_is_exact(self) -> None:
         self.assertIs(PROFILE_71, get_native_profile(PROFILE_71.identity))

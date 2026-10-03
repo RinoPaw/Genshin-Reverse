@@ -19,6 +19,14 @@ class GetCmdIdAnchor:
 
 
 @dataclass(frozen=True)
+class RegistrySlotAnchor:
+    index: int
+    type_slot_rva: int
+    store_rva: int | None
+    name: str
+
+
+@dataclass(frozen=True)
 class NativeProfile:
     version: str
     region: str
@@ -37,6 +45,10 @@ class NativeProfile:
     runtime_type_boundary_rva: int
     runtime_type_anchor: RuntimeTypeAnchor
     getcmdid_anchor: GetCmdIdAnchor
+    registry_row_count: int
+    registry_code_min_rva: int
+    registry_code_max_rva: int
+    registry_slot_anchors: tuple[RegistrySlotAnchor, ...]
 
     @property
     def identity(self) -> str:
@@ -73,6 +85,23 @@ PROFILE_71 = NativeProfile(
         cmd_id=26_105,
         type_name="HJDNCHODGOL",
         rva=0x10587260,
+    ),
+    registry_row_count=4_896,
+    registry_code_min_rva=0x07F7D800,
+    registry_code_max_rva=0x07F8E500,
+    registry_slot_anchors=(
+        RegistrySlotAnchor(
+            index=2_232,
+            type_slot_rva=0x057E6498,
+            store_rva=0x07F852AB,
+            name="UnlockTransPointReq",
+        ),
+        RegistrySlotAnchor(
+            index=3_118,
+            type_slot_rva=0x057F6F60,
+            store_rva=None,
+            name="DoSetPlayerBornDataNotify",
+        ),
     ),
 )
 
