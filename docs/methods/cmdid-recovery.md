@@ -70,7 +70,7 @@ Avoid invoking a large login/world lifecycle as a protocol probe: it sends many 
 
 ## 7. Preserve failures
 
-Keep tested candidates and the evidence that rejected them. A negative runtime experiment or mismatching parser tag can save hours later.
+Keep tested candidates and the evidence that rejected them in the focused analysis record or Git history. Negative runtime experiments and mismatching parser tags can save hours later; they do not require a second live implementation path.
 
 ## 8. Final confirmation
 
@@ -78,7 +78,7 @@ A strong closure looks like:
 
 ```text
 matching sample hashes
-+ GetCmdId constant / registry mapping
++ canonical registry identity
 + parser shape
 + handler or sender context
 + isolated runtime behavior
@@ -87,11 +87,30 @@ matching sample hashes
 
 ## Registry-first fast path
 
-When a complete client registry exists, start there. A high-quality registry row should eventually contain:
+For the current 7.1 target, begin with the closed canonical registry instead of rebuilding identity from exploratory metadata-usage or candidate-convergence probes.
+
+A current registry row contains the exact slot/type/CmdId identity and its provenance:
 
 ```csv
-cmd_id,type_name,type_definition_index,type_cache_rva,direction,get_cmd_id_rva,status
-26105,HJDNCHODGOL,...,...,C2S,...,CONFIRMED
+index,cmd_id,type_name,type_definition_index,direction,direction_status,semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,store_rva,xref_count,xref_method_count,status,evidence
+48,186,NLOMEGMJDGJ,61556,...,...,...,0x057F3858,0x09ED2160,AEGNNPENLNM,...,...,...,...,static-verified-identity,...
 ```
 
-Then use metadata indexes and xref tables to move from the registered type to its methods and consumers/producers. The goal is to turn a new unknown CmdId from a fresh whole-binary investigation into a handful of indexed lookups.
+Routine lookup:
+
+```bash
+genshinre query-registry \
+  versions/7.1.0-global/windows-x64/registry/registry.csv \
+  --cmd-id 186
+```
+
+The maintained identity chain is:
+
+```text
+verified constructor/type slots
++ current GetCmdId candidates
++ dominant registry-slot xrefs
+→ strict 4,896-row canonical registry
+```
+
+From the registry row, use metadata indexes, signature references, handler/sender evidence and focused analysis records to answer the semantic question. Do not restart the retired metadata-usage/type convergence path merely to rediscover an identity already present in `registry.csv`.
