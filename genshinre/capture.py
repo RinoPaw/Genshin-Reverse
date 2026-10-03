@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -238,3 +239,102 @@ def correlate_capture(
         for index, packet in enumerate(packets)
         if packet.direction == request_direction and packet.cmd_id == request_cmd
     ]
+
+
+def analyze_capture_file(
+    path: Path,
+    *,
+    request_cmd: int,
+    candidate_cmds: Iterable[int],
+    sequence_field: int = 3,
+    after_events: int = 24,
+    request_direction: str = "C2S",
+    response_direction: str = "S2C",
+    event_kind: str = "packet_probe",
+) -> dict[str, Any]:
+    """Load an NDJSON packet probe capture and correlate all matching requests."""
+
+    candidate_values = tuple(int(value) for value in candidate_cmds)
+    if not candidate_values:
+        raise ValueError("candidate_cmds must not be empty")
+    packets, ready = load_packet_probe_capture(
+        path,
+        sequence_field=sequence_field,
+        event_kind=event_kind,
+    )
+    transactions = correlate_capture(
+        packets,
+        request_cmd=request_cmd,
+        candidate_cmds=candidate_values,
+        sequence_field=sequence_field,
+        after_events=after_events,
+        request_direction=request_direction,
+        response_direction=response_direction,
+    )
+    return {
+        "capture": str(path),
+        "event_kind": event_kind,
+        "packet_count": len(packets),
+        "ready_event_count": len(ready),
+        "request_count": len(transactions),
+        "request_cmd": request_cmd,
+        "candidate_cmds": sorted(set(candidate_values)),
+        "sequence_field": sequence_field,
+        "request_direction": request_direction,
+        "response_direction": response_direction,
+        "after_events": after_events,
+        "transactions": transactions,
+    }
+
+
+def _int_auto(text: str) -> int:
+    return int(text, 0)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="python -m genshinre.capture",
+        description=(
+            "Correlate request/response CmdIds in an NDJSON packet-probe capture "
+            "using a protobuf packet-head sequence field."
+        ),
+    )
+    parser.add_argument("capture", type=Path)
+    parser.add_argument("--request-cmd", type=_int_auto, required=True)
+    parser.add_argument(
+        "--candidate-cmd",
+        type=_int_auto,
+        action="append",
+        required=True,
+        dest="candidate_cmds",
+        help="candidate response CmdId; repeatable",
+    )
+    parser.add_argument("--sequence-field", type=int, default=3)
+    parser.add_argument("--after-events", type=int, default=24)
+    parser.add_argument("--request-direction", default="C2S")
+    parser.add_argument("--response-direction", default="S2C")
+    parser.add_argument("--event-kind", default="packet_probe")
+    parser.add_argument("--json", dest="json_output", type=Path)
+    args = parser.parse_args()
+
+    result = analyze_capture_file(
+        args.capture,
+        request_cmd=args.request_cmd,
+        candidate_cmds=args.candidate_cmds,
+        sequence_field=args.sequence_field,
+        after_events=args.after_events,
+        request_direction=args.request_direction,
+        response_direction=args.response_direction,
+        event_kind=args.event_kind,
+    )
+    if args.json_output:
+        args.json_output.parent.mkdir(parents=True, exist_ok=True)
+        args.json_output.write_text(
+            json.dumps(result, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
