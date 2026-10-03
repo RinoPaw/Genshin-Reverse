@@ -14,6 +14,7 @@ on:
       - 'genshinre/getcmdid.py'
       - 'genshinre/metadata.py'
       - 'genshinre/mhy71.py'
+      - 'genshinre/nativeprofile.py'
       - 'genshinre/param71.py'
       - 'genshinre/pe.py'
       - 'genshinre/typearray.py'
