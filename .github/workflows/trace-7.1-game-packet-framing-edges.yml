@@ -3,7 +3,7 @@ name: Trace 7.1 game packet framing call edges
 on:
   push:
     paths:
-      - 'tools/trace_native_call_edges_71.py'
+      - 'tools/trace_native_call_edges.py'
       - '.github/workflows/trace-7.1-game-packet-framing-edges.yml'
       - 'scripts/fetch-7.1-samples.sh'
       - 'genshinre/nativeprofile.py'
@@ -36,7 +36,7 @@ jobs:
 
       - name: Trace parser and encoder call edges
         run: |
-          python tools/trace_native_call_edges_71.py \
+          python tools/trace_native_call_edges.py \
             /tmp/gi71/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             /tmp/game-packet-framing-edges-71.json \
