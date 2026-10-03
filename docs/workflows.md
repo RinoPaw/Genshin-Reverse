@@ -68,14 +68,12 @@ All maintained exact-sample workflows use same-ref stale-run cancellation when a
 
 Research workflows are opt-in or narrowly triggered. They orchestrate reusable tools around a live investigation; they are not the implementation of a reverse-engineering method.
 
-Current retained examples include:
+Current retained workflows are:
 
 - `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
 - `publish-7.1-candidate-graph.yml` for the maintained GetCmdId structural graph;
 - `locate-7.1-game-packet-framing.yml` and `trace-7.1-game-packet-framing-edges.yml` for generic packet-framing provenance;
-- `probe-7.1-network-symbols.yml`, `trace-7.1-protocol-dispatch-root.yml`, and `search-7.1-protobuf-semantic-strings.yml` for reusable protocol/network investigation.
-
-`disassemble-7.1-rva.yml` and `inspect-7.0-reference-dump.yml` are retained as generic inspection/reference entry points rather than packet-specific case workflows.
+- `disassemble-7.1-rva.yml` as the generic exact-sample RVA inspection entry point.
 
 The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-convergence chain was also retired after canonical registry identity reached a strict 4,896-row bijection.
 
