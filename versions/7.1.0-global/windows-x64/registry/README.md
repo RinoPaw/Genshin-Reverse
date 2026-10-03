@@ -30,11 +30,17 @@ genshinre query-registry registry.csv --index 48
 
 Filters may be combined when a lookup should assert multiple identity fields at once.
 
-## Canonical supporting evidence
+## Exact native registry inputs
 
-`registry-type-slots.csv` records the verified 4,896 constructor/type slots and their store/load provenance.
+`registry-type-slots.csv` records the exact 4,896 constructor/type slots and their load/store provenance. `genshinre.registryslots` accepts only the pinned 7.1 EXE and fails unless all indices `0..4895` plus preserved controls close exactly.
 
-`registry-slot-xrefs.csv` maps GetCmdId candidate types to those verified slots by current-client RIP-relative code references. Its primary `UNIQUE_SLOT_XREF` / `DOMINANT_SLOT_XREF` rows are the relationship evidence consumed by `genshinre.registryxrefpublish`; the publisher independently requires a strict 4,896-row slot/type/CmdId bijection before writing `registry.csv`.
+`registry-native-arrays.csv` records the independently recovered native `ushort[4896]` CmdId array and binary direction-flag array joined to the indexed type slots. `genshinre.registryarrays` requires the same pinned sample, exactly 4,896 unique nonzero CmdIds, an exact 4,896-entry binary flag window, contiguous slot indices, and all confirmed direction controls.
+
+Regenerate those inputs with `.github/workflows/recover-7.1-registry-native-inputs.yml` or the underlying package commands.
+
+## Canonical slot relationship evidence
+
+`registry-slot-xrefs.csv` maps GetCmdId candidate types to verified constructor slots by current-client RIP-relative code references. Its primary `UNIQUE_SLOT_XREF` / `DOMINANT_SLOT_XREF` rows are the relationship evidence consumed by `genshinre.registryxrefpublish`.
 
 Regenerate this relationship layer with:
 
@@ -48,7 +54,9 @@ python -m genshinre.registryslotxref \
   --summary registry-slot-xrefs.summary.json
 ```
 
-The older `type-cache-xrefs` name was retired. These rows describe verified registry-slot references and do not represent a compatibility cache.
+Recovery itself now requires all 4,896 verified slots to have a dominant candidate owner and requires the preserved 9369 / 22899 slot controls to match. The publisher then independently checks the strict slot/type/CmdId bijection before writing `registry.csv`.
+
+The former `type-cache-xrefs` name was retired. These rows describe registry-slot references and do not represent a compatibility cache.
 
 ## Control set versus confirmed semantic mappings
 

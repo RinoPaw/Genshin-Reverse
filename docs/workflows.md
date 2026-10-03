@@ -9,7 +9,7 @@ scripts/fetch-7.1-samples.sh
 scripts/fetch-7.1-samples.ps1
 ```
 
-Maintained canonical workflows call those entry points. Active research workflows may keep their own pinned experiment inputs when a distinct environment or sequence is still useful.
+Maintained exact-sample workflows call those entry points. Active research workflows may keep their own pinned experiment inputs when a distinct environment or sequence is still useful.
 
 ## 1. Fast repository CI
 
@@ -30,7 +30,7 @@ CI uses per-ref concurrency with `cancel-in-progress: true`, so a newer push rep
 
 ### `generate-7.1-data.yml`
 
-Maintained exact-sample generation entry point.
+Maintained exact-sample generation entry point for canonical metadata/runtime/GetCmdId artifacts.
 
 It performs only the canonical chain:
 
@@ -44,19 +44,29 @@ It performs only the canonical chain:
 
 Every stage is required. The workflow does not clone AstaPS, run candidate-graph research, perform usage recovery, or continue after a failed canonical stage.
 
-Full work output is kept as a short-lived Actions artifact for provenance/debugging. The Git publisher writes only the current canonical publication set.
+### `recover-7.1-registry-native-inputs.yml`
+
+Maintained exact-sample registry-identity input recovery. It reconstructs:
+
+- the exact indexed 4,896-row registry constructor/type-slot table;
+- the exact native 4,896-entry CmdId array;
+- the exact native direction-flag array joined to verified current semantic controls.
+
+Sample identity, completeness, contiguity and preserved controls are hard gates. GetCmdId candidates are not regenerated here; `generate-7.1-data.yml` owns that artifact.
 
 ### `recover-7.1-registry-slot-xrefs.yml`
 
-Maintained exact-sample supporting-evidence workflow for canonical registry identity. It maps each GetCmdId candidate type to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
+Maintained exact-sample relationship recovery for canonical registry identity. It maps GetCmdId candidate types to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
 
-The name is intentionally about registry slots. The older `type-cache` terminology was retired because these rows are slot-reference evidence, not a compatibility cache.
+Recovery fails unless every verified registry slot has a unique dominant candidate-type owner and the preserved current-client anchors match.
 
 ### `publish-7.1-registry-xrefs.yml`
 
 Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract. Publication consumes `registry-slot-xrefs.csv`, verified constructor slots, and evidence-gated known opcodes.
 
 The general artifact publisher requires this canonical registry to already exist and pass its schema/bijection gate.
+
+All maintained exact-sample workflows use same-ref stale-run cancellation when a newer iteration supersedes an older one.
 
 ## 3. Research workflows
 
@@ -65,14 +75,13 @@ Research workflows are opt-in or narrowly triggered. They orchestrate reusable t
 Current retained examples include:
 
 - `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
-- `refresh-7.1-fast.yml` for focused current-client refresh work;
 - `publish-7.1-candidate-graph.yml` for the maintained GetCmdId structural graph;
 - `locate-7.1-game-packet-framing.yml` and `trace-7.1-game-packet-framing-edges.yml` for generic packet-framing provenance;
 - `probe-7.1-network-symbols.yml`, `trace-7.1-protocol-dispatch-root.yml`, and `search-7.1-protobuf-semantic-strings.yml` for reusable protocol/network investigation.
 
 `disassemble-7.1-rva.yml` and `inspect-7.0-reference-dump.yml` are retained as generic inspection/reference entry points rather than packet-specific case workflows.
 
-The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-graph recovery chain was also retired after canonical registry identity reached a strict 4,896-row bijection. Git history preserves those experiments.
+The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-convergence chain and the duplicate fast-refresh registry workflow were also retired after their maintained responsibilities were assigned to explicit exact-sample workflows.
 
 Research workflow output is never silently copied by canonical publication. Each retained workflow owns explicit inputs, outputs and an evidence gate.
 
@@ -92,7 +101,7 @@ Heavy research workflows that download the client or perform long executable sca
 Before adding a new workflow:
 
 1. implement/test reusable logic in `genshinre/` or `tools/`;
-2. use the canonical generation workflow only for canonical artifacts;
+2. use maintained exact-sample workflows only for the artifacts they explicitly own;
 3. add a narrowly triggered research workflow only when the investigation genuinely needs a distinct environment or sequence;
 4. keep exact sample hashes and provenance explicit;
 5. avoid full-client work on unrelated pushes;

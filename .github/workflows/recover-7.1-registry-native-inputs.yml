@@ -1,20 +1,25 @@
-name: Refresh 7.1 CmdId and registry slots
+name: Recover 7.1 registry native inputs
 
 on:
+  workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/refresh-7.1-fast.yml'
+      - '.github/workflows/recover-7.1-registry-native-inputs.yml'
       - 'scripts/fetch-7.1-samples.sh'
-      - 'genshinre/getcmdid.py'
+      - 'genshinre/nativeprofile.py'
       - 'genshinre/registryslots.py'
       - 'genshinre/registryarrays.py'
-  workflow_dispatch:
+      - 'versions/7.1.0-global/windows-x64/proto/known-opcodes.csv'
+
+concurrency:
+  group: recover-7.1-registry-native-inputs-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  refresh:
+  recover:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -32,17 +37,7 @@ jobs:
       - name: Fetch pinned global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output /tmp/gi71 --python python
 
-      - name: Refresh GetCmdId candidates with 16-bit AX stubs
-        run: |
-          OUT=versions/7.1.0-global/windows-x64/registry
-          python -m genshinre scan-constant-cmdids \
-            /tmp/gi71/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            "$OUT/getcmdid-candidates.csv" \
-            --summary "$OUT/getcmdid-candidates.summary.json"
-          cat "$OUT/getcmdid-candidates.summary.json"
-
-      - name: Recover indexed registry type slots
+      - name: Recover exact indexed registry type slots
         run: |
           OUT=versions/7.1.0-global/windows-x64/registry
           python -m genshinre.registryslots \
@@ -53,35 +48,28 @@ jobs:
 
       - name: Recover exact native CmdId and direction arrays
         run: |
-          OUT=versions/7.1.0-global/windows-x64/registry
+          ROOT=versions/7.1.0-global/windows-x64
+          OUT="$ROOT/registry"
           python -m genshinre.registryarrays \
             /tmp/gi71/GenshinImpact.exe \
             "$OUT/registry-type-slots.csv" \
-            versions/7.1.0-global/windows-x64/proto/known-opcodes.csv \
+            "$ROOT/proto/known-opcodes.csv" \
             "$OUT/registry-native-arrays.csv" \
             --summary "$OUT/registry-native-arrays.summary.json"
           cat "$OUT/registry-native-arrays.summary.json"
-          echo '--- 9369 ---'
-          grep ',9369,' "$OUT/registry-native-arrays.csv"
-          echo '--- 22899 ---'
-          grep ',22899,' "$OUT/registry-native-arrays.csv"
-          echo '--- 26105 ---'
-          grep ',26105,' "$OUT/registry-native-arrays.csv"
 
-      - name: Commit refreshed artifacts
+      - name: Commit recovered native registry inputs
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv \
-                  versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.summary.json \
-                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
+          git add versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
                   versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json \
                   versions/7.1.0-global/windows-x64/registry/registry-native-arrays.csv \
                   versions/7.1.0-global/windows-x64/registry/registry-native-arrays.summary.json
           if git diff --cached --quiet; then
-            echo 'No artifact changes.'
+            echo 'No native registry input changes.'
             exit 0
           fi
-          git commit -m 'data: publish native 7.1 registry arrays'
+          git commit -m 'data: refresh native 7.1 registry inputs'
           git pull --rebase origin main
           git push origin HEAD:main
