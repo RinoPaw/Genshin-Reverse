@@ -72,10 +72,9 @@ Current retained workflows are:
 
 - `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
 - `publish-7.1-candidate-graph.yml` for the maintained GetCmdId structural graph;
-- `locate-7.1-game-packet-framing.yml` and `trace-7.1-game-packet-framing-edges.yml` for generic packet-framing provenance;
 - `disassemble-7.1-rva.yml` as the generic exact-sample RVA inspection entry point.
 
-The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-convergence chain was also retired after canonical registry identity reached a strict 4,896-row bijection.
+The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The packet-framing locator/call-edge Actions were also retired after the exact 7.1 plaintext boundaries, caller evidence and maintained runtime capture path were recorded under `versions/7.1.0-global/windows-x64/analyses/unlock-trans-point/`; the reusable locator and generic call-edge tracer remain available under `tools/`. The pre-closure metadata-usage/type candidate-convergence chain was likewise retired after canonical registry identity reached a strict 4,896-row bijection.
 
 A proposed contiguous `ushort[4896]` CmdId plus binary direction-array recovery was also retired. Two exact-sample workflow runs found no CmdId blob satisfying its own uniqueness/nonzero gates, and no such artifact was ever committed. Git history preserves that rejected hypothesis; maintained registry identity continues to use verified constructor slots plus current GetCmdId/slot-xref evidence.
 
