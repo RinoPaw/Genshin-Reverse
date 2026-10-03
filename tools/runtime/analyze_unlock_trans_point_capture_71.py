@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from genshinre.capture import correlate_capture, load_packet_probe_capture
+from genshinre.capture import (
+    PacketEvent as _GenericPacketEvent,
+    correlate_capture,
+    correlate_transaction as _correlate_transaction,
+    decode_head_varints as _decode_head_varints,
+    load_packet_probe_capture,
+    sequence_value as _sequence_value,
+)
 
 
 REQUEST_CMD = 9369
@@ -14,6 +22,56 @@ NOTIFY_CMD = 25567
 SEQUENCE_FIELD = 3
 EXPECTED_S2C_RVA = "0xA01846A"
 EXPECTED_C2S_RVA = "0xA01A0EF"
+
+
+def decode_packet_head_varints(head_hex: str) -> dict[int, list[int]]:
+    """Compatibility name for the maintained generic packet-head decoder."""
+
+    return _decode_head_varints(head_hex)
+
+
+def client_sequence_id(payload: dict[str, Any]) -> int | None:
+    """Return the current-7.1 PacketHead clientSequenceId (field 3)."""
+
+    return _sequence_value(payload, SEQUENCE_FIELD)
+
+
+@dataclass
+class PacketEvent:
+    """Compatibility event shape retained for existing 7.1 research callers."""
+
+    record_index: int
+    packet_index: int
+    timestamp_utc: str | None
+    direction: str
+    cmd_id: int
+    payload: dict[str, Any]
+    client_sequence_id: int | None
+
+    def compact(self) -> dict[str, Any]:
+        return {
+            "record_index": self.record_index,
+            "packet_index": self.packet_index,
+            "timestamp_utc": self.timestamp_utc,
+            "direction": self.direction,
+            "cmd_id": self.cmd_id,
+            "client_sequence_id": self.client_sequence_id,
+            "head_size": self.payload.get("head_size"),
+            "body_size": self.payload.get("body_size"),
+            "frame_size": self.payload.get("frame_size"),
+        }
+
+
+def _to_generic(packet: PacketEvent) -> _GenericPacketEvent:
+    return _GenericPacketEvent(
+        record_index=packet.record_index,
+        packet_index=packet.packet_index,
+        timestamp_utc=packet.timestamp_utc,
+        direction=packet.direction,
+        cmd_id=packet.cmd_id,
+        payload=packet.payload,
+        sequence_value=packet.client_sequence_id,
+    )
 
 
 def validate_probe(ready: list[dict[str, Any]]) -> dict[str, Any]:
@@ -54,6 +112,24 @@ def _compat_transaction(transaction: dict[str, Any]) -> dict[str, Any]:
         if row["direction"] == "S2C" and row["cmd_id"] == NOTIFY_CMD
     ]
     return result
+
+
+def analyze_transaction(
+    packets: list[PacketEvent],
+    request_index: int,
+    after_events: int,
+) -> dict[str, Any]:
+    """Compatibility wrapper around the generic request/response correlator."""
+
+    transaction = _correlate_transaction(
+        [_to_generic(packet) for packet in packets],
+        request_index,
+        request_cmd=REQUEST_CMD,
+        candidate_cmds=CANDIDATE_CMDS,
+        sequence_field=SEQUENCE_FIELD,
+        after_events=after_events,
+    )
+    return _compat_transaction(transaction)
 
 
 def main() -> None:
