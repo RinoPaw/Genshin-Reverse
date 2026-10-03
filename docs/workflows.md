@@ -9,7 +9,7 @@ scripts/fetch-7.1-samples.sh
 scripts/fetch-7.1-samples.ps1
 ```
 
-Maintained canonical workflows call those entry points. Packet-specific research workflows may keep their own pinned experiment inputs when required by an active investigation.
+Maintained canonical workflows call those entry points. Active research workflows may keep their own pinned experiment inputs when a distinct environment or sequence is still useful.
 
 ## 1. Fast repository CI
 
@@ -54,19 +54,22 @@ The general artifact publisher requires this canonical registry to already exist
 
 ## 3. Research workflows
 
-All other workflows that inspect, compare, diagnose, map, recover, resolve, refresh, or publish investigation-specific graphs are research workflows unless explicitly promoted into the canonical section above.
+Research workflows are opt-in or narrowly triggered. They orchestrate reusable tools around a live investigation; they are not the implementation of a reverse-engineering method.
 
-Examples include:
+Current retained examples include:
 
-- `refresh-7.1-fast.yml`;
-- `publish-7.1-candidate-graph.yml`;
-- `recover-7.1-type-cache-xrefs.yml`;
-- `recover-7.1-metadata-usage-types.yml`;
-- the 7.0/7.1 UnlockTransPoint comparison/inspection chain;
-- scene-handler comparison work;
-- targeted usage/initializer diagnostics.
+- `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
+- `refresh-7.1-fast.yml` for focused current-client refresh work;
+- `publish-7.1-candidate-graph.yml` for explicit research graph publication;
+- `recover-7.1-type-cache-xrefs.yml` and `recover-7.1-metadata-usage-types.yml` for reusable recovery layers;
+- `locate-7.1-game-packet-framing.yml` and `trace-7.1-game-packet-framing-edges.yml` for generic packet-framing provenance;
+- `probe-7.1-network-symbols.yml`, `trace-7.1-protocol-dispatch-root.yml`, and `search-7.1-protobuf-semantic-strings.yml` for reusable protocol/network investigation.
 
-These workflows may produce useful evidence, but their output is not silently copied by canonical publication. Each research workflow owns its explicit inputs, output paths, and evidence gate.
+`disassemble-7.1-rva.yml` and `inspect-7.0-reference-dump.yml` are retained as generic inspection/reference entry points rather than packet-specific case workflows.
+
+The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. Their historical runs remain available through Git/Actions history, while maintained conclusions live under `versions/7.1.0-global/windows-x64/analyses/` and reusable algorithms live in `genshinre/` or retained `tools/` commands.
+
+Research workflow output is never silently copied by canonical publication. Each retained workflow owns explicit inputs, outputs and an evidence gate.
 
 Maintainers should retire a research workflow when:
 
