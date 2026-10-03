@@ -26,7 +26,7 @@ jobs:
       - name: Inspect owner metadata
         run: |
           genshinre query-methods versions/7.1.0-global/windows-x64/metadata/methods.csv --type JKFCCMCAMGA > owner-methods.json
-          genshinre query-fields versions/7.1.0-global/windows-x64/metadata/fields.csv --type JKFCCMCAMGA > owner-fields.json || true
+          genshinre query-fields versions/7.1.0-global/windows-x64/metadata/fields.csv --type JKFCCMCAMGA > owner-fields.json
       - name: Fetch pinned exact 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
       - name: Disassemble sender overloads and scan focused callers
