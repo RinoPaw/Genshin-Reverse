@@ -7,7 +7,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-EXPECTED_EXE_SHA256 = "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+from genshinre.nativeprofile import PROFILE_71
 
 
 def utc_now() -> str:
@@ -20,6 +20,10 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _int_auto(text: str) -> int:
+    return int(text, 0)
 
 
 def main() -> None:
@@ -45,18 +49,30 @@ def main() -> None:
         type=Path,
         default=Path(__file__).with_name("capture_game_packets_71.js"),
     )
+    parser.add_argument(
+        "--watch-cmd",
+        action="append",
+        type=_int_auto,
+        default=[],
+        dest="watch_cmds",
+        help=(
+            "CmdId whose complete plaintext frame should be preserved; repeatable. "
+            "All packet headers are emitted regardless of this filter."
+        ),
+    )
     args = parser.parse_args()
 
+    profile = PROFILE_71
     if not args.exe.is_file():
         raise SystemExit(
             f"executable does not exist: {args.exe}\n"
             "run from the game directory or pass --exe <path-to-GenshinImpact.exe>"
         )
     exe_sha256 = sha256_file(args.exe)
-    if exe_sha256.lower() != EXPECTED_EXE_SHA256:
+    if exe_sha256.lower() != profile.exe_sha256:
         raise SystemExit(
             "refusing to attach with build-specific RVAs: executable SHA-256 mismatch\n"
-            f"expected: {EXPECTED_EXE_SHA256}\n"
+            f"expected: {profile.exe_sha256}\n"
             f"actual:   {exe_sha256}\n"
             f"file:     {args.exe}"
         )
@@ -80,12 +96,14 @@ def main() -> None:
     record(
         "capture_session",
         {
+            "profile": profile.identity,
             "process": args.process,
             "exe": str(args.exe.resolve()),
             "exe_sha256": exe_sha256,
-            "expected_exe_sha256": EXPECTED_EXE_SHA256,
+            "expected_exe_sha256": profile.exe_sha256,
             "build_verified": True,
             "script": str(args.script.resolve()),
+            "watched_cmd_ids": sorted(set(args.watch_cmds)),
         },
     )
 
@@ -122,10 +140,18 @@ def main() -> None:
     script = session.create_script(source)
     script.on("message", on_message)
     script.load()
+    configured_watch = sorted(set(int(value) for value in script.exports_sync.configure(args.watch_cmds)))
+    if configured_watch != sorted(set(args.watch_cmds)):
+        raise RuntimeError(
+            "Frida capture watch configuration mismatch: "
+            f"requested {sorted(set(args.watch_cmds))}, configured {configured_watch}"
+        )
+    record("capture_config", {"watched_cmd_ids": configured_watch})
 
-    print(f"verified global 7.1 executable: {exe_sha256}")
+    print(f"verified {profile.identity} executable: {exe_sha256}")
     print(f"capturing {args.process} -> {args.output}")
-    print("trigger one genuine teleport-point unlock; press Enter when the narrow window is captured")
+    print("full frame bytes retained for CmdIds:", configured_watch or "none")
+    print("trigger the target interaction; press Enter when the narrow window is captured")
     try:
         input()
     except (EOFError, KeyboardInterrupt):
