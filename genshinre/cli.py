@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .analysis import research_status
 from .anchors import verify_metadata_anchors
+from .callxref import scan_direct_call_xrefs
 from .fingerprint import fingerprint
 from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_fields, query_methods
@@ -97,6 +98,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("target_rvas", nargs="+", type=_rva)
     p.add_argument("--window", type=int, default=24)
     p.add_argument("--all-sections", action="store_true")
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser("call-xrefs", help="scan exact E8 rel32 call xrefs and optionally resolve caller methods")
+    p.add_argument("exe", type=Path)
+    p.add_argument("target_rvas", nargs="+", type=_rva)
+    p.add_argument("--methods-csv", type=Path)
+    p.add_argument("--max-method-body", type=_rva, default=0x10000)
+    p.add_argument("--window", type=int, default=24)
     p.add_argument("--output", type=Path)
 
     p = sub.add_parser(
@@ -284,6 +293,17 @@ def main() -> None:
             args.target_rvas,
             window=args.window,
             executable_sections_only=not args.all_sections,
+        )
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "call-xrefs":
+        result = scan_direct_call_xrefs(
+            args.exe,
+            args.target_rvas,
+            methods_csv=args.methods_csv,
+            max_method_body=args.max_method_body,
+            window=args.window,
         )
         if args.output:
             write_json(result, args.output)
