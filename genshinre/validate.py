@@ -12,6 +12,7 @@ from .cmdobservations import (
 )
 from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
 from .registryxrefpublish import _validated_known_opcodes
+from .scenehandlerartifact import validate_scene_handler_dispatch
 from .xrefartifacts import XREF_TABLE_CONTRACTS, validate_xref_table
 
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
@@ -552,6 +553,8 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
     if analyses_path.exists():
         for evidence_path in sorted(analyses_path.glob("*/evidence.json")):
             _validate_analysis_evidence(evidence_path, errors)
+
+    _extend_unique(errors, validate_scene_handler_dispatch(path))
 
     _validate_generated_artifacts(
         path,

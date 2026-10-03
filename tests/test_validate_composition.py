@@ -51,6 +51,22 @@ class ValidatorCompositionTests(unittest.TestCase):
             errors, _ = validate_version(root, allow_partial=True)
             self.assertTrue(any("bad sender_rva BAD" in error for error in errors))
 
+    def test_scene_handler_artifact_contract_runs_through_validator(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            analysis = root / "analyses" / "scene-handler-dispatch"
+            analysis.mkdir(parents=True)
+            (analysis / "evidence.json").write_text("{}\n", encoding="utf-8")
+
+            errors, _ = validate_version(root, allow_partial=True)
+            self.assertTrue(
+                any(
+                    "scene-handler-dispatch: missing analyses/scene-handler-dispatch/scene-handler-slots.csv"
+                    in error
+                    for error in errors
+                )
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
