@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -26,6 +27,16 @@ def _int_matches(value: object, expected: int | None) -> bool:
         return int(text, 0) == expected
     except ValueError:
         return False
+
+
+def _type_token_matches(value: object, type_name: str) -> bool:
+    text = str(value or "")
+    if not text:
+        return False
+    if text.casefold() == type_name.casefold():
+        return True
+    pattern = rf"(?<![A-Za-z0-9_]){re.escape(type_name)}(?![A-Za-z0-9_])"
+    return re.search(pattern, text, flags=re.IGNORECASE) is not None
 
 
 def load_methods(methods_csv: Path) -> list[dict[str, object]]:
@@ -110,6 +121,53 @@ def query_methods(
 
             row: dict[str, object] = dict(raw)
             row["parameter_types"] = params
+            result.append(row)
+    return result
+
+
+def query_method_references(
+    methods_csv: Path,
+    referenced_type: str,
+    *,
+    external_only: bool = False,
+) -> list[dict[str, object]]:
+    """Stream methods whose decoded signature references an exact metadata type.
+
+    Parameter types use exact case-insensitive equality. Return types also allow
+    a delimited occurrence so generic/rendered signatures can retain the target
+    type without permitting ordinary identifier-substring false positives.
+    """
+
+    referenced_type = referenced_type.strip()
+    if not referenced_type:
+        raise ValueError("referenced_type must not be empty")
+
+    result: list[dict[str, object]] = []
+    with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        for raw in csv.DictReader(f):
+            declaring_type = str(raw.get("type_name", "")).strip()
+            is_self = declaring_type.casefold() == referenced_type.casefold()
+            if external_only and is_self:
+                continue
+
+            params = _parse_params(raw.get("parameter_types", ""))
+            parameter_positions = [
+                index
+                for index, item in enumerate(params)
+                if item.casefold() == referenced_type.casefold()
+            ]
+            return_type = str(raw.get("return_type", ""))
+            match_return = _type_token_matches(return_type, referenced_type)
+            if not parameter_positions and not match_return:
+                continue
+
+            row: dict[str, object] = dict(raw)
+            row["parameter_types"] = params
+            row["referenced_type"] = referenced_type
+            row["self_type"] = is_self
+            row["match_parameter"] = bool(parameter_positions)
+            row["parameter_positions"] = parameter_positions
+            row["match_return"] = match_return
             result.append(row)
     return result
 
