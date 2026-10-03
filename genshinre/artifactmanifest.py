@@ -4,7 +4,8 @@ import json
 import re
 from pathlib import Path, PurePosixPath
 
-from .typearray import ENTRY_SIZE, EXPECTED_RUNTIME_TYPE_COUNT
+from .nativeprofile import PROFILE_71
+from .typearray import ENTRY_SIZE
 
 MANIFEST_VERSION = 4
 EXPECTED_SOURCE = "genshinre.artifactpublish"
@@ -189,16 +190,17 @@ def _validate_runtime_type_provenance(
     sample_hashes: dict[str, str] | None,
     errors: list[str],
 ) -> None:
+    expected_runtime_type_count = PROFILE_71.runtime_type_count
     count = validation.get("runtime_type_count")
     if isinstance(count, bool) or not isinstance(count, int):
         errors.append("generated-artifacts.json: validation.runtime_type_count must be an integer")
         manifest_count: int | None = None
     else:
         manifest_count = count
-        if count != EXPECTED_RUNTIME_TYPE_COUNT:
+        if count != expected_runtime_type_count:
             errors.append(
                 "generated-artifacts.json: validation.runtime_type_count must be "
-                f"{EXPECTED_RUNTIME_TYPE_COUNT}"
+                f"{expected_runtime_type_count}"
             )
 
     manifest_boundary = _parse_rva(
@@ -245,10 +247,10 @@ def _validate_runtime_type_provenance(
         summary_count_int: int | None = None
     else:
         summary_count_int = summary_count
-        if summary_count != EXPECTED_RUNTIME_TYPE_COUNT:
+        if summary_count != expected_runtime_type_count:
             errors.append(
                 "generated-artifacts.json: runtime type summary count must be "
-                f"{EXPECTED_RUNTIME_TYPE_COUNT}"
+                f"{expected_runtime_type_count}"
             )
         if manifest_count is not None and summary_count != manifest_count:
             errors.append(
