@@ -6,10 +6,18 @@
     "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
   },
   "provenance": {
-    "workflow_run_id": 37095178757,
-    "artifact_id": 11264255696,
-    "artifact_name": "cmdid-186-protobuf-probe",
-    "artifact_zip_sha256": "f5c89aae9e08d5f52fb119567053bf2401d6857b9b2d57570f5237fc6d367fc0"
+    "structure_probe": {
+      "workflow_run_id": 37095178757,
+      "artifact_id": 11264255696,
+      "artifact_name": "cmdid-186-protobuf-probe",
+      "artifact_zip_sha256": "f5c89aae9e08d5f52fb119567053bf2401d6857b9b2d57570f5237fc6d367fc0"
+    },
+    "uint32_control": {
+      "workflow_run_id": 37096086331,
+      "artifact_id": 11264272188,
+      "artifact_name": "repeated-uint32-fieldcodec-control",
+      "artifact_zip_sha256": "15338e0d5d2ae3fc58ef1161b35966352d7b114872b1fda877f8e22bb0523f16"
+    }
   },
   "message": {
     "cmd_id": 186,
@@ -20,7 +28,10 @@
     "field_tag": "0x72",
     "field_number": 14,
     "wire_type": 2,
-    "field_type_indexes": [476942, 476943]
+    "field_type_indexes": [476942, 476943],
+    "element_type": "uint32",
+    "field_shape": "repeated uint32",
+    "observed_values": [5072]
   },
   "genericinst_reuse": {
     "types_using_either_index": 1042,
@@ -33,20 +44,8 @@
       "contains_both_indexes": true
     },
     "runtime_entries": [
-      {
-        "type_index": 476942,
-        "entry_rva": "0x3565B00",
-        "entry_hex": "38760000000000003100150000000000",
-        "kind": "0x15",
-        "data_u64": "0x7638"
-      },
-      {
-        "type_index": 476943,
-        "entry_rva": "0x3565B10",
-        "entry_hex": "3f760000000000002100150000000000",
-        "kind": "0x15",
-        "data_u64": "0x763F"
-      }
+      {"type_index":476942,"entry_rva":"0x3565B00","entry_hex":"38760000000000003100150000000000","kind":"0x15","data_u64":"0x7638"},
+      {"type_index":476943,"entry_rva":"0x3565B10","entry_hex":"3f760000000000002100150000000000","kind":"0x15","data_u64":"0x763F"}
     ],
     "note": "The kind-0x15 data values are small transformed/index-like values, not standard in-image generic-class pointers."
   },
@@ -57,49 +56,38 @@
     "method_name": "OLACMCNHBHD",
     "rva": "0xAABBD80",
     "parameter_types": ["uint32"],
-    "exact_scalar_factory_role": "UNRESOLVED"
+    "exact_scalar_factory_role": "FieldCodec<uint32> factory for packed repeated uint32 fields",
+    "control_evidence": "uint32-codec-control.json"
   },
   "method_evidence": [
     {
-      "role": "cctor",
-      "rva": "0x9ED1F90",
-      "facts": [
-        "0x9ED1F94 loads ecx=0x72",
-        "0x9ED1F99 calls 0xAABBD80",
-        "0x9ED1FA5 stores the returned object at class static offset 0x30320"
-      ]
+      "role":"cctor","rva":"0x9ED1F90",
+      "facts":["0x9ED1F94 loads ecx=0x72","0x9ED1F99 calls 0xAABBD80","0x9ED1FA5 stores the returned object at class static offset 0x30320"]
     },
     {
-      "role": "CopyFrom",
-      "rva": "0x9ED1E80",
-      "facts": [
-        "reads this collection at object offset 0x18",
-        "reads source collection at object offset 0x18",
-        "tail-jumps to helper 0x182C4710"
-      ]
+      "role":"CopyFrom","rva":"0x9ED1E80",
+      "facts":["reads this collection at object offset 0x18","reads source collection at object offset 0x18","tail-jumps to helper 0x182C4710"]
     },
     {
-      "role": "size-like",
-      "rva": "0x9ED1EF0",
-      "facts": [
-        "reads collection at object offset 0x18",
-        "loads static codec at class offset 0x30320",
-        "tail-jumps to helper 0x182C3AA0"
-      ]
+      "role":"size-like","rva":"0x9ED1EF0",
+      "facts":["reads collection at object offset 0x18","loads static codec at class offset 0x30320","tail-jumps to helper 0x182C3AA0"]
     },
     {
-      "role": "parser",
-      "rva": "0x9ED2100",
-      "facts": [
-        "reads collection at object offset 0x18",
-        "loads static codec at class offset 0x30320",
-        "passes protobuf input object",
-        "tail-jumps to helper 0x182C3E20"
-      ]
+      "role":"parser","rva":"0x9ED2100",
+      "facts":["reads collection at object offset 0x18","loads static codec at class offset 0x30320","passes protobuf input object","tail-jumps to helper 0x182C3E20"]
     }
   ],
+  "control_evidence": {
+    "semantic_name": "PlayerEnterSceneNotify",
+    "type_name": "DGGODBOJHNI",
+    "field": "repeated uint32 scene_tag_id_list = 5",
+    "field_tag": "0x2A",
+    "cctor_rva": "0xF60AD20",
+    "factory_rva": "0xAABBD80",
+    "statement": "The exact 7.1 client initializes the confirmed repeated uint32 field 5 with the same factory used by NLOMEGMJDGJ field 14."
+  },
   "conclusion": {
     "status": "CONFIRMED",
-    "statement": "Exact 7.1 client code implements field 14 as a generated repeated-field structure using one instance collection at offset 0x18 and one static field codec initialized with tag 0x72. The exact scalar FieldCodec factory overload remains unresolved."
+    "statement": "Exact 7.1 client code implements field 14 as packed repeated uint32 using the collection at object offset 0x18 and FieldCodec<uint32> factory 0xAABBD80. Payload 7202d027 therefore carries repeated uint32 value [5072]."
   }
 }
