@@ -6,6 +6,14 @@ from genshinre.cli import build_parser
 
 
 class CliParserTests(unittest.TestCase):
+    def test_query_methods_parses_exact_rva(self) -> None:
+        args = build_parser().parse_args(
+            ["query-methods", "metadata/methods.csv", "--rva", "0xAABBD80"]
+        )
+
+        self.assertEqual("query-methods", args.command)
+        self.assertEqual(0xAABBD80, args.rva)
+
     def test_pointer_xrefs_parses_hex_rvas_and_defaults(self) -> None:
         args = build_parser().parse_args(
             ["pointer-xrefs", "GenshinImpact.exe", "0x1000", "0x2000"]
