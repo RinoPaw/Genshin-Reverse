@@ -14,6 +14,31 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual("query-methods", args.command)
         self.assertEqual(0xAABBD80, args.rva)
 
+    def test_call_xrefs_parses_targets_and_method_join(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "call-xrefs",
+                "GenshinImpact.exe",
+                "0x9ED1F40",
+                "0x9ED2100",
+                "--methods-csv",
+                "metadata/methods.csv",
+                "--max-method-body",
+                "0x8000",
+                "--window",
+                "32",
+                "--output",
+                "calls.json",
+            ]
+        )
+
+        self.assertEqual("call-xrefs", args.command)
+        self.assertEqual([0x9ED1F40, 0x9ED2100], args.target_rvas)
+        self.assertEqual("metadata/methods.csv", str(args.methods_csv))
+        self.assertEqual(0x8000, args.max_method_body)
+        self.assertEqual(32, args.window)
+        self.assertEqual("calls.json", str(args.output))
+
     def test_pointer_xrefs_parses_hex_rvas_and_defaults(self) -> None:
         args = build_parser().parse_args(
             ["pointer-xrefs", "GenshinImpact.exe", "0x1000", "0x2000"]
