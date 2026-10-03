@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -241,6 +242,52 @@ def correlate_capture(
     ]
 
 
+def summarize_correlations(transactions: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize whether multiple observed transactions support one stable mapping."""
+
+    verdict_counts = Counter(str(item.get("verdict") or "unknown") for item in transactions)
+    promotable_ids = [
+        int(item["mapped_cmd_id"])
+        for item in transactions
+        if item.get("verdict") == "promotable" and item.get("mapped_cmd_id") is not None
+    ]
+    distinct_promotable = sorted(set(promotable_ids))
+
+    if not transactions:
+        verdict = "no-request"
+        mapped_cmd_id = None
+        reason = "capture contains no matching request transactions"
+    elif len(distinct_promotable) > 1:
+        verdict = "contradictory"
+        mapped_cmd_id = None
+        reason = "different transactions promote different candidate CmdIds"
+    elif len(promotable_ids) == len(transactions) and len(distinct_promotable) == 1:
+        verdict = "promotable-consistent"
+        mapped_cmd_id = distinct_promotable[0]
+        reason = "every observed request transaction promotes the same candidate CmdId"
+    elif len(distinct_promotable) == 1:
+        verdict = "partial-consistent"
+        mapped_cmd_id = None
+        reason = (
+            "at least one transaction promotes a candidate consistently, but other request "
+            "transactions remain non-promotable"
+        )
+    else:
+        verdict = "no-promotable-transaction"
+        mapped_cmd_id = None
+        reason = "no request transaction satisfies the promotion rule"
+
+    return {
+        "verdict": verdict,
+        "mapped_cmd_id": mapped_cmd_id,
+        "transaction_count": len(transactions),
+        "promotable_transaction_count": len(promotable_ids),
+        "promotable_cmd_ids": distinct_promotable,
+        "verdict_counts": dict(sorted(verdict_counts.items())),
+        "reason": reason,
+    }
+
+
 def analyze_capture_file(
     path: Path,
     *,
@@ -283,6 +330,7 @@ def analyze_capture_file(
         "request_direction": request_direction,
         "response_direction": response_direction,
         "after_events": after_events,
+        "summary": summarize_correlations(transactions),
         "transactions": transactions,
     }
 
