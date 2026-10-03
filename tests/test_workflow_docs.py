@@ -19,6 +19,17 @@ class WorkflowDocumentationTests(unittest.TestCase):
         missing = [name for name in names if not (WORKFLOWS / name).is_file()]
         self.assertEqual([], missing)
 
+    def test_push_triggered_exact_sample_workflows_cancel_stale_runs(self) -> None:
+        offenders: list[str] = []
+        for path in sorted(WORKFLOWS.glob("*.yml")):
+            text = path.read_text(encoding="utf-8")
+            uses_exact_sample = "scripts/fetch-7.1-samples.sh" in text
+            push_triggered = re.search(r"(?m)^\s{2}push:\s*$", text) is not None
+            if uses_exact_sample and push_triggered and "cancel-in-progress: true" not in text:
+                offenders.append(path.name)
+
+        self.assertEqual([], offenders)
+
 
 if __name__ == "__main__":
     unittest.main()
