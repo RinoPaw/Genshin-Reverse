@@ -74,6 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--type-definition-index", type=int)
     p.add_argument("--parameter-type")
     p.add_argument("--method-name")
+    p.add_argument("--rva", type=_rva)
 
     p = sub.add_parser("query-fields", help="stream-query metadata/fields.csv")
     p.add_argument("fields_csv", type=Path)
@@ -222,14 +223,23 @@ def main() -> None:
         index = build_type_methods(args.methods_csv, args.output_json)
         print(json.dumps({"keys": len(index)}, indent=2))
     elif args.command == "query-methods":
-        if not any((args.type, args.parameter_type, args.method_name, args.type_definition_index is not None)):
-            raise SystemExit("provide --type, --type-definition-index, --parameter-type or --method-name")
+        if not any(
+            (
+                args.type,
+                args.parameter_type,
+                args.method_name,
+                args.type_definition_index is not None,
+                args.rva is not None,
+            )
+        ):
+            raise SystemExit("provide --type, --type-definition-index, --parameter-type, --method-name or --rva")
         rows = query_methods(
             args.methods_csv,
             type_name=args.type,
             parameter_type=args.parameter_type,
             method_name=args.method_name,
             type_definition_index=args.type_definition_index,
+            rva=args.rva,
         )
         print(json.dumps(rows, indent=2, ensure_ascii=False))
         if not rows:
