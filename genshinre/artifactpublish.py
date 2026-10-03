@@ -8,13 +8,14 @@ from pathlib import Path
 
 from .artifactmanifest import CANONICAL_ARTIFACTS
 from .metadata import build_type_methods
-from .mhy71 import (
-    EXPECTED_FIELD_COUNT,
-    EXPECTED_METHOD_COUNT,
-    EXPECTED_TYPE_COUNT,
-)
+from .nativeprofile import PROFILE_71
 from .registry import CANONICAL_REGISTRY_COLUMNS, EXPECTED_REGISTRY_ROW_COUNT
-from .typearray import ENTRY_SIZE, EXPECTED_RUNTIME_TYPE_COUNT
+from .typearray import ENTRY_SIZE
+
+EXPECTED_TYPE_COUNT = PROFILE_71.type_definition_count
+EXPECTED_FIELD_COUNT = PROFILE_71.field_count
+EXPECTED_METHOD_COUNT = PROFILE_71.method_count
+EXPECTED_RUNTIME_TYPE_COUNT = PROFILE_71.runtime_type_count
 
 
 REQUIRED_WORK_FILES = (
