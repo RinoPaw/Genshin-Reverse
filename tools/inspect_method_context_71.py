@@ -8,7 +8,9 @@ from pathlib import Path
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
+from genshinre.sampleidentity import require_profile_exe
 
 
 def parse_int(text: str | None) -> int | None:
@@ -24,9 +26,15 @@ def parse_int(text: str | None) -> int | None:
 def load_methods(path: Path) -> list[tuple[int, dict[str, str]]]:
     rows: list[tuple[int, dict[str, str]]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
-        for row in csv.DictReader(f):
-            rva = parse_int(row.get("rva"))
-            if rva is not None and rva > 0:
+        for line_no, row in enumerate(csv.DictReader(f), start=2):
+            text = (row.get("rva") or "").strip()
+            if not text:
+                continue
+            try:
+                rva = int(text, 0)
+            except ValueError as exc:
+                raise ValueError(f"{path}:{line_no}: invalid method RVA {text!r}") from exc
+            if rva > 0:
                 rows.append((rva, row))
     rows.sort(key=lambda item: item[0])
     return rows
@@ -42,6 +50,7 @@ def main() -> None:
     p.add_argument("--max-body", type=lambda x: int(x, 0), default=0x1800)
     args = p.parse_args()
 
+    exe_sha256 = require_profile_exe(args.exe, PROFILE_71)
     methods = load_methods(args.methods_csv)
     starts = [rva for rva, _ in methods]
     md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -69,7 +78,12 @@ def main() -> None:
             "return_type": row.get("return_type", ""),
         }
 
-    report: dict[str, object] = {"focus": {}, "notes": []}
+    report: dict[str, object] = {
+        "profile": PROFILE_71.identity,
+        "exe_sha256": exe_sha256,
+        "focus": {},
+        "notes": [],
+    }
     with PEImage(args.exe) as image:
         for spec in args.focus:
             if ":" not in spec:
@@ -85,6 +99,10 @@ def main() -> None:
             end = starts[idx + 1] if idx + 1 < len(starts) else start + args.max_body
             size = min(max(end - start, 1), args.max_body)
             blob = image.read_rva(start, size)
+            if len(blob) != size:
+                raise ValueError(
+                    f"method body read truncated at 0x{start:X}: expected {size}, got {len(blob)}"
+                )
             insns = []
             for insn in md.disasm(blob, image.image_base + start):
                 irva = insn.address - image.image_base
@@ -140,7 +158,11 @@ def main() -> None:
         print("owner", item.get("owner"))
         for neighbor in item.get("neighbors", []):
             if neighbor["same_declaring_type"]:
-                print(" neighbor", neighbor["relative_index"], neighbor["rva"], neighbor["type_name"], neighbor["method_name"], "pc=", neighbor["parameter_count"])
+                print(
+                    " neighbor", neighbor["relative_index"], neighbor["rva"],
+                    neighbor["type_name"], neighbor["method_name"],
+                    "pc=", neighbor["parameter_count"],
+                )
         for insn in item.get("disasm", []):
             print(insn["rva"], insn["mnemonic"], insn["op_str"])
 
