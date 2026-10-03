@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from genshinre.getcmdidgraph import build_getcmdid_candidate_graph
+from genshinre.getcmdidgraph import build_getcmdid_candidate_graph, resolve_anchor
+from genshinre.nativeprofile import PROFILE_71
 
 
 class GetCmdIdCandidateGraphTests(unittest.TestCase):
@@ -73,6 +74,50 @@ class GetCmdIdCandidateGraphTests(unittest.TestCase):
                     anchor_type_name="HJDNCHODGOL",
                     anchor_rva=0x10587260,
                 )
+
+    def test_profile_resolves_current_getcmdid_anchor(self) -> None:
+        resolved = resolve_anchor(
+            profile_identity=PROFILE_71.identity,
+            anchor_cmd_id=None,
+            anchor_type_name=None,
+            anchor_rva=None,
+        )
+        self.assertEqual(
+            (
+                PROFILE_71.getcmdid_anchor.cmd_id,
+                PROFILE_71.getcmdid_anchor.type_name,
+                PROFILE_71.getcmdid_anchor.rva,
+            ),
+            resolved,
+        )
+
+    def test_profile_rejects_duplicate_explicit_anchor(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cannot be combined"):
+            resolve_anchor(
+                profile_identity=PROFILE_71.identity,
+                anchor_cmd_id=PROFILE_71.getcmdid_anchor.cmd_id,
+                anchor_type_name=None,
+                anchor_rva=None,
+            )
+
+    def test_explicit_anchor_requires_complete_triplet(self) -> None:
+        with self.assertRaisesRegex(ValueError, "provide --profile or all"):
+            resolve_anchor(
+                profile_identity=None,
+                anchor_cmd_id=26105,
+                anchor_type_name="HJDNCHODGOL",
+                anchor_rva=None,
+            )
+
+    def test_maintained_workflow_uses_native_profile_anchor(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/publish-7.1-candidate-graph.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"--profile {PROFILE_71.identity}", workflow)
+        self.assertNotIn("--anchor-cmd-id", workflow)
+        self.assertNotIn("--anchor-type", workflow)
+        self.assertNotIn("--anchor-rva", workflow)
 
 
 if __name__ == "__main__":
