@@ -1,0 +1,59 @@
+{
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "current_client_control": {
+    "semantic_name": "PlayerEnterSceneNotify",
+    "cmd_id": 9582,
+    "type_name": "DGGODBOJHNI",
+    "type_definition_index": 86281,
+    "cctor_rva": "0xF60AD20",
+    "repeated_uint32_field": {
+      "semantic_field_name": "scene_tag_id_list",
+      "field_number": 5,
+      "protobuf_tag": "0x2A"
+    },
+    "cctor_instructions": [
+      {"rva": "0xF60AD24", "mnemonic": "mov", "op_str": "ecx, 0x2a"},
+      {"rva": "0xF60AD29", "mnemonic": "call", "op_str": "0x14aabbd80"},
+      {"rva": "0xF60AD35", "mnemonic": "mov", "op_str": "qword ptr [rcx + 0x15640], rax"}
+    ]
+  },
+  "external_exact_version_schema_control": {
+    "repository": "capyb2222/LunaGC_7.1.0",
+    "commit": "811b224db150982be37c0619e1506d980443cb9b",
+    "path": "src/main/proto/PlayerEnterSceneNotify.proto",
+    "statement": "PlayerEnterSceneNotify declares repeated uint32 scene_tag_id_list = 5."
+  },
+  "codec_factory": {
+    "rva": "0xAABBD80",
+    "type_name": "MJKCIJEILLP",
+    "type_definition_index": 84808,
+    "method_index": 700560,
+    "method_name": "OLACMCNHBHD",
+    "parameter_types": ["uint32"],
+    "resolved_role": "FieldCodec<uint32> factory for packed repeated uint32 fields"
+  },
+  "cmdid_186_application": {
+    "type_name": "NLOMEGMJDGJ",
+    "cctor_rva": "0x9ED1F90",
+    "field_number": 14,
+    "protobuf_tag": "0x72",
+    "factory_rva": "0xAABBD80",
+    "wire_payload": "7202d027",
+    "decoded_values": [5072]
+  },
+  "provenance": {
+    "workflow_run_id": 37096086331,
+    "artifact_id": 11264272188,
+    "artifact_name": "repeated-uint32-fieldcodec-control",
+    "artifact_zip_sha256": "15338e0d5d2ae3fc58ef1161b35966352d7b114872b1fda877f8e22bb0523f16"
+  },
+  "conclusion": {
+    "status": "CONFIRMED",
+    "statement": "Exact 7.1 PlayerEnterSceneNotify initializes its known repeated uint32 field 5 (tag 0x2A) with the same factory 0xAABBD80 used by NLOMEGMJDGJ field 14 (tag 0x72). Therefore NLOMEGMJDGJ field 14 is repeated uint32, and payload 7202d027 encodes packed value [5072]."
+  }
+}
