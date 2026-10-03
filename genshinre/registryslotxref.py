@@ -9,6 +9,8 @@ from pathlib import Path
 
 from .pe import PEImage
 
+EXPECTED_REGISTRY_ROWS = 4896
+PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF", "AMBIGUOUS_SLOT_XREF"}
 COLUMNS = (
     "cmd_id",
     "type_name",
@@ -23,7 +25,6 @@ COLUMNS = (
     "status",
     "evidence",
 )
-
 ANCHORS = {
     9369: {"type_name": "DMMJNICDOHM", "registry_index": 2232, "registry_slot_rva": 0x057E6498},
     22899: {"type_name": "ONKOPMILDMF", "registry_index": 3118, "registry_slot_rva": 0x057F6F60},
@@ -45,6 +46,13 @@ def _parse_int(value: object) -> int | None:
         return None
 
 
+def _require_int(row: dict[str, str], key: str, context: str) -> int:
+    value = _parse_int(row.get(key))
+    if value is None:
+        raise ValueError(f"{context} has invalid {key}: {row.get(key)!r}")
+    return value
+
+
 def recover_registry_slot_xrefs_71(
     exe: Path,
     methods_csv: Path,
@@ -61,36 +69,46 @@ def recover_registry_slot_xrefs_71(
     except ImportError as exc:
         raise RuntimeError("registryslotxref requires the capstone Python package") from exc
 
+    if max_method_bytes <= 0:
+        raise ValueError("max_method_bytes must be positive")
+
     method_rows = _rows(methods_csv)
     candidate_rows = [
         row for row in _rows(getcmd_candidates_csv) if str(row.get("method_name", "")) == method_name
     ]
     slot_rows = _rows(registry_type_slots_csv)
 
-    slots: dict[int, int] = {}
-    for row in slot_rows:
-        slot = _parse_int(row.get("type_slot_rva"))
-        index = _parse_int(row.get("index"))
-        if slot is not None and index is not None:
-            if slot in slots and slots[slot] != index:
-                raise ValueError(f"registry slot 0x{slot:X} maps to multiple indices")
-            slots[slot] = index
-    if len(slot_rows) != 4896 or len(slots) != 4896:
+    if len(slot_rows) != EXPECTED_REGISTRY_ROWS:
         raise ValueError(
-            f"expected 4,896 unique verified registry slots, got rows={len(slot_rows)} unique={len(slots)}"
+            f"expected {EXPECTED_REGISTRY_ROWS:,} verified registry slot rows, got {len(slot_rows)}"
         )
+
+    slots: dict[int, int] = {}
+    for line_no, row in enumerate(slot_rows, start=2):
+        context = f"{registry_type_slots_csv}:{line_no}"
+        slot = _require_int(row, "type_slot_rva", context)
+        index = _require_int(row, "index", context)
+        if slot in slots:
+            raise ValueError(f"{context}: duplicate registry slot 0x{slot:X}")
+        slots[slot] = index
+    if len(slots) != EXPECTED_REGISTRY_ROWS:
+        raise ValueError(f"expected {EXPECTED_REGISTRY_ROWS:,} unique verified registry slots")
+    if set(slots.values()) != set(range(EXPECTED_REGISTRY_ROWS)):
+        raise ValueError("verified registry indices do not cover 0..4895 exactly")
 
     methods_by_type: dict[int, list[dict[str, str]]] = defaultdict(list)
     all_method_rvas: set[int] = set()
     for row in method_rows:
-        tdi = _parse_int(row.get("type_definition_index"))
         rva = _parse_int(row.get("rva"))
         if rva is None:
             continue
         all_method_rvas.add(rva)
+        tdi = _parse_int(row.get("type_definition_index"))
         if tdi is not None:
             methods_by_type[tdi].append(row)
     sorted_method_rvas = sorted(all_method_rvas)
+    if not sorted_method_rvas:
+        raise ValueError("methods table contains no native RVAs")
 
     md = Cs(CS_ARCH_X86, CS_MODE_64)
     md.detail = True
@@ -102,36 +120,30 @@ def recover_registry_slot_xrefs_71(
     slot_owner_candidates: dict[int, list[dict[str, object]]] = defaultdict(list)
 
     with PEImage(exe) as image:
-        for candidate in candidate_rows:
-            tdi = _parse_int(candidate.get("type_definition_index"))
-            cmd_id = _parse_int(candidate.get("cmd_id"))
-            if tdi is None or cmd_id is None:
-                continue
+        for candidate_no, candidate in enumerate(candidate_rows, start=1):
+            context = f"GetCmdId candidate {candidate_no}"
+            tdi = _require_int(candidate, "type_definition_index", context)
+            cmd_id = _require_int(candidate, "cmd_id", context)
 
             hit_counts: Counter[int] = Counter()
             hit_methods: dict[int, set[str]] = defaultdict(set)
             for method in methods_by_type.get(tdi, []):
-                rva = _parse_int(method.get("rva"))
-                if rva is None:
-                    continue
+                rva = _require_int(method, "rva", f"method on typeDefinition {tdi}")
                 pos = bisect.bisect_right(sorted_method_rvas, rva)
                 next_rva = sorted_method_rvas[pos] if pos < len(sorted_method_rvas) else rva + max_method_bytes
                 size = min(max(next_rva - rva, 1), max_method_bytes)
                 blob = image.read_rva(rva, size)
                 if not blob:
-                    continue
+                    raise ValueError(f"failed to read method body at RVA 0x{rva:X}")
                 method_label = f"{method.get('method_name', '')}@0x{rva:X}"
-                try:
-                    for insn in md.disasm(blob, rva):
-                        for operand in insn.operands:
-                            if operand.type != X86_OP_MEM or operand.mem.base != X86_REG_RIP:
-                                continue
-                            target = insn.address + insn.size + operand.mem.disp
-                            if target in slots:
-                                hit_counts[target] += 1
-                                hit_methods[target].add(method_label)
-                except Exception:
-                    continue
+                for insn in md.disasm(blob, rva):
+                    for operand in insn.operands:
+                        if operand.type != X86_OP_MEM or operand.mem.base != X86_REG_RIP:
+                            continue
+                        target = insn.address + insn.size + operand.mem.disp
+                        if target in slots:
+                            hit_counts[target] += 1
+                            hit_methods[target].add(method_label)
 
             if not hit_counts:
                 emitted.append(
@@ -167,12 +179,11 @@ def recover_registry_slot_xrefs_71(
                 types_with_unique_registry_xref += 1
             if dominant:
                 types_with_dominant_registry_xref += 1
-
             status = "UNIQUE_SLOT_XREF" if unique else (
                 "DOMINANT_SLOT_XREF" if dominant else "AMBIGUOUS_SLOT_XREF"
             )
+
             for rank, slot in enumerate(ordered):
-                row_status = status if rank == 0 else "SECONDARY_SLOT_XREF"
                 methods = sorted(hit_methods[slot])
                 emitted.append(
                     {
@@ -186,7 +197,7 @@ def recover_registry_slot_xrefs_71(
                         "xref_method_count": str(len(methods)),
                         "xref_methods": "|".join(methods[:20]),
                         "candidate_slot_count": str(len(ordered)),
-                        "status": row_status,
+                        "status": status if rank == 0 else "SECONDARY_SLOT_XREF",
                         "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot",
                     }
                 )
@@ -201,31 +212,18 @@ def recover_registry_slot_xrefs_71(
                     }
                 )
 
-    output_csv.parent.mkdir(parents=True, exist_ok=True)
-    with output_csv.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
-        writer.writeheader()
-        writer.writerows(emitted)
-
     anchor_results: dict[str, object] = {}
     for cmd_id, anchor in ANCHORS.items():
         rows = [row for row in emitted if _parse_int(row.get("cmd_id")) == cmd_id]
         expected_slot = int(anchor["registry_slot_rva"])
-        exact = [row for row in rows if _parse_int(row.get("registry_slot_rva")) == expected_slot]
-        top = next(
-            (
-                row
-                for row in rows
-                if row.get("status")
-                in {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF", "AMBIGUOUS_SLOT_XREF"}
-            ),
-            None,
-        )
+        top = next((row for row in rows if row.get("status") in PRIMARY_STATUSES), None)
         anchor_results[str(cmd_id)] = {
             "type_name": anchor["type_name"],
             "expected_registry_index": anchor["registry_index"],
             "expected_registry_slot_rva": f"0x{expected_slot:X}",
-            "expected_slot_referenced": bool(exact),
+            "expected_slot_referenced": any(
+                _parse_int(row.get("registry_slot_rva")) == expected_slot for row in rows
+            ),
             "top_slot_matches": top is not None
             and _parse_int(top.get("registry_slot_rva")) == expected_slot,
             "top": top,
@@ -235,6 +233,23 @@ def recover_registry_slot_xrefs_71(
     slots_with_single_owner_candidate = sum(
         len(owners) == 1 for owners in slot_owner_candidates.values()
     )
+    all_anchor_top_slots_match = all(
+        bool(item["top_slot_matches"]) for item in anchor_results.values()
+    )
+
+    if types_with_dominant_registry_xref != EXPECTED_REGISTRY_ROWS:
+        raise ValueError(
+            "registry-slot xref recovery did not close every verified slot: "
+            f"dominant_types={types_with_dominant_registry_xref} expected={EXPECTED_REGISTRY_ROWS}"
+        )
+    if slots_with_owner_candidates != EXPECTED_REGISTRY_ROWS:
+        raise ValueError(
+            "registry-slot xref recovery did not cover every verified slot: "
+            f"covered_slots={slots_with_owner_candidates} expected={EXPECTED_REGISTRY_ROWS}"
+        )
+    if not all_anchor_top_slots_match:
+        raise ValueError(f"preserved registry-slot anchors failed: {anchor_results}")
+
     summary: dict[str, object] = {
         "method_name_filter": method_name,
         "candidate_type_count": len(candidate_rows),
@@ -245,16 +260,20 @@ def recover_registry_slot_xrefs_71(
         "slots_with_owner_candidates": slots_with_owner_candidates,
         "slots_with_single_owner_candidate": slots_with_single_owner_candidate,
         "anchors": anchor_results,
-        "all_anchor_top_slots_match": all(
-            bool(item["top_slot_matches"]) for item in anchor_results.values()
-        ),
+        "all_anchor_top_slots_match": all_anchor_top_slots_match,
         "status": "registry-slot-xref-diagnostic",
         "notes": [
             "constructor slots are independently verified; this artifact asks whether methods declared on each GetCmdId candidate type reference those slots",
             "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
-            "canonical registry publication independently requires a strict 4,896-row slot/type/CmdId bijection",
+            "recovery fails unless every one of the 4,896 verified slots has a dominant candidate owner and preserved anchors match",
         ],
     }
+
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    with output_csv.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        writer.writeheader()
+        writer.writerows(emitted)
     if summary_json is None:
         summary_json = output_csv.with_suffix(".summary.json")
     summary_json.write_text(
