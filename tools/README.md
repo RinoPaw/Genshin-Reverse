@@ -1,49 +1,28 @@
-# Tools directory policy
+# Tools
 
-`tools/` contains narrow helpers and investigation-oriented scripts. It is not the primary user-facing command surface of Genshin-Reverse.
+`tools/` contains narrow research helpers that intentionally do not belong on the primary `genshinre` CLI surface.
 
-For reusable repository functionality, prefer this order:
+Reusable repository functionality belongs in `genshinre/`. Maintained multi-step target workflows belong in `scripts/`. Keep a tool here only when its value depends on an exact sample, fixed native boundary, independent decoder, or focused research operation.
 
-1. implement the operation in `genshinre/` with unit tests;
-2. expose it through the `genshinre` CLI when it is generally useful;
-3. use `scripts/` for maintained multi-step orchestration;
-4. use `tools/` only when the operation is intentionally narrow, sample-specific, exploratory, or an external-resource helper that does not belong in the package API.
+Current helpers:
 
-## Maintained infrastructure helper
+- `decode_protocol_handler_parameters_71.py` independently decodes exact-7.1 parameter records and checks known handler controls. It stays separate from the normal decoded metadata path so it remains an independent evidence layer.
+- `disassemble_rva.py` is the small generic exact-sample RVA disassembler used by the opt-in disassembly workflow and focused investigations.
+- `locate_game_packet_framing_71.py` reproduces the exact-client packet-framing boundary used by the maintained runtime capture evidence.
+- `parse_decrypted_game_packet.py` validates and parses already-decrypted `0x4567 ... 0x89AB` game frames without requiring a protobuf schema.
+- `trace_native_call_edges.py` traces focused native direct-call edges with metadata ownership.
+- `runtime/` contains build-bound runtime capture helpers; reusable correlation logic lives in `genshinre.capture` / `genshinre correlate-capture`.
 
-`fetch_sophon_targets.py` reconstructs selected files from an explicitly supplied Sophon manifest/chunk prefix and verifies requested hashes. The pinned 7.1 entry points are `scripts/fetch-7.1-samples.sh` and `.ps1`; maintained workflows should call those wrappers rather than embedding manifest identities in YAML.
+Pinned sample acquisition has one maintained route:
 
-## Research helpers
+```text
+scripts/fetch-7.1-samples.sh
+scripts/fetch-7.1-samples.ps1
+    → genshinre.samplefetch
+```
 
-The remaining trace/decode helpers are research scaffolding for specific native-analysis questions. They may use fixed RVAs, exact type identities, historical samples, or experiment-specific output shapes. The packet-framing locator is retained because it provides the reproducible derivation for the maintained runtime capture boundary. `disassemble_rva.py` remains the narrow generic RVA inspection primitive used by active research workflows.
+Do not add a second fetch wrapper or duplicate package functionality under `tools/`.
 
-Decoded metadata consumer lookup is maintained package functionality now: use `genshinre query-methods --parameter-type ...` for direct parameter searches and `genshinre protocol-query` for joined signature-reference evidence.
+A focused helper should be retired once its durable evidence is committed and its reusable logic is covered by a maintained package/tool entry point. Git history preserves the retired experiment; the working tree keeps only current paths.
 
-`decode_protocol_handler_parameters_71.py` remains intentionally separate because it independently decodes exact-sample parameter records back to runtime type indices and applies known handler controls. That raw-record cross-check is a different evidence layer from querying the already decoded metadata table. It is fail-closed on the native-profile executable and metadata hashes; there is no unknown-sample bypass.
-
-Historical registry-order, TypeDefinition-order, scene-cluster and response-neighborhood comparators were retired after their conclusions and rejection boundaries were preserved in the case-study/analysis records. Git history remains the reproduction source if one of those discarded hypotheses needs to be revisited under a changed premise.
-
-Do not promote a result produced by one of these scripts into canonical protocol data solely because the script completed successfully. Promotion still follows `docs/analysis-contract.md` and the relevant artifact publication gate.
-
-When a research algorithm becomes broadly reusable, move the implementation into `genshinre/`, add tests, and reduce the tool/workflow to thin orchestration or retire it after its evidence is preserved.
-
-## Retired duplicate/general helpers
-
-The following old standalone helpers were removed after their capability moved to the maintained command surface, a more general exact-sample tool, or the native decoder:
-
-- `fingerprint_sample.py` → `genshinre fingerprint` (including sample format detection);
-- `protobuf_wire.py` → `genshinre wire`;
-- `query_registry.py` → `genshinre query-registry`;
-- `decode_method_parameters_71.py` → native `genshinre.mhy71` parameter decoding. Its three preserved handler-parameter checks now live in `versions/7.1.0-global/windows-x64/metadata/anchors.json` and are enforced by the normal metadata-anchor verification path;
-- `find_protocol_parameter_consumers_71.py` and `analyze_protocol_consumers_71.py` → `genshinre query-methods` / `genshinre protocol-query`;
-- `map_owner_protocol_parameters_71.py` → the more general exact-sample `decode_protocol_handler_parameters_71.py` raw-record cross-check;
-- `inspect_parameter_decoder_constants_71.py` → the already recovered and regression-tested 7.1 metadata/parameter decoder contract;
-- `inspect_method_context_71.py` → maintained metadata queries, `disassemble_rva.py`, and `genshinre call-xrefs`;
-- `inspect_protocol_type_shape_71.py` → completed exact-7.1 protobuf-shape investigations whose surviving evidence is stored in the focused analyses; future generally reusable shape recovery belongs in `genshinre/`;
-- `scan_protocol_method_callers_71.py` → `genshinre call-xrefs` plus maintained registry/metadata queries;
-- `scan_owner_rpc_submit_layout_71.py` → the completed UnlockTransPoint RPC-submit investigation; reusable caller inspection is covered by `genshinre call-xrefs`, metadata queries and `disassemble_rva.py`;
-- `trace_protocol_delegate_slots_71.py` → retired after exact-sample evidence proved the targeted `0x4B2Axx` values are ILFix/hotfix per-method storage rather than protocol delegate slots. The correction is preserved in the UnlockTransPoint research log;
-- `probe_registry_direction_flags_71.py` → rejected contiguous direction-array hypothesis; no unique exact-sample artifact satisfied its own evidence gate;
-- packet-specific UnlockTransPoint capture analyzers → `genshinre correlate-capture`.
-
-The moving HoYoPlay and third-party HoyoDL 7.1 fetchers were also retired. Exact 7.1 maintenance uses the pinned Sophon sample path; a future live-version discovery tool should be named and documented as discovery-only rather than presented as an exact-sample fetch path.
+A tool completing successfully is not sufficient evidence for semantic promotion. Promotion still follows `docs/analysis-contract.md` and the focused investigation's evidence gate.
