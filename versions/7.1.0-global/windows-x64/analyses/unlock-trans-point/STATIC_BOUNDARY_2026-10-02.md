@@ -24,17 +24,9 @@ Both remain unresolved. Earlier preference for `36641` came mainly from local me
 
 ## Full decoded-signature reference check
 
-A lightweight exact-table scan was added as `.github/workflows/check-7.1-unlock-rsp-external-refs.yml` and run against the checked-in current `metadata/methods.csv`.
+The original exact-table scan was preserved by workflow run `37004973598` and artifact `unlock-rsp-external-refs-71` (`11224837704`). Its packet-specific workflow has since been retired after the same relationship query was promoted into reusable package tooling: `genshinre.metadata.query_method_references` and the `protocol-query` signature-reference layer.
 
-Successful run:
-
-```text
-run       37004973598
-artifact  unlock-rsp-external-refs-71
-artifact id 11224837704
-```
-
-Results:
+Results from the preserved exact-table scan:
 
 ```text
 NCBEHBOCBJJ / 36641
@@ -58,7 +50,14 @@ DKJCMHENKAI / GetSceneAreaRsp 23366
   external target     KLLNGCPBLMM.GCDHLNLACDK @ 0xF046780
 ```
 
-The controls show the scan is behaving as expected: protocol response/notify types typically expose their scene handler as the only external decoded signature reference. Neither response candidate exposes a second consumer, return-type use, callback, factory, or other semantic edge in the current decoded method table.
+The controls show the relation as expected: these protocol response/notify types expose their scene handler as the only external decoded signature reference. Neither response candidate exposes a second consumer, return-type use, callback, factory, or other semantic edge in the current decoded method table.
+
+For current reproduction, use the canonical evidence query rather than adding another packet-specific Action:
+
+```bash
+genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 36641
+genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 20290
+```
 
 ## Submit call calling-convention check
 
@@ -86,7 +85,7 @@ GKDMGDMHPCF  = 20709  = PlayerQuitDungeonRsp
 OPKHJMGDMAD  = 9878   = DungeonDieOptionRsp
 ```
 
-The last four examples matter because several of these unrelated responses compile to the same small ACK template as the historical `UnlockTransPointRsp`. Exact/native-template equality therefore classifies handler shape only.
+Several unrelated responses compile to the same small ACK template as the historical `UnlockTransPointRsp`. Native-template equality therefore classifies handler shape only.
 
 A useful positive cross-version control was also recovered:
 
@@ -98,7 +97,7 @@ A useful positive cross-version control was also recovered:
 
 The native match is strong, but nearby owner methods do not preserve order globally enough to transfer the old Unlock response position.
 
-## New 🕳️: monotonic scene-owner alignment
+## Rejected path: monotonic scene-owner alignment
 
 A temporary hypothesis used several strong non-template anchors and appeared promising:
 
@@ -109,19 +108,17 @@ A temporary hypothesis used several strong non-template anchors and appeared pro
 7.1 GetSceneAreaRsp     -> 7.0 owner position 250
 ```
 
-Taken literally this would place the historical response after the BFGE anchor and would seem to favor current `20290` over `36641`.
-
-Validation against additional large, distinctive methods disproved the premise. Methods from the same small historical window map to widely separated current owner positions (examples included current positions 13, 67, 111, 185 and 317). The scene controller underwent substantial method reordering between 7.0 and 7.1.
+Validation against additional large, distinctive methods disproved the premise. Methods from the same small historical window map to widely separated current owner positions, including current positions 13, 67, 111, 185 and 317. The scene controller underwent substantial method reordering between 7.0 and 7.1.
 
 Conclusion: cross-version native fingerprints are useful for identifying individual distinctive methods, but owner position is not a monotonic coordinate system. Do not use sequence interpolation to choose the response.
 
-## New 🕳️: local protocol adjacency implies business family
+## Rejected path: local protocol adjacency implies business family
 
-Current methods near the two candidates include scene and dungeon protocol traffic in a short span. For example `GetSceneAreaRsp / 23366` is followed only a few methods later by a type independently named `DungeonEntryInfoRsp / 9782` in the same-version public opcode table.
+Current methods near the two candidates include scene and dungeon protocol traffic in a short span. `GetSceneAreaRsp / 23366` is followed only a few methods later by a type independently named `DungeonEntryInfoRsp / 9782` in the same-version public opcode table.
 
-Conclusion: local scene-owner adjacency is an implementation-layout fact, not a reliable RPC-family grouping. This further weakens the old local-neighborhood preference for `36641`.
+Conclusion: local scene-owner adjacency is an implementation-layout fact and does not reliably group RPC families. This further weakens the old local-neighborhood preference for `36641`.
 
-## New 🕳️: ILFix trampoline mistaken for gameplay callback
+## Rejected path: ILFix trampoline interpreted as gameplay callback
 
 Both candidate ACK handlers begin with an ILFix/hotfix check. If the hotfix flag is enabled, they dereference the runtime hotfix table and branch through their per-method `0x4B2Axx` slot.
 
@@ -137,11 +134,11 @@ There is no success-specific waypoint callback in either native body. The indire
 
 Conclusion: do not search these ACK bodies for a business callback registration edge unless a genuinely new runtime registration structure is identified.
 
-## New 🕳️: forcing either candidate on the private server as a semantic test
+## Rejected path: private-server visible behavior as semantic proof
 
-A private-server experiment that merely sends `36641` or `20290` with `retcode = 0` is weak: both client handlers accept the same shape and their success paths simply return. “The client looked fine” cannot identify which semantic name belongs to the packet.
+A private-server experiment that sends `36641`, sends `20290`, or suppresses the response ACK cannot identify the semantic packet when all three tested flows produce the same visible outcome. Current controls confirmed that this happens once `ScenePointUnlockNotify` is shaped correctly.
 
-A runtime test becomes decisive only when it observes what a known-correct 7.1 server actually sends in response to the real unlock flow, or when another independent semantic source binds one obfuscated type.
+Visible success remains useful integration evidence. It is not a current-server semantic binding for either ACK type.
 
 ## Current static boundary
 
@@ -155,4 +152,4 @@ The current client statically establishes:
 
 It does not currently expose a second decoded signature reference, success callback, generic submit response parameter, stable owner-order relation, or public same-version semantic label that distinguishes the two ACK types.
 
-The next maintained evidence step is therefore `RUNTIME_PROBE.md`: observe the decrypted packet header CmdId in a genuine 7.1 unlock transaction. The companion parser is `tools/parse_decrypted_game_packet.py`.
+The next maintained evidence step is `RUNTIME_PROBE.md`: observe a genuine 7.1 C2S `9369` transaction and require exactly one surviving S2C candidate to share the request `PacketHead` sequence value. The reusable correlation engine is `python -m genshinre.capture`; the case-specific wrapper is `tools/runtime/analyze_unlock_trans_point_capture_71.py`.
