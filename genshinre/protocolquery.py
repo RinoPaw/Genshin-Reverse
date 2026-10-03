@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .metadata import query_fields, query_methods
+from .metadata import query_fields, query_method_references, query_methods
 from .registry import query_registry
 
 _XREF_FILES = {
@@ -149,6 +149,14 @@ def query_protocol(
             if fields_path.is_file() and identity_tdef is not None
             else []
         )
+        signature_references = (
+            query_method_references(methods_path, identity_type)
+            if methods_path.is_file() and identity_type
+            else []
+        )
+        external_signature_references = [
+            row for row in signature_references if not bool(row.get("self_type"))
+        ]
 
         xrefs = {
             label: _matching_csv_rows(version_dir / "xrefs" / filename, identity_cmd, identity_type)
@@ -179,6 +187,8 @@ def query_protocol(
                 "metadata": {
                     "fields": fields,
                     "methods": methods,
+                    "signature_references": signature_references,
+                    "external_signature_references": external_signature_references,
                 },
                 "xrefs": xrefs,
                 "scene_handler_dispatch": scene_handler_dispatch,
@@ -189,6 +199,8 @@ def query_protocol(
                 "counts": {
                     "fields": len(fields),
                     "methods": len(methods),
+                    "signature_references": len(signature_references),
+                    "external_signature_references": len(external_signature_references),
                     "handlers": len(xrefs["handlers"]),
                     "senders": len(xrefs["senders"]),
                     "constructors": len(xrefs["constructors"]),
