@@ -28,8 +28,9 @@ jobs:
         if: matrix.python-version == '3.12'
         run: |
           genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 186 > /tmp/protocol-186.json
+          genshinre query-methods versions/7.1.0-global/windows-x64/metadata/methods.csv --type-definition-index 84808 > /tmp/codec-methods.json
+          genshinre query-fields versions/7.1.0-global/windows-x64/metadata/fields.csv --type-definition-index 84808 > /tmp/codec-fields.json
           python - <<'PY'
-          import csv
           import json
           data=json.load(open('/tmp/protocol-186.json', encoding='utf-8'))
           assert data['result_count'] == 1
@@ -38,34 +39,20 @@ jobs:
           assert row['cmd_id'] == '186'
           assert row['type_name'] == 'NLOMEGMJDGJ'
           assert row['type_definition_index'] == '61556'
-          targets={
-              0xAABBD80: 'field-codec-factory',
-              0x182C3AA0: 'repeated-size-helper',
-              0x182C3E20: 'repeated-parse-helper',
-              0x182C4710: 'repeated-copy-helper',
-              0x529A10: 'allocation-helper',
-              0x1184DFE0: 'method-cluster-helper',
-              0x510BE0: 'method-cluster-helper-2',
-          }
-          hits=[]
-          with open('versions/7.1.0-global/windows-x64/metadata/methods.csv', encoding='utf-8-sig', newline='') as f:
-              for method in csv.DictReader(f):
-                  text=(method.get('rva') or '').strip()
-                  if not text:
-                      continue
-                  try:
-                      rva=int(text, 0)
-                  except ValueError:
-                      continue
-                  if rva in targets:
-                      hits.append({'target_role': targets[rva], **method})
+          codec_methods=json.load(open('/tmp/codec-methods.json', encoding='utf-8'))
+          codec_fields=json.load(open('/tmp/codec-fields.json', encoding='utf-8'))
+          target=[method for method in codec_methods if method['rva']=='0xAABBD80']
+          assert len(target)==1
+          assert target[0]['parameter_types']==['uint32']
           print(json.dumps({
-              'cmdid_186': {
-                  'fields': item['metadata']['fields'],
-                  'methods': item['metadata']['methods'],
-                  'scene_handler_dispatch': item['scene_handler_dispatch'],
+              'codec_factory_type': {
+                  'type_definition_index': 84808,
+                  'type_name': 'MJKCIJEILLP',
+                  'target_method': target[0],
+                  'methods': codec_methods,
+                  'fields': codec_fields,
               },
-              'helper_rva_matches': hits,
+              'cmdid_186_scene_handler_dispatch': item['scene_handler_dispatch'],
           }, indent=2, ensure_ascii=False))
           PY
       - name: Syntax-check shell scripts
