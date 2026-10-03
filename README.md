@@ -31,7 +31,10 @@ Maintained entry points:
 scripts/regenerate-7.1.{sh,ps1}
 scripts/publish-artifacts-7.1.{sh,ps1}
 genshinre.registryxrefpublish
+genshinre pointer-xrefs <GenshinImpact.exe> <start-rva> <end-rva> [--output pointer-xrefs.json]
 ```
+
+`pointer-xrefs` scans file-backed aligned qword holders whose values point into the half-open RVA range `[start-rva, end-rva)`, then joins simple RIP-relative code references to those holders. Use `rip-xrefs` when the code directly references the target RVA itself.
 
 See `docs/getting-started.md` for the maintained workflow.
 
