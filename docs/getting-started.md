@@ -174,15 +174,17 @@ The maintained decoder deliberately accepts only the exact slot-load instruction
 Build-specific capture hooks stay in focused runtime tools. Once a collector has produced the standard NDJSON packet-probe events, request/response correlation is generic:
 
 ```bash
-python -m genshinre.capture capture.ndjson \
+genshinre correlate-capture capture.ndjson \
   --request-cmd 9369 \
   --candidate-cmd 36641 \
   --candidate-cmd 20290 \
   --sequence-field 3 \
-  --json capture.analysis.json
+  --output capture.analysis.json
 ```
 
-The correlator closes a transaction at the next matching request, preserves the event window, and promotes only a unique response candidate with the same selected packet-head sequence value. A version-specific investigation may impose a stricter evidence gate on top of this generic result.
+The correlator closes a transaction at the next matching request, preserves the event window, summarizes agreement across repeated transactions, and promotes only a unique response candidate with the same selected packet-head sequence value. A version-specific investigation may impose a stricter evidence gate on top of this generic result.
+
+`python -m genshinre.capture` remains available as the module-level entry point for standalone use, but `genshinre correlate-capture` is the maintained top-level CLI surface.
 
 ## Convert a server trace into reusable data
 
