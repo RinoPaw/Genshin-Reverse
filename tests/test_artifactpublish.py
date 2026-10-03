@@ -7,8 +7,10 @@ import unittest
 from pathlib import Path
 
 from genshinre.artifactpublish import publish_generated_artifacts_71
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
-from genshinre.typearray import EXPECTED_RUNTIME_TYPE_COUNT
+
+EXPECTED_RUNTIME_TYPE_COUNT = PROFILE_71.runtime_type_count
 
 
 class ArtifactPublishTests(unittest.TestCase):
@@ -333,7 +335,9 @@ class ArtifactPublishTests(unittest.TestCase):
             data = json.loads(summary.read_text(encoding="utf-8"))
             data["boundary_rva"] = "0xA6F370"
             summary.write_text(json.dumps(data), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "type_array_rva \+ runtime_type_count \* 16"):
+            with self.assertRaisesRegex(
+                ValueError, r"type_array_rva \+ runtime_type_count \* 16"
+            ):
                 publish_generated_artifacts_71(work, version, expected_counts=(2, 3, 4))
 
     def test_rejects_runtime_structural_gate_loss(self) -> None:
