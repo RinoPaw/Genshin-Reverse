@@ -51,6 +51,30 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual(0x07F8E500, profile.registry_code_max_rva)
         self.assertEqual((2_232, 3_118), tuple(anchor.index for anchor in profile.registry_slot_anchors))
 
+        unlock, born = profile.registry_slot_anchors
+        self.assertEqual(
+            (9_369, "DMMJNICDOHM", 84_249, 2_232, 0x057E6498, 0x07F852AB),
+            (
+                unlock.cmd_id,
+                unlock.type_name,
+                unlock.type_definition_index,
+                unlock.index,
+                unlock.type_slot_rva,
+                unlock.store_rva,
+            ),
+        )
+        self.assertEqual(
+            (22_899, "ONKOPMILDMF", 87_483, 3_118, 0x057F6F60, None),
+            (
+                born.cmd_id,
+                born.type_name,
+                born.type_definition_index,
+                born.index,
+                born.type_slot_rva,
+                born.store_rva,
+            ),
+        )
+
     def test_metadata_decoder_contract_matches_profile(self) -> None:
         profile = PROFILE_71
 
@@ -84,12 +108,17 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual(profile.registry_row_count, registryslotxref.EXPECTED_REGISTRY_ROWS)
         self.assertEqual(profile.registry_row_count, registryxrefpublish.EXPECTED_ROWS)
 
-        for observed in registryslotxref.ANCHORS.values():
+        for cmd_id, observed in registryslotxref.ANCHORS.items():
             anchor = by_index[observed["registry_index"]]
+            self.assertEqual(anchor.cmd_id, cmd_id)
+            self.assertEqual(anchor.type_name, observed["type_name"])
             self.assertEqual(anchor.type_slot_rva, observed["registry_slot_rva"])
 
-        for observed in registryxrefpublish.ANCHORS.values():
+        for cmd_id, observed in registryxrefpublish.ANCHORS.items():
             anchor = by_index[observed["index"]]
+            self.assertEqual(anchor.cmd_id, cmd_id)
+            self.assertEqual(anchor.type_name, observed["type_name"])
+            self.assertEqual(anchor.type_definition_index, observed["tdi"])
             self.assertEqual(anchor.type_slot_rva, observed["slot"])
 
     def test_profile_lookup_is_exact(self) -> None:
