@@ -7,14 +7,8 @@ import json
 import mmap
 from pathlib import Path
 
-from genshinre.mhy71 import (
-    BODY_SKIP,
-    EMBEDDED_HEADER_RVA,
-    EMBEDDED_HEADER_SIZE,
-    EXPECTED_EXE_SHA256,
-    EXPECTED_METADATA_SHA256,
-    _header_layout,
-)
+from genshinre.mhy71 import BODY_SKIP, EMBEDDED_HEADER_RVA, EMBEDDED_HEADER_SIZE, _header_layout
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 
 MASK32 = 0xFFFFFFFF
@@ -83,11 +77,11 @@ def _load_csv(path: Path) -> list[dict[str, str]]:
 def _runtime_type_maps(path: Path) -> tuple[dict[str, list[int]], dict[int, set[str]]]:
     by_name: dict[str, list[int]] = {}
     by_index: dict[int, set[str]] = {}
-    for row in _load_csv(path):
+    for line_no, row in enumerate(_load_csv(path), start=2):
         name = (row.get("type_name") or "").strip()
         index = _parse_int(row.get("type_index"))
         if not name or index is None:
-            continue
+            raise ValueError(f"{path}:{line_no}: invalid canonical runtime type row")
         by_name.setdefault(name, []).append(index)
         by_index.setdefault(index, set()).add(name)
     return by_name, by_index
@@ -105,16 +99,15 @@ def main() -> None:
     p.add_argument("candidate_csv", type=Path)
     p.add_argument("output_json", type=Path)
     p.add_argument("--control-cmd", action="append", default=[])
-    p.add_argument("--allow-unknown-sample", action="store_true")
     args = p.parse_args()
 
+    profile = PROFILE_71
     exe_sha = _sha256(args.exe)
     metadata_sha = _sha256(args.metadata)
-    if not args.allow_unknown_sample:
-        if exe_sha != EXPECTED_EXE_SHA256:
-            raise SystemExit(f"unexpected executable SHA-256: {exe_sha}")
-        if metadata_sha != EXPECTED_METADATA_SHA256:
-            raise SystemExit(f"unexpected metadata SHA-256: {metadata_sha}")
+    if exe_sha != profile.exe_sha256:
+        raise SystemExit(f"unexpected executable SHA-256: {exe_sha}")
+    if metadata_sha != profile.metadata_sha256:
+        raise SystemExit(f"unexpected metadata SHA-256: {metadata_sha}")
 
     registry_rows = _load_csv(args.registry_csv)
     registry = {int(row["cmd_id"], 0): row for row in registry_rows}
@@ -147,16 +140,26 @@ def main() -> None:
         metadata = mmap.mmap(metadata_file.fileno(), 0, access=mmap.ACCESS_READ)
         try:
             with args.methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
-                for row in csv.DictReader(f):
+                for line_no, row in enumerate(csv.DictReader(f), start=2):
                     parameter_start = _parse_int(row.get("parameter_start"))
                     parameter_count = _parse_int(row.get("parameter_count"))
-                    if parameter_start is None or parameter_count is None or parameter_count <= 0:
+                    if parameter_start is None or parameter_count is None:
+                        raise ValueError(f"{args.methods_csv}:{line_no}: invalid parameter span")
+                    if parameter_count < 0:
+                        raise ValueError(f"{args.methods_csv}:{line_no}: negative parameter_count")
+                    if parameter_count == 0:
                         continue
+                    if parameter_start < 0:
+                        raise ValueError(
+                            f"{args.methods_csv}:{line_no}: negative parameter_start with nonzero count"
+                        )
                     for ordinal in range(parameter_count):
                         parameter_index = parameter_start + ordinal
                         offset = parameter_base + parameter_index * PARAMETER_RECORD_STRIDE
                         if offset < 0 or offset + 4 > len(metadata):
-                            continue
+                            raise ValueError(
+                                f"parameter record {parameter_index} exceeds exact metadata sample"
+                            )
                         raw_word = int.from_bytes(metadata[offset : offset + 4], "little")
                         type_index = decode_parameter_type_index(parameter_index, raw_word)
                         decoded_parameter_count += 1
@@ -229,7 +232,7 @@ def main() -> None:
         )
 
     report = {
-        "sample": "7.1.0-global/windows-x64",
+        "sample": profile.identity,
         "exe_sha256": exe_sha,
         "metadata_sha256": metadata_sha,
         "parameter_record_stride": PARAMETER_RECORD_STRIDE,
