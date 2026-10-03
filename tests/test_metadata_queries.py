@@ -51,6 +51,11 @@ class MetadataQueryTests(unittest.TestCase):
             self.assertEqual("NLOMEGMJDGJ", rows[0]["type_name"])
             self.assertEqual(["EIBJNHDPEMB"], rows[0]["parameter_types"])
 
+            rows = query_methods(path, rva=0x9ED2100)
+            self.assertEqual(1, len(rows))
+            self.assertEqual("NLOMEGMJDGJ", rows[0]["type_name"])
+            self.assertEqual("IENGFLPCLNM", rows[0]["method_name"])
+
     def test_query_fields_combines_exact_indexes_and_text_filters(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "fields.csv"
