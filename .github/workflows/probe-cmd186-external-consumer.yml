@@ -33,7 +33,11 @@ jobs:
         run: |
           set -euo pipefail
           EXE=inputs/7.1.0-global/GenshinImpact.exe
-          SHA=08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
+          SHA=$(python - <<'PY'
+          from genshinre.nativeprofile import PROFILE_71
+          print(PROFILE_71.exe_sha256)
+          PY
+          )
           python tools/disassemble_rva.py "$EXE" 0x8E2E4D0 0x180 --expected-sha256 "$SHA" --label 'JKFCCMCAMGA.HMAPAFEOKJK()' --output hmapafeokjk-caller.json
           python tools/disassemble_rva.py "$EXE" 0x8EB3990 0x180 --expected-sha256 "$SHA" --label 'JKFCCMCAMGA.HMAPAFEOKJK(kind_0x15)' --output hmapafeokjk-send.json
           genshinre call-xrefs "$EXE" 0x8E2E4D0 0x8EB3990 --methods-csv versions/7.1.0-global/windows-x64/metadata/methods.csv --max-method-body 0x10000 --window 64 --output focused-callers.json > /tmp/calls.stdout.json

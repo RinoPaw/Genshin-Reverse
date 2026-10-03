@@ -48,8 +48,8 @@ jobs:
       - name: Disassemble requested RVA range
         run: |
           expected_sha=$(python - <<'PY'
-          from genshinre.mhy71 import EXPECTED_EXE_SHA256
-          print(EXPECTED_EXE_SHA256)
+          from genshinre.nativeprofile import PROFILE_71
+          print(PROFILE_71.exe_sha256)
           PY
           )
           python tools/disassemble_rva.py \
