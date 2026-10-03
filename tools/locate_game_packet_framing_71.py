@@ -10,7 +10,9 @@ from pathlib import Path
 from capstone import CS_ARCH_X86, CS_MODE_64, Cs
 from capstone.x86 import X86_OP_IMM
 
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
+from genshinre.sampleidentity import require_profile_exe
 
 
 MAGIC_VALUES = {
@@ -34,12 +36,14 @@ RAW_PATTERNS = {
 def load_methods(path: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
-        for row in csv.DictReader(f):
-            raw = row.get("rva") or "0"
+        for line_no, row in enumerate(csv.DictReader(f), start=2):
+            raw = (row.get("rva") or "").strip()
+            if not raw:
+                continue
             try:
                 rva = int(raw, 0)
-            except ValueError:
-                continue
+            except ValueError as exc:
+                raise ValueError(f"{path}:{line_no}: invalid method RVA {raw!r}") from exc
             if rva <= 0:
                 continue
             rows.append(
@@ -87,6 +91,7 @@ def main() -> None:
     p.add_argument("--max-method-size", type=lambda x: int(x, 0), default=0x5000)
     args = p.parse_args()
 
+    exe_sha256 = require_profile_exe(args.exe, PROFILE_71)
     methods = load_methods(args.methods_csv)
     starts = [int(row["rva"]) for row in methods]
     md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -102,10 +107,11 @@ def main() -> None:
             end = method_end(starts, start, args.max_method_size)
             if end is None:
                 continue
-            try:
-                blob = image.read_rva(start, end - start)
-            except Exception:
-                continue
+            blob = image.read_rva(start, end - start)
+            if len(blob) != end - start:
+                raise ValueError(
+                    f"method body read truncated at 0x{start:X}: expected {end-start}, got {len(blob)}"
+                )
 
             raw_counts = raw_pattern_counts(blob)
             if not raw_counts:
@@ -172,7 +178,9 @@ def main() -> None:
     )
 
     result = {
+        "profile": PROFILE_71.identity,
         "exe": str(args.exe),
+        "exe_sha256": exe_sha256,
         "methods_csv": str(args.methods_csv),
         "method_count": len(methods),
         "raw_hit_method_count": raw_hit_methods,
