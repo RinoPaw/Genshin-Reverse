@@ -56,6 +56,6 @@
   "notes": [
     "constructor slots are independently verified; this artifact asks whether methods declared on each GetCmdId candidate type reference those slots",
     "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
-    "canonical registry publication independently requires a strict 4,896-row slot/type/CmdId bijection"
+    "recovery fails unless every one of the 4,896 verified slots has a dominant candidate owner and preserved anchors match"
   ]
 }
