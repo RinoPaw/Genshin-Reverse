@@ -14,6 +14,43 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual("query-methods", args.command)
         self.assertEqual(0xAABBD80, args.rva)
 
+    def test_correlate_capture_parses_transaction_contract(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "correlate-capture",
+                "capture.ndjson",
+                "--request-cmd",
+                "0x2499",
+                "--candidate-cmd",
+                "36641",
+                "--candidate-cmd",
+                "0x4F42",
+                "--sequence-field",
+                "3",
+                "--after-events",
+                "32",
+                "--request-direction",
+                "C2S",
+                "--response-direction",
+                "S2C",
+                "--event-kind",
+                "packet_probe",
+                "--output",
+                "capture.analysis.json",
+            ]
+        )
+
+        self.assertEqual("correlate-capture", args.command)
+        self.assertEqual("capture.ndjson", str(args.capture))
+        self.assertEqual(9369, args.request_cmd)
+        self.assertEqual([36641, 20290], args.candidate_cmds)
+        self.assertEqual(3, args.sequence_field)
+        self.assertEqual(32, args.after_events)
+        self.assertEqual("C2S", args.request_direction)
+        self.assertEqual("S2C", args.response_direction)
+        self.assertEqual("packet_probe", args.event_kind)
+        self.assertEqual("capture.analysis.json", str(args.output))
+
     def test_call_xrefs_parses_targets_and_method_join(self) -> None:
         args = build_parser().parse_args(
             [

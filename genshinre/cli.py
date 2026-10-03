@@ -7,6 +7,7 @@ from pathlib import Path
 from .analysis import research_status
 from .anchors import verify_metadata_anchors
 from .callxref import scan_direct_call_xrefs
+from .capture import analyze_capture_file
 from .fingerprint import fingerprint
 from .getcmdid import scan_constant_cmdids
 from .metadata import build_type_methods, query_fields, query_methods
@@ -64,6 +65,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("input_log", type=Path)
     p.add_argument("output_csv", type=Path)
     p.add_argument("--source", default="")
+
+    p = sub.add_parser(
+        "correlate-capture",
+        help="correlate request/response CmdIds in an NDJSON packet-probe capture",
+    )
+    p.add_argument("capture", type=Path)
+    p.add_argument("--request-cmd", type=_rva, required=True)
+    p.add_argument(
+        "--candidate-cmd",
+        type=_rva,
+        action="append",
+        required=True,
+        dest="candidate_cmds",
+        help="candidate response CmdId; repeatable",
+    )
+    p.add_argument("--sequence-field", type=int, default=3)
+    p.add_argument("--after-events", type=int, default=24)
+    p.add_argument("--request-direction", default="C2S")
+    p.add_argument("--response-direction", default="S2C")
+    p.add_argument("--event-kind", default="packet_probe")
+    p.add_argument("--output", type=Path)
 
     p = sub.add_parser("build-type-methods", help="build a type -> methods JSON index from metadata/methods.csv")
     p.add_argument("methods_csv", type=Path)
@@ -228,6 +250,20 @@ def main() -> None:
             raise SystemExit(1)
     elif args.command == "import-trace":
         print(import_trace(args.input_log, args.output_csv, source=args.source))
+    elif args.command == "correlate-capture":
+        result = analyze_capture_file(
+            args.capture,
+            request_cmd=args.request_cmd,
+            candidate_cmds=args.candidate_cmds,
+            sequence_field=args.sequence_field,
+            after_events=args.after_events,
+            request_direction=args.request_direction,
+            response_direction=args.response_direction,
+            event_kind=args.event_kind,
+        )
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "build-type-methods":
         index = build_type_methods(args.methods_csv, args.output_json)
         print(json.dumps({"keys": len(index)}, indent=2))
