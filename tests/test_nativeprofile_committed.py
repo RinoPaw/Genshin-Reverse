@@ -74,6 +74,35 @@ class CommittedNativeProfileTests(unittest.TestCase):
         self.assertTrue(summary["structural_validation_passed"])
         self.assertTrue(summary[anchor_key])
 
+    def test_profile_matches_registry_type_slot_summary(self) -> None:
+        summary = json.loads(
+            (VERSION / "registry/registry-type-slots.summary.json").read_text(encoding="utf-8")
+        )
+        profile = PROFILE_71
+
+        self.assertEqual(profile.exe_sha256, summary["exe_sha256"])
+        self.assertEqual(profile.registry_row_count, summary["expected_row_count"])
+        self.assertEqual(profile.registry_row_count, summary["matched_unique_indices"])
+        self.assertEqual([], summary["missing_indices"])
+        self.assertEqual([], summary["ambiguous_indices"])
+        self.assertTrue(summary["all_anchors_pass"])
+        self.assertTrue(summary["complete_4896_indexed_type_slots"])
+        self.assertEqual(
+            [profile.registry_code_min_rva, profile.registry_code_max_rva],
+            [int(value, 0) for value in summary["layout"]["registry_code_rva_range"]],
+        )
+
+        observed_anchors = summary["anchors"]
+        for anchor in profile.registry_slot_anchors:
+            observed = observed_anchors[str(anchor.index)]
+            self.assertEqual(anchor.name, observed["name"])
+            self.assertEqual(anchor.type_slot_rva, int(observed["expected_type_slot_rva"], 0))
+            self.assertTrue(observed["matched"])
+            if anchor.store_rva is None:
+                self.assertIsNone(observed["expected_store_rva"])
+            else:
+                self.assertEqual(anchor.store_rva, int(observed["expected_store_rva"], 0))
+
 
 if __name__ == "__main__":
     unittest.main()
