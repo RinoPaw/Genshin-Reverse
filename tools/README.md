@@ -15,7 +15,7 @@ For reusable repository functionality, prefer this order:
 
 ## Research helpers
 
-The remaining inspect/trace/decode scripts are research scaffolding for specific native-analysis questions. They may use fixed RVAs, exact type identities, historical samples, or experiment-specific output shapes. The packet-framing locator is retained because it provides the reproducible derivation for the maintained runtime capture boundary.
+The remaining trace/decode helpers are research scaffolding for specific native-analysis questions. They may use fixed RVAs, exact type identities, historical samples, or experiment-specific output shapes. The packet-framing locator is retained because it provides the reproducible derivation for the maintained runtime capture boundary. `disassemble_rva.py` remains the narrow generic RVA inspection primitive used by active research workflows.
 
 Decoded metadata consumer lookup is maintained package functionality now: use `genshinre query-methods --parameter-type ...` for direct parameter searches and `genshinre protocol-query` for joined signature-reference evidence.
 
@@ -38,6 +38,8 @@ The following old standalone helpers were removed after their capability moved t
 - `find_protocol_parameter_consumers_71.py` and `analyze_protocol_consumers_71.py` → `genshinre query-methods` / `genshinre protocol-query`;
 - `map_owner_protocol_parameters_71.py` → the more general exact-sample `decode_protocol_handler_parameters_71.py` raw-record cross-check;
 - `inspect_parameter_decoder_constants_71.py` → the already recovered and regression-tested 7.1 metadata/parameter decoder contract;
+- `inspect_method_context_71.py` → maintained metadata queries, `disassemble_rva.py`, and `genshinre call-xrefs`;
+- `inspect_protocol_type_shape_71.py` → completed exact-7.1 protobuf-shape investigations whose surviving evidence is stored in the focused analyses; future generally reusable shape recovery belongs in `genshinre/`;
 - `scan_protocol_method_callers_71.py` → `genshinre call-xrefs` plus maintained registry/metadata queries;
 - `scan_owner_rpc_submit_layout_71.py` → the completed UnlockTransPoint RPC-submit investigation; reusable caller inspection is covered by `genshinre call-xrefs`, metadata queries and `disassemble_rva.py`;
 - `trace_protocol_delegate_slots_71.py` → retired after exact-sample evidence proved the targeted `0x4B2Axx` values are ILFix/hotfix per-method storage rather than protocol delegate slots. The correction is preserved in the UnlockTransPoint research log;
