@@ -21,7 +21,7 @@ from .scenehandlers import extract_scene_handler_slots
 from .trace import import_trace
 from .validate import validate_version
 from .wire import parse_message
-from .xrefs import inspect_rva, probe_registry_71, scan_rip_xrefs, write_json
+from .xrefs import inspect_rva, scan_rip_xrefs, write_json
 
 
 def _rva(text: str) -> int:
@@ -162,10 +162,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--before", type=int, default=32)
     p.add_argument("--after", type=int, default=64)
     p.add_argument("--output", type=Path)
-
-    p = sub.add_parser("probe-registry-71", help="probe preserved 7.1 type-slot/store-site registry anchors")
-    p.add_argument("exe", type=Path)
-    p.add_argument("output_json", type=Path)
 
     p = sub.add_parser("decode-metadata-71", help="decode the exact preserved 7.1 Global MHY metadata sample")
     p.add_argument("exe", type=Path)
@@ -374,10 +370,6 @@ def main() -> None:
         result = inspect_rva(args.exe, args.rva, before=args.before, after=args.after)
         if args.output:
             write_json(result, args.output)
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    elif args.command == "probe-registry-71":
-        result = probe_registry_71(args.exe)
-        write_json(result, args.output_json)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "decode-metadata-71":
         result = decode_metadata_71(args.exe, args.metadata, args.output_dir)

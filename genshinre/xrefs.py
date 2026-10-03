@@ -175,53 +175,6 @@ def inspect_rva(exe: Path, rva: int, before: int = 32, after: int = 64) -> dict[
         }
 
 
-def probe_registry_71(exe: Path) -> dict[str, object]:
-    anchors = [
-        {
-            "name": "UnlockTransPointReq type slot",
-            "cmd_id": 9369,
-            "target_rva": 0x057E6498,
-            "expected_store_rva": 0x07F852AB,
-        },
-        {
-            "name": "DoSetPlayerBornDataNotify type slot",
-            "cmd_id": 22899,
-            "target_rva": 0x057F6F60,
-            "expected_store_rva": None,
-        },
-        {
-            "name": "Traveler selection page type slot control",
-            "cmd_id": None,
-            "target_rva": 0x057DE810,
-            "expected_store_rva": None,
-        },
-    ]
-    scan = scan_rip_xrefs(exe, [int(anchor["target_rva"]) for anchor in anchors], window=32)
-    results = []
-    for anchor in anchors:
-        key = f"0x{int(anchor['target_rva']):X}"
-        rows = scan["matches"].get(key, [])
-        expected = anchor["expected_store_rva"]
-        expected_match = None
-        if expected is not None:
-            expected_match = any(int(str(row["instruction_rva"]), 0) == expected for row in rows)
-        results.append(
-            {
-                **anchor,
-                "target_rva": key,
-                "expected_store_rva": None if expected is None else f"0x{expected:X}",
-                "xref_count": len(rows),
-                "expected_store_found": expected_match,
-                "xrefs": rows,
-            }
-        )
-    return {
-        "scope": "simple RIP-relative MOV/LEA xrefs; discovery/probe output",
-        "anchors": results,
-        "scanned_sections": scan["scanned_sections"],
-    }
-
-
 def write_json(data: dict[str, object], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
