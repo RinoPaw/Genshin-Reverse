@@ -33,6 +33,9 @@ class NativeProfile:
     platform: str
     exe_sha256: str
     metadata_sha256: str
+    sophon_manifest_url: str
+    sophon_chunk_prefix: str
+    sophon_manifest_md5: str
     type_definition_count: int
     field_count: int
     method_count: int
@@ -55,16 +58,26 @@ class NativeProfile:
         return f"{self.version}-{self.region}/{self.platform}"
 
 
-# Exact-sample constants live here so current-client generators, validators and
-# future version profiles share one explicit target contract. Decoder modules
-# may expose implementation-local aliases, but CI crosschecks them against this
-# profile and committed artifacts.
+# Exact-sample constants live here so current-client acquisition, generators,
+# validators and future version profiles share one explicit target contract.
+# Decoder modules may expose implementation-local aliases, but CI crosschecks
+# them against this profile and committed artifacts.
 PROFILE_71 = NativeProfile(
     version="7.1.0",
     region="global",
     platform="windows-x64",
     exe_sha256="08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
     metadata_sha256="05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    sophon_manifest_url=(
+        "https://autopatchhk.yuanshen.com/client_app/sophon/manifests/"
+        "cxhpq4g4rgg0/sMXGW2ll3Fuu/"
+        "manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d"
+    ),
+    sophon_chunk_prefix=(
+        "https://autopatchhk.yuanshen.com/client_app/sophon/chunks/"
+        "cxhpq4g4rgg0/sMXGW2ll3Fuu"
+    ),
+    sophon_manifest_md5="",
     type_definition_count=88_904,
     field_count=440_172,
     method_count=733_442,

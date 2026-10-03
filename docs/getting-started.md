@@ -34,9 +34,11 @@ Publication requires those canonical registry artifacts to exist and pass the cu
 
 ## 1. Regenerate the pinned 7.1 client data
 
-Raw game files stay outside Git. The native decoder checks both SHA-256 values before decoding. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`.
+Raw game files stay outside Git. The native decoder checks both SHA-256 values before decoding. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json` and the exact native target contract lives in `genshinre.nativeprofile`.
 
-For repeatable sample acquisition, use `scripts/fetch-7.1-samples.sh` or `scripts/fetch-7.1-samples.ps1`; both pin the maintained Sophon manifest and expected hashes.
+For repeatable sample acquisition, use `scripts/fetch-7.1-samples.sh` or `scripts/fetch-7.1-samples.ps1`. They are thin wrappers around `python -m genshinre.samplefetch --profile 7.1.0-global/windows-x64`; the Sophon manifest, chunk prefix and expected hashes are defined once in the native profile.
+
+Sample acquisition requires the optional `zstandard` package. The normal query/validation toolkit remains standard-library only.
 
 Windows PowerShell:
 
@@ -114,7 +116,7 @@ The current canonical publisher is `genshinre.registryxrefpublish`. See `registr
 
 ## Automated exact-sample regeneration
 
-`.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and uses the pinned Sophon manifest plus expected SHA-256 hashes. It does not clone AstaPS or run exploratory research stages.
+`.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and resolves sample acquisition through the native profile. It does not clone AstaPS or run exploratory research stages.
 
 Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, wire/protocol-query smoke tests and cheap shell/PowerShell syntax checks. Validator-only changes stay on the fast path.
 
