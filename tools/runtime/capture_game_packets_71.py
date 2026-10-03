@@ -1,25 +1,17 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from genshinre.nativeprofile import PROFILE_71
+from genshinre.sampleidentity import require_profile_exe
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _int_auto(text: str) -> int:
@@ -68,14 +60,10 @@ def main() -> None:
             f"executable does not exist: {args.exe}\n"
             "run from the game directory or pass --exe <path-to-GenshinImpact.exe>"
         )
-    exe_sha256 = sha256_file(args.exe)
-    if exe_sha256.lower() != profile.exe_sha256:
-        raise SystemExit(
-            "refusing to attach with build-specific RVAs: executable SHA-256 mismatch\n"
-            f"expected: {profile.exe_sha256}\n"
-            f"actual:   {exe_sha256}\n"
-            f"file:     {args.exe}"
-        )
+    try:
+        exe_sha256 = require_profile_exe(args.exe, profile)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     try:
         import frida
