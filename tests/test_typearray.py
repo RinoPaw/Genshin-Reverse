@@ -2,11 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from genshinre.typearray import (
-    EXPECTED_RUNTIME_TYPE_COUNT,
-    decode_type_entry,
-    is_valid_type_entry,
-)
+from genshinre.nativeprofile import PROFILE_71
+from genshinre.typearray import decode_type_entry, is_valid_type_entry
 
 
 class TypeArrayTests(unittest.TestCase):
@@ -35,7 +32,7 @@ class TypeArrayTests(unittest.TestCase):
 
     def test_definition_outside_metadata_rejected(self) -> None:
         entry = bytearray(16)
-        entry[0:4] = (88_904).to_bytes(4, "little")
+        entry[0:4] = PROFILE_71.type_definition_count.to_bytes(4, "little")
         entry[0x0A] = 0x12
         self.assertFalse(is_valid_type_entry(bytes(entry)))
 
@@ -57,7 +54,7 @@ class TypeArrayTests(unittest.TestCase):
         self.assertTrue(is_valid_type_entry(bytes(entry)))
 
     def test_preserved_runtime_type_count(self) -> None:
-        self.assertEqual(683_574, EXPECTED_RUNTIME_TYPE_COUNT)
+        self.assertEqual(683_574, PROFILE_71.runtime_type_count)
 
 
 if __name__ == "__main__":
