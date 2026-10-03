@@ -8,7 +8,7 @@
     "hashes_ref": "../../hashes.json"
   },
   "questions": [
-    "What concrete protobuf field type does field 14 use in NLOMEGMJDGJ?",
+    "Which exact scalar FieldCodec factory overload is MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80?",
     "Which current-client sender or call-site context produces CmdId 186 during login initialization?",
     "Which semantic packet name is supported when static parser evidence and runtime context are combined?"
   ],
@@ -35,7 +35,7 @@
           "kind": "wire-decode",
           "source": "genshinre wire",
           "locator": "7202d027",
-          "note": "Packed-varint decoding yields [5072], but the concrete generated field type remains unresolved."
+          "note": "Packed-varint decoding yields [5072]. Exact-client code now independently proves that field 14 uses a generated repeated-field structure; the exact scalar codec overload remains unresolved."
         }
       ]
     },
@@ -53,10 +53,62 @@
       ]
     },
     {
-      "id": "field-14-concrete-type",
+      "id": "protobuf-parser-role",
+      "status": "CONFIRMED",
+      "statement": "NLOMEGMJDGJ.IENGFLPCLNM(EIBJNHDPEMB) @ 0x09ED2100 is the generated protobuf merge/parser path for the message and consumes the collection at object offset 0x18 together with the message's static field codec.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "protobuf-structure.json",
+          "locator": "method_evidence[role=parser]",
+          "note": "Exact 7.1 executable SHA-256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d; source workflow run 37095178757."
+        }
+      ]
+    },
+    {
+      "id": "field-14-repeated-structure",
+      "status": "CONFIRMED",
+      "statement": "Exact 7.1 client code implements field 14 as a generated repeated-field structure: the instance collection is stored at object offset 0x18 and a static codec is initialized with protobuf tag 0x72 then reused by CopyFrom, size and parser paths.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "protobuf-structure.json",
+          "locator": "method_evidence",
+          "note": "The .cctor loads ecx=0x72, calls codec factory 0x0AABBD80 and stores its result at class static offset 0x30320. Parser/size/CopyFrom paths all operate on the collection at object offset 0x18."
+        },
+        {
+          "kind": "metadata-crosscheck",
+          "source": "../../metadata/fields.csv",
+          "locator": "field_type_index in {476942,476943}",
+          "note": "The same pair appears together in 1,042 generated message types; confirmed PlayerEnterSceneNotify is one control using both indexes."
+        }
+      ]
+    },
+    {
+      "id": "field-14-scalar-codec",
       "status": "UNRESOLVED",
-      "statement": "The concrete generated protobuf type represented by field 14 has not yet been proven from parser behavior.",
-      "evidence": []
+      "statement": "The exact scalar FieldCodec overload for field 14 remains unresolved. MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80 accepts the uint32 protobuf tag, but that signature alone does not identify the repeated element scalar type.",
+      "evidence": [
+        {
+          "kind": "metadata-method",
+          "source": "../../metadata/methods.csv",
+          "locator": "rva=0xAABBD80",
+          "note": "method_index 700560, typeDefinition 84808, type MJKCIJEILLP, method OLACMCNHBHD, parameter_types=[uint32]."
+        }
+      ]
+    },
+    {
+      "id": "genericinst-pair",
+      "status": "CONFIRMED",
+      "statement": "NLOMEGMJDGJ fields use transformed IL2CPP genericinst type indexes 476942 and 476943; all 1,042 decoded message types that use either index use both, consistent with the generated repeated-field backing/codec pair seen in exact client code.",
+      "evidence": [
+        {
+          "kind": "metadata-crosscheck",
+          "source": "protobuf-structure.json",
+          "locator": "genericinst_reuse",
+          "note": "Raw runtime entries are preserved as 0x3565B00/0x3565B10 with kind 0x15 and transformed data values 0x7638/0x763F."
+        }
+      ]
     },
     {
       "id": "sender-context",
@@ -86,12 +138,14 @@
   ],
   "artifacts": [
     "README.md",
-    "evidence.json"
+    "evidence.json",
+    "protobuf-structure.json",
+    "copyfrom.disasm.json"
   ],
   "next_steps": [
-    "Confirm parser/serializer roles for NLOMEGMJDGJ and recover field-14 behavior.",
+    "Identify the exact scalar FieldCodec overload implemented by MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80 using exact-client controls.",
     "Locate sender/call-site xrefs for NLOMEGMJDGJ and compare them with repeated login-init runtime observations.",
-    "Cross-check semantic candidates against current-client evidence and related projects without importing historical numeric equality.",
+    "Cross-check semantic candidates against current-target evidence and related projects without importing historical numeric equality.",
     "Promote a semantic name only when static identity, parser shape and runtime context agree."
   ]
 }
