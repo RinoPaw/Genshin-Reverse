@@ -1,0 +1,51 @@
+name: Probe CmdId 186 external type-slot consumer
+
+on:
+  push:
+    paths:
+      - .github/workflows/probe-cmd186-external-consumer.yml
+  workflow_dispatch:
+
+concurrency:
+  group: probe-cmd186-external-consumer-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . capstone zstandard
+      - name: Inspect owner metadata
+        run: |
+          genshinre query-methods versions/7.1.0-global/windows-x64/metadata/methods.csv --type JKFCCMCAMGA > owner-methods.json
+          genshinre query-fields versions/7.1.0-global/windows-x64/metadata/fields.csv --type JKFCCMCAMGA > owner-fields.json || true
+          cat owner-methods.json
+          cat owner-fields.json || true
+      - name: Fetch pinned exact 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Disassemble external consumer and scan callers
+        run: |
+          set -euo pipefail
+          EXE=inputs/7.1.0-global/GenshinImpact.exe
+          SHA=08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
+          python tools/disassemble_rva.py "$EXE" 0x8EB3990 0x180 --expected-sha256 "$SHA" --label JKFCCMCAMGA.HMAPAFEOKJK --output hmapafeokjk.json
+          genshinre call-xrefs "$EXE" 0x8EB3990 0x1184DFE0 --methods-csv versions/7.1.0-global/windows-x64/metadata/methods.csv --max-method-body 0x10000 --window 48 --output external-consumer-callers.json > /tmp/calls.stdout.json
+          cat /tmp/calls.stdout.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cmdid-186-external-consumer
+          path: |
+            owner-methods.json
+            owner-fields.json
+            hmapafeokjk.json
+            external-consumer-callers.json
+          if-no-files-found: error
+          retention-days: 7
