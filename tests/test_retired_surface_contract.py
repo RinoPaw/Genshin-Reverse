@@ -49,7 +49,7 @@ class RetiredSurfaceContractTests(unittest.TestCase):
                 with self.subTest(path=str(path.relative_to(root)), token=token):
                     self.assertNotIn(token, text)
 
-    def test_retired_one_off_probes_stay_removed(self) -> None:
+    def test_retired_surfaces_stay_removed(self) -> None:
         root = Path(__file__).resolve().parents[1]
         retired = (
             "tools/inspect_method_context_71.py",
@@ -57,6 +57,17 @@ class RetiredSurfaceContractTests(unittest.TestCase):
             "tools/scan_owner_rpc_submit_layout_71.py",
             "tools/scan_protocol_method_callers_71.py",
             "tools/trace_protocol_delegate_slots_71.py",
+            ".github/workflows/probe-cmd186-external-consumer.yml",
+            ".github/workflows/publish-7.1-candidate-graph.yml",
+            ".github/workflows/publish-7.1-registry-xrefs.yml",
+            ".github/workflows/recover-7.1-registry-slot-xrefs.yml",
+            ".github/workflows/recover-7.1-registry-type-slots.yml",
+            "genshinre/getcmdidgraph.py",
+            "genshinre/graphdiag.py",
+            "tests/test_getcmdidgraph.py",
+            "tests/test_graphdiag.py",
+            "versions/7.1.0-global/windows-x64/registry/getcmdid-candidate-graph.csv",
+            "versions/7.1.0-global/windows-x64/registry/getcmdid-candidate-graph.summary.json",
         )
         for relative in retired:
             with self.subTest(path=relative):

@@ -100,13 +100,13 @@ The repository treats registry identity and metadata recovery as available infra
 
 Use `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED`, and `UNRESOLVED`. Historical information may be cited as evidence, but historical numeric equality or old-format compatibility is never accepted as a current mapping or current data path.
 
-Candidate graphs and probes never overwrite canonical registry data. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed. Signature references, dispatch-table membership, local ordering and runtime timing are relationship evidence; promotion requires the evidence gate stated by the focused investigation.
+Exploratory probes never overwrite canonical registry data. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed. Signature references, dispatch-table membership, local ordering and runtime timing are relationship evidence; promotion requires the evidence gate stated by the focused investigation.
 
 ## Maintenance boundary
 
 Repository maintenance and protocol investigations are tracked separately. Maintainers keep schemas, tooling, documentation, generated-artifact contracts, tests and CI coherent. Focused reverse-engineering work belongs under `versions/<target>/analyses/` or an issue and should be promoted into canonical artifacts only after its stated evidence gate is satisfied.
 
-Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests. Packet-specific Actions should be retired after their useful logic has been promoted into reusable package tooling or durable artifacts.
+Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests. Canonical 7.1 generation has one write-capable workflow; packet-specific Actions are retired after their useful logic or evidence becomes durable.
 
 ## Current target
 

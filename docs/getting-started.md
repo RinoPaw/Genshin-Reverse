@@ -12,33 +12,34 @@ python -m pip install -e .
 
 ## Maintained 7.1 data flow
 
-The maintained path is exact-sample and fail-closed:
+The maintained target path is exact-sample and fail-closed:
 
 ```text
 exact 7.1 samples
-→ regenerate canonical metadata/runtime/GetCmdId evidence
-→ publish validated canonical artifacts
-→ query registry + metadata + relationship evidence
-→ run focused static/runtime investigations
+→ regenerate metadata/runtime/GetCmdId evidence
+→ recover verified registry type slots
+→ recover dominant slot xrefs
+→ publish the strict 4,896-row canonical registry
+→ publish validated metadata/GetCmdId artifacts
+→ query canonical evidence
+→ run focused investigations
 → promote semantics only after the case evidence gate is satisfied
 ```
 
-The committed canonical registry is already closed at 4,896 identities:
+The committed canonical registry is:
 
 ```text
 versions/7.1.0-global/windows-x64/registry/registry.csv
 versions/7.1.0-global/windows-x64/registry/registry.summary.json
 ```
 
-Publication requires those canonical registry artifacts to exist and pass the current schema/bijection checks. Alternate registry recovery and compatibility publication paths are retired.
+Alternate registry publication paths and pre-closure candidate-graph layers are retired.
 
-## 1. Regenerate the pinned 7.1 client data
+## Local metadata regeneration
 
-Raw game files stay outside Git. The native decoder checks both SHA-256 values before decoding. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json` and the exact native target contract lives in `genshinre.nativeprofile`.
+Raw game files stay outside Git. Expected sample identities are recorded in `versions/7.1.0-global/windows-x64/hashes.json`; the exact native target contract lives in `genshinre.nativeprofile`.
 
-For repeatable sample acquisition, use `scripts/fetch-7.1-samples.sh` or `scripts/fetch-7.1-samples.ps1`. They are thin wrappers around `python -m genshinre.samplefetch --profile 7.1.0-global/windows-x64`; the Sophon manifest, chunk prefix and expected hashes are defined once in the native profile.
-
-Sample acquisition requires the optional `zstandard` package. The normal query/validation toolkit remains standard-library only.
+For repeatable sample acquisition, use `scripts/fetch-7.1-samples.sh` or `scripts/fetch-7.1-samples.ps1`. Sample acquisition requires the optional `zstandard` package.
 
 Windows PowerShell:
 
@@ -56,26 +57,17 @@ Linux/macOS/WSL:
   --metadata /path/to/global-metadata.dat
 ```
 
-The five maintained stages are mandatory:
+The local regeneration script produces the exact-sample metadata/runtime/GetCmdId work set:
 
 1. exact sample fingerprints;
 2. native 7.1 MHY metadata indexes;
 3. metadata anchor verification;
 4. runtime IL2CPP type index;
-5. conservative constant-return `GetCmdId` candidates.
-
-Any failure stops regeneration. The generated canonical metadata tables reproduce:
-
-- 88,904 type definitions;
-- 440,172 fields;
-- 733,442 methods;
-- 733,442 method-pointer rows.
-
-Exploratory usage recovery, registry graphs, control-set comparisons and protocol-specific probes are separate research commands/workflows. They are run explicitly when a research task needs them and do not participate in canonical regeneration.
+5. conservative constant-return GetCmdId candidates.
 
 Generated work is written under ignored `work/7.1.0-global/windows-x64/`.
 
-## 2. Publish validated generated artifacts
+## Local publication
 
 PowerShell:
 
@@ -89,36 +81,25 @@ POSIX shell:
 ./scripts/publish-artifacts-7.1.sh
 ```
 
-Publication verifies exact sample hashes, metadata counts, CSV row counts, the complete method-pointer table, runtime-type anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree. The current generated-artifact contract is `manifest_version: 4`.
+Publication validates metadata counts, runtime anchors, full GetCmdId input coverage and the current canonical registry before writing the version tree.
 
-Published metadata includes:
+For registry-specific debugging, the maintained package modules are:
 
 ```text
-metadata/types.csv
-metadata/fields.csv
-metadata/methods.csv
-metadata/method-pointers.csv
-metadata/type-methods.json
-metadata/runtime-types.csv
+genshinre.registryslots
+genshinre.registryslotxref
+genshinre.registryxrefpublish
 ```
 
-## 3. Canonical registry identity
-
-The 7.1 canonical registry was published from verified constructor/type slots and dominant declaring-type xrefs. Its summary requires:
-
-- exactly 4,896 rows;
-- 4,896 unique CmdIds;
-- the exact canonical CSV header;
-- a strict registry-slot / type-definition / CmdId bijection;
-- exact-sample identity evidence.
-
-The current canonical publisher is `genshinre.registryxrefpublish`. See `registry/README.md` and the current xref tooling when maintaining that publication path.
+The repository does not keep separate Actions shells for those stages.
 
 ## Automated exact-sample regeneration
 
-`.github/workflows/generate-7.1-data.yml` is the maintained heavy workflow. It is narrowly triggered and resolves sample acquisition through the native profile. It does not clone AstaPS or run exploratory research stages.
+`.github/workflows/generate-7.1-data.yml` is the single write-capable canonical 7.1 workflow. It performs the full ordered chain from sample fetch through metadata generation, registry reconstruction, publication, validation and one final commit.
 
-Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, wire/protocol-query smoke tests and cheap shell/PowerShell syntax checks. Validator-only changes stay on the fast path.
+Normal `ci.yml` never downloads the full client. It runs unit tests, version validation, wire/protocol-query smoke tests and cheap shell/PowerShell syntax checks.
+
+`disassemble-7.1-rva.yml` is the only retained generic opt-in exact-sample research workflow. Packet-specific workflow shells are retired once their evidence is durable.
 
 ## Inspect an unknown runtime packet
 
@@ -142,10 +123,6 @@ The same command can start from `--type`, `--type-definition-index` or registry 
 
 ## Follow inbound signature references
 
-The decoded method table can establish relationships where a protocol type appears as a method parameter or return type. `protocol-query` exposes both all signature references and the subset whose declaring type differs from the protocol type itself.
-
-For a direct parameter search:
-
 ```bash
 genshinre query-methods \
   versions/7.1.0-global/windows-x64/metadata/methods.csv \
@@ -155,8 +132,6 @@ genshinre query-methods \
 Signature membership is relationship evidence. It can locate consumers and handlers, but does not establish a semantic protobuf name by itself.
 
 ## Reproduce scene-handler slot relations
-
-The current scene-handler investigation has been promoted into reusable tooling:
 
 ```bash
 genshinre scene-handler-slots \
@@ -169,11 +144,9 @@ genshinre scene-handler-slots \
   --output work/scene-handler-slots.json
 ```
 
-The maintained decoder deliberately accepts only the exact slot-load instruction shape proven by the 7.0/7.1 investigation. The committed current-client evidence is under `versions/7.1.0-global/windows-x64/analyses/scene-handler-dispatch/`.
+Committed current-client evidence lives under `versions/7.1.0-global/windows-x64/analyses/scene-handler-dispatch/`.
 
 ## Correlate a decrypted runtime transaction
-
-Build-specific capture hooks stay in focused runtime tools. Once a collector has produced the standard NDJSON packet-probe events, request/response correlation is generic:
 
 ```bash
 genshinre correlate-capture capture.ndjson \
@@ -184,17 +157,13 @@ genshinre correlate-capture capture.ndjson \
   --output capture.analysis.json
 ```
 
-The correlator closes a transaction at the next matching request, preserves the event window, summarizes agreement across repeated transactions, and promotes only a unique response candidate with the same selected packet-head sequence value. A version-specific investigation may impose a stricter evidence gate on top of this generic result.
-
-`python -m genshinre.capture` remains available as the module-level entry point for standalone use, but `genshinre correlate-capture` is the maintained top-level CLI surface.
+Build-specific capture hooks stay in focused runtime tools. Correlation policy stays in reusable package code.
 
 ## Convert a server trace into reusable data
 
 ```bash
 genshinre import-trace born-full.log work/born-trace.csv --source born-quest351-probe
 ```
-
-The importer records packet direction, offset and payload in a trace CSV. Version-level semantic summaries live separately in `cmdids/observations.csv`.
 
 ## Query the client registry
 
@@ -205,8 +174,6 @@ genshinre query-registry \
 ```
 
 ## Build a research control set explicitly
-
-When a comparison with AstaPS is useful, run it as a research action rather than as part of canonical regeneration:
 
 ```bash
 genshinre import-opcodes-java \

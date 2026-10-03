@@ -1,6 +1,6 @@
 # Workflow map and maintenance policy
 
-GitHub Actions in this repository fall into three classes. Keep the classes separate so ordinary maintenance never turns into a full-client reverse-engineering run.
+GitHub Actions in this repository have a deliberately small surface. Ordinary maintenance must stay fast, and exact-client reverse work must use a single maintained generation path.
 
 Pinned 7.1 sample acquisition is centralized in:
 
@@ -9,97 +9,58 @@ scripts/fetch-7.1-samples.sh
 scripts/fetch-7.1-samples.ps1
 ```
 
-Maintained exact-sample workflows call those entry points. Active research workflows may keep their own pinned experiment inputs when a distinct environment or sequence is still useful.
+## `ci.yml`
 
-## 1. Fast repository CI
+This is the only general push/PR workflow.
 
-`ci.yml` is the only general push/PR workflow.
+It runs unit tests, committed-version validation, small wire/CLI/protocol-query smoke tests, and cheap Bash/PowerShell syntax checks. It must not download the full game client, decode full metadata, scan the executable, or run packet-specific investigations.
 
-It runs:
+CI uses per-ref concurrency with `cancel-in-progress: true` so a newer push replaces stale work.
 
-- Python unit tests;
-- committed-version validation;
-- small wire/CLI/protocol-query smoke tests;
-- cheap Bash and PowerShell syntax checks.
+## `generate-7.1-data.yml`
 
-It must not download a game client, decode full metadata, scan the executable, or run packet-specific investigations.
+This is the only canonical exact-sample generation workflow for the current 7.1 Global Windows x64 target.
 
-CI uses per-ref concurrency with `cancel-in-progress: true`, so a newer push replaces stale test runs on the same ref.
+It performs one fail-closed chain:
 
-## 2. Canonical 7.1 data workflows
+1. fetch the pinned exact sample;
+2. regenerate metadata/runtime/GetCmdId evidence;
+3. recover the exact 4,896 registry constructor/type slots;
+4. recover dominant registry-slot xrefs from the regenerated method/GetCmdId data;
+5. publish the strict 4,896-row slot/type/CmdId registry;
+6. publish the validated metadata/GetCmdId artifacts;
+7. validate the complete committed version tree;
+8. commit all canonical changes together.
 
-### `generate-7.1-data.yml`
+The registry stages used to be split across three write-capable workflows. Those shells were retired after the registry identity path stabilized. The underlying package modules remain the implementation and can still be invoked directly for focused debugging.
 
-Maintained exact-sample generation entry point for canonical metadata/runtime/GetCmdId artifacts.
+The workflow is narrowly path-triggered, uses same-ref stale-run cancellation, and never runs exploratory packet investigations.
 
-It performs only the canonical chain:
+## `disassemble-7.1-rva.yml`
 
-1. fetch the pinned 7.1 sample;
-2. decode exact-sample metadata;
-3. verify metadata anchors;
-4. build the runtime type index;
-5. scan constant-return GetCmdId candidates;
-6. publish the fixed canonical artifact set;
-7. validate the version tree.
+This is the retained generic opt-in exact-sample research workflow. It accepts an RVA and size, fetches the pinned client, validates the executable identity, and preserves the requested disassembly as a short-lived artifact.
 
-Every stage is required. The workflow does not clone AstaPS, run candidate-graph research, perform usage recovery, or continue after a failed canonical stage.
+Packet-specific Actions are not retained after their useful evidence has been committed. CmdId 186, waypoint response recovery, packet framing, scene-handler work, candidate-graph experiments and similar investigations now rely on committed evidence plus reusable package/tools entry points rather than dedicated Actions shells.
 
-### `recover-7.1-registry-type-slots.yml`
+## Retirement rule
 
-Maintained exact-sample registry constructor/type-slot recovery. It reconstructs the exact indexed 4,896-row type-slot table and its load/store provenance from the pinned client.
-
-Sample identity, contiguous indices `0..4895`, uniqueness and preserved slot controls are hard gates. CmdId identity is closed separately by current GetCmdId candidates plus registry-slot xrefs; this workflow does not infer a second native CmdId representation.
-
-### `recover-7.1-registry-slot-xrefs.yml`
-
-Maintained exact-sample relationship recovery for canonical registry identity. It maps each GetCmdId candidate type to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
-
-Recovery fails unless every verified registry slot has a unique dominant candidate-type owner and the preserved current-client anchors match.
-
-### `publish-7.1-registry-xrefs.yml`
-
-Canonical registry identity publisher. It calls `genshinre.registryxrefpublish` and owns the current `registry/registry.csv + registry/registry.summary.json` contract. Publication consumes `registry-slot-xrefs.csv`, verified constructor slots, and evidence-gated known opcodes.
-
-The general artifact publisher requires this canonical registry to already exist and pass its schema/bijection gate.
-
-All maintained exact-sample workflows use same-ref stale-run cancellation when a newer iteration supersedes an older one.
-
-## 3. Research workflows
-
-Research workflows are opt-in or narrowly triggered. They orchestrate reusable tools around a live investigation; they are not the implementation of a reverse-engineering method.
-
-Current retained workflows are:
-
-- `probe-cmd186-external-consumer.yml` for the active CmdId 186 investigation;
-- `publish-7.1-candidate-graph.yml` for the maintained GetCmdId structural graph;
-- `disassemble-7.1-rva.yml` as the generic exact-sample RVA inspection entry point.
-
-The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The packet-framing locator/call-edge Actions were also retired after the exact 7.1 plaintext boundaries, caller evidence and maintained runtime capture path were recorded under `versions/7.1.0-global/windows-x64/analyses/unlock-trans-point/`; the reusable locator and generic call-edge tracer remain available under `tools/`. The pre-closure metadata-usage/type candidate-convergence chain was likewise retired after canonical registry identity reached a strict 4,896-row bijection.
-
-A proposed contiguous `ushort[4896]` CmdId plus binary direction-array recovery was also retired. Two exact-sample workflow runs found no CmdId blob satisfying its own uniqueness/nonzero gates, and no such artifact was ever committed. Git history preserves that rejected hypothesis; maintained registry identity continues to use verified constructor slots plus current GetCmdId/slot-xref evidence.
-
-Research workflow output is never silently copied by canonical publication. Each retained workflow owns explicit inputs, outputs and an evidence gate.
-
-Maintainers should retire a research workflow when:
+Retire a workflow when all of the following are true:
 
 1. its reusable algorithm lives in `genshinre/` or a retained `tools/` command;
-2. its exact sample/parameters are documented or represented in an analysis artifact;
-3. unique evidence/results are committed under `versions/` or a maintained case study;
+2. its exact sample/parameters are documented or represented in committed evidence;
+3. unique results are durable under `versions/` or a maintained case study;
 4. no active investigation depends on the workflow shell itself.
 
-Repository maintenance may improve shared setup and safety around active research workflows, but it does not own their reverse-engineering conclusions.
-
-Heavy research workflows that download the client or perform long executable scans should use same-ref stale-run cancellation when a newer iteration supersedes an older one.
+Git history preserves retired orchestration. Do not keep old workflow files as documentation.
 
 ## Adding a workflow
 
-Before adding a new workflow:
+A new workflow needs a distinct ongoing orchestration need. Before adding one:
 
-1. implement/test reusable logic in `genshinre/` or `tools/`;
-2. use maintained exact-sample workflows only for the artifacts they explicitly own;
-3. add a narrowly triggered research workflow only when the investigation genuinely needs a distinct environment or sequence;
-4. keep exact sample hashes and provenance explicit;
-5. avoid full-client work on unrelated pushes;
-6. keep research publication separate from canonical publication.
+1. put reusable logic in `genshinre/` or `tools/`;
+2. reuse the canonical generation workflow for canonical artifacts;
+3. keep exact sample hashes and provenance explicit;
+4. keep full-client work off ordinary CI;
+5. plan to retire packet-specific orchestration once its evidence is durable.
 
 A workflow is orchestration, not the canonical implementation of a reverse-engineering method.

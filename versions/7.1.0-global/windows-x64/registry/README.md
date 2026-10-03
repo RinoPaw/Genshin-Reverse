@@ -4,14 +4,14 @@ This directory contains protocol-registry artifacts for the exact 7.1 sample in 
 
 ## Canonical identity registry
 
-The current publication-gated 7.1 identity dataset is present:
+The maintained 7.1 identity dataset is:
 
-- `registry.csv`: complete 4,896-row primary query surface
-- `registry.summary.json`: closure statistics, control anchors and publication status
+- `registry.csv`: complete 4,896-row primary query surface;
+- `registry.summary.json`: closure statistics, control anchors and publication status;
+- `registry-type-slots.csv`: exact constructor/type slots and load/store provenance;
+- `registry-slot-xrefs.csv`: dominant current-client relationships between GetCmdId candidate types and verified slots.
 
-The canonical registry is closed from verified constructor/type slots plus dominant declaring-type code xrefs. The summary requires a strict one-to-one registry-slot / type-definition / CmdId mapping across all 4,896 rows.
-
-Direction and semantic names are independent evidence layers. Blank or unresolved values do not invalidate the closed numeric/type identity registry.
+The publisher requires a strict one-to-one registry-slot / type-definition / CmdId mapping across all 4,896 rows. Direction and semantic names are independent evidence layers; unresolved semantic fields do not invalidate the closed numeric/type identity registry.
 
 Current canonical columns:
 
@@ -19,7 +19,7 @@ Current canonical columns:
 index,cmd_id,type_name,type_definition_index,direction,direction_status,semantic_name,type_slot_rva,get_cmd_id_rva,get_cmd_id_method,load_rva,store_rva,xref_count,xref_method_count,status,evidence
 ```
 
-Use the streaming registry query for routine lookups:
+Routine lookups use:
 
 ```bash
 genshinre query-registry registry.csv --cmd-id 186
@@ -28,19 +28,22 @@ genshinre query-registry registry.csv --type-definition-index 61556
 genshinre query-registry registry.csv --index 48
 ```
 
-Filters may be combined when a lookup should assert multiple identity fields at once.
+## Maintained regeneration path
 
-## Exact registry type slots
+`.github/workflows/generate-7.1-data.yml` owns the canonical exact-sample chain. Registry generation runs in one ordered transaction after metadata/GetCmdId regeneration:
 
-`registry-type-slots.csv` records the exact 4,896 constructor/type slots and their load/store provenance. `genshinre.registryslots` accepts only the pinned 7.1 EXE and fails unless all indices `0..4895` plus preserved controls close exactly.
+```text
+pinned GenshinImpact.exe
++ regenerated methods/GetCmdId candidates
+→ genshinre.registryslots
+→ genshinre.registryslotxref
+→ genshinre.registryxrefpublish
+→ strict 4,896-row registry
+```
 
-Regenerate this layer with `.github/workflows/recover-7.1-registry-type-slots.yml` or the underlying package command.
+The three former registry-specific Actions were retired after this path stabilized. The package modules remain directly invokable when focused debugging is useful.
 
-## Canonical slot relationship evidence
-
-`registry-slot-xrefs.csv` maps GetCmdId candidate types to verified constructor slots by current-client RIP-relative code references. Its primary `UNIQUE_SLOT_XREF` / `DOMINANT_SLOT_XREF` rows are the relationship evidence consumed by `genshinre.registryxrefpublish`.
-
-Regenerate this relationship layer with:
+Example relationship recovery:
 
 ```bash
 python -m genshinre.registryslotxref \
@@ -52,34 +55,30 @@ python -m genshinre.registryslotxref \
   --summary registry-slot-xrefs.summary.json
 ```
 
-Recovery requires all 4,896 verified slots to have a dominant candidate owner and requires the preserved current-client slot controls to match. The publisher then independently checks the strict slot/type/CmdId bijection before writing `registry.csv`.
+The publisher then consumes `registry-slot-xrefs.csv`, `registry-type-slots.csv`, and evidence-gated `../proto/known-opcodes.csv`.
 
-The former `type-cache-xrefs` name was retired. These rows describe registry-slot references and do not represent a compatibility cache.
+## GetCmdId candidates
 
-## Control set versus confirmed semantic mappings
+`getcmdid-candidates.csv` and its summary are the maintained conservative constant-return scan. They are an input to registry-slot relationship recovery and may contain duplicate numeric candidates before slot evidence resolves identity.
 
-`control-set.csv` is an imported AstaPS `PacketOpcodes.java` control set used to cross-check candidate graphs and diagnostics. Its rows are mostly `mapped-not-observed`; membership in this file does not by itself establish a target-client semantic identity.
+The former structural GetCmdId candidate graph was a pre-closure research surface. Once the strict 4,896-row registry became canonical it no longer added a maintained identity layer, so its workflow, generated graph files, package module and tests were retired. Git history preserves that experiment.
 
-The small, evidence-gated semantic mapping lives separately at `../proto/known-opcodes.csv`. Those rows are explicitly confirmed for the current 7.1 investigation state.
+## Semantic controls
 
-Keep these two roles separate:
+`control-set.csv` is an imported AstaPS comparison surface. Membership does not establish current-client semantic identity.
 
-- `registry/control-set.csv` — broad external/server mapping used as a comparison/control surface;
+Evidence-gated current-target semantic mappings live separately at `../proto/known-opcodes.csv`.
+
+Keep these roles separate:
+
+- `registry/control-set.csv` — broad external/server comparison data;
 - `proto/known-opcodes.csv` — target-client semantic names that passed the repository evidence gate.
 
-## Structural GetCmdId graph
+## Retired recovery paths
 
-`getcmdid-candidate-graph.*` is generated by `genshinre.getcmdidgraph`. It groups candidates using a verified GetCmdId method identity plus a machine-code stub pattern. It is a structural research surface and carries no registry-slot relationship by itself.
+Older metadata-usage/type convergence, type-cache naming, native-array hypotheses and other pre-closure experiments are retained in Git history rather than as alternate live registry paths.
 
-The former metadata-usage/type `registry-candidate-graph` recovery route was retired after the canonical registry reached a strict 4,896-row identity closure. Git history preserves that pre-closure experiment; it is not a maintained current path.
-
-Candidate graphs never overwrite canonical registry data.
-
-## Rejected native-array hypothesis
-
-A focused probe attempted to recover a contiguous native `ushort[4896]` CmdId array plus a parallel binary direction-flag array. Exact-sample runs found no CmdId blob satisfying the probe's own nonzero/uniqueness controls, and no `registry-native-arrays.*` artifact was ever committed. That probe and its workflow were retired rather than weakened with fallback matching.
-
-The maintained identity path remains:
+The maintained identity rule is:
 
 ```text
 verified constructor/type slots
@@ -88,8 +87,4 @@ verified constructor/type slots
 → strict 4,896-row canonical registry
 ```
 
-## Other research intermediates
-
-Metadata-usage slots, registration probes, direction probes and similar files may remain as focused research evidence when they serve an active method. They do not replace `registry.csv` and are not inputs to canonical identity publication unless the current publisher contract names them explicitly.
-
-The current canonical publisher is `genshinre.registryxrefpublish`. General metadata/artifact publication validates and preserves the canonical registry in place; it does not re-close registry identity through deprecated candidate-convergence heuristics.
+Do not add a second publication path for the same identity layer. If this chain needs to change, update the canonical generator and its validation contract together.
