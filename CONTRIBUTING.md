@@ -18,6 +18,16 @@ Record, directly or through a sibling manifest:
 
 A rejected candidate is useful data. Keep it when the rejection prevents future researchers from repeating the same test. Focused investigations should distinguish `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED` and `UNRESOLVED` results.
 
+Preserve the conclusion and the reason for rejection, not dead executable clutter. Once a rejected probe no longer serves an active investigation, record the useful evidence in the focused analysis and remove the disposable helper.
+
+## Keep the maintained tree current
+
+The working tree should expose one maintained path for each operation. Git history is the archive; do not retain superseded scripts, workflows, helpers or generated variants under names such as `legacy`, `old`, `deprecated`, `backup`, or `workaround` merely to preserve the previous approach.
+
+When a generally useful replacement is accepted, remove the superseded path in the same change. Promote reusable logic into `genshinre/`, keep sample-bound evidence under `versions/`, and delete disposable experiment glue after its result has been preserved.
+
+A temporary compatibility path may remain only for a concrete currently supported dependency. Keep it narrow and document the dependency and the condition that permits removal. Avoid parallel implementations with unclear ownership.
+
 ## Prefer machine-readable intermediates
 
 CSV/JSON indexes are preferred over screenshots or prose-only dumps. Human-readable reports should point to the machine-readable source data.
