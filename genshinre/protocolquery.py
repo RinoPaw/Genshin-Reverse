@@ -12,6 +12,9 @@ _XREF_FILES = {
     "senders": "message-senders.csv",
     "constructors": "message-constructors.csv",
 }
+_SCENE_HANDLER_DISPATCH_DIR = Path("analyses") / "scene-handler-dispatch"
+_SCENE_HANDLER_SLOTS_FILE = "scene-handler-slots.csv"
+_SCENE_HANDLER_EVIDENCE_FILE = "evidence.json"
 
 
 def _row_int(row: dict[str, object], key: str) -> int | None:
@@ -84,6 +87,24 @@ def _analysis_cases(version_dir: Path, cmd_id: int) -> list[dict[str, object]]:
     return [item]
 
 
+def _scene_handler_dispatch(
+    version_dir: Path,
+    cmd_id: int,
+    type_name: str,
+) -> dict[str, object]:
+    analysis_dir = version_dir / _SCENE_HANDLER_DISPATCH_DIR
+    slots_path = analysis_dir / _SCENE_HANDLER_SLOTS_FILE
+    evidence_path = analysis_dir / _SCENE_HANDLER_EVIDENCE_FILE
+    rows = _matching_csv_rows(slots_path, cmd_id, type_name)
+    return {
+        "source_path": str(slots_path.relative_to(version_dir)) if slots_path.is_file() else None,
+        "evidence_path": str(evidence_path.relative_to(version_dir))
+        if evidence_path.is_file()
+        else None,
+        "rows": rows,
+    }
+
+
 def query_protocol(
     version_dir: Path,
     *,
@@ -144,6 +165,13 @@ def query_protocol(
         )
         shapes = _message_shapes(version_dir / "proto" / "message-shapes.json", identity_cmd)
         analyses = _analysis_cases(version_dir, identity_cmd)
+        scene_handler_dispatch = _scene_handler_dispatch(
+            version_dir,
+            identity_cmd,
+            identity_type,
+        )
+        scene_handler_rows = scene_handler_dispatch["rows"]
+        assert isinstance(scene_handler_rows, list)
 
         results.append(
             {
@@ -153,6 +181,7 @@ def query_protocol(
                     "methods": methods,
                 },
                 "xrefs": xrefs,
+                "scene_handler_dispatch": scene_handler_dispatch,
                 "runtime_observations": observations,
                 "known_opcodes": known_opcodes,
                 "message_shapes": shapes,
@@ -163,6 +192,7 @@ def query_protocol(
                     "handlers": len(xrefs["handlers"]),
                     "senders": len(xrefs["senders"]),
                     "constructors": len(xrefs["constructors"]),
+                    "scene_handler_dispatch_rows": len(scene_handler_rows),
                     "runtime_observations": len(observations),
                     "known_opcodes": len(known_opcodes),
                     "message_shapes": len(shapes),
