@@ -1,6 +1,6 @@
 # UnlockTransPoint protocol recovery
 
-Status: request side **CONFIRMED**; response remains an **UNRESOLVED STATIC TIE** between two current-7.1 identities.
+Status: request side **CONFIRMED**; live waypoint unlock behavior is **CLOSED/VALIDATED** with the corrected `ScenePointUnlockNotify`; exact `UnlockTransPointRsp` identity remains an **UNRESOLVED STATIC TIE** and further response research is **PAUSED** because it has no observed gameplay value for the current AstaPS path. See `WORK_PROGRESS_2026-10-03.md` for the handoff checkpoint.
 
 Pinned official global 7.1 sample:
 
@@ -91,6 +91,8 @@ Both parse the expected `int32 retcode = 6` shape. Both are consumed by the same
 
 Do not describe `36641` as preferred. The earlier local-neighborhood preference was invalidated by later controls.
 
+Runtime controls on the corrected live notification path produced the same successful physical activation, immediate map usability, and teleport behavior with candidate `36641`, candidate `20290`, and with no `UnlockTransPointRsp` sent at all. Visible private-server behavior therefore provides no promotion evidence and the response identity is not required by the current gameplay implementation.
+
 ## Current lifecycle controls
 
 ```text
@@ -107,6 +109,18 @@ GetSceneAreaRsp
 ```
 
 The large distance from the candidate ACKs to the confirmed current `ScenePointUnlockNotify` handler is one of the controls proving that the compact 7.0 lifecycle neighborhood did not survive owner-method reordering.
+
+`ScenePointUnlockNotify` is a confirmed official client message, not an AstaPS workaround. The exact current 7.1 field semantics recovered from the client are:
+
+```text
+field 2   scene_id
+field 4   locked_point_list
+field 6   hide_point_list
+field 8   unhide_point_list
+field 15  point_list
+```
+
+A normal unlock should send `scene_id + point_list`. The old AstaPS path also populated generated field 4, whose stale generated name suggested unhide but whose official current meaning is `locked_point_list`; that contradictory unlock+lock update was the cause of the live gray/unusable map waypoint behavior.
 
 ## Static boundary
 
@@ -163,6 +177,8 @@ python tools/runtime/capture_game_packets_71.py \
 
 Use a genuine known-correct current-7.1 unlock flow. A private server that has been manually forced to send one candidate cannot establish semantic identity.
 
+The capture path is retained for future use, but active response-identity research is paused. Resume only if a gameplay dependency appears, a genuine official-current capture becomes available incidentally, or new static evidence creates a unique semantic binding.
+
 ## Automatic transaction correlation
 
 After capture, run:
@@ -201,26 +217,29 @@ X = 20290
 
 `ScenePointUnlockNotify / 25567` may appear in the same lifecycle, but it does not replace the request/response sequence correlation.
 
-Until that observation or another independent semantic binding exists, keep both candidates alive and do not assign `PacketOpcodes.UnlockTransPointRsp` in AstaPS.
+Until that observation or another independent semantic binding exists, keep both candidates unresolved and do not assign `PacketOpcodes.UnlockTransPointRsp` in AstaPS.
 
 ## AstaPS integration rule
 
-Once the response identity is confirmed, update the server lifecycle separately from opcode recovery:
+Current validated gameplay path:
 
 ```text
 receive UnlockTransPointReq(sceneId, pointId)
     -> if newly unlocked:
          update player state
-         persist
+         grant reward / trigger unlock events
          send ScenePointUnlockNotify(sceneId, pointId)
-    -> send UnlockTransPointRsp(retcode = 0)
+         persist
 ```
 
-Do not remove the current gameplay refresh/fallback behavior merely because the opcode has been recovered. Its necessity must be validated independently against the current client.
+Do not proactively send a full `GetScenePointRsp` after each unlock; that was a refresh workaround and is no longer required after correcting the live notification fields. Keep normal request-driven `GetScenePointReq/GetScenePointRsp` support for full scene-point state synchronization.
+
+Do not send either unconfirmed `UnlockTransPointRsp` candidate merely to complete the apparent Req/Rsp pair. Runtime controls show no observed gameplay dependency on that response in the tested ordinary waypoint flow.
 
 ## Primary references
 
 ```text
+WORK_PROGRESS_2026-10-03.md
 RESEARCH_LOG.md
 STATIC_BOUNDARY_2026-10-02.md
 RUNTIME_PROBE.md
