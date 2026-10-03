@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from genshinre import mhy71
 from genshinre.nativeprofile import PROFILE_71, get_native_profile
 
 
@@ -41,6 +42,20 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual(26_105, anchor.cmd_id)
         self.assertEqual("HJDNCHODGOL", anchor.type_name)
         self.assertEqual(0x10587260, anchor.rva)
+
+    def test_metadata_decoder_contract_matches_profile(self) -> None:
+        profile = PROFILE_71
+
+        self.assertEqual(profile.exe_sha256, mhy71.EXPECTED_EXE_SHA256)
+        self.assertEqual(profile.metadata_sha256, mhy71.EXPECTED_METADATA_SHA256)
+        self.assertEqual(profile.type_definition_count, mhy71.EXPECTED_TYPE_COUNT)
+        self.assertEqual(profile.field_count, mhy71.EXPECTED_FIELD_COUNT)
+        self.assertEqual(profile.method_count, mhy71.EXPECTED_METHOD_COUNT)
+        self.assertEqual(profile.metadata_body_skip, mhy71.BODY_SKIP)
+        self.assertEqual(profile.embedded_header_rva, mhy71.EMBEDDED_HEADER_RVA)
+        self.assertEqual(profile.embedded_header_size, mhy71.EMBEDDED_HEADER_SIZE)
+        self.assertEqual(profile.type_array_pointer_rva, mhy71.TYPE_ARRAY_POINTER_RVA)
+        self.assertEqual(profile.method_pointer_table_rva, mhy71.METHOD_POINTER_TABLE_RVA)
 
     def test_profile_lookup_is_exact(self) -> None:
         self.assertIs(PROFILE_71, get_native_profile(PROFILE_71.identity))

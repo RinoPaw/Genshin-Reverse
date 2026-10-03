@@ -2,19 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .mhy71 import (
-    BODY_SKIP,
-    EMBEDDED_HEADER_RVA,
-    EMBEDDED_HEADER_SIZE,
-    EXPECTED_EXE_SHA256,
-    EXPECTED_FIELD_COUNT,
-    EXPECTED_METADATA_SHA256,
-    EXPECTED_METHOD_COUNT,
-    EXPECTED_TYPE_COUNT,
-    METHOD_POINTER_TABLE_RVA,
-    TYPE_ARRAY_POINTER_RVA,
-)
-
 
 @dataclass(frozen=True)
 class RuntimeTypeAnchor:
@@ -56,20 +43,24 @@ class NativeProfile:
         return f"{self.version}-{self.region}/{self.platform}"
 
 
+# Exact-sample constants live here so current-client generators, validators and
+# future version profiles share one explicit target contract. Decoder modules
+# may expose implementation-local aliases, but CI crosschecks them against this
+# profile and committed artifacts.
 PROFILE_71 = NativeProfile(
     version="7.1.0",
     region="global",
     platform="windows-x64",
-    exe_sha256=EXPECTED_EXE_SHA256,
-    metadata_sha256=EXPECTED_METADATA_SHA256,
-    type_definition_count=EXPECTED_TYPE_COUNT,
-    field_count=EXPECTED_FIELD_COUNT,
-    method_count=EXPECTED_METHOD_COUNT,
-    metadata_body_skip=BODY_SKIP,
-    embedded_header_rva=EMBEDDED_HEADER_RVA,
-    embedded_header_size=EMBEDDED_HEADER_SIZE,
-    type_array_pointer_rva=TYPE_ARRAY_POINTER_RVA,
-    method_pointer_table_rva=METHOD_POINTER_TABLE_RVA,
+    exe_sha256="08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    metadata_sha256="05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    type_definition_count=88_904,
+    field_count=440_172,
+    method_count=733_442,
+    metadata_body_skip=0x210,
+    embedded_header_rva=0x027D4BD0,
+    embedded_header_size=0x210,
+    type_array_pointer_rva=0x02870AD0,
+    method_pointer_table_rva=0x02870B90,
     runtime_type_count=683_574,
     runtime_type_boundary_rva=0x388CD80,
     runtime_type_anchor=RuntimeTypeAnchor(
