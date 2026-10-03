@@ -5,11 +5,16 @@ on:
     paths:
       - '.github/workflows/publish-7.1-candidate-graph.yml'
       - 'genshinre/getcmdidgraph.py'
+      - 'genshinre/nativeprofile.py'
       - 'versions/7.1.0-global/windows-x64/registry/getcmdid-candidates.csv'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: publish-7.1-getcmdid-candidate-graph
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -28,9 +33,7 @@ jobs:
             "$ROOT/getcmdid-candidates.csv" \
             "$ROOT/getcmdid-candidate-graph.csv" \
             "$ROOT/getcmdid-candidate-graph.summary.json" \
-            --anchor-cmd-id 26105 \
-            --anchor-type HJDNCHODGOL \
-            --anchor-rva 0x10587260 \
+            --profile 7.1.0-global/windows-x64 \
             --focus 186,9369,22899,26105
       - name: Commit generated graph
         run: |
