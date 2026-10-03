@@ -20,6 +20,9 @@ class GetCmdIdAnchor:
 
 @dataclass(frozen=True)
 class RegistrySlotAnchor:
+    cmd_id: int
+    type_name: str
+    type_definition_index: int
     index: int
     type_slot_rva: int
     store_rva: int | None
@@ -104,12 +107,18 @@ PROFILE_71 = NativeProfile(
     registry_code_max_rva=0x07F8E500,
     registry_slot_anchors=(
         RegistrySlotAnchor(
+            cmd_id=9_369,
+            type_name="DMMJNICDOHM",
+            type_definition_index=84_249,
             index=2_232,
             type_slot_rva=0x057E6498,
             store_rva=0x07F852AB,
             name="UnlockTransPointReq",
         ),
         RegistrySlotAnchor(
+            cmd_id=22_899,
+            type_name="ONKOPMILDMF",
+            type_definition_index=87_483,
             index=3_118,
             type_slot_rva=0x057F6F60,
             store_rva=None,
