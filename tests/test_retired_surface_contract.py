@@ -63,7 +63,6 @@ class RetiredSurfaceContractTests(unittest.TestCase):
             ".github/workflows/publish-7.1-registry-xrefs.yml",
             ".github/workflows/recover-7.1-registry-slot-xrefs.yml",
             ".github/workflows/recover-7.1-registry-type-slots.yml",
-            "genshinre/contracts.py",
             "genshinre/getcmdidgraph.py",
             "genshinre/graphdiag.py",
             "genshinre/paramprobe.py",
