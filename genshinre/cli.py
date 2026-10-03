@@ -15,6 +15,7 @@ from .pointerxref import scan_pointer_xrefs
 from .protocolquery import query_protocol
 from .registry import query_registry
 from .scaffold import scaffold
+from .scenehandlers import extract_scene_handler_slots
 from .trace import import_trace
 from .validate import validate_version
 from .wire import parse_message
@@ -107,6 +108,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alignment", type=int, default=8)
     p.add_argument("--window", type=int, default=48)
     p.add_argument("--include-executable-holders", action="store_true")
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser(
+        "scene-handler-slots",
+        help="join one-parameter scene-owner protocol methods to verified delegate-slot loads",
+    )
+    p.add_argument("exe", type=Path)
+    p.add_argument("methods_csv", type=Path)
+    p.add_argument("registry_csv", type=Path)
+    p.add_argument("owner_type")
+    p.add_argument("slot_start", type=_rva)
+    p.add_argument("slot_end", type=_rva)
+    p.add_argument("--alignment", type=int, default=8)
+    p.add_argument("--max-method-body", type=_rva, default=0x10000)
     p.add_argument("--output", type=Path)
 
     p = sub.add_parser("inspect-rva", help="dump bytes and simple RIP-relative instructions around an RVA")
@@ -271,6 +286,20 @@ def main() -> None:
             alignment=args.alignment,
             window=args.window,
             include_executable_holders=args.include_executable_holders,
+        )
+        if args.output:
+            write_json(result, args.output)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "scene-handler-slots":
+        result = extract_scene_handler_slots(
+            args.exe,
+            args.methods_csv,
+            args.registry_csv,
+            args.owner_type,
+            args.slot_start,
+            args.slot_end,
+            slot_alignment=args.alignment,
+            max_method_body=args.max_method_body,
         )
         if args.output:
             write_json(result, args.output)
