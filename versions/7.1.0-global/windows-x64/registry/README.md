@@ -30,13 +30,11 @@ genshinre query-registry registry.csv --index 48
 
 Filters may be combined when a lookup should assert multiple identity fields at once.
 
-## Exact native registry inputs
+## Exact registry type slots
 
 `registry-type-slots.csv` records the exact 4,896 constructor/type slots and their load/store provenance. `genshinre.registryslots` accepts only the pinned 7.1 EXE and fails unless all indices `0..4895` plus preserved controls close exactly.
 
-`registry-native-arrays.csv` records the independently recovered native `ushort[4896]` CmdId array and binary direction-flag array joined to the indexed type slots. `genshinre.registryarrays` requires the same pinned sample, exactly 4,896 unique nonzero CmdIds, an exact 4,896-entry binary flag window, contiguous slot indices, and all confirmed direction controls.
-
-Regenerate those inputs with `.github/workflows/recover-7.1-registry-native-inputs.yml` or the underlying package commands.
+Regenerate this layer with `.github/workflows/recover-7.1-registry-type-slots.yml` or the underlying package command.
 
 ## Canonical slot relationship evidence
 
@@ -54,7 +52,7 @@ python -m genshinre.registryslotxref \
   --summary registry-slot-xrefs.summary.json
 ```
 
-Recovery itself now requires all 4,896 verified slots to have a dominant candidate owner and requires the preserved 9369 / 22899 slot controls to match. The publisher then independently checks the strict slot/type/CmdId bijection before writing `registry.csv`.
+Recovery requires all 4,896 verified slots to have a dominant candidate owner and requires the preserved current-client slot controls to match. The publisher then independently checks the strict slot/type/CmdId bijection before writing `registry.csv`.
 
 The former `type-cache-xrefs` name was retired. These rows describe registry-slot references and do not represent a compatibility cache.
 
@@ -76,6 +74,19 @@ Keep these two roles separate:
 The former metadata-usage/type `registry-candidate-graph` recovery route was retired after the canonical registry reached a strict 4,896-row identity closure. Git history preserves that pre-closure experiment; it is not a maintained current path.
 
 Candidate graphs never overwrite canonical registry data.
+
+## Rejected native-array hypothesis
+
+A focused probe attempted to recover a contiguous native `ushort[4896]` CmdId array plus a parallel binary direction-flag array. Exact-sample runs found no CmdId blob satisfying the probe's own nonzero/uniqueness controls, and no `registry-native-arrays.*` artifact was ever committed. That probe and its workflow were retired rather than weakened with fallback matching.
+
+The maintained identity path remains:
+
+```text
+verified constructor/type slots
++ current GetCmdId candidates
++ dominant registry-slot xrefs
+→ strict 4,896-row canonical registry
+```
 
 ## Other research intermediates
 

@@ -44,19 +44,15 @@ It performs only the canonical chain:
 
 Every stage is required. The workflow does not clone AstaPS, run candidate-graph research, perform usage recovery, or continue after a failed canonical stage.
 
-### `recover-7.1-registry-native-inputs.yml`
+### `recover-7.1-registry-type-slots.yml`
 
-Maintained exact-sample registry-identity input recovery. It reconstructs:
+Maintained exact-sample registry constructor/type-slot recovery. It reconstructs the exact indexed 4,896-row type-slot table and its load/store provenance from the pinned client.
 
-- the exact indexed 4,896-row registry constructor/type-slot table;
-- the exact native 4,896-entry CmdId array;
-- the exact native direction-flag array joined to verified current semantic controls.
-
-Sample identity, completeness, contiguity and preserved controls are hard gates. GetCmdId candidates are not regenerated here; `generate-7.1-data.yml` owns that artifact.
+Sample identity, contiguous indices `0..4895`, uniqueness and preserved slot controls are hard gates. CmdId identity is closed separately by current GetCmdId candidates plus registry-slot xrefs; this workflow does not infer a second native CmdId representation.
 
 ### `recover-7.1-registry-slot-xrefs.yml`
 
-Maintained exact-sample relationship recovery for canonical registry identity. It maps GetCmdId candidate types to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
+Maintained exact-sample relationship recovery for canonical registry identity. It maps each GetCmdId candidate type to verified registry constructor slots and writes `registry-slot-xrefs.csv` plus its summary.
 
 Recovery fails unless every verified registry slot has a unique dominant candidate-type owner and the preserved current-client anchors match.
 
@@ -81,7 +77,9 @@ Current retained examples include:
 
 `disassemble-7.1-rva.yml` and `inspect-7.0-reference-dump.yml` are retained as generic inspection/reference entry points rather than packet-specific case workflows.
 
-The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-convergence chain and the duplicate fast-refresh registry workflow were also retired after their maintained responsibilities were assigned to explicit exact-sample workflows.
+The completed/paused waypoint-unlock comparison, scene-handler, field-mapping, RPC-submit and response-resolution workflows were retired after their reusable methods and exact-sample evidence were preserved. The pre-closure metadata-usage/type candidate-convergence chain was also retired after canonical registry identity reached a strict 4,896-row bijection.
+
+A proposed contiguous `ushort[4896]` CmdId plus binary direction-array recovery was also retired. Two exact-sample workflow runs found no CmdId blob satisfying its own uniqueness/nonzero gates, and no such artifact was ever committed. Git history preserves that rejected hypothesis; maintained registry identity continues to use verified constructor slots plus current GetCmdId/slot-xref evidence.
 
 Research workflow output is never silently copied by canonical publication. Each retained workflow owns explicit inputs, outputs and an evidence gate.
 

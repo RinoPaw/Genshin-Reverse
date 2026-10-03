@@ -1,18 +1,16 @@
-name: Recover 7.1 registry native inputs
+name: Recover 7.1 registry type slots
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/recover-7.1-registry-native-inputs.yml'
+      - '.github/workflows/recover-7.1-registry-type-slots.yml'
       - 'scripts/fetch-7.1-samples.sh'
       - 'genshinre/nativeprofile.py'
       - 'genshinre/registryslots.py'
-      - 'genshinre/registryarrays.py'
-      - 'versions/7.1.0-global/windows-x64/proto/known-opcodes.csv'
 
 concurrency:
-  group: recover-7.1-registry-native-inputs-${{ github.ref }}
+  group: recover-7.1-registry-type-slots-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -46,30 +44,16 @@ jobs:
             --summary "$OUT/registry-type-slots.summary.json"
           cat "$OUT/registry-type-slots.summary.json"
 
-      - name: Recover exact native CmdId and direction arrays
-        run: |
-          ROOT=versions/7.1.0-global/windows-x64
-          OUT="$ROOT/registry"
-          python -m genshinre.registryarrays \
-            /tmp/gi71/GenshinImpact.exe \
-            "$OUT/registry-type-slots.csv" \
-            "$ROOT/proto/known-opcodes.csv" \
-            "$OUT/registry-native-arrays.csv" \
-            --summary "$OUT/registry-native-arrays.summary.json"
-          cat "$OUT/registry-native-arrays.summary.json"
-
-      - name: Commit recovered native registry inputs
+      - name: Commit recovered registry type slots
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add versions/7.1.0-global/windows-x64/registry/registry-type-slots.csv \
-                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json \
-                  versions/7.1.0-global/windows-x64/registry/registry-native-arrays.csv \
-                  versions/7.1.0-global/windows-x64/registry/registry-native-arrays.summary.json
+                  versions/7.1.0-global/windows-x64/registry/registry-type-slots.summary.json
           if git diff --cached --quiet; then
-            echo 'No native registry input changes.'
+            echo 'No registry type-slot changes.'
             exit 0
           fi
-          git commit -m 'data: refresh native 7.1 registry inputs'
+          git commit -m 'data: refresh 7.1 registry type slots'
           git pull --rebase origin main
           git push origin HEAD:main
