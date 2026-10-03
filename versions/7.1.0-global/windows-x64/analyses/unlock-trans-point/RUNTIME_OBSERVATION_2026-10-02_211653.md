@@ -125,3 +125,45 @@ The next session should start from these checks, in order:
 6. Preserve the removed `GetScenePointRsp` workaround on the test branch during this investigation; reintroducing it would mask the live notification failure.
 
 Do not publish either response candidate into the canonical semantic opcode map until this path converges.
+
+## Follow-up runtime controls — 2026-10-03
+
+Subsequent official-7.1-client reverse work recovered the exact `ScenePointUnlockNotify` field semantics and showed that AstaPS's generated field-4 accessor was semantically mislabeled. For this exact Global client:
+
+```text
+scene_id           = field 2
+locked_point_list  = field 4
+hide_point_list    = field 6
+unhide_point_list  = field 8
+point_list         = field 15
+```
+
+The old AstaPS ordinary unlock path therefore sent the same point in `point_list(field 15)` and in field 4, which the client interprets as `locked_point_list`. The live notification was internally contradictory.
+
+A clean AstaPS test branch removed the full `GetScenePointRsp` refresh and changed ordinary unlock notification to `scene_id + point_list` only. Three controlled fresh-waypoint runs then produced identical user-visible results:
+
+1. candidate response `36641`: physical waypoint lit, reward granted, map icon became active immediately, and map teleport worked;
+2. candidate response `20290`: same four outcomes;
+3. **no response ACK at all**: same four outcomes.
+
+The no-ACK control happened accidentally but is especially strong. The test process was started with `ASTAPS_UNLOCK_TRANS_POINT_RSP_CMD=1` against an older probe build that only accepted `36641` or `20290`. On the fresh waypoint request the server log was:
+
+```text
+16:50:44 unlock-request ... scene=3 point=6 ... previouslyUnlocked=false ...
+16:50:44 unlock-result ... scene=3 point=6 unlocked=true
+16:50:44 ERROR Dropped an inbound packet ...
+Caused by: java.lang.IllegalArgumentException:
+  UnlockTransPointRsp test CmdId must be 36641 or 20290, got 1
+```
+
+`TransPointUnlockHelper.unlock(...)` had already persisted the unlock and emitted the corrected `ScenePointUnlockNotify` before the probe class initialized and threw. The exception therefore prevented `PacketUnlockTransPointRsp` from being constructed or sent. Despite that, the client immediately showed the map point as active and allowed teleport.
+
+### Updated interpretation
+
+- The original gray-map / cannot-teleport symptom is strongly explained by the contradictory field-4 `locked_point_list` entry in the old immediate `ScenePointUnlockNotify`.
+- A full `GetScenePointRsp` refresh is not required for ordinary live waypoint unlock on this client once the immediate notification is encoded correctly.
+- `UnlockTransPointRsp` is not required for the tested visible behaviors: waypoint activation, reward, live map activation, or teleport availability.
+- Runtime visual behavior cannot distinguish `36641` from `20290`, because both candidates and no ACK all behave identically in this test.
+- This does **not** identify the canonical response CmdId. Keep both candidates unresolved until a known-correct official transaction binds the request sequence to exactly one response.
+
+For response semantic recovery, the remaining useful runtime discriminator is official-client traffic correlation, e.g. `C2S 9369 seq=N` followed by exactly one candidate S2C with the same `client_sequence_id=N`. Repeating AstaPS visual probes with either candidate has no further discriminating value.
