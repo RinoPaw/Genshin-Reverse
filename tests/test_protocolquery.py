@@ -65,7 +65,15 @@ class ProtocolQueryTests(unittest.TestCase):
                         "method_name": "IENGFLPCLNM",
                         "method_rva": "0x9ED2100",
                         "parameter_types": '["EIBJNHDPEMB"]',
-                    }
+                    },
+                    {
+                        "method_index": "3",
+                        "type_definition_index": "70000",
+                        "type_name": "OWNER",
+                        "method_name": "HandleUnknown186",
+                        "method_rva": "0xA000000",
+                        "parameter_types": '["NLOMEGMJDGJ"]',
+                    },
                 ],
             )
             self._write_csv(
@@ -125,11 +133,17 @@ class ProtocolQueryTests(unittest.TestCase):
             self.assertEqual(item["registry"]["type_name"], "NLOMEGMJDGJ")
             self.assertEqual(item["counts"]["fields"], 1)
             self.assertEqual(item["counts"]["methods"], 1)
+            self.assertEqual(item["counts"]["signature_references"], 1)
+            self.assertEqual(item["counts"]["external_signature_references"], 1)
             self.assertEqual(item["counts"]["senders"], 1)
             self.assertEqual(item["counts"]["runtime_observations"], 1)
             self.assertEqual(item["counts"]["analyses"], 1)
             self.assertEqual(item["analyses"][0]["evidence"]["topic"], "cmdid-186")
             self.assertEqual(item["metadata"]["methods"][0]["parameter_types"], ["EIBJNHDPEMB"])
+            refs = item["metadata"]["external_signature_references"]
+            self.assertEqual("OWNER", refs[0]["type_name"])
+            self.assertEqual("HandleUnknown186", refs[0]["method_name"])
+            self.assertEqual([0], refs[0]["parameter_positions"])
 
     def test_supports_type_definition_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as td:
