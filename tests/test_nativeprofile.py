@@ -3,13 +3,6 @@ from __future__ import annotations
 import unittest
 
 from genshinre.nativeprofile import PROFILE_71, get_native_profile
-from genshinre.typearray import (
-    ANCHOR_KIND,
-    ANCHOR_TYPE_DEFINITION,
-    ANCHOR_TYPE_INDEX,
-    ANCHOR_TYPE_NAME,
-    EXPECTED_RUNTIME_TYPE_COUNT,
-)
 
 
 class NativeProfileTests(unittest.TestCase):
@@ -32,15 +25,15 @@ class NativeProfileTests(unittest.TestCase):
         self.assertEqual(0x2870AD0, profile.type_array_pointer_rva)
         self.assertEqual(0x2870B90, profile.method_pointer_table_rva)
 
-    def test_runtime_type_contract_matches_exact_scanner(self) -> None:
+    def test_runtime_type_contract_is_explicit(self) -> None:
         anchor = PROFILE_71.runtime_type_anchor
 
-        self.assertEqual(EXPECTED_RUNTIME_TYPE_COUNT, PROFILE_71.runtime_type_count)
+        self.assertEqual(683_574, PROFILE_71.runtime_type_count)
         self.assertEqual(0x388CD80, PROFILE_71.runtime_type_boundary_rva)
-        self.assertEqual(ANCHOR_TYPE_INDEX, anchor.type_index)
-        self.assertEqual(ANCHOR_KIND, anchor.kind)
-        self.assertEqual(ANCHOR_TYPE_DEFINITION, anchor.type_definition_index)
-        self.assertEqual(ANCHOR_TYPE_NAME, anchor.type_name)
+        self.assertEqual(405_772, anchor.type_index)
+        self.assertEqual(0x12, anchor.kind)
+        self.assertEqual(84_249, anchor.type_definition_index)
+        self.assertEqual("DMMJNICDOHM", anchor.type_name)
 
     def test_getcmdid_anchor_is_part_of_profile(self) -> None:
         anchor = PROFILE_71.getcmdid_anchor
