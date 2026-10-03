@@ -6,6 +6,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from .nativeprofile import get_native_profile
+
 
 OUTPUT_COLUMNS = (
     "cmd_id",
@@ -137,6 +139,30 @@ def _cmd_ids(value: str) -> tuple[int, ...]:
     return tuple(int(part.strip(), 0) for part in value.split(",") if part.strip())
 
 
+def resolve_anchor(
+    *,
+    profile_identity: str | None,
+    anchor_cmd_id: int | None,
+    anchor_type_name: str | None,
+    anchor_rva: int | None,
+) -> tuple[int, str, int]:
+    explicit = (anchor_cmd_id, anchor_type_name, anchor_rva)
+    if profile_identity:
+        if any(value is not None for value in explicit):
+            raise ValueError("--profile cannot be combined with explicit GetCmdId anchor options")
+        anchor = get_native_profile(profile_identity).getcmdid_anchor
+        return anchor.cmd_id, anchor.type_name, anchor.rva
+
+    if any(value is None for value in explicit):
+        raise ValueError(
+            "provide --profile or all of --anchor-cmd-id, --anchor-type and --anchor-rva"
+        )
+    assert anchor_cmd_id is not None
+    assert anchor_type_name is not None
+    assert anchor_rva is not None
+    return anchor_cmd_id, anchor_type_name, anchor_rva
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m genshinre.getcmdidgraph",
@@ -145,20 +171,31 @@ def main() -> None:
     parser.add_argument("input_csv", type=Path)
     parser.add_argument("output_csv", type=Path)
     parser.add_argument("summary_json", type=Path)
-    parser.add_argument("--anchor-cmd-id", type=int, required=True)
-    parser.add_argument("--anchor-type", required=True)
-    parser.add_argument("--anchor-rva", type=_rva, required=True)
+    parser.add_argument("--profile")
+    parser.add_argument("--anchor-cmd-id", type=int)
+    parser.add_argument("--anchor-type")
+    parser.add_argument("--anchor-rva", type=_rva)
     parser.add_argument("--pattern", default="mov-ax-imm16-ret")
     parser.add_argument("--focus", type=_cmd_ids, default=())
     args = parser.parse_args()
+
+    try:
+        anchor_cmd_id, anchor_type_name, anchor_rva = resolve_anchor(
+            profile_identity=args.profile,
+            anchor_cmd_id=args.anchor_cmd_id,
+            anchor_type_name=args.anchor_type,
+            anchor_rva=args.anchor_rva,
+        )
+    except (KeyError, ValueError) as exc:
+        parser.error(str(exc))
 
     result = build_getcmdid_candidate_graph(
         args.input_csv,
         args.output_csv,
         args.summary_json,
-        anchor_cmd_id=args.anchor_cmd_id,
-        anchor_type_name=args.anchor_type,
-        anchor_rva=args.anchor_rva,
+        anchor_cmd_id=anchor_cmd_id,
+        anchor_type_name=anchor_type_name,
+        anchor_rva=anchor_rva,
         pattern=args.pattern,
         focus_cmd_ids=args.focus,
     )
