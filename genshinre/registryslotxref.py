@@ -7,9 +7,10 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from .nativeprofile import PROFILE_71
 from .pe import PEImage
 
-EXPECTED_REGISTRY_ROWS = 4896
+EXPECTED_REGISTRY_ROWS = PROFILE_71.registry_row_count
 PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF", "AMBIGUOUS_SLOT_XREF"}
 COLUMNS = (
     "cmd_id",
@@ -26,8 +27,12 @@ COLUMNS = (
     "evidence",
 )
 ANCHORS = {
-    9369: {"type_name": "DMMJNICDOHM", "registry_index": 2232, "registry_slot_rva": 0x057E6498},
-    22899: {"type_name": "ONKOPMILDMF", "registry_index": 3118, "registry_slot_rva": 0x057F6F60},
+    anchor.cmd_id: {
+        "type_name": anchor.type_name,
+        "registry_index": anchor.index,
+        "registry_slot_rva": anchor.type_slot_rva,
+    }
+    for anchor in PROFILE_71.registry_slot_anchors
 }
 
 
@@ -94,7 +99,9 @@ def recover_registry_slot_xrefs_71(
     if len(slots) != EXPECTED_REGISTRY_ROWS:
         raise ValueError(f"expected {EXPECTED_REGISTRY_ROWS:,} unique verified registry slots")
     if set(slots.values()) != set(range(EXPECTED_REGISTRY_ROWS)):
-        raise ValueError("verified registry indices do not cover 0..4895 exactly")
+        raise ValueError(
+            f"verified registry indices do not cover 0..{EXPECTED_REGISTRY_ROWS - 1} exactly"
+        )
 
     methods_by_type: dict[int, list[dict[str, str]]] = defaultdict(list)
     all_method_rvas: set[int] = set()
@@ -198,7 +205,7 @@ def recover_registry_slot_xrefs_71(
                         "xref_methods": "|".join(methods[:20]),
                         "candidate_slot_count": str(len(ordered)),
                         "status": status if rank == 0 else "SECONDARY_SLOT_XREF",
-                        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot",
+                        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified registry constructor type slot",
                     }
                 )
                 slot_owner_candidates[slot].append(
@@ -265,7 +272,7 @@ def recover_registry_slot_xrefs_71(
         "notes": [
             "constructor slots are independently verified; this artifact asks whether methods declared on each GetCmdId candidate type reference those slots",
             "multiple slot references are retained and ranked by instruction count then distinct declaring-method count",
-            "recovery fails unless every one of the 4,896 verified slots has a dominant candidate owner and preserved anchors match",
+            f"recovery fails unless every one of the {EXPECTED_REGISTRY_ROWS:,} verified slots has a dominant candidate owner and preserved anchors match",
         ],
     }
 
