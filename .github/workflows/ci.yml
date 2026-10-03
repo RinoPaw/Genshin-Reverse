@@ -32,10 +32,16 @@ jobs:
           import json
           data=json.load(open('/tmp/protocol-186.json', encoding='utf-8'))
           assert data['result_count'] == 1
-          row=data['results'][0]['registry']
+          item=data['results'][0]
+          row=item['registry']
           assert row['cmd_id'] == '186'
           assert row['type_name'] == 'NLOMEGMJDGJ'
           assert row['type_definition_index'] == '61556'
+          print(json.dumps({
+              'fields': item['metadata']['fields'],
+              'methods': item['metadata']['methods'],
+              'scene_handler_dispatch': item['scene_handler_dispatch'],
+          }, indent=2, ensure_ascii=False))
           PY
       - name: Syntax-check shell scripts
         if: matrix.python-version == '3.12'
