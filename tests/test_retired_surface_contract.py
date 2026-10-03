@@ -32,6 +32,23 @@ class RetiredSurfaceContractTests(unittest.TestCase):
                 with self.subTest(path=str(path.relative_to(root)), token=token):
                     self.assertNotIn(token, text)
 
+    def test_exact_sample_bypass_is_absent_from_package_and_tools(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        paths = [
+            *sorted((root / "genshinre").glob("*.py")),
+            *sorted((root / "tools").rglob("*.py")),
+            *sorted((root / "scripts").glob("*")),
+            *sorted((root / ".github" / "workflows").glob("*.yml")),
+        ]
+        forbidden = ("allow_unknown_sample", "--allow-unknown-sample")
+        for path in paths:
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            for token in forbidden:
+                with self.subTest(path=str(path.relative_to(root)), token=token):
+                    self.assertNotIn(token, text)
+
 
 if __name__ == "__main__":
     unittest.main()
