@@ -10,6 +10,7 @@ from genshinre.capture import (
     correlate_capture,
     decode_head_varints,
     load_packet_probe_capture,
+    summarize_correlations,
 )
 
 
@@ -40,6 +41,13 @@ def _packet(index: int, direction: str, cmd_id: int, sequence: int | None) -> Pa
         payload=payload,
         sequence_value=sequence,
     )
+
+
+def _transaction(verdict: str, mapped_cmd_id: int | None = None) -> dict[str, object]:
+    return {
+        "verdict": verdict,
+        "mapped_cmd_id": mapped_cmd_id,
+    }
 
 
 class CaptureCorrelationTests(unittest.TestCase):
@@ -127,6 +135,53 @@ class CaptureCorrelationTests(unittest.TestCase):
 
         self.assertEqual("candidate-observed-no-sequence", result["verdict"])
         self.assertEqual(36641, result["mapped_cmd_id"])
+
+    def test_summary_requires_all_transactions_to_promote_same_candidate(self) -> None:
+        result = summarize_correlations(
+            [
+                _transaction("promotable", 20290),
+                _transaction("promotable", 20290),
+            ]
+        )
+
+        self.assertEqual("promotable-consistent", result["verdict"])
+        self.assertEqual(20290, result["mapped_cmd_id"])
+        self.assertEqual(2, result["promotable_transaction_count"])
+        self.assertEqual([20290], result["promotable_cmd_ids"])
+
+    def test_summary_rejects_conflicting_promotions(self) -> None:
+        result = summarize_correlations(
+            [
+                _transaction("promotable", 36641),
+                _transaction("promotable", 20290),
+            ]
+        )
+
+        self.assertEqual("contradictory", result["verdict"])
+        self.assertIsNone(result["mapped_cmd_id"])
+        self.assertEqual([20290, 36641], result["promotable_cmd_ids"])
+
+    def test_summary_marks_mixed_evidence_partial(self) -> None:
+        result = summarize_correlations(
+            [
+                _transaction("promotable", 36641),
+                _transaction("no-candidate"),
+            ]
+        )
+
+        self.assertEqual("partial-consistent", result["verdict"])
+        self.assertIsNone(result["mapped_cmd_id"])
+        self.assertEqual(
+            {"no-candidate": 1, "promotable": 1},
+            result["verdict_counts"],
+        )
+
+    def test_summary_handles_capture_without_request(self) -> None:
+        result = summarize_correlations([])
+
+        self.assertEqual("no-request", result["verdict"])
+        self.assertIsNone(result["mapped_cmd_id"])
+        self.assertEqual(0, result["transaction_count"])
 
 
 if __name__ == "__main__":
