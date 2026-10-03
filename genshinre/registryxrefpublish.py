@@ -6,9 +6,10 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from .nativeprofile import PROFILE_71
 from .registry import CANONICAL_REGISTRY_COLUMNS
 
-EXPECTED_ROWS = 4896
+EXPECTED_ROWS = PROFILE_71.registry_row_count
 PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF"}
 SUMMARY_PRODUCER = "genshinre.registryxrefpublish"
 SUMMARY_IDENTITY_METHOD = (
@@ -17,8 +18,13 @@ SUMMARY_IDENTITY_METHOD = (
 )
 SUMMARY_SEMANTIC_ENRICHMENT = "evidence-gated known-opcodes join for direction and semantic labels"
 ANCHORS = {
-    9369: {"index": 2232, "slot": 0x057E6498, "type_name": "DMMJNICDOHM", "tdi": 84249},
-    22899: {"index": 3118, "slot": 0x057F6F60, "type_name": "ONKOPMILDMF", "tdi": 87483},
+    anchor.cmd_id: {
+        "index": anchor.index,
+        "slot": anchor.type_slot_rva,
+        "type_name": anchor.type_name,
+        "tdi": anchor.type_definition_index,
+    }
+    for anchor in PROFILE_71.registry_slot_anchors
 }
 
 COLUMNS = CANONICAL_REGISTRY_COLUMNS
@@ -99,7 +105,7 @@ def publish_registry_from_xrefs_71(
     if len(slot_rows) != EXPECTED_ROWS or len(slots_by_rva) != EXPECTED_ROWS:
         raise ValueError(f"verified constructor slot population is not exactly {EXPECTED_ROWS}")
     if set(slots_by_index) != set(range(EXPECTED_ROWS)):
-        raise ValueError("verified constructor indices do not cover 0..4895 exactly")
+        raise ValueError(f"verified constructor indices do not cover 0..{EXPECTED_ROWS - 1} exactly")
 
     primary_by_type: dict[int, list[dict[str, str]]] = defaultdict(list)
     for row in xref_rows:
@@ -220,7 +226,7 @@ def publish_registry_from_xrefs_71(
         "strict_slot_type_cmd_bijection": True,
         "status": "canonical-static-identity-registry",
         "notes": [
-            "all 4,896 identities are closed by a verified constructor slot and a unique dominant code-xref owner",
+            f"all {EXPECTED_ROWS:,} identities are closed by a verified constructor slot and a unique dominant code-xref owner",
             "the 27 AEGNNPENLNM constant-return candidate types with no verified registry-slot xref are excluded structurally",
             "direction and semantic labels are supplemental evidence-gated target-client mappings and remain blank when unresolved",
         ],
