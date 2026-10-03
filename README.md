@@ -31,10 +31,17 @@ Maintained entry points:
 scripts/regenerate-7.1.{sh,ps1}
 scripts/publish-artifacts-7.1.{sh,ps1}
 genshinre.registryxrefpublish
+genshinre protocol-query <version-dir> --cmd-id <id>
 genshinre pointer-xrefs <GenshinImpact.exe> <start-rva> <end-rva> [--output pointer-xrefs.json]
+genshinre scene-handler-slots <exe> <methods.csv> <registry.csv> <owner-type> <slot-start> <slot-end>
+python -m genshinre.capture <capture.ndjson> --request-cmd <id> --candidate-cmd <id> [...]
 ```
 
+`protocol-query` joins canonical registry identity, declared methods/fields, inbound method-signature references, handlers/senders/constructors, scene-handler dispatch evidence, runtime observations, message shapes and focused analysis records. It is an evidence aggregator and does not infer a semantic name on its own.
+
 `pointer-xrefs` scans file-backed aligned qword holders whose values point into the half-open RVA range `[start-rva, end-rva)`, then joins simple RIP-relative code references to those holders. Use `rip-xrefs` when the code directly references the target RVA itself.
+
+`genshinre.capture` provides reusable request/response correlation for decrypted NDJSON packet captures. Version-specific collectors may keep build-bound hook addresses under `tools/runtime/`, while correlation policy stays in the package.
 
 See `docs/getting-started.md` for the maintained workflow.
 
@@ -65,8 +72,8 @@ versions/
 runtime observation
 → registry lookup
 → obfuscated type
-→ metadata parameter/method lookup
-→ handler/sender xrefs
+→ metadata methods/fields + inbound signature references
+→ handler/sender/dispatch evidence
 → protobuf parser shape
 → minimal runtime validation
 → confirmed semantic mapping
@@ -86,19 +93,20 @@ The repository treats registry identity and metadata recovery as available infra
 2. `metadata/types.csv`, `methods.csv`, `fields.csv`, `type-methods.json`, `method-pointers.csv`.
 3. `proto/message-shapes.json`: parser-derived protobuf shapes.
 4. `xrefs/message-handlers.csv` and `message-senders.csv`.
-5. `analyses/<topic>/`: evidence, candidates, rejected paths and current state.
+5. `analyses/scene-handler-dispatch/`: reusable exact-sample scene handler slot relations.
+6. `analyses/<topic>/`: evidence, candidates, rejected paths and current state.
 
 ## Evidence boundaries
 
 Use `CONFIRMED`, `HIGH_CONFIDENCE`, `CANDIDATE`, `REJECTED`, and `UNRESOLVED`. Historical information may be cited as evidence, but historical numeric equality or old-format compatibility is never accepted as a current mapping or current data path.
 
-Candidate graphs and probes never overwrite canonical registry data. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed.
+Candidate graphs and probes never overwrite canonical registry data. Semantic protobuf names remain a separate evidence layer even after numeric registry membership is statically closed. Signature references, dispatch-table membership, local ordering and runtime timing are relationship evidence; promotion requires the evidence gate stated by the focused investigation.
 
 ## Maintenance boundary
 
 Repository maintenance and protocol investigations are tracked separately. Maintainers keep schemas, tooling, documentation, generated-artifact contracts, tests and CI coherent. Focused reverse-engineering work belongs under `versions/<target>/analyses/` or an issue and should be promoted into canonical artifacts only after its stated evidence gate is satisfied.
 
-Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests.
+Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests. Packet-specific Actions should be retired after their useful logic has been promoted into reusable package tooling or durable artifacts.
 
 ## Current target
 
