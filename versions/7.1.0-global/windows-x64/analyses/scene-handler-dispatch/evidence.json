@@ -1,26 +1,95 @@
 {
-  "target": "7.1.0-global/windows-x64",
+  "topic": "scene-handler-dispatch",
+  "state": "COMPLETE",
   "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json"
+  },
+  "questions": [
+    "Which registered protocol parameter types are consumed through scene-owner delegate slots in the preserved 7.1 slot neighborhood?",
+    "Which conservative instruction shape is proven by the exact-sample scan and safe to promote into reusable tooling?"
+  ],
+  "artifacts": [
+    "scene-handler-slots.csv",
+    "README.md"
+  ],
+  "next_steps": [
+    "Consume these static slot relations as a separate evidence layer in protocol-query and future handler/sender graph work.",
+    "Require independent protocol evidence before promoting any unresolved CmdId to a semantic packet name."
+  ],
+  "claims": [
+    {
+      "id": "exact-71-scene-handler-slot-scan",
+      "status": "CONFIRMED",
+      "statement": "The preserved 7.1 scan contains 68 scene-owner protocol method rows, 73 slot-load instruction hits and 72 unique aligned slot displacements in the investigated neighborhood.",
+      "evidence": [
+        {
+          "kind": "exact-client-actions-artifact",
+          "source": "workflow run 36965366397, artifact 11209422346, digest sha256:1258e80827b61f58c0fbdf465e42593dd93ada5f1889ac703b601c3169ac96ff"
+        },
+        {
+          "kind": "derived-table",
+          "source": "scene-handler-slots.csv"
+        }
+      ]
+    },
+    {
+      "id": "verified-slot-load-shape",
+      "status": "CONFIRMED",
+      "statement": "All 73 preserved 7.1 instruction hits load into RCX using a qword memory operand with a disp32 slot; the base register is RAX for 52 hits and RCX for 21 hits.",
+      "evidence": [
+        {
+          "kind": "exact-client-actions-artifact",
+          "source": "scene-handler-slot-neighborhoods-70-71 from workflow run 36965366397"
+        }
+      ]
+    },
+    {
+      "id": "semantic-boundary",
+      "status": "CONFIRMED",
+      "statement": "Scene-handler slot membership is static relationship evidence and does not by itself establish a semantic protobuf name for an unresolved CmdId.",
+      "evidence": [
+        {
+          "kind": "methodology",
+          "source": "README.md and repository evidence-boundary rules"
+        }
+      ]
+    }
+  ],
+  "rejected_paths": [],
+  "exact_sample": {
     "GenshinImpact.exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
   },
   "scope": "scene-owner one-parameter protocol methods with non-RIP handler-slot loads",
   "owner_type": "KLLNGCPBLMM",
-  "source": {
+  "provenance": {
     "workflow_run_id": 36965366397,
     "workflow_head_sha": "873f0caf2505600651838df4c35dd35d61fce357",
     "artifact_id": 11209422346,
     "artifact_name": "scene-handler-slot-neighborhoods-70-71",
     "artifact_digest": "sha256:1258e80827b61f58c0fbdf465e42593dd93ada5f1889ac703b601c3169ac96ff"
   },
-  "original_scan": {
-    "candidate_slots": ["0x4B2A90", "0x4B2AB0"],
-    "slot_window_semantics": "closed narrow window around the two candidate slots",
-    "slot_window": ["0x4B1A90", "0x4B3AB0"],
+  "scan_summary": {
+    "candidate_slots": [
+      "0x4B2A90",
+      "0x4B2AB0"
+    ],
+    "original_inclusive_slot_window": [
+      "0x4B1A90",
+      "0x4B3AB0"
+    ],
     "method_row_count": 68,
     "instruction_hit_count": 73,
     "unique_slot_count": 72,
-    "destination_register_counts": {"rcx": 73},
-    "base_register_counts": {"rax": 52, "rcx": 21}
+    "destination_register_counts": {
+      "rcx": 73
+    },
+    "base_register_counts": {
+      "rax": 52,
+      "rcx": 21
+    }
   },
   "controls": [
     {
@@ -47,7 +116,10 @@
   ],
   "reproduction": {
     "tool": "genshinre scene-handler-slots",
-    "half_open_slot_range": ["0x4B1A90", "0x4B3AB8"],
+    "half_open_slot_range": [
+      "0x4B1A90",
+      "0x4B3AB8"
+    ],
     "note": "The maintained extractor uses a half-open 8-byte-aligned range; 0x4B3AB8 preserves the original workflow's inclusive aligned upper endpoint 0x4B3AB0."
   },
   "evidence_boundary": [
