@@ -7,9 +7,11 @@ import unittest
 from pathlib import Path
 
 from genshinre.artifactmanifest import CANONICAL_ARTIFACTS, REQUIRED_PUBLICATION_ROWS
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.registry import CANONICAL_REGISTRY_COLUMNS
-from genshinre.typearray import EXPECTED_RUNTIME_TYPE_COUNT
 from genshinre.validate import _validate_generated_artifacts, _validate_known_opcodes
+
+EXPECTED_RUNTIME_TYPE_COUNT = PROFILE_71.runtime_type_count
 
 
 class ValidatorIntegrationTests(unittest.TestCase):
