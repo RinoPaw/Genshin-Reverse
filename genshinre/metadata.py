@@ -88,6 +88,7 @@ def query_methods(
     parameter_type: str | None = None,
     method_name: str | None = None,
     type_definition_index: int | None = None,
+    rva: int | None = None,
 ) -> list[dict[str, object]]:
     """Stream-filter a methods CSV without materializing the full metadata table."""
 
@@ -97,6 +98,8 @@ def query_methods(
             if type_name and type_name.casefold() not in str(raw.get("type_name", "")).casefold():
                 continue
             if not _int_matches(raw.get("type_definition_index"), type_definition_index):
+                continue
+            if not _int_matches(raw.get("rva"), rva):
                 continue
             if method_name and method_name.casefold() not in str(raw.get("method_name", "")).casefold():
                 continue
