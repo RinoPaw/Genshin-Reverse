@@ -7,7 +7,7 @@ from genshinre.nativeprofile import PROFILE_71
 
 
 class SampleSourceSingletonTests(unittest.TestCase):
-    def test_maintained_scripts_and_workflows_do_not_duplicate_7_1_sample_identity(self) -> None:
+    def test_maintained_surfaces_do_not_duplicate_7_1_sample_identity(self) -> None:
         root = Path(__file__).resolve().parents[1]
         forbidden = (
             PROFILE_71.sophon_manifest_url,
@@ -18,6 +18,7 @@ class SampleSourceSingletonTests(unittest.TestCase):
         paths = [
             *sorted((root / "scripts").glob("*")),
             *sorted((root / ".github" / "workflows").glob("*.yml")),
+            *sorted((root / "tools").rglob("*.py")),
         ]
         for path in paths:
             if not path.is_file():
