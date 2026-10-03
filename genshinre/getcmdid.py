@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from .metadata import load_methods
-from .mhy71 import EXPECTED_EXE_SHA256
+from .nativeprofile import PROFILE_71
 from .pe import PEImage
 
 CANDIDATE_COLUMNS = (
@@ -70,8 +70,10 @@ def scan_constant_cmdids(
     min_cmd_id: int = 1,
     max_cmd_id: int = 65535,
 ) -> dict[str, object]:
+    profile = PROFILE_71
+    anchor = profile.getcmdid_anchor
     exe_sha = _sha256(exe)
-    if exe_sha != EXPECTED_EXE_SHA256:
+    if exe_sha != profile.exe_sha256:
         raise ValueError(f"unexpected GenshinImpact.exe SHA-256: {exe_sha}")
 
     rows = load_methods(methods_csv)
@@ -135,11 +137,12 @@ def scan_constant_cmdids(
     anchor_rows = [
         row
         for row in candidates
-        if row["cmd_id"] == "26105"
-        and row["type_name"] == "HJDNCHODGOL"
-        and int(row["get_cmd_id_rva"], 0) == 0x10587260
+        if int(row["cmd_id"]) == anchor.cmd_id
+        and row["type_name"] == anchor.type_name
+        and int(row["get_cmd_id_rva"], 0) == anchor.rva
     ]
     anchor_found = bool(anchor_rows)
+    anchor_key = f"anchor_{anchor.cmd_id}_{anchor.type_name}_0x{anchor.rva:X}"
     summary: dict[str, object] = {
         "exe": str(exe),
         "exe_sha256": exe_sha,
@@ -150,12 +153,15 @@ def scan_constant_cmdids(
         "unique_cmd_ids": len(counts),
         "duplicate_cmd_ids": duplicates,
         "cmd_id_range": [min_cmd_id, max_cmd_id],
-        "anchor_26105_HJDNCHODGOL_0x10587260": anchor_found,
+        anchor_key: anchor_found,
         "status": "candidate-scan-only",
         "notes": [
             "constant-return methods include non-protocol code; this file is not a canonical registry",
             "Genshin 7.1 GetCmdId controls include 16-bit AX immediate returns",
-            "the preserved 26105/HJDNCHODGOL anchor is mandatory for the exact-sample scan",
+            (
+                f"the preserved {anchor.cmd_id}/{anchor.type_name}/0x{anchor.rva:X} anchor "
+                "is mandatory for the exact-sample scan"
+            ),
         ],
     }
     if summary_json is None:
@@ -167,6 +173,7 @@ def scan_constant_cmdids(
     )
     if not anchor_found:
         raise ValueError(
-            "GetCmdId scan failed mandatory 26105/HJDNCHODGOL/0x10587260 anchor"
+            "GetCmdId scan failed mandatory "
+            f"{anchor.cmd_id}/{anchor.type_name}/0x{anchor.rva:X} anchor"
         )
     return summary
