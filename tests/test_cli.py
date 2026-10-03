@@ -43,6 +43,33 @@ class CliParserTests(unittest.TestCase):
         self.assertTrue(args.include_executable_holders)
         self.assertEqual("pointer-xrefs.json", str(args.output))
 
+    def test_scene_handler_slots_parses_exact_scan_contract(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "scene-handler-slots",
+                "GenshinImpact.exe",
+                "metadata/methods.csv",
+                "registry/registry.csv",
+                "KLLNGCPBLMM",
+                "0x4B1A90",
+                "0x4B3AB0",
+                "--alignment",
+                "8",
+                "--max-method-body",
+                "0x8000",
+                "--output",
+                "scene-handler-slots.json",
+            ]
+        )
+
+        self.assertEqual("scene-handler-slots", args.command)
+        self.assertEqual("KLLNGCPBLMM", args.owner_type)
+        self.assertEqual(0x4B1A90, args.slot_start)
+        self.assertEqual(0x4B3AB0, args.slot_end)
+        self.assertEqual(8, args.alignment)
+        self.assertEqual(0x8000, args.max_method_body)
+        self.assertEqual("scene-handler-slots.json", str(args.output))
+
 
 if __name__ == "__main__":
     unittest.main()
