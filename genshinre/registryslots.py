@@ -9,20 +9,24 @@ from pathlib import Path
 from .nativeprofile import PROFILE_71
 from .pe import PEImage
 
-EXPECTED_REGISTRY_ROWS = 4896
+EXPECTED_REGISTRY_ROWS = PROFILE_71.registry_row_count
 DEST_BASE = 0x20
 ENTRY_SIZE = 8
 
 # Exact 7.1 global client protocol-registry construction corridor. The first
-# observed indexed stores begin immediately above 0x7F7D800 and the final row
-# (4895) stores at 0x7F8E44D. Restricting candidate loads to this constructor
-# removes unrelated [rbx+offset] stores elsewhere in il2cpp code.
-REGISTRY_CODE_MIN_RVA = 0x07F7D800
-REGISTRY_CODE_MAX_RVA = 0x07F8E500
+# observed indexed stores begin immediately above the profile minimum and the
+# final row stores below the profile maximum. Restricting candidate loads to
+# this constructor removes unrelated [rbx+offset] stores elsewhere in il2cpp code.
+REGISTRY_CODE_MIN_RVA = PROFILE_71.registry_code_min_rva
+REGISTRY_CODE_MAX_RVA = PROFILE_71.registry_code_max_rva
 
 ANCHORS = {
-    2232: {"type_slot_rva": 0x057E6498, "store_rva": 0x07F852AB, "name": "UnlockTransPointReq"},
-    3118: {"type_slot_rva": 0x057F6F60, "store_rva": None, "name": "DoSetPlayerBornDataNotify"},
+    anchor.index: {
+        "type_slot_rva": anchor.type_slot_rva,
+        "store_rva": anchor.store_rva,
+        "name": anchor.name,
+    }
+    for anchor in PROFILE_71.registry_slot_anchors
 }
 
 COLUMNS = (
