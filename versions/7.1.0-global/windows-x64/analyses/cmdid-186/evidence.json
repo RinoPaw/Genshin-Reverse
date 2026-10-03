@@ -8,83 +8,225 @@
     "hashes_ref": "../../hashes.json"
   },
   "questions": [
-    "Which indirect/type-slot/registration sender path produces CmdId 186 during login initialization?",
-    "Which semantic packet name is supported when static parser evidence and runtime context are combined?"
+    "Can the exact Global 7.1 sender context for CmdId 186 be closed beyond the type-slot consumer?",
+    "Does the current cross-region 7.1 semantic binding to GetActivityInfoReq satisfy the exact-Global promotion gate?"
   ],
   "claims": [
     {
       "id": "runtime-c2s-observation",
       "status": "CONFIRMED",
       "statement": "CmdId 186 is observed client-to-server in the preserved fresh-account login trace with payload 7202d027, and the same CmdId recurs in multiple login-init runs.",
-      "evidence": [{"kind":"runtime-trace","source":"issue-1 / recovered login-init traces","locator":"README.md#runtime-observation","note":"Quest 351 startup was intentionally suspended in the primary probe, so temporal proximity alone is not semantic proof."}]
+      "evidence": [
+        {
+          "kind": "runtime-trace",
+          "source": "issue-1 / recovered login-init traces",
+          "locator": "README.md#runtime-observation",
+          "note": "Quest 351 startup was intentionally suspended in the primary probe, so temporal proximity alone is not semantic proof."
+        }
+      ]
     },
     {
       "id": "wire-field-14",
       "status": "CONFIRMED",
       "statement": "Payload 7202d027 is protobuf field 14, wire type 2, carrying packed repeated uint32 value [5072].",
       "evidence": [
-        {"kind":"wire-decode","source":"genshinre wire","locator":"7202d027","note":"The wire decoder yields packed varint [5072]."},
-        {"kind":"exact-client-control","source":"uint32-codec-control.json","locator":"conclusion","note":"Exact 7.1 PlayerEnterSceneNotify proves factory 0xAABBD80 is the repeated uint32 FieldCodec factory."}
+        {
+          "kind": "wire-decode",
+          "source": "genshinre wire",
+          "locator": "7202d027",
+          "note": "The wire decoder yields packed varint [5072]."
+        },
+        {
+          "kind": "exact-client-control",
+          "source": "uint32-codec-control.json",
+          "locator": "conclusion",
+          "note": "Exact Global 7.1 PlayerEnterSceneNotify proves factory 0xAABBD80 is the repeated uint32 FieldCodec factory."
+        }
       ]
     },
     {
       "id": "static-client-identity",
       "status": "CONFIRMED",
-      "statement": "The canonical 7.1 registry maps CmdId 186 to client type NLOMEGMJDGJ, typeDefinition 61556, registry index 48, type slot RVA 0x057F3858 and GetCmdId RVA 0x09ED2160.",
-      "evidence": [{"kind":"canonical-registry","source":"../../registry/registry.csv","locator":"cmd_id=186","note":"Identity status is static-verified-identity; semantic name remains unset."}]
+      "statement": "The canonical Global 7.1 registry maps CmdId 186 to client type NLOMEGMJDGJ, typeDefinition 61556, registry index 48, type slot RVA 0x057F3858 and GetCmdId RVA 0x09ED2160.",
+      "evidence": [
+        {
+          "kind": "canonical-registry",
+          "source": "../../registry/registry.csv",
+          "locator": "cmd_id=186",
+          "note": "Identity status is static-verified-identity; canonical semantic name remains unset."
+        }
+      ]
     },
     {
       "id": "protobuf-parser-role",
       "status": "CONFIRMED",
-      "statement": "NLOMEGMJDGJ.IENGFLPCLNM(EIBJNHDPEMB) @ 0x09ED2100 is the generated protobuf merge/parser path for the message and consumes the collection at object offset 0x18 together with the message's static field codec.",
-      "evidence": [{"kind":"exact-client-disassembly","source":"protobuf-structure.json","locator":"method_evidence[role=parser]","note":"Exact 7.1 executable; source workflow run 37095178757."}]
+      "statement": "NLOMEGMJDGJ.IENGFLPCLNM(EIBJNHDPEMB) @ 0x09ED2100 is the generated protobuf merge/parser path and consumes the collection at object offset 0x18 together with the message static field codec.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "protobuf-structure.json",
+          "locator": "method_evidence[role=parser]",
+          "note": "Exact Global 7.1 executable; source workflow run 37095178757."
+        }
+      ]
     },
     {
       "id": "field-14-repeated-uint32",
       "status": "CONFIRMED",
-      "statement": "Exact 7.1 client code implements field 14 as packed repeated uint32: the collection lives at object offset 0x18 and FieldCodec<uint32> factory 0x0AABBD80 is initialized with tag 0x72.",
+      "statement": "Exact Global 7.1 client code implements field 14 as packed repeated uint32: the collection lives at object offset 0x18 and FieldCodec<uint32> factory 0x0AABBD80 is initialized with tag 0x72.",
       "evidence": [
-        {"kind":"exact-client-disassembly","source":"protobuf-structure.json","locator":"method_evidence","note":"The .cctor loads tag 0x72 and initializes the static codec; parser/size/CopyFrom all operate on the same collection."},
-        {"kind":"exact-client-control","source":"uint32-codec-control.json","locator":"current_client_control","note":"Confirmed PlayerEnterSceneNotify field 5 is repeated uint32 and its exact-client .cctor calls the same factory 0xAABBD80 with tag 0x2A."}
+        {
+          "kind": "exact-client-disassembly",
+          "source": "protobuf-structure.json",
+          "locator": "method_evidence",
+          "note": "The .cctor loads tag 0x72 and initializes the static codec; parser/size/CopyFrom all operate on the same collection."
+        },
+        {
+          "kind": "exact-client-control",
+          "source": "uint32-codec-control.json",
+          "locator": "current_client_control",
+          "note": "Confirmed PlayerEnterSceneNotify field 5 is repeated uint32 and its exact-client .cctor calls the same factory 0xAABBD80 with tag 0x2A."
+        }
       ]
     },
     {
       "id": "genericinst-pair",
       "status": "CONFIRMED",
       "statement": "NLOMEGMJDGJ fields use transformed IL2CPP genericinst type indexes 476942 and 476943; all 1,042 decoded message types that use either index use both, consistent with the generated repeated-field backing/codec pair.",
-      "evidence": [{"kind":"metadata-crosscheck","source":"protobuf-structure.json","locator":"genericinst_reuse","note":"Raw runtime entries are preserved at 0x3565B00/0x3565B10."}]
+      "evidence": [
+        {
+          "kind": "metadata-crosscheck",
+          "source": "protobuf-structure.json",
+          "locator": "genericinst_reuse",
+          "note": "Raw runtime entries are preserved at 0x3565B00/0x3565B10."
+        }
+      ]
     },
     {
       "id": "direct-call-sender-path",
       "status": "REJECTED",
-      "statement": "A direct E8 rel32 call into the generated NLOMEGMJDGJ methods is not present in the exact 7.1 executable.",
-      "evidence": [{"kind":"exact-client-call-xrefs","source":"direct-call-xrefs.json","locator":"targets","note":"All eight scanned generated message methods have call_count=0."}]
+      "statement": "A direct E8 rel32 call into the generated NLOMEGMJDGJ methods is not present in the exact Global 7.1 executable.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "direct-call-xrefs.json",
+          "locator": "targets",
+          "note": "All eight scanned generated message methods have call_count=0."
+        }
+      ]
     },
     {
       "id": "external-type-slot-consumer",
       "status": "CONFIRMED",
-      "statement": "The exact 7.1 type slot has one external code consumer outside registry construction and generated self-references: JKFCCMCAMGA.HMAPAFEOKJK @ 0x08EB3990, whose slot read occurs at 0x08EB39A2 and is followed by helper PFKFIFOEHNA.JGIBJCAEEBB(Il2CppRuntimeClassHandle) @ 0x1184DFE0.",
-      "evidence": [{"kind":"exact-client-type-slot-xrefs","source":"type-slot-xrefs.json","locator":"xrefs[role=external-type-slot-consumer]","note":"Source workflow run 37096025794."}]
+      "statement": "The exact Global 7.1 type slot is consumed by JKFCCMCAMGA.HMAPAFEOKJK(kind_0x15) @ 0x08EB3990; that method constructs NLOMEGMJDGJ, fills its collection at +0x18 and submits the message through EDKMMIPJHJA.DMLCLHCBOBJ.",
+      "evidence": [
+        {
+          "kind": "exact-client-derived-summary",
+          "source": "external-consumer-summary.json",
+          "locator": "callee_native_flow",
+          "note": "Workflow run 37096343214, artifact 11264372640, digest sha256:6cceb1fe8b8bf053257c8bb42b46636355dbdc37ac5064ac12df819567b0b10e."
+        },
+        {
+          "kind": "exact-client-type-slot-xrefs",
+          "source": "type-slot-xrefs.json",
+          "locator": "xrefs[role=external-type-slot-consumer]",
+          "note": "Initial type-slot consumer recovery."
+        }
+      ]
+    },
+    {
+      "id": "external-consumer-caller",
+      "status": "CONFIRMED",
+      "statement": "JKFCCMCAMGA.HMAPAFEOKJK(kind_0x15) @ 0x08EB3990 has exactly one direct E8 caller: the zero-parameter JKFCCMCAMGA.HMAPAFEOKJK overload @ 0x08E2E4D0, call site 0x08E2E5FC.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "external-consumer-summary.json",
+          "locator": "consumer",
+          "note": "The original complete call-xref artifact is preserved by workflow provenance; the compact summary retains the unique caller and call window."
+        }
+      ]
     },
     {
       "id": "sender-context",
-      "status": "UNRESOLVED",
-      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem. Direct generated-method calls are absent; the external type-slot consumer JKFCCMCAMGA.HMAPAFEOKJK is the next static path to classify.",
+      "status": "HIGH_CONFIDENCE",
+      "statement": "JKFCCMCAMGA is an activity-manager path and its Global 7.1 HMAPAFEOKJK overloads send the list carried by CmdId 186/NLOMEGMJDGJ; independent exact CN 7.1 analysis identifies the same obfuscated manager/message pair as the GetActivityInfoReq sender.",
       "evidence": [
-        {"kind":"negative-static-evidence","source":"direct-call-xrefs.json","locator":"conclusion","note":"Direct E8 generated-method sender path rejected."},
-        {"kind":"static-consumer","source":"type-slot-xrefs.json","locator":"conclusion","note":"External type-slot consumer identified but not yet semantically classified."}
+        {
+          "kind": "exact-global-client",
+          "source": "external-consumer-summary.json",
+          "locator": "consumer",
+          "note": "Global 7.1 proves the construction, collection fill and network-submit path."
+        },
+        {
+          "kind": "cross-project-current-version",
+          "source": "invoker-bot/LunaGC@1b363fac36d218ecfce3452a3c1893fe0fac6b31:docs/CRUCIBLE_PROTOCOL.md",
+          "locator": "活动入口、查询与满足条件",
+          "note": "Exact CN 7.1 analysis names JKFCCMCAMGA as the activity manager and NLOMEGMJDGJ/CmdId 186 as GetActivityInfoReq."
+        }
       ]
     },
     {
       "id": "semantic-name",
-      "status": "UNRESOLVED",
-      "statement": "CmdId 186 has no confirmed 7.1 semantic packet name.",
-      "evidence": []
+      "status": "HIGH_CONFIDENCE",
+      "statement": "CmdId 186 / NLOMEGMJDGJ is GetActivityInfoReq, carrying activity_id_list as packed repeated uint32 field 14.",
+      "evidence": [
+        {
+          "kind": "exact-global-client",
+          "source": "external-consumer-summary.json",
+          "locator": "conclusion",
+          "note": "Global 7.1 matches the message identity, field shape, object offset and manager send path."
+        },
+        {
+          "kind": "cross-project-current-version",
+          "source": "invoker-bot/LunaGC@1b363fac36d218ecfce3452a3c1893fe0fac6b31:src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java",
+          "locator": "GetActivityInfoReq = 186",
+          "note": "Current-version independent opcode assignment."
+        },
+        {
+          "kind": "cross-project-current-version-test",
+          "source": "invoker-bot/LunaGC@1b363fac36d218ecfce3452a3c1893fe0fac6b31:src/test/java/io/grasscutter/ActivityDisplayProtocolTest.java",
+          "locator": "activityModuleRequestUsesOpcode186AndPackedField14",
+          "note": "Regression test verifies opcode 186 and packed field 14 activity_id_list."
+        }
+      ],
+      "notes": "The semantic claim remains below CONFIRMED because the independent named semantic source is an exact CN 7.1 executable while this repository's canonical target is Global 7.1."
     }
   ],
   "rejected_paths": [
-    {"statement":"Copy PlayerPropChangeNotify from an old version because that version also used numeric CmdId 186.","reason":"CmdIds are remapped across client versions; historical numeric equality is not current-client semantic evidence.","evidence":[{"kind":"historical-only","source":"older Genshin protocol mappings","note":"Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."}]},
-    {"statement":"Find the sender by scanning only E8 rel32 calls to NLOMEGMJDGJ generated methods.","reason":"Exact 7.1 scanning found zero direct calls for all eight generated message methods that were tested.","evidence":[{"kind":"exact-client-call-xrefs","source":"direct-call-xrefs.json","note":"Continue with indirect/static/type-slot/registration evidence."}]}
+    {
+      "statement": "Copy PlayerPropChangeNotify from an old version because that version also used numeric CmdId 186.",
+      "reason": "CmdIds are remapped across client versions; historical numeric equality is not current-client semantic evidence.",
+      "evidence": [
+        {
+          "kind": "historical-only",
+          "source": "older Genshin protocol mappings",
+          "note": "Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."
+        }
+      ]
+    },
+    {
+      "statement": "Find the sender by scanning only E8 rel32 calls to NLOMEGMJDGJ generated methods.",
+      "reason": "Exact Global 7.1 scanning found zero direct calls for all eight generated message methods; the sender constructs through the runtime type slot.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "direct-call-xrefs.json",
+          "note": "Continue through type-slot/static/registration evidence."
+        }
+      ]
+    },
+    {
+      "statement": "Use the 26,201 callers of PFKFIFOEHNA.JGIBJCAEEBB(Il2CppRuntimeClassHandle) as a semantic sender graph.",
+      "reason": "The runtime-class helper is generic and its fan-out is too broad to classify CmdId 186.",
+      "evidence": [
+        {
+          "kind": "negative-static-evidence",
+          "source": "external-consumer-summary.json",
+          "locator": "negative_context"
+        }
+      ]
+    }
   ],
   "artifacts": [
     "README.md",
@@ -93,12 +235,13 @@
     "uint32-codec-control.json",
     "copyfrom.disasm.json",
     "direct-call-xrefs.json",
-    "type-slot-xrefs.json"
+    "type-slot-xrefs.json",
+    "external-consumer-summary.json"
   ],
   "next_steps": [
-    "Classify JKFCCMCAMGA.HMAPAFEOKJK @ 0x08EB3990 and trace its callers/registration role.",
-    "Trace NLOMEGMJDGJ through indirect/interface/delegate sender paths and compare with repeated login-init observations.",
-    "Generate semantic candidates from exact 7.1 proto structures matching a single repeated uint32 field at field 14, then require current-client context before promotion.",
-    "Promote a semantic name only when static identity, parser shape and runtime context agree."
+    "Resolve what the exact Global JKFCCMCAMGA.HMAPAFEOKJK() overload reads before calling 0x08EB3990 and prove that collection is the current/open activity ID set.",
+    "Correlate the observed runtime value 5072 with exact Global 7.1 activity schedule/resource state.",
+    "Recover an exact-Global activity response/handler edge or another independent Global semantic anchor.",
+    "Promote GetActivityInfoReq to canonical protocol data only after the exact-Global semantic gate is satisfied."
   ]
 }

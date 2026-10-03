@@ -1,0 +1,89 @@
+{
+  "topic": "cmdid-186-external-consumer",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "GenshinImpact.exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "provenance": {
+    "workflow_run_id": 37096343214,
+    "workflow_head_sha": "c99343afd66c54bc2af929323ff60c29532c9f70",
+    "artifact_id": 11264372640,
+    "artifact_name": "cmdid-186-external-consumer",
+    "artifact_digest": "sha256:6cceb1fe8b8bf053257c8bb42b46636355dbdc37ac5064ac12df819567b0b10e"
+  },
+  "message": {
+    "cmd_id": 186,
+    "type_name": "NLOMEGMJDGJ",
+    "type_definition_index": 61556,
+    "field_14": {
+      "wire_type": 2,
+      "semantic_shape": "packed repeated uint32",
+      "object_collection_offset": "0x18"
+    }
+  },
+  "consumer": {
+    "declaring_type": "JKFCCMCAMGA",
+    "callee": {
+      "method_name": "HMAPAFEOKJK",
+      "method_index": 457061,
+      "rva": "0x8EB3990",
+      "parameter_count": 1,
+      "parameter_types": ["kind_0x15"]
+    },
+    "direct_call_count": 1,
+    "caller": {
+      "method_name": "HMAPAFEOKJK",
+      "method_index": 456625,
+      "rva": "0x8E2E4D0",
+      "parameter_count": 0,
+      "parameter_types": [],
+      "call_site_rva": "0x8E2E5FC",
+      "call_window_rva": "0x8E2E5CC",
+      "call_window_hex": "2e05e84da868f7e848a868f7e843a868f7488b4de84885c9752a488b4df0488b91080100004885d27415837a18007e05e88f530800904883c4685b5f5e5dc3e810a868f731d2e8f9a768f7cc0f1f8400000000004889542410555657534883ec28488d6a60"
+    }
+  },
+  "callee_native_flow": [
+    {"rva": "0x8EB39A2", "operation": "load NLOMEGMJDGJ runtime type slot into rcx"},
+    {"rva": "0x8EB39A9", "operation": "call PFKFIFOEHNA.JGIBJCAEEBB(Il2CppRuntimeClassHandle) @ 0x1184DFE0"},
+    {"rva": "0x8EB39B3", "operation": "retain constructed object in rsi"},
+    {"rva": "0x8EB39B6", "operation": "load object collection at +0x18"},
+    {"rva": "0x8EB39BF", "operation": "pass caller-supplied collection as rdx"},
+    {"rva": "0x8EB39C5", "operation": "copy/fill collection via helper @ 0x1582C4710"},
+    {"rva": "0x8EB39DA", "operation": "load network sender instance from +0xA110"},
+    {"rva": "0x8EB39E6", "operation": "pass constructed NLOMEGMJDGJ as message argument"},
+    {"rva": "0x8EB39F2", "operation": "tail-jump to EDKMMIPJHJA.DMLCLHCBOBJ @ 0x147246860"}
+  ],
+  "negative_context": {
+    "runtime_class_helper_rva": "0x1184DFE0",
+    "direct_call_count": 26201,
+    "note": "The runtime-class helper is generic; its caller fan-out is not semantic evidence."
+  },
+  "cross_project_current_version": {
+    "repository": "invoker-bot/LunaGC",
+    "commit": "1b363fac36d218ecfce3452a3c1893fe0fac6b31",
+    "source": "docs/CRUCIBLE_PROTOCOL.md",
+    "sample_region": "CN",
+    "sample_version": "7.1.0",
+    "semantic_name": "GetActivityInfoReq",
+    "matched_facts": [
+      "declaring/activity manager type JKFCCMCAMGA",
+      "message type NLOMEGMJDGJ",
+      "CmdId 186",
+      "message collection object offset 0x18",
+      "protobuf tag 0x72 = field 14 packed uint32",
+      "manager send path constructs the message and submits it to the network layer"
+    ],
+    "supporting_code": [
+      "src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java assigns GetActivityInfoReq = 186",
+      "src/test/java/io/grasscutter/ActivityDisplayProtocolTest.java verifies opcode 186 and packed field 14 activity_id_list"
+    ],
+    "boundary": "Cross-project evidence comes from an exact CN 7.1 client, while this analysis targets Global 7.1. It supports HIGH_CONFIDENCE semantic identity but does not satisfy the repository's exact-Global CONFIRMED gate by itself."
+  },
+  "conclusion": {
+    "status": "HIGH_CONFIDENCE",
+    "semantic_candidate": "GetActivityInfoReq",
+    "reason": "Exact Global 7.1 proves the unique activity-manager-like consumer constructs CmdId 186/NLOMEGMJDGJ, copies a list into its field-14 collection, and sends it. Independent exact CN 7.1 evidence binds the same obfuscated manager/message pair, CmdId, field tag, object offset and send behavior to GetActivityInfoReq."
+  }
+}
