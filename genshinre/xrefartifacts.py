@@ -4,10 +4,11 @@ import csv
 import re
 from pathlib import Path
 
+from .contracts import MESSAGE_DIRECTIONS
 from .registry import ALLOWED_STATUS
 
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
-DIRECTIONS = {"", "C2S", "S2C", "unknown"}
+DIRECTIONS = {""} | MESSAGE_DIRECTIONS
 
 XREF_TABLE_CONTRACTS: dict[str, dict[str, object]] = {
     "message-handlers.csv": {

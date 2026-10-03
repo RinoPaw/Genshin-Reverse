@@ -10,6 +10,7 @@ from .cmdobservations import (
     validate_confirmed_semantic_alignment,
     validate_observation_summary,
 )
+from .contracts import ANALYSIS_STATES, ANALYSIS_STATUSES, MESSAGE_DIRECTIONS
 from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
 from .registryxrefpublish import _validated_known_opcodes
 from .scenehandlerartifact import validate_scene_handler_dispatch
@@ -26,9 +27,6 @@ KNOWN_OPCODE_REQUIRED_COLUMNS = (
     "status",
     "evidence",
 )
-ANALYSIS_STATES = {"ACTIVE", "BLOCKED", "COMPLETE"}
-ANALYSIS_STATUSES = {"CONFIRMED", "HIGH_CONFIDENCE", "CANDIDATE", "REJECTED", "UNRESOLVED"}
-MESSAGE_DIRECTIONS = {"C2S", "S2C", "unknown"}
 PROTOBUF_WIRE_TYPES = {0, 1, 2, 3, 4, 5}
 PUBLICATION_EVIDENCE = (
     "registry/registry.summary.json",
@@ -519,7 +517,7 @@ def validate_version(path: Path, allow_partial: bool = False) -> tuple[list[str]
                         errors.append(f"registry.csv:{line_no}: duplicate cmd_id {cmd}")
                     seen.add(cmd)
                     direction = row.get("direction", "")
-                    if direction not in {"", "C2S", "S2C", "unknown"}:
+                    if direction not in ({""} | MESSAGE_DIRECTIONS):
                         errors.append(f"registry.csv:{line_no}: bad direction {direction}")
                     status = row.get("status", "")
                     if status not in ALLOWED_STATUS:
