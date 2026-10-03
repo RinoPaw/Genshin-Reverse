@@ -181,23 +181,27 @@ The capture path is retained for future use, but active response-identity resear
 
 ## Automatic transaction correlation
 
-After capture, run:
+After capture, use the maintained generic correlator:
 
 ```bash
-python tools/runtime/analyze_unlock_trans_point_capture_71.py \
+genshinre correlate-capture \
   work/unlock-trans-point-71.ndjson \
-  --json work/unlock-trans-point-71-analysis.json
+  --request-cmd 9369 \
+  --candidate-cmd 36641 \
+  --candidate-cmd 20290 \
+  --sequence-field 3 \
+  --output work/unlock-trans-point-71-analysis.json
 ```
 
-The analyzer:
+The version-specific collector is responsible for proving the pinned build and hook RVAs. The generic correlator then:
 
-1. verifies that the capture's ready event uses the maintained current-client S2C/C2S hook RVAs;
-2. finds each `C2S 9369` request;
-3. decodes PacketHead protobuf field 3 (`client_sequence_id`, independently retained by same-version 7.1 protocol controls);
-4. inspects the narrow following S2C window for `36641`, `20290`, and `25567`;
-5. marks a transaction `promotable` only when exactly one response candidate shares the request `client_sequence_id`.
+1. finds each `C2S 9369` request;
+2. decodes PacketHead protobuf field 3 (`client_sequence_id`, independently retained by same-version 7.1 protocol controls);
+3. inspects the bounded following S2C window for `36641` and `20290`;
+4. marks an individual transaction `promotable` only when exactly one response candidate shares the request sequence value;
+5. marks the capture `promotable-consistent` only when every observed request transaction promotes the same candidate CmdId.
 
-If both candidates appear, no candidate matches the sequence, or PacketHead field 3 is unavailable, preserve the full capture and review the surrounding traffic rather than promoting a mapping from proximity alone.
+If both candidates appear, no candidate matches the sequence, PacketHead field 3 is unavailable, or only part of the observed requests are promotable, preserve the full capture and review the surrounding traffic rather than promoting a mapping from proximity alone.
 
 ## Promotion rule
 
