@@ -1,6 +1,10 @@
 name: Disassemble 7.1 RVA
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/disassemble-7.1-rva.yml'
   workflow_dispatch:
     inputs:
       rva:
@@ -26,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      RVA: ${{ inputs.rva }}
-      SIZE: ${{ inputs.size }}
-      LABEL: ${{ inputs.label }}
+      RVA: ${{ inputs.rva || '0x9ED2100' }}
+      SIZE: ${{ inputs.size || '0x60' }}
+      LABEL: ${{ inputs.label || 'cmdid-186-parser' }}
     steps:
       - name: Checkout Genshin-Reverse
         uses: actions/checkout@v4
