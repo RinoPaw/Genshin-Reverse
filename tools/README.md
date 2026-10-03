@@ -38,6 +38,7 @@ The following old standalone helpers were removed after their capability moved t
 - `find_protocol_parameter_consumers_71.py` and `analyze_protocol_consumers_71.py` → `genshinre query-methods` / `genshinre protocol-query`;
 - `map_owner_protocol_parameters_71.py` → the more general exact-sample `decode_protocol_handler_parameters_71.py` raw-record cross-check;
 - `inspect_parameter_decoder_constants_71.py` → the already recovered and regression-tested 7.1 metadata/parameter decoder contract;
+- `probe_registry_direction_flags_71.py` → rejected contiguous direction-array hypothesis; no unique exact-sample artifact satisfied its own evidence gate;
 - packet-specific UnlockTransPoint capture analyzers → `genshinre correlate-capture`.
 
 The moving HoYoPlay and third-party HoyoDL 7.1 fetchers were also retired. Exact 7.1 maintenance uses the pinned Sophon sample path; a future live-version discovery tool should be named and documented as discovery-only rather than presented as an exact-sample fetch path.
