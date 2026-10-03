@@ -9,7 +9,7 @@
   },
   "questions": [
     "Which exact scalar FieldCodec factory overload is MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80?",
-    "Which current-client sender or call-site context produces CmdId 186 during login initialization?",
+    "Which indirect/type-slot/registration sender path produces CmdId 186 during login initialization?",
     "Which semantic packet name is supported when static parser evidence and runtime context are combined?"
   ],
   "claims": [
@@ -35,7 +35,7 @@
           "kind": "wire-decode",
           "source": "genshinre wire",
           "locator": "7202d027",
-          "note": "Packed-varint decoding yields [5072]. Exact-client code now independently proves that field 14 uses a generated repeated-field structure; the exact scalar codec overload remains unresolved."
+          "note": "Packed-varint decoding yields [5072]. Exact-client code independently proves field 14 uses a generated repeated-field structure; the exact scalar codec overload remains unresolved."
         }
       ]
     },
@@ -111,10 +111,30 @@
       ]
     },
     {
+      "id": "direct-call-sender-path",
+      "status": "REJECTED",
+      "statement": "A direct E8 rel32 call into the generated NLOMEGMJDGJ methods is not present in the exact 7.1 executable.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "direct-call-xrefs.json",
+          "locator": "targets",
+          "note": "CopyFrom, size-like, constructor, static constructor, two generated methods, parser and GetCmdId each have call_count=0. Source workflow run 37095853357."
+        }
+      ]
+    },
+    {
       "id": "sender-context",
       "status": "UNRESOLVED",
-      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem.",
-      "evidence": []
+      "statement": "The current-client sender/call-site responsible for CmdId 186 has not yet been tied to a gameplay/login subsystem. Exact-client direct-call scanning ruled out E8 rel32 calls to the generated message methods, so recovery should follow type-slot/static references, indirect/interface/delegate dispatch or registration/allocation helpers.",
+      "evidence": [
+        {
+          "kind": "negative-static-evidence",
+          "source": "direct-call-xrefs.json",
+          "locator": "conclusion",
+          "note": "Negative evidence narrows the sender search but does not identify the sender."
+        }
+      ]
     },
     {
       "id": "semantic-name",
@@ -134,17 +154,29 @@
           "note": "Historical mappings may guide comparison but cannot establish the 7.1 semantic identity."
         }
       ]
+    },
+    {
+      "statement": "Find the sender by scanning only E8 rel32 calls to NLOMEGMJDGJ generated methods.",
+      "reason": "Exact 7.1 scanning found zero direct calls for all eight generated message methods that were tested.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "direct-call-xrefs.json",
+          "note": "Continue with indirect/static/type-slot/registration evidence instead."
+        }
+      ]
     }
   ],
   "artifacts": [
     "README.md",
     "evidence.json",
     "protobuf-structure.json",
-    "copyfrom.disasm.json"
+    "copyfrom.disasm.json",
+    "direct-call-xrefs.json"
   ],
   "next_steps": [
     "Identify the exact scalar FieldCodec overload implemented by MJKCIJEILLP.OLACMCNHBHD @ 0x0AABBD80 using exact-client controls.",
-    "Locate sender/call-site xrefs for NLOMEGMJDGJ and compare them with repeated login-init runtime observations.",
+    "Trace NLOMEGMJDGJ through type-slot/static/registration references and indirect sender paths instead of direct E8 calls.",
     "Cross-check semantic candidates against current-target evidence and related projects without importing historical numeric equality.",
     "Promote a semantic name only when static identity, parser shape and runtime context agree."
   ]
