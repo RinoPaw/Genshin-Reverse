@@ -1,0 +1,32 @@
+{
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "provenance": {
+    "workflow_run_id": 37095853357,
+    "artifact_id": 11264166961,
+    "artifact_name": "cmdid-186-direct-call-xrefs",
+    "artifact_zip_sha256": "4944d262ec09fa2fc76f593d7a61d42dd7b6ea21db21cf38379c4cc964aa96c0"
+  },
+  "scanner": {
+    "kind": "x86-64 E8 rel32 direct-call xrefs",
+    "caller_join": "nearest preceding canonical metadata method, bounded by next method RVA and max_method_body=0x10000"
+  },
+  "targets": {
+    "0x9ED1E80": {"role": "CopyFrom", "call_count": 0},
+    "0x9ED1EF0": {"role": "size-like", "call_count": 0},
+    "0x9ED1F40": {"role": ".ctor", "call_count": 0},
+    "0x9ED1F90": {"role": ".cctor", "call_count": 0},
+    "0x9ED1FC0": {"role": "generated-method", "call_count": 0},
+    "0x9ED2010": {"role": "generated-method", "call_count": 0},
+    "0x9ED2100": {"role": "parser", "call_count": 0},
+    "0x9ED2160": {"role": "GetCmdId", "call_count": 0}
+  },
+  "conclusion": {
+    "status": "CONFIRMED",
+    "statement": "The exact 7.1 executable contains no E8 rel32 direct call to any of the eight scanned NLOMEGMJDGJ generated methods. Sender recovery must therefore follow other reference forms such as type-slot/static references, indirect/interface/delegate dispatch, allocation helpers or higher-level registration tables."
+  }
+}
