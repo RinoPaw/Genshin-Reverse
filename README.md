@@ -23,7 +23,7 @@ genshinre protocol-query versions/7.1.0-global/windows-x64 --cmd-id 186
 genshinre validate versions/7.1.0-global/windows-x64 --allow-partial
 ```
 
-The maintained 7.1 path accepts only the pinned exact client sample. A sample/hash mismatch is a hard error.
+The maintained 7.1 path accepts only the pinned exact client sample. A sample/hash mismatch is a hard error. Target-specific counts, hashes, RVAs and preserved anchors are defined by the exact `NativeProfile`; see `docs/native-profiles.md` for the fail-closed version bring-up policy.
 
 Maintained entry points:
 
@@ -34,16 +34,16 @@ genshinre.registryxrefpublish
 genshinre protocol-query <version-dir> --cmd-id <id>
 genshinre pointer-xrefs <GenshinImpact.exe> <start-rva> <end-rva> [--output pointer-xrefs.json]
 genshinre scene-handler-slots <exe> <methods.csv> <registry.csv> <owner-type> <slot-start> <slot-end>
-python -m genshinre.capture <capture.ndjson> --request-cmd <id> --candidate-cmd <id> [...]
+genshinre correlate-capture <capture.ndjson> --request-cmd <id> --candidate-cmd <id> [...]
 ```
 
 `protocol-query` joins canonical registry identity, declared methods/fields, inbound method-signature references, handlers/senders/constructors, scene-handler dispatch evidence, runtime observations, message shapes and focused analysis records. It is an evidence aggregator and does not infer a semantic name on its own.
 
 `pointer-xrefs` scans file-backed aligned qword holders whose values point into the half-open RVA range `[start-rva, end-rva)`, then joins simple RIP-relative code references to those holders. Use `rip-xrefs` when the code directly references the target RVA itself.
 
-`genshinre.capture` provides reusable request/response correlation for decrypted NDJSON packet captures. Version-specific collectors may keep build-bound hook addresses under `tools/runtime/`, while correlation policy stays in the package.
+`correlate-capture` provides reusable request/response correlation for decrypted NDJSON packet captures. Version-specific collectors may keep build-bound hook addresses under `tools/runtime/`, while correlation policy stays in the package.
 
-See `docs/getting-started.md` for the maintained workflow.
+See `docs/getting-started.md` for the maintained workflow and `docs/native-profiles.md` for exact-target bring-up rules.
 
 ## Layout
 
