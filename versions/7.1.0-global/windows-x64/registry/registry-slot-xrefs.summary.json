@@ -26,7 +26,7 @@
         "xref_methods": "NKFCABIOGLE@0xC87E900",
         "candidate_slot_count": "1",
         "status": "UNIQUE_SLOT_XREF",
-        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot"
+        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified registry constructor type slot"
       }
     },
     "22899": {
@@ -47,7 +47,7 @@
         "xref_methods": "NKFCABIOGLE@0x9FDAD20",
         "candidate_slot_count": "1",
         "status": "UNIQUE_SLOT_XREF",
-        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified 4,896-row registry constructor slot"
+        "evidence": "RIP-relative reference from methods declared on the GetCmdId candidate type to a verified registry constructor type slot"
       }
     }
   },
