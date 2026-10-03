@@ -10,7 +10,9 @@ from genshinre.artifactmanifest import (
     REQUIRED_PUBLICATION_ROWS,
     validate_generated_manifest,
 )
-from genshinre.typearray import EXPECTED_RUNTIME_TYPE_COUNT
+from genshinre.nativeprofile import PROFILE_71
+
+EXPECTED_RUNTIME_TYPE_COUNT = PROFILE_71.runtime_type_count
 
 
 class GeneratedArtifactManifestV4Tests(unittest.TestCase):
