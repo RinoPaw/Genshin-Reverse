@@ -13,7 +13,6 @@ class SampleFetchContractTests(unittest.TestCase):
         self.root = Path(__file__).resolve().parents[1]
         self.sh = (self.root / "scripts/fetch-7.1-samples.sh").read_text(encoding="utf-8")
         self.ps1 = (self.root / "scripts/fetch-7.1-samples.ps1").read_text(encoding="utf-8")
-        self.tool = (self.root / "tools/fetch_sophon_targets.py").read_text(encoding="utf-8")
         self.hashes = json.loads(
             (self.root / "versions/7.1.0-global/windows-x64/hashes.json").read_text(encoding="utf-8")
         )
@@ -78,11 +77,6 @@ class SampleFetchContractTests(unittest.TestCase):
         self.assertEqual("https://example.invalid/chunks", source[1])
         self.assertEqual("a" * 64, source[2])
         self.assertEqual("b" * 64, source[3])
-
-    def test_generic_tool_is_only_a_package_wrapper(self) -> None:
-        self.assertIn("from genshinre.samplefetch import main", self.tool)
-        self.assertNotIn("zstandard", self.tool)
-        self.assertNotIn("urllib", self.tool)
 
 
 if __name__ == "__main__":

@@ -23,14 +23,19 @@ class ScriptContractTests(unittest.TestCase):
                 self.assertNotIn("metausage", text)
                 self.assertNotIn("usagejoin", text)
 
-    def test_heavy_generation_does_not_clone_astaps_or_run_best_effort_research(self) -> None:
+    def test_heavy_generation_is_one_fail_closed_canonical_chain(self) -> None:
         text = (REPO_ROOT / ".github/workflows/generate-7.1-data.yml").read_text(
             encoding="utf-8"
         )
         self.assertNotIn("RinoPaw/AstaPS", text)
         self.assertNotIn("--astaps", text)
         self.assertNotIn("best-effort", text.lower())
-        self.assertIn("Regenerate exact-sample canonical data", text)
+        self.assertIn("Regenerate exact-sample metadata and GetCmdId evidence", text)
+        self.assertIn("genshinre.registryslots", text)
+        self.assertIn("genshinre.registryslotxref", text)
+        self.assertIn("genshinre.registryxrefpublish", text)
+        self.assertIn("Publish validated artifacts into version tree", text)
+        self.assertIn("Validate published version tree", text)
 
 
 if __name__ == "__main__":
