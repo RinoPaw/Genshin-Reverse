@@ -1,8 +1,8 @@
 'use strict';
 
 // Genshin Impact global 7.1.0
-// GenshinImpact.exe SHA-256:
-// 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
+// GenshinImpact.exe SHA-256 is verified by the Python launcher against the
+// maintained NativeProfile before this script is attached.
 //
 // These hook points were recovered from the current client by locating the
 // 0x4567/0x89AB framed packet parser/encoder and then tracing their XOR loops.
@@ -13,7 +13,14 @@ const S2C_POST_XOR_RVA = 0xA01846A;
 const C2S_PRE_XOR_RVA = 0xA01A0EF;
 const BYTE_ARRAY_DATA_OFFSET = 0x20;
 const MAX_FRAME_SIZE = 16 * 1024 * 1024;
-const WATCHED = new Set([9369, 36641, 20290, 25567]);
+let WATCHED = new Set();
+
+rpc.exports = {
+    configure(watchedCmdIds) {
+        WATCHED = new Set((watchedCmdIds || []).map(Number));
+        return Array.from(WATCHED);
+    },
+};
 
 function be16(p) {
     return (p.readU8() << 8) | p.add(1).readU8();
@@ -49,7 +56,7 @@ function emitFrames(direction, arrayObject, availableLength, hookRva) {
 
         // The receive-side parser may be handed more than one complete framed
         // packet in the same plaintext byte[] window. Walk every contiguous
-        // 0x4567 ... 0x89AB frame so a watched packet cannot be missed merely
+        // 0x4567 ... 0x89AB frame so a target packet cannot be missed merely
         // because it is not the first frame in the buffer.
         while (offset + 12 <= availableLength) {
             const frame = data.add(offset);
@@ -85,9 +92,9 @@ function emitFrames(direction, arrayObject, availableLength, hookRva) {
                 watched,
             };
 
-            // Preserve full bytes for the request, both response candidates, and
-            // ScenePointUnlockNotify. Adjacent packets still emit header metadata,
-            // which is enough to reconstruct the narrow transaction window.
+            // Packet headers are always preserved. Full plaintext frame bytes
+            // are emitted only for explicitly configured watch CmdIds so a
+            // narrow capture does not balloon when unrelated traffic is busy.
             if (watched) {
                 payload.frame_hex = bytesToHex(frame.readByteArray(frameSize));
             }
@@ -151,5 +158,5 @@ send({
     module_base: module.base.toString(),
     s2c_post_xor_rva: '0x' + S2C_POST_XOR_RVA.toString(16).toUpperCase(),
     c2s_pre_xor_rva: '0x' + C2S_PRE_XOR_RVA.toString(16).toUpperCase(),
-    watched_cmd_ids: Array.from(WATCHED),
+    configurable_watch_set: true,
 });
