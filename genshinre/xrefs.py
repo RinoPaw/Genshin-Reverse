@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from .callxref import attach_caller_methods
 from .pe import PEImage
 
 _RIP_PATTERN = re.compile(
@@ -75,12 +76,15 @@ def scan_rip_xrefs(
     target_rvas: list[int],
     window: int = 24,
     executable_sections_only: bool = True,
+    methods_csv: Path | None = None,
+    max_method_body: int = 0x10000,
 ) -> dict[str, object]:
     targets = set(target_rvas)
     matches: dict[int, list[dict[str, object]]] = {target: [] for target in target_rvas}
 
     with PEImage(exe) as image:
         scanned_sections: list[str] = []
+        call_sites: list[int] = []
         for section in image.sections:
             if executable_sections_only and not (section.characteristics & 0x20000000):
                 continue
@@ -107,22 +111,34 @@ def scan_rip_xrefs(
                     }
                 )
                 matches[target].append(decoded)
+                call_sites.append(instruction_rva)
+
+    caller_map: dict[int, list[dict[str, str]]] = {}
+    if methods_csv is not None and call_sites:
+        caller_map = attach_caller_methods(call_sites, methods_csv, max_method_body=max_method_body)
+
+    formatted_matches: dict[str, list[dict[str, object]]] = {}
+    for target, rows in matches.items():
+        formatted_rows: list[dict[str, object]] = []
+        for row in rows:
+            site = int(row["instruction_rva"])
+            formatted = {
+                **row,
+                "instruction_rva": f"0x{site:X}",
+                "target_rva": f"0x{int(row['target_rva']):X}",
+            }
+            if methods_csv is not None:
+                formatted["caller_methods"] = caller_map.get(site, [])
+            formatted_rows.append(formatted)
+        formatted_matches[f"0x{target:X}"] = formatted_rows
 
     return {
         "targets": [f"0x{target:X}" for target in target_rvas],
         "executable_sections_only": executable_sections_only,
+        "methods_csv": None if methods_csv is None else str(methods_csv),
+        "max_method_body": max_method_body,
         "scanned_sections": scanned_sections,
-        "matches": {
-            f"0x{target:X}": [
-                {
-                    **row,
-                    "instruction_rva": f"0x{int(row['instruction_rva']):X}",
-                    "target_rva": f"0x{int(row['target_rva']):X}",
-                }
-                for row in rows
-            ]
-            for target, rows in matches.items()
-        },
+        "matches": formatted_matches,
     }
 
 
