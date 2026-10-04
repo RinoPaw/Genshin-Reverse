@@ -187,6 +187,92 @@ jobs:
           print(json.dumps(result, indent=2, ensure_ascii=False))
           PY
 
+      - name: Recover literal storage layout and wider metadata usage slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from tools.disassemble_rva import disassemble_rva
+
+          sys.path.insert(0, 'external/gi-stringliteral')
+          import recover_string_literals as R
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          meta_path = Path('inputs/7.1.0-global/global-metadata.dat')
+          meta = meta_path.read_bytes()
+          literal_candidates, table_candidates = R.extract_candidates(str(exe))
+
+          chosen_table = None
+          table_off = None
+          for candidate in table_candidates:
+              R.SPEC = candidate
+              hit = R.scan_table(meta)
+              if hit is not None:
+                  chosen_table = candidate
+                  table_off = hit
+                  break
+          if chosen_table is None or table_off is None:
+              raise SystemExit('no exact 7.1 literal table candidate validated')
+
+          R.SPEC = chosen_table
+          chosen_literal = None
+          data_base = None
+          for candidate in literal_candidates:
+              R.LIT_SEED, R.LIT_INC = candidate.seed, candidate.inc
+              hit = R.scan_data_base(meta, table_off)
+              if hit is not None:
+                  chosen_literal = candidate
+                  data_base = hit
+                  break
+          if chosen_literal is None or data_base is None:
+              raise SystemExit('no exact 7.1 literal data base candidate validated')
+
+          R.LIT_SEED, R.LIT_INC = chosen_literal.seed, chosen_literal.inc
+          count = R.auto_count(meta, table_off, data_base)
+          layout = {
+              'metadata_file_size': len(meta),
+              'literal_table_file_offset': f'0x{table_off:X}',
+              'literal_data_file_offset': f'0x{data_base:X}',
+              'literal_count': count,
+              'table_decode_ast': repr(chosen_table.ast),
+              'table_anchor0': None if chosen_table.anchor0() is None else f'0x{chosen_table.anchor0():X}',
+              'literal_increment': f'0x{chosen_literal.inc:X}',
+              'literal_seed0': f'0x{chosen_literal.seed(0):X}',
+          }
+          Path('mhy-literal-storage-layout.json').write_text(
+              json.dumps(layout, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+
+          slices = [
+              ('metadata-usage-initializer-wide', 0x523300, 0x700),
+              ('literal-decryptor-wide', 0x525C00, 0x600),
+              ('metadata-helper-524e80', 0x524D80, 0x300),
+              ('metadata-helper-526180', 0x526080, 0x300),
+          ]
+          out = []
+          for label, rva, size in slices:
+              out.append(
+                  disassemble_rva(
+                      exe,
+                      rva,
+                      size,
+                      expected_sha256=PROFILE_71.exe_sha256,
+                      label=label,
+                  )
+              )
+          Path('mhy-metadata-usage-wide-disassembly.json').write_text(
+              json.dumps(out, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(layout, indent=2, ensure_ascii=False))
+          PY
+
       - name: Build focused summary
         shell: bash
         run: |
@@ -197,6 +283,7 @@ jobs:
           anchor = json.loads(Path('reliquary-main-prop-anchor.json').read_text(encoding='utf-8'))
           recovered = json.loads(Path('reliquary-recovered-string-literals.json').read_text(encoding='utf-8'))
           decoder = json.loads(Path('mhy-string-literal-decoder-anchors.json').read_text(encoding='utf-8'))
+          layout = json.loads(Path('mhy-literal-storage-layout.json').read_text(encoding='utf-8'))
           summary = {
               'literal_hit_count': anchor['literal_hit_count'],
               'direct_code_xref_count': anchor['direct_code_xref_count'],
@@ -208,6 +295,7 @@ jobs:
               'mhy_literal_candidate_count': decoder['literal_candidate_count'],
               'mhy_table_candidate_count': decoder['table_candidate_count'],
               'mhy_table_candidates': decoder['table_candidates'],
+              'mhy_literal_storage_layout': layout,
               'pe_hits': [
                   {
                       'literal': row['literal'],
@@ -237,5 +325,7 @@ jobs:
             reliquary-recovered-string-literals.json
             mhy-string-literal-decoder-anchors.json
             mhy-table-candidate-disassembly.json
+            mhy-literal-storage-layout.json
+            mhy-metadata-usage-wide-disassembly.json
           if-no-files-found: error
           retention-days: 7
