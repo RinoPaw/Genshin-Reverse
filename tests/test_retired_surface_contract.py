@@ -52,6 +52,7 @@ class RetiredSurfaceContractTests(unittest.TestCase):
     def test_retired_surfaces_stay_removed(self) -> None:
         root = Path(__file__).resolve().parents[1]
         retired = (
+            "tools/parse_decrypted_game_packet.py",
             "tools/inspect_method_context_71.py",
             "tools/inspect_protocol_type_shape_71.py",
             "tools/scan_owner_rpc_submit_layout_71.py",

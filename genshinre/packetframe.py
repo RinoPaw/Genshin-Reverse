@@ -4,6 +4,7 @@ import argparse
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Iterable
 
 HEAD_MAGIC = 0x4567
 TAIL_MAGIC = 0x89AB
@@ -83,12 +84,24 @@ def parse_hex(text: str) -> bytes:
     return bytes.fromhex(cleaned)
 
 
+def describe_frames(data: bytes, watched_cmds: Iterable[int] = ()) -> dict[str, object]:
+    watched = {int(value) for value in watched_cmds}
+    rows = []
+    for packet in parse_frames(data):
+        row = asdict(packet)
+        row["offset"] = f"0x{packet.offset:X}"
+        row["watched"] = packet.cmd_id in watched
+        rows.append(row)
+    return {"packet_count": len(rows), "packets": rows}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
+        prog="python -m genshinre.packetframe",
         description=(
             "Parse one or more XOR-decrypted Genshin game packet frames and print their CmdIds. "
             "The input is the game packet buffer after transport XOR decryption, not raw KCP ciphertext."
-        )
+        ),
     )
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--file", type=Path, help="binary file containing one or more decrypted frames")
@@ -102,15 +115,8 @@ def main() -> None:
     args = parser.parse_args()
 
     data = args.file.read_bytes() if args.file is not None else parse_hex(args.hex_data)
-    watched = {int(value, 0) for value in args.watch_cmd}
-    rows = []
-    for packet in parse_frames(data):
-        row = asdict(packet)
-        row["offset"] = f"0x{packet.offset:X}"
-        row["watched"] = packet.cmd_id in watched
-        rows.append(row)
-
-    print(json.dumps({"packet_count": len(rows), "packets": rows}, indent=2))
+    watched = [int(value, 0) for value in args.watch_cmd]
+    print(json.dumps(describe_frames(data, watched), indent=2))
 
 
 if __name__ == "__main__":
