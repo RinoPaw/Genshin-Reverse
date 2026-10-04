@@ -10,7 +10,7 @@ from genshinre.registryxrefpublish import (
     SUMMARY_IDENTITY_METHOD,
     SUMMARY_PRODUCER,
     SUMMARY_SEMANTIC_ENRICHMENT,
-    _validated_known_opcodes,
+    validate_known_opcodes_rows,
 )
 
 
@@ -50,7 +50,7 @@ class RegistrySchemaContractTests(unittest.TestCase):
             "evidence": "unit-test current-client evidence",
             "notes": "",
         }
-        self.assertEqual({123: valid}, _validated_known_opcodes([valid]))
+        self.assertEqual({123: valid}, validate_known_opcodes_rows([valid]))
 
         invalid_rows = [
             {**valid, "status": "CANDIDATE"},
@@ -61,7 +61,7 @@ class RegistrySchemaContractTests(unittest.TestCase):
         for row in invalid_rows:
             with self.subTest(row=row):
                 with self.assertRaises(ValueError):
-                    _validated_known_opcodes([row])
+                    validate_known_opcodes_rows([row])
 
     def test_known_opcode_enrichment_rejects_duplicate_cmd_ids(self) -> None:
         first = {
@@ -74,7 +74,7 @@ class RegistrySchemaContractTests(unittest.TestCase):
         }
         second = {**first, "semantic_name": "OtherReq"}
         with self.assertRaises(ValueError):
-            _validated_known_opcodes([first, second])
+            validate_known_opcodes_rows([first, second])
 
 
 if __name__ == "__main__":
