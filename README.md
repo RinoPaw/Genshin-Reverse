@@ -109,6 +109,8 @@ Exploratory probes never overwrite canonical registry data. Semantic protobuf na
 
 Repository maintenance and protocol investigations are tracked separately. Maintainers keep schemas, tooling, documentation, generated-artifact contracts, tests and CI coherent. Focused reverse-engineering work belongs under `versions/<target>/analyses/` or an issue and should be promoted into canonical artifacts only after its stated evidence gate is satisfied.
 
+The maintainer-curated delegated investigation queue is `docs/research-queue.md`. It records current priorities, researcher handoff requirements, AstaPS intake rules and promotion gates.
+
 Heavy reverse-engineering jobs remain opt-in or narrowly path-triggered. Normal CI is for fast validation and regression tests. Canonical 7.1 generation has one write-capable workflow; packet-specific Actions are retired after their useful logic or evidence becomes durable.
 
 ## Current target
