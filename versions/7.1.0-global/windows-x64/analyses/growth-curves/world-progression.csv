@@ -1,0 +1,11 @@
+world_level,monster_level,investigation_monster_level,monster_level_upper_limit
+0,25,25,110
+1,36,36,110
+2,41,41,110
+3,50,50,110
+4,62,62,110
+5,72,72,200
+6,83,83,200
+7,91,91,200
+8,93,93,200
+9,100,100,200
