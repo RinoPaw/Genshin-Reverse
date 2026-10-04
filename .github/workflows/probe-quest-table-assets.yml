@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/probe-quest-table-assets.yml"
+      - "genshinre/xmf.py"
 
 permissions:
   contents: read
@@ -20,70 +21,95 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct and inspect exact 7.1 AssetBundle indexes
+      - name: Reconstruct and parse exact 7.1 AssetBundle indexes
         run: |
           python - <<'PY'
           from __future__ import annotations
 
-          import re
           from pathlib import Path
 
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.samplefetch import (
-              choose_file,
               decompress_zstd,
               download,
+              normalized_name,
               parse_manifest,
               reconstruct,
           )
+          from genshinre.xmf import parse_xmf
 
           raw = download(PROFILE_71.sophon_manifest_url)
           rows = parse_manifest(decompress_zstd(raw))
           out = Path('inputs/7.1.0-asset-index')
           out.mkdir(parents=True, exist_ok=True)
 
-          targets = [
-              'GenshinImpact_Data/StreamingAssets/AssetBundles/blocks.xmf',
-              'GenshinImpact_Data/StreamingAssets/AssetBundles/data.xmf',
-          ]
-          needles = [
-              b'QuestExcelConfigData',
-              b'QuestExcel',
-              b'_ExcelBinOutput',
-              b'ExcelBinOutput',
-              b'ConfigData',
-              b'quest',
-              b'excel',
-          ]
+          print('=== manifest XMF candidates ===')
+          candidates = [row for row in rows if '.xmf' in normalized_name(row)]
+          for row in candidates:
+              print('XMF', row.get('filename'), 'size=', row.get('size'), 'chunks=', len(row.get('chunks', [])))
 
-          def printable_strings(data: bytes, minimum: int = 5):
-              return [m.group().decode('ascii', 'replace') for m in re.finditer(rb'[ -~]{%d,}' % minimum, data)]
-
-          for target in targets:
-              row = choose_file(rows, target)
-              path = out / Path(target).name
+          for token in ('blocks.xmf', 'data.xmf'):
+              matches = [row for row in candidates if token in normalized_name(row)]
+              if len(matches) != 1:
+                  raise SystemExit(f'{token}: expected one exact-7.1 manifest row, got {len(matches)}')
+              row = matches[0]
+              manifest_name = str(row['filename'])
+              path = out / token
               reconstruct(PROFILE_71.sophon_chunk_prefix, row, path, workers=2)
               data = path.read_bytes()
-              print(f'=== {target} ===')
+
+              print(f'=== {manifest_name} ===')
               print('size', len(data))
-              print('head_hex', data[:256].hex())
-              print('head_ascii', ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[:256]))
-              for needle in needles:
-                  lower = data.lower()
-                  pos = lower.find(needle.lower())
-                  print('needle', needle.decode('ascii', 'replace'), 'pos', pos)
-                  if pos >= 0:
-                      lo=max(0,pos-128); hi=min(len(data),pos+len(needle)+256)
-                      print('context_hex', data[lo:hi].hex())
-                      print('context_ascii', ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[lo:hi]))
-              strings = printable_strings(data)
-              print('ascii_string_count', len(strings))
-              print('ascii_strings_first_300')
-              for s in strings[:300]:
-                  print('STR', repr(s))
-              print('ascii_strings_quest_excel')
-              for s in strings:
-                  sl=s.lower()
-                  if 'quest' in sl or 'excel' in sl or 'config' in sl or 'binoutput' in sl:
-                      print('MATCH', repr(s))
+              print('head_hex', data[:128].hex())
+              print('head_ascii', ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[:128]))
+
+              try:
+                  index = parse_xmf(data)
+              except Exception as exc:
+                  print('normal_index_parse_error', type(exc).__name__, str(exc))
+                  try:
+                      meta = parse_xmf(data, metadata_only=True)
+                  except Exception as meta_exc:
+                      print('metadata_only_parse_error', type(meta_exc).__name__, str(meta_exc))
+                      raise
+                  print('metadata_only', 'version=', meta.version, 'blocks=', len(meta.blocks), 'trailing=', len(meta.trailing))
+                  for i, block in enumerate(meta.blocks[:30]):
+                      print('META_BLOCK', i, block.digest_hex, block.unique_id, block.size)
+                  continue
+
+              print('version', index.version)
+              print('unknown', index.unknown)
+              print('blocks', len(index.blocks))
+              print('assets', sum(len(block.assets) for block in index.blocks))
+              print('trailing', len(index.trailing))
+              if index.trailing:
+                  print('trailing_head_hex', index.trailing[:128].hex())
+
+              for block_index, block in enumerate(index.blocks):
+                  print(
+                      'BLOCK', block_index,
+                      'digest=', block.digest_hex,
+                      'unique=', block.unique_id,
+                      'size=', block.size,
+                      'assets=', len(block.assets),
+                  )
+                  for asset in block.assets:
+                      lower = asset.name.lower()
+                      if any(key in lower for key in ('quest', 'excel', 'config', 'binoutput')):
+                          print(
+                              'MATCH_ASSET',
+                              'block=', block_index,
+                              'digest=', block.digest_hex,
+                              'name=', repr(asset.name),
+                              'offset=', asset.offset,
+                              'size=', asset.size,
+                          )
+
+              print('=== first 200 asset names ===')
+              shown = 0
+              for block_index, block, asset in index.assets():
+                  print('ASSET', block_index, repr(asset.name), asset.offset, asset.size)
+                  shown += 1
+                  if shown >= 200:
+                      break
           PY
