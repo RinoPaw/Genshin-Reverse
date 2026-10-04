@@ -1,0 +1,93 @@
+name: Research ReliquaryMainProp anchor
+
+on:
+  push:
+    branches: [research/reliquary-main-prop]
+    paths:
+      - 'docs/research-triggers/reliquary-main-prop.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-reliquary-main-prop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  locate-anchor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch pinned Global 7.1 samples
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Locate ReliquaryMainProp literals and native xrefs
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha=$(python - <<'PY'
+          from genshinre.nativeprofile import PROFILE_71
+          print(PROFILE_71.exe_sha256)
+          PY
+          )
+
+          python -m genshinre.stringxref \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            --literal 'Data/_ExcelBinOutput/ReliquaryMainPropExcelConfigData' \
+            --literal 'ReliquaryMainPropExcelConfigData' \
+            --methods-csv versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --expected-sha256 "$expected_sha" \
+            --raw-file inputs/7.1.0-global/global-metadata.dat \
+            --output reliquary-main-prop-anchor.json \
+            > reliquary-main-prop-anchor.stdout.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('reliquary-main-prop-anchor.json').read_text(encoding='utf-8'))
+          summary = {
+              'literal_hit_count': data['literal_hit_count'],
+              'direct_code_xref_count': data['direct_code_xref_count'],
+              'pointer_holder_count': data['pointer_holder_count'],
+              'raw_file_hit_count': data.get('raw_file_hit_count', 0),
+              'hits': [
+                  {
+                      'literal': row['literal'],
+                      'encoding': row['encoding'],
+                      'section': row['section'],
+                      'rva': row['rva'],
+                      'direct_code_xrefs': len(row['direct_code_xrefs']),
+                      'pointer_holders': len(row['pointer_holders']),
+                  }
+                  for row in data['hits']
+              ],
+          }
+          Path('reliquary-main-prop-anchor-summary.json').write_text(
+              json.dumps(summary, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(summary, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Preserve focused reverse evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: 7.1-reliquary-main-prop-anchor
+          path: |
+            reliquary-main-prop-anchor.json
+            reliquary-main-prop-anchor-summary.json
+          if-no-files-found: error
+          retention-days: 7
