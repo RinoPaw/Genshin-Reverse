@@ -2,6 +2,9 @@ from __future__ import annotations
 
 
 def read_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
+    if offset < 0:
+        raise ValueError("varint offset must be non-negative")
+
     value = 0
     shift = 0
     pos = offset
