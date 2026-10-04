@@ -9,10 +9,10 @@ META = ROOT / "versions/7.1.0-global/windows-x64/metadata"
 OUT = ROOT / "quest351-target-types.json"
 
 # 61791 dominates current 7.1 methods that directly accept QuestProxy and is
-# therefore the strongest QuestModule-shaped candidate.  The other obfuscated
-# QuestProxy owners are controls for separating module/core logic from quest UI.
-# 20622 remains the old field-layout false-positive; 67347/62829 are the HUD
-# return-button owners; 73130 owns ReturnToQuestEvent/ToggleQuestTrackingEvent.
+# therefore the strongest QuestModule-shaped candidate. 64147 owns the in-level
+# return-button refresh path. 71905 is the named UserLocalDataItem containing
+# trackingMainQuestIDList and navigation state, useful for finding the local
+# persistence side of ResetTrackingLocalData.
 TARGETS = {
     20622,
     37197,
@@ -21,6 +21,7 @@ TARGETS = {
     67347,
     67518,
     62829,
+    71905,
     73130,
     74397,
     83901,
@@ -50,6 +51,7 @@ def main() -> None:
                     "field_name": row.get("field_name", ""),
                     "field_type": row.get("field_type", ""),
                     "field_type_index": int(row["field_type_index"]) if row.get("field_type_index") else -1,
+                    "offset": row.get("offset", ""),
                 }
             )
 
