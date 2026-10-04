@@ -1,6 +1,6 @@
 # Workflow map and maintenance policy
 
-GitHub Actions in this repository have a deliberately small surface. Ordinary maintenance must stay fast, and exact-client reverse work must use a single maintained generation path.
+GitHub Actions in this repository have a deliberately small persistent surface. Ordinary maintenance must stay fast, and exact-client reverse work must use a single maintained generation path. Temporary research workflows may exist while an active investigation depends on their hosted orchestration, but they are not part of the permanent workflow surface.
 
 Pinned 7.1 sample acquisition is centralized in:
 
@@ -44,6 +44,25 @@ This is the retained generic opt-in exact-sample research workflow. It accepts a
 
 Packet-specific Actions are not retained after their useful evidence has been committed. CmdId 186, waypoint response recovery, packet framing, scene-handler work, candidate-graph experiments and similar investigations now rely on committed evidence plus reusable package/tools entry points rather than dedicated Actions shells.
 
+## Temporary active research orchestration
+
+The default branch currently also contains temporary exact-sample workflows created during active Quest/resource work:
+
+```text
+probe-blocks0.yml
+probe-quest-accept-loader.yml
+probe-quest-excel-metadata.yml
+probe-quest-excel-native.yml
+probe-quest-table-assets.yml
+probe-random-quest-cond.yml
+scan-7.1-field-displacements.yml
+trace-7.1-native-call-edges.yml
+```
+
+These are not permanent workflow commitments. Their cleanup is tracked in issue #13. Keep a temporary workflow only while at least one active investigation still depends on unique hosted orchestration or parameters that have not yet been promoted into reusable tooling and durable evidence.
+
+Do not add another topic-specific workflow when a local command, an existing retained workflow, or a small reusable tool can answer the same question efficiently. CI is not the default interactive reverse-engineering loop.
+
 ## Retirement rule
 
 Retire a workflow when all of the following are true:
@@ -66,3 +85,7 @@ A new workflow needs a distinct ongoing orchestration need. Before adding one:
 5. plan to retire packet-specific orchestration once its evidence is durable.
 
 A workflow is orchestration, not the canonical implementation of a reverse-engineering method.
+
+## Validation boundary
+
+Exploratory research may iterate with cheap local checks and opt-in exact-sample jobs. Full validation must not be skipped before asking the user to test a promoted change, before preparing an upstream submission, or before publishing/regenerating canonical target artifacts.
