@@ -8,7 +8,7 @@
     "hashes_ref": "../../hashes.json"
   },
   "questions": [
-    "Can the exact Global 7.1 sender context for CmdId 186 be closed beyond the type-slot consumer?",
+    "Can the exact Global 7.1 producer/semantic identity of the JKFCCMCAMGA +0x108 source collection be closed?",
     "Does the current cross-region 7.1 semantic binding to GetActivityInfoReq satisfy the exact-Global promotion gate?"
   ],
   "claims": [
@@ -148,21 +148,61 @@
       ]
     },
     {
+      "id": "global-manager-source-list",
+      "status": "CONFIRMED",
+      "statement": "Immediately before sending CmdId 186, the exact Global zero-parameter JKFCCMCAMGA.HMAPAFEOKJK() overload reads a source object from manager/state offset +0x108, requires it to be non-null with a positive dword at object +0x18, and passes that same object to the one-parameter sender.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "external-consumer-summary.json",
+          "locator": "caller_native_flow",
+          "note": "Preserved caller bytes decode to mov rdx,[rcx+0x108]; test rdx; cmp dword ptr [rdx+0x18],0; jle skip; call 0x08EB3990. The +0x18 check is structurally consistent with a managed collection/list count."
+        }
+      ],
+      "notes": "This proves manager ownership and non-empty gating of the source collection. The semantic identity of JKFCCMCAMGA +0x108 remains unresolved in the exact Global build."
+    },
+    {
+      "id": "current-version-value-5072",
+      "status": "HIGH_CONFIDENCE",
+      "statement": "The observed packed value 5072 is a real current-version activity ID and is used by current 7.1 activity/quest resource rows.",
+      "evidence": [
+        {
+          "kind": "cross-region-current-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2:ExcelBinOutput/NewActivityExcelConfigData.json",
+          "locator": "activityId=5072",
+          "note": "The row contains activityId 5072 and watcher IDs beginning 15072001, 15072002."
+        },
+        {
+          "kind": "cross-region-current-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2:ExcelBinOutput/MusicGamePreviewConfigData.json",
+          "locator": "activityID=5072",
+          "note": "The row links activity 5072 with tutorial 11031 and start quest 7268401."
+        },
+        {
+          "kind": "cross-region-current-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2:BinOutput/Quest/72500.json",
+          "locator": "activityId=5072",
+          "note": "The quest is MAINQUEST_TAG_ACTIVITY and explicitly carries activityId 5072."
+        }
+      ],
+      "notes": "These resources are CN 7.1, so they strongly establish activity semantics for the value but do not satisfy the exact-Global semantic promotion gate."
+    },
+    {
       "id": "sender-context",
       "status": "HIGH_CONFIDENCE",
-      "statement": "JKFCCMCAMGA is an activity-manager path and its Global 7.1 HMAPAFEOKJK overloads send the list carried by CmdId 186/NLOMEGMJDGJ; independent exact CN 7.1 analysis identifies the same obfuscated manager/message pair as the GetActivityInfoReq sender.",
+      "statement": "JKFCCMCAMGA is an activity-manager path and its Global 7.1 HMAPAFEOKJK overloads send the manager-owned list carried by CmdId 186/NLOMEGMJDGJ; independent exact CN 7.1 analysis identifies the same obfuscated manager/message pair as the GetActivityInfoReq sender and says its scheduling path collects opened activity IDs before sending.",
       "evidence": [
         {
           "kind": "exact-global-client",
           "source": "external-consumer-summary.json",
-          "locator": "consumer",
-          "note": "Global 7.1 proves the construction, collection fill and network-submit path."
+          "locator": "caller_collection_conclusion",
+          "note": "Global 7.1 proves the manager-owned +0x108 source collection, non-empty gate, collection copy and network-submit path."
         },
         {
           "kind": "cross-project-current-version",
           "source": "invoker-bot/LunaGC@1b363fac36d218ecfce3452a3c1893fe0fac6b31:docs/CRUCIBLE_PROTOCOL.md",
           "locator": "活动入口、查询与满足条件",
-          "note": "Exact CN 7.1 analysis names JKFCCMCAMGA as the activity manager and NLOMEGMJDGJ/CmdId 186 as GetActivityInfoReq."
+          "note": "Exact CN 7.1 analysis names JKFCCMCAMGA as the activity manager, says its scheduling method collects opened activity IDs, and identifies NLOMEGMJDGJ/CmdId 186 as GetActivityInfoReq."
         }
       ]
     },
@@ -175,7 +215,7 @@
           "kind": "exact-global-client",
           "source": "external-consumer-summary.json",
           "locator": "conclusion",
-          "note": "Global 7.1 matches the message identity, field shape, object offset and manager send path."
+          "note": "Global 7.1 matches the message identity, field shape, object offset, manager-owned source-list gate and send path."
         },
         {
           "kind": "cross-project-current-version",
@@ -188,9 +228,15 @@
           "source": "invoker-bot/LunaGC@1b363fac36d218ecfce3452a3c1893fe0fac6b31:src/test/java/io/grasscutter/ActivityDisplayProtocolTest.java",
           "locator": "activityModuleRequestUsesOpcode186AndPackedField14",
           "note": "Regression test verifies opcode 186 and packed field 14 activity_id_list."
+        },
+        {
+          "kind": "cross-region-current-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "activityId=5072",
+          "note": "The exact Global runtime value [5072] is independently a current 7.1 activity ID."
         }
       ],
-      "notes": "The semantic claim remains below CONFIRMED because the independent named semantic source is an exact CN 7.1 executable while this repository's canonical target is Global 7.1."
+      "notes": "The semantic claim remains below CONFIRMED because the named semantic/native source and current resource identity are exact CN 7.1 while this repository's canonical target is Global 7.1."
     }
   ],
   "rejected_paths": [
@@ -226,6 +272,16 @@
           "locator": "negative_context"
         }
       ]
+    },
+    {
+      "statement": "Treat current CN resource identity for activity 5072 as exact-Global resource proof.",
+      "reason": "It is strong same-version cross-region evidence, but the maintained promotion gate requires an exact-Global semantic edge.",
+      "evidence": [
+        {
+          "kind": "region-boundary",
+          "source": "README.md#current-version-value-correlation"
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -239,9 +295,8 @@
     "external-consumer-summary.json"
   ],
   "next_steps": [
-    "Resolve what the exact Global JKFCCMCAMGA.HMAPAFEOKJK() overload reads before calling 0x08EB3990 and prove that collection is the current/open activity ID set.",
-    "Correlate the observed runtime value 5072 with exact Global 7.1 activity schedule/resource state.",
-    "Recover an exact-Global activity response/handler edge or another independent Global semantic anchor.",
+    "Find producer/xrefs or the typed metadata field for exact Global JKFCCMCAMGA +0x108 and prove what IDs populate the source collection.",
+    "Recover an exact-Global activity response/handler edge or another independent Global semantic anchor if it closes the same boundary more cheaply.",
     "Promote GetActivityInfoReq to canonical protocol data only after the exact-Global semantic gate is satisfied."
   ]
 }
