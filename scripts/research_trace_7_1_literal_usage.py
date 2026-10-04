@@ -11,6 +11,7 @@ from genshinre.callxref import scan_direct_call_xrefs
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 from genshinre.sampleidentity import require_sha256
+from genshinre.xrefs import scan_rip_xrefs
 
 M32 = 0xFFFFFFFF
 
@@ -43,6 +44,8 @@ PAIR_B_XOR = 0x5C14F482
 
 LITERAL_USAGE_KIND = 5
 DEFAULT_INITIALIZER_RVA = 0x523400
+METADATA_REGISTRATION_GLOBAL_RVA = 0x5AD52A8
+LITERAL_USAGE_ARRAY_OFFSET = 0x60
 
 
 def u32(data: bytes, offset: int) -> int:
@@ -142,6 +145,24 @@ def discover_usage_list_starts(
     return starts
 
 
+def usage_list_diagnostics(starts: list[int]) -> dict[str, object]:
+    rows = [
+        {
+            "usage_list_index": i,
+            "start_pair": starts[i],
+            "end_pair": starts[i + 1],
+            "pair_count": starts[i + 1] - starts[i],
+        }
+        for i in range(len(starts) - 1)
+    ]
+    largest = sorted(rows, key=lambda row: int(row["pair_count"]), reverse=True)[:20]
+    return {
+        "tail": rows[-16:],
+        "largest": largest,
+        "max_pair_count": 0 if not largest else largest[0]["pair_count"],
+    }
+
+
 def pair_mask(index: int) -> int:
     value = (index * PAIR_INDEX_MUL + PAIR_INDEX_ADD) & M32
     value ^= PAIR_MASK_XOR1
@@ -206,11 +227,25 @@ def find_literal_usages(
     return hits, validation
 
 
+def _near_call_list_immediate(context: bytes, usage_list_count: int) -> int | None:
+    start = max(0, len(context) - 24)
+    found = None
+    for pos in range(start, len(context) - 4):
+        if context[pos] != 0xB9:
+            continue
+        value = int.from_bytes(context[pos + 1 : pos + 5], "little")
+        if value < usage_list_count:
+            found = value
+    return found
+
+
 def _match_initializer_calls(
     exe: Path,
     methods_csv: Path,
     initializer_rva: int,
     target_lists: set[int],
+    *,
+    usage_list_count: int,
 ) -> dict[str, object]:
     scan = scan_direct_call_xrefs(
         exe,
@@ -220,11 +255,15 @@ def _match_initializer_calls(
     )
     rows = scan["matches"].get(f"0x{initializer_rva:X}", [])
     matches: list[dict[str, object]] = []
+    immediates: Counter[int] = Counter()
     with PEImage(exe) as image:
         for row in rows:
             site = int(str(row["instruction_rva"]), 0)
             before = min(96, site)
             context = image.read_rva(site - before, before)
+            immediate = _near_call_list_immediate(context, usage_list_count)
+            if immediate is not None:
+                immediates[immediate] += 1
             matched_lists = []
             for list_index in sorted(target_lists):
                 pattern = b"\xB9" + int(list_index).to_bytes(4, "little")
@@ -243,9 +282,62 @@ def _match_initializer_calls(
     return {
         "initializer_rva": f"0x{initializer_rva:X}",
         "direct_call_count": len(rows),
+        "calls_with_near_mov_ecx_imm": sum(immediates.values()),
+        "unique_near_immediates": len(immediates),
+        "max_near_immediate": None if not immediates else max(immediates),
+        "final_list_near_immediate_count": immediates.get(usage_list_count - 1, 0),
         "matched_call_count": len(matches),
         "matches": matches,
     }
+
+
+def _resolve_usage_storage(
+    exe: Path,
+    methods_csv: Path,
+    destination_slots: set[int],
+) -> dict[str, object]:
+    root_rva = METADATA_REGISTRATION_GLOBAL_RVA
+    out: dict[str, object] = {
+        "registration_global_rva": f"0x{root_rva:X}",
+        "literal_usage_array_offset": f"0x{LITERAL_USAGE_ARRAY_OFFSET:X}",
+    }
+    with PEImage(exe) as image:
+        image_base = image.image_base
+        max_rva = max((s.virtual_address + max(s.virtual_size, s.raw_size) for s in image.sections), default=0)
+        root_bytes = image.read_rva(root_rva, 8)
+        if len(root_bytes) != 8:
+            out["static_resolution"] = "registration global is not file-backed"
+            return out
+        root_va = int.from_bytes(root_bytes, "little")
+        out["registration_global_raw_qword"] = f"0x{root_va:X}"
+        if not (image_base <= root_va < image_base + max_rva):
+            out["static_resolution"] = "registration pointer is runtime-initialized or outside the image"
+        else:
+            struct_rva = root_va - image_base
+            out["registration_struct_rva"] = f"0x{struct_rva:X}"
+            array_raw = image.read_rva(struct_rva + LITERAL_USAGE_ARRAY_OFFSET, 8)
+            if len(array_raw) == 8:
+                array_va = int.from_bytes(array_raw, "little")
+                out["literal_usage_array_raw_qword"] = f"0x{array_va:X}"
+                if image_base <= array_va < image_base + max_rva:
+                    array_rva = array_va - image_base
+                    out["literal_usage_array_rva"] = f"0x{array_rva:X}"
+                    slot_rvas = [array_rva + slot * 8 for slot in sorted(destination_slots)]
+                    out["destination_slot_rvas"] = [f"0x{rva:X}" for rva in slot_rvas]
+                    out["destination_slot_xrefs"] = scan_rip_xrefs(
+                        exe,
+                        slot_rvas,
+                        methods_csv=methods_csv,
+                        window=48,
+                    )
+                else:
+                    out["static_resolution"] = "literal usage array pointer is runtime-initialized or outside the image"
+
+    root_xrefs = scan_rip_xrefs(exe, [root_rva], methods_csv=methods_csv, window=24)
+    rows = root_xrefs["matches"].get(f"0x{root_rva:X}", [])
+    out["registration_global_xref_count"] = len(rows)
+    out["registration_global_xrefs_sample"] = rows[:32]
+    return out
 
 
 def main() -> None:
@@ -281,12 +373,15 @@ def main() -> None:
         literal_count=args.literal_count,
     )
     target_lists = {row["usage_list_index"] for row in hits}
+    destination_slots = {row["destination_slot"] for row in hits}
     callsites = _match_initializer_calls(
         args.exe,
         args.methods_csv,
         args.initializer_rva,
         target_lists,
+        usage_list_count=len(starts) - 1,
     )
+    storage = _resolve_usage_storage(args.exe, args.methods_csv, destination_slots)
 
     result = {
         "sample": {
@@ -297,7 +392,9 @@ def main() -> None:
         "targets": sorted(args.literal_index),
         "hits": hits,
         "validation": validation,
+        "usage_list_diagnostics": usage_list_diagnostics(starts),
         "initializer_calls": callsites,
+        "usage_storage": storage,
     }
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, ensure_ascii=False))
