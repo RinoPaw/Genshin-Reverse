@@ -33,7 +33,7 @@ jobs:
       - name: Fetch pinned Global 7.1 samples
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
-      - name: Locate ReliquaryMainProp literals and native xrefs
+      - name: Locate plaintext ReliquaryMainProp literals and native xrefs
         shell: bash
         run: |
           set -euo pipefail
@@ -53,17 +53,62 @@ jobs:
             --output reliquary-main-prop-anchor.json \
             > reliquary-main-prop-anchor.stdout.json
 
+      - name: Recover MHY-obfuscated IL2CPP string literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet --filter=blob:none https://github.com/kuma-dayo/gi-stringliteral.git external/gi-stringliteral
+          git -C external/gi-stringliteral checkout --quiet 1008fd7db28dcbc55729d5bb6b3a585dab86cf8b
+
+          python external/gi-stringliteral/recover_string_literals.py \
+            inputs/7.1.0-global/global-metadata.dat \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            -o recovered-string-literals.json
+
           python - <<'PY'
           import json
           from pathlib import Path
 
-          data = json.loads(Path('reliquary-main-prop-anchor.json').read_text(encoding='utf-8'))
+          source = json.loads(Path('recovered-string-literals.json').read_text(encoding='utf-8'))
+          needles = (
+              'ReliquaryMainPropExcelConfigData',
+              'ReliquaryAffixExcelConfigData',
+              'ReliquaryExcelConfigData',
+              '_ExcelBinOutput/Reliquary',
+          )
+          matches = [row for row in source if any(n in row.get('value', '') for n in needles)]
+          out = {
+              'tool': 'kuma-dayo/gi-stringliteral',
+              'tool_commit': '1008fd7db28dcbc55729d5bb6b3a585dab86cf8b',
+              'recovered_literal_count': len(source),
+              'match_count': len(matches),
+              'matches': matches,
+          }
+          Path('reliquary-recovered-string-literals.json').write_text(
+              json.dumps(out, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(out, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Build focused summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          anchor = json.loads(Path('reliquary-main-prop-anchor.json').read_text(encoding='utf-8'))
+          recovered = json.loads(Path('reliquary-recovered-string-literals.json').read_text(encoding='utf-8'))
           summary = {
-              'literal_hit_count': data['literal_hit_count'],
-              'direct_code_xref_count': data['direct_code_xref_count'],
-              'pointer_holder_count': data['pointer_holder_count'],
-              'raw_file_hit_count': data.get('raw_file_hit_count', 0),
-              'hits': [
+              'literal_hit_count': anchor['literal_hit_count'],
+              'direct_code_xref_count': anchor['direct_code_xref_count'],
+              'pointer_holder_count': anchor['pointer_holder_count'],
+              'raw_file_hit_count': anchor.get('raw_file_hit_count', 0),
+              'recovered_literal_count': recovered['recovered_literal_count'],
+              'recovered_reliquary_match_count': recovered['match_count'],
+              'recovered_reliquary_matches': recovered['matches'],
+              'pe_hits': [
                   {
                       'literal': row['literal'],
                       'encoding': row['encoding'],
@@ -72,7 +117,7 @@ jobs:
                       'direct_code_xrefs': len(row['direct_code_xrefs']),
                       'pointer_holders': len(row['pointer_holders']),
                   }
-                  for row in data['hits']
+                  for row in anchor['hits']
               ],
           }
           Path('reliquary-main-prop-anchor-summary.json').write_text(
@@ -89,5 +134,6 @@ jobs:
           path: |
             reliquary-main-prop-anchor.json
             reliquary-main-prop-anchor-summary.json
+            reliquary-recovered-string-literals.json
           if-no-files-found: error
           retention-days: 7
