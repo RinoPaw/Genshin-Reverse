@@ -44,6 +44,20 @@
       "call_window_hex": "2e05e84da868f7e848a868f7e843a868f7488b4de84885c9752a488b4df0488b91080100004885d27415837a18007e05e88f530800904883c4685b5f5e5dc3e810a868f731d2e8f9a768f7cc0f1f8400000000004889542410555657534883ec28488d6a60"
     }
   },
+  "caller_native_flow": [
+    {"rva": "0x8E2E5E6", "operation": "load an owning/state object from caller local state into rcx"},
+    {"rva": "0x8E2E5EA", "operation": "load collection/object reference from owner +0x108 into rdx"},
+    {"rva": "0x8E2E5F1", "operation": "test the +0x108 reference for null"},
+    {"rva": "0x8E2E5F6", "operation": "compare dword at collection/object +0x18 with zero"},
+    {"rva": "0x8E2E5FA", "operation": "skip send when the +0x18 count/value is <= 0"},
+    {"rva": "0x8E2E5FC", "operation": "call HMAPAFEOKJK(kind_0x15) @ 0x8EB3990 with the +0x108 object in rdx"}
+  ],
+  "caller_collection_conclusion": {
+    "status": "CONFIRMED_STRUCTURE",
+    "statement": "The exact Global parameterless sender reads a manager/state-owned object from +0x108, requires it to be non-null and to have a positive dword at +0x18, then passes that same object to the CmdId 186 construction/send overload.",
+    "interpretation": "The +0x18 check is consistent with the size field of an IL2CPP managed list/collection, and the callee copies the supplied object into the protobuf repeated-uint32 collection. This closes the existence and non-empty gating of the manager-owned source list, but does not by itself name the list as opened/current activity IDs.",
+    "semantic_boundary": "Exact Global code still needs a producer/consumer edge for owner +0x108, or another exact-Global activity semantic anchor, before the source list semantics are CONFIRMED."
+  },
   "callee_native_flow": [
     {"rva": "0x8EB39A2", "operation": "load NLOMEGMJDGJ runtime type slot into rcx"},
     {"rva": "0x8EB39A9", "operation": "call PFKFIFOEHNA.JGIBJCAEEBB(Il2CppRuntimeClassHandle) @ 0x1184DFE0"},
@@ -73,7 +87,8 @@
       "CmdId 186",
       "message collection object offset 0x18",
       "protobuf tag 0x72 = field 14 packed uint32",
-      "manager send path constructs the message and submits it to the network layer"
+      "manager send path constructs the message and submits it to the network layer",
+      "CN activity scheduling path collects opened activity IDs immediately before calling the same logical sender"
     ],
     "supporting_code": [
       "src/main/java/emu/grasscutter/net/packet/PacketOpcodes.java assigns GetActivityInfoReq = 186",
@@ -84,6 +99,6 @@
   "conclusion": {
     "status": "HIGH_CONFIDENCE",
     "semantic_candidate": "GetActivityInfoReq",
-    "reason": "Exact Global 7.1 proves the unique activity-manager-like consumer constructs CmdId 186/NLOMEGMJDGJ, copies a list into its field-14 collection, and sends it. Independent exact CN 7.1 evidence binds the same obfuscated manager/message pair, CmdId, field tag, object offset and send behavior to GetActivityInfoReq."
+    "reason": "Exact Global 7.1 proves the unique manager consumer owns a non-empty source collection at +0x108, passes it into CmdId 186/NLOMEGMJDGJ, copies that collection into the message's only repeated-uint32 field and sends it. Independent exact CN 7.1 evidence binds the same obfuscated manager/message pair, CmdId, field tag, object offset and send behavior to GetActivityInfoReq and says the corresponding scheduling path collects opened activity IDs before sending."
   }
 }
