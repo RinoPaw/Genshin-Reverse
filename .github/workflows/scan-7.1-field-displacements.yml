@@ -1,0 +1,116 @@
+name: Scan 7.1 Field Displacements
+
+on:
+  workflow_dispatch:
+    inputs:
+      type_name:
+        description: Obfuscated/current metadata type name, for example JKFCCMCAMGA
+        required: false
+        default: ''
+        type: string
+      type_definition_index:
+        description: Optional typeDefinition index (decimal or 0x-prefixed)
+        required: false
+        default: ''
+        type: string
+      offsets:
+        description: Comma-separated object displacements, for example 0x108,0x138
+        required: true
+        type: string
+      context:
+        description: Instructions of context on each side of a hit
+        required: true
+        default: '6'
+        type: string
+      label:
+        description: Optional research label
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TYPE_NAME: ${{ inputs.type_name }}
+      TYPE_DEFINITION_INDEX: ${{ inputs.type_definition_index }}
+      OFFSETS: ${{ inputs.offsets }}
+      CONTEXT: ${{ inputs.context }}
+      LABEL: ${{ inputs.label }}
+    steps:
+      - name: Checkout Genshin-Reverse
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install focused research dependencies
+        run: |
+          python -m pip install -e . capstone zstandard
+
+      - name: Fetch pinned global 7.1 samples
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Scan selected type field displacements
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$TYPE_NAME" && -z "$TYPE_DEFINITION_INDEX" ]]; then
+            echo "type_name or type_definition_index is required" >&2
+            exit 2
+          fi
+
+          args=()
+          if [[ -n "$TYPE_NAME" ]]; then
+            args+=(--type-name "$TYPE_NAME")
+          fi
+          if [[ -n "$TYPE_DEFINITION_INDEX" ]]; then
+            args+=(--type-definition-index "$TYPE_DEFINITION_INDEX")
+          fi
+
+          IFS=',' read -r -a values <<< "$OFFSETS"
+          for value in "${values[@]}"; do
+            value="${value// /}"
+            if [[ -n "$value" ]]; then
+              args+=(--offset "$value")
+            fi
+          done
+
+          expected_sha=$(python - <<'PY'
+          from genshinre.nativeprofile import PROFILE_71
+          print(PROFILE_71.exe_sha256)
+          PY
+          )
+
+          python tools/scan_field_displacements.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            field-displacements.json \
+            "${args[@]}" \
+            --context "$CONTEXT" \
+            --expected-sha256 "$expected_sha"
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("field-displacements.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          data["research_label"] = os.environ.get("LABEL", "")
+          path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+
+      - name: Preserve displacement scan
+        uses: actions/upload-artifact@v7
+        with:
+          name: 7.1-field-displacements
+          path: field-displacements.json
+          if-no-files-found: error
+          retention-days: 7
