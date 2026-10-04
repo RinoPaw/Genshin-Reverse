@@ -12,6 +12,9 @@ work/
 __pycache__/
 *.pyc
 .venv/
+*.egg-info/
+build/
+dist/
 
 # Editors / OS
 .vscode/
