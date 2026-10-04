@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "target": {
+    "game": "Genshin Impact 7.1.0 Global",
+    "platform": "windows-x64",
+    "resource_repo": "RinoPaw/AstaPS-Resource",
+    "resource_commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd"
+  },
+  "tables": [
+    {"path":"ExcelBinOutput/AvatarLevelExcelConfigData.json","area":"character","role":"ordinary level EXP 1-90","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarCurveExcelConfigData.json","area":"character","role":"per-level stat multipliers through 100","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarPromoteExcelConfigData.json","area":"character","role":"ascension stages, addProps, item and Mora costs","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarExcelConfigData.json","area":"character","role":"avatar master rows and curve/promotion references","status":"observed-resource"},
+    {"path":"ExcelBinOutput/WeaponLevelExcelConfigData.json","area":"weapon","role":"level EXP by weapon rank/category","status":"observed-resource"},
+    {"path":"ExcelBinOutput/WeaponCurveExcelConfigData.json","area":"weapon","role":"per-level stat multipliers","status":"observed-resource"},
+    {"path":"ExcelBinOutput/WeaponPromoteExcelConfigData.json","area":"weapon","role":"legacy weapon promotion table","status":"empty-current-resource"},
+    {"path":"ExcelBinOutput/WeaponExcelConfigData.json","area":"weapon","role":"weapon master rows and growth references","status":"observed-resource"},
+    {"path":"ExcelBinOutput/ReliquaryLevelExcelConfigData.json","area":"artifact","role":"enhancement EXP and main-stat progression variants","status":"observed-resource"},
+    {"path":"ExcelBinOutput/ReliquaryMainPropExcelConfigData.json","area":"artifact","role":"main-stat candidate rows and restored weights","status":"restored-historical-fields"},
+    {"path":"ExcelBinOutput/ReliquaryAffixExcelConfigData.json","area":"artifact","role":"append-stat values and restored weight/upgradeWeight fields","status":"mixed-current-values-restored-historical-weights"},
+    {"path":"ExcelBinOutput/ReliquaryExcelConfigData.json","area":"artifact","role":"legacy artifact item/depot mapping table","status":"empty-current-resource"},
+    {"path":"ExcelBinOutput/PlayerLevelExcelConfigData.json","area":"account","role":"Adventure Rank EXP and unlocks","status":"observed-resource"},
+    {"path":"ExcelBinOutput/WorldLevelExcelConfigData.json","area":"world","role":"World Level monster-level baseline and caps","status":"observed-resource"},
+    {"path":"ExcelBinOutput/MonsterCurveExcelConfigData.json","area":"world","role":"monster stat curves by level","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarFettersLevelExcelConfigData.json","area":"friendship","role":"friendship EXP requirements","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarSkillExcelConfigData.json","area":"talent","role":"skill definitions","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarSkillDepotExcelConfigData.json","area":"talent","role":"skill/talent group references and ascension unlocks","status":"observed-resource"},
+    {"path":"ExcelBinOutput/AvatarTalentExcelConfigData.json","area":"talent","role":"constellation/talent definitions","status":"observed-resource"},
+    {"path":"ExcelBinOutput/ProudSkillExcelConfigData.json","area":"talent","role":"legacy talent level/cost table","status":"empty-current-resource"}
+  ]
+}
