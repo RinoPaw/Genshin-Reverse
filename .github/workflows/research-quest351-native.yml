@@ -1,0 +1,52 @@
+name: Research Quest 351 native edges
+
+on:
+  push:
+    branches:
+      - research/quest351-return
+    paths:
+      - '.github/workflows/research-quest351-native.yml'
+      - 'tools/trace_native_call_edges.py'
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install focused research dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Trace native callers and callees
+        run: |
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest351-native-edges.json \
+            --focus return_btn_get:0x121DA9C0 \
+            --focus actor_clear_before_quest_list:0xFDEE440 \
+            --focus actor_quest_update_post:0xFDF08C0 \
+            --focus questproxy_mark_cache_rewind:0xFF26630 \
+            --focus questproxy_rewind_unfinished:0xFF29C80 \
+            --focus questactor_record_rewind_avatar:0x85B7340
+
+      - name: Preserve native edge report
+        uses: actions/upload-artifact@v7
+        with:
+          name: quest351-native-edges
+          path: quest351-native-edges.json
+          if-no-files-found: error
+          retention-days: 7
