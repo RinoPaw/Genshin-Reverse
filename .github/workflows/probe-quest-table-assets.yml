@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct exact 7.1 binoutput BLB3 block
+      - name: Inventory exact 7.1 manifest and reconstruct known binoutput block
         run: |
           python - <<'PY' | tee probe-summary.txt
           from pathlib import Path
@@ -46,11 +46,21 @@ jobs:
           ]
           print('manifest_files', len(rows))
           print('blk_count', len(blk))
+          print('--- non-block manifest rows ---')
+          for row in rows:
+              if row not in blk:
+                  print('ROW', row.get('size'), len(row.get('chunks', [])), row.get('filename'))
+          print('--- BLB size distribution ---')
+          for limit in (1_000, 10_000, 100_000, 256_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000):
+              print('LE', limit, sum(int(row.get('size', 0) or 0) <= limit for row in blk))
+          largest = sorted(blk, key=lambda row: int(row.get('size', 0) or 0), reverse=True)[:30]
+          print('--- largest BLBs ---')
+          for row in largest:
+              print('BLK', row.get('size'), len(row.get('chunks', [])), row.get('filename'))
 
           matches = [row for row in blk if normalized_name(row).endswith('/00/26986803.blk')]
           if len(matches) != 1:
               raise SystemExit(f'expected one 00/26986803.blk row, got {len(matches)}')
-
           row = matches[0]
           name = str(row['filename']).replace('\\', '/')
           rel = '/'.join(name.split('/')[-3:])
@@ -84,43 +94,25 @@ jobs:
             cli=(dotnet "${dlls[0]}")
           else
             echo 'AnimeStudio CLI entry point not found' >&2
-            find "$root" -maxdepth 3 -type f -printf '%P\n' | sort >&2
             exit 2
           fi
 
-          "${cli[@]}" --help > animestudio-help.txt
           input=$(find probe-block -type f -name '26986803.blk' -print -quit)
           test -n "$input"
           rm -rf animestudio-output
           mkdir -p animestudio-output
-
-          set +e
           "${cli[@]}" "$input" animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
-          status=${PIPESTATUS[0]}
-          set -e
-
           {
-            echo "animestudio_status=$status"
             echo '--- extracted files ---'
             find animestudio-output -type f -printf '%P\t%s bytes\n' | sort
-            echo '--- signatures / strings ---'
-            while IFS= read -r -d '' f; do
-              echo "FILE $f"
-              file "$f" || true
-              sha256sum "$f" || true
-              strings -a -n 6 "$f" | grep -Ei 'QuestExcel|ExcelBinOutput|Quest|acceptCond|binoutput|Data/' | head -n 120 || true
-            done < <(find animestudio-output -type f -print0 | sort -z)
           } | tee animestudio-output-summary.txt
-
-          exit "$status"
-      - name: Upload AnimeStudio probe
+      - name: Upload focused probe
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: quest-binoutput-blb3-probe
           path: |
             probe-summary.txt
-            animestudio-help.txt
             animestudio-probe.txt
             animestudio-output-summary.txt
             animestudio-output
