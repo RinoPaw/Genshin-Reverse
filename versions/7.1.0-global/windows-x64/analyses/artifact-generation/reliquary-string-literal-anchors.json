@@ -1,0 +1,48 @@
+{
+  "status": "CONFIRMED_LITERAL_IDENTITY",
+  "sample": {
+    "game": "Genshin Impact 7.1.0 Global",
+    "platform": "Windows x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "recovery": {
+    "workflow_run_id": 37202040793,
+    "workflow_head_sha": "5d73b875a7b066399d06f748c1e831dbb364c8f2",
+    "external_tool": "kuma-dayo/gi-stringliteral",
+    "external_tool_commit": "1008fd7db28dcbc55729d5bb6b3a585dab86cf8b",
+    "recovered_literal_count": 86109,
+    "plaintext_pe_hit_count": 0,
+    "plaintext_metadata_hit_count": 0
+  },
+  "anchors": [
+    {
+      "index": 57678,
+      "value": "Data/_ExcelBinOutput/ReliquaryAffixExcelConfigData"
+    },
+    {
+      "index": 63833,
+      "value": "Data/_ExcelBinOutput/ReliquarySetSchemeMainPropExcelConfigData"
+    },
+    {
+      "index": 68001,
+      "value": "Data/_ExcelBinOutput/ReliquaryWearMainPropExcelConfigData"
+    },
+    {
+      "index": 71273,
+      "value": "Data/_ExcelBinOutput/ReliquaryMainPropExcelConfigData"
+    },
+    {
+      "index": 73081,
+      "value": "Data/_ExcelBinOutput/ReliquaryAffixNormalizedParamExcelConfigData"
+    },
+    {
+      "index": 74397,
+      "value": "Data/_ExcelBinOutput/ReliquaryExcelConfigData"
+    }
+  ],
+  "interpretation": {
+    "confirmed": "The exact pinned Global 7.1 client metadata contains recoverable IL2CPP string literals naming the Reliquary main-prop, affix, normalized-param, wear-main-prop, and base Reliquary ExcelBinOutput tables.",
+    "not_yet_proven": "The serialized row layout, presence or semantics of a weight field, and the native weighted-selection consumer remain unresolved."
+  }
+}
