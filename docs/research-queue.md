@@ -18,6 +18,7 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 | Priority | Investigation | Current state | Integration value |
 | --- | --- | --- | --- |
 | P0 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence |
+| P0 | [#9 Quest 351 persistent “Return to quest point” client state](https://github.com/RinoPaw/Genshin-Reverse/issues/9) | UNRESOLVED | identifies the exact 7.1 client state/transition needed to stop the return prompt being permanently visible in AstaPS fresh-player intro |
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
 | P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED; community 7.1 candidate table recorded | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
 | P1 | [#8 QuestExcel extraction / prerequisite corruption root cause](https://github.com/RinoPaw/Genshin-Reverse/issues/8) | UNRESOLVED | can remove a recurring resource-repair class by locating whether corruption occurs in client data, schema decode or post-processing |
