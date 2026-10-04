@@ -1,0 +1,36 @@
+name: Research Quest 351 return state
+
+on:
+  push:
+    branches:
+      - research/quest351-return
+    paths:
+      - 'tools/research_quest351_metadata.py'
+      - '.github/workflows/research-quest351.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  metadata-correlation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Correlate historical QuestModule layout with 7.1 metadata
+        run: python tools/research_quest351_metadata.py
+
+      - name: Preserve candidate report
+        uses: actions/upload-artifact@v7
+        with:
+          name: quest351-metadata-candidates
+          path: quest351-metadata-candidates.json
+          if-no-files-found: error
+          retention-days: 7
