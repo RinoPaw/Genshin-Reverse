@@ -1,0 +1,60 @@
+name: Research 7.1 literal metadata usage
+
+on:
+  push:
+    branches: [research/reliquary-main-prop]
+    paths:
+      - 'docs/research-triggers/reliquary-literal-usage.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-7.1-literal-usage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trace-usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch pinned Global 7.1 samples
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Decode exact metadata usages for Reliquary literals
+        run: |
+          python scripts/research_trace_7_1_literal_usage.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            inputs/7.1.0-global/global-metadata.dat \
+            --methods-csv versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --literal-index 57678 \
+            --literal-index 63833 \
+            --literal-index 68001 \
+            --literal-index 71273 \
+            --literal-index 73081 \
+            --literal-index 74397 \
+            --literal-count 86109 \
+            --literal-table-file-offset 0x3668E48 \
+            --literal-data-file-offset 0x681900 \
+            --initializer-rva 0x523400 \
+            --output 7.1-reliquary-literal-usages.json
+
+      - name: Preserve focused reverse evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: 7.1-reliquary-literal-usages
+          path: 7.1-reliquary-literal-usages.json
+          if-no-files-found: error
+          retention-days: 7
