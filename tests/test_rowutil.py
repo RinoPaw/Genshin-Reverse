@@ -13,6 +13,7 @@ class RowUtilTests(unittest.TestCase):
         self.assertEqual(186, parse_optional_int("186"))
         self.assertEqual(186, parse_optional_int("0xBA"))
         self.assertEqual(-1, parse_optional_int("-1"))
+        self.assertEqual(0, parse_optional_int(0))
 
     def test_parse_optional_int_rejects_blank_and_invalid_values(self) -> None:
         self.assertIsNone(parse_optional_int(""))
@@ -23,6 +24,7 @@ class RowUtilTests(unittest.TestCase):
     def test_int_matches_preserves_optional_filter_semantics(self) -> None:
         self.assertTrue(int_matches("not-an-int", None))
         self.assertTrue(int_matches("0xBA", 186))
+        self.assertTrue(int_matches(0, 0))
         self.assertFalse(int_matches("185", 186))
         self.assertFalse(int_matches("not-an-int", 186))
 

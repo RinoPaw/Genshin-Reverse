@@ -4,7 +4,9 @@ from __future__ import annotations
 def parse_optional_int(value: object) -> int | None:
     """Parse a decimal/0x-prefixed scalar, returning None for blank or invalid input."""
 
-    text = str(value or "").strip()
+    if value is None:
+        return None
+    text = str(value).strip()
     if not text:
         return None
     try:
