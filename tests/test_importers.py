@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,7 +25,10 @@ class TraceTests(unittest.TestCase):
             root = Path(td)
             log = root / "trace.log"
             out = root / "observations.csv"
-            log.write_text("06:32:36 x RECV cmdId=186 name=UNKNOWN len=4 payload=7202d027\n", encoding="utf-8")
+            log.write_text(
+                "06:32:36 x RECV cmdId=186 name=UNKNOWN len=4 payload=7202d027\n",
+                encoding="utf-8",
+            )
             self.assertEqual(1, import_trace(log, out))
             self.assertTrue(out.exists())
 
@@ -37,13 +39,39 @@ class OpcodeTests(unittest.TestCase):
             root = Path(td)
             java = root / "PacketOpcodes.java"
             known = root / "known.csv"
-            java.write_text("class X { static final int Foo = 10; static final int Unknown = -1; static final int Bar = 20; }", encoding="utf-8")
+            java.write_text(
+                "class X { static final int Foo = 10; static final int Unknown = -1; "
+                "static final int Bar = 20; }",
+                encoding="utf-8",
+            )
             self.assertEqual(2, import_java_opcodes(java, known))
             registry = root / "registry.csv"
             registry.write_text("cmd_id,type_name\n10,A\n20,B\n", encoding="utf-8")
             result = crosscheck_registry(registry, known)
             self.assertTrue(result["all_control_ids_present"])
             self.assertEqual(2, result["matched"])
+
+    def test_crosscheck_rejects_missing_cmd_id_column(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            registry = root / "registry.csv"
+            known = root / "known.csv"
+            registry.write_text("type_name\nA\n", encoding="utf-8")
+            known.write_text("cmd_id\n10\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "missing required cmd_id column"):
+                crosscheck_registry(registry, known)
+
+    def test_crosscheck_reports_invalid_cmd_id_line(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            registry = root / "registry.csv"
+            known = root / "known.csv"
+            registry.write_text("cmd_id,type_name\n10,A\nbad,B\n", encoding="utf-8")
+            known.write_text("cmd_id\n10\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, r"registry\.csv:3: invalid cmd_id 'bad'"):
+                crosscheck_registry(registry, known)
 
 
 class MetadataTests(unittest.TestCase):

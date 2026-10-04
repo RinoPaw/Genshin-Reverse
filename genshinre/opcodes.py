@@ -30,19 +30,38 @@ def import_java_opcodes(java_file: Path, output_csv: Path) -> int:
     rows.sort(key=lambda row: int(row["cmd_id"]))
     output_csv.parent.mkdir(parents=True, exist_ok=True)
     with output_csv.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=("semantic_name", "cmd_id", "direction", "status", "evidence", "notes"))
+        writer = csv.DictWriter(
+            f,
+            fieldnames=("semantic_name", "cmd_id", "direction", "status", "evidence", "notes"),
+        )
         writer.writeheader()
         writer.writerows(rows)
     return len(rows)
 
 
+def _read_cmd_ids(path: Path, *, positive_only: bool) -> set[int]:
+    result: set[int] = set()
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        if "cmd_id" not in (reader.fieldnames or ()):
+            raise ValueError(f"{path}: missing required cmd_id column")
+        for line_no, row in enumerate(reader, start=2):
+            text = str(row.get("cmd_id", "")).strip()
+            if not text:
+                continue
+            try:
+                value = int(text, 10)
+            except ValueError as exc:
+                raise ValueError(f"{path}:{line_no}: invalid cmd_id {text!r}") from exc
+            if positive_only and value <= 0:
+                continue
+            result.add(value)
+    return result
+
+
 def crosscheck_registry(registry_csv: Path, known_opcodes_csv: Path) -> dict[str, object]:
-    with registry_csv.open("r", encoding="utf-8-sig", newline="") as f:
-        registry_rows = list(csv.DictReader(f))
-    with known_opcodes_csv.open("r", encoding="utf-8-sig", newline="") as f:
-        known_rows = list(csv.DictReader(f))
-    registry_ids = {int(row["cmd_id"]) for row in registry_rows if row.get("cmd_id")}
-    known_ids = {int(row["cmd_id"]) for row in known_rows if row.get("cmd_id") and int(row["cmd_id"]) > 0}
+    registry_ids = _read_cmd_ids(registry_csv, positive_only=False)
+    known_ids = _read_cmd_ids(known_opcodes_csv, positive_only=True)
     missing = sorted(known_ids - registry_ids)
     return {
         "registry_unique_cmd_ids": len(registry_ids),
