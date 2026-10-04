@@ -1,0 +1,98 @@
+name: Probe 7.1 QuestExcel metadata anchors
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/probe-quest-excel-metadata.yml"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            versions/7.1.0-global/windows-x64/metadata/types.csv
+            versions/7.1.0-global/windows-x64/metadata/fields.csv
+            versions/7.1.0-global/windows-x64/metadata/methods.csv
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv
+            versions/7.1.0-global/windows-x64/metadata/type-methods.json
+            genshinre
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Scan metadata for QuestExcel anchors
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          needles = (
+              "questexcelconfigdata",
+              "questexcel",
+              "subquest",
+              "questcond",
+              "questcondition",
+              "questdata",
+              "excelbinoutput",
+              "_excelbinoutput",
+              "questconfig",
+          )
+
+          for name in ("types.csv", "fields.csv", "methods.csv", "runtime-types.csv"):
+              path = root / name
+              print(f"=== {name} ===")
+              with path.open("r", encoding="utf-8-sig", newline="") as f:
+                  reader = csv.reader(f)
+                  header = next(reader)
+                  print("HEADER", json.dumps(header, ensure_ascii=False))
+                  hits = 0
+                  for rowno, row in enumerate(reader, start=2):
+                      text = "\t".join(row).lower()
+                      if any(n in text for n in needles):
+                          print(f"HIT row={rowno}", json.dumps(dict(zip(header, row)), ensure_ascii=False))
+                          hits += 1
+                          if hits >= 120:
+                              print("HIT-LIMIT 120")
+                              break
+                  print(f"HITS {hits}")
+
+          # Also inspect the machine index for any exact textual Quest occurrence.
+          p = root / "type-methods.json"
+          data = json.loads(p.read_text(encoding="utf-8"))
+          def walk(obj, path="$"):
+              found = []
+              if isinstance(obj, dict):
+                  for k, v in obj.items():
+                      ktext = str(k).lower()
+                      if "quest" in ktext or "excelbin" in ktext:
+                          found.append((path + "." + str(k), v))
+                      if len(found) < 80:
+                          found.extend(walk(v, path + "." + str(k)))
+                          if len(found) >= 80:
+                              return found[:80]
+              elif isinstance(obj, list):
+                  for i, v in enumerate(obj):
+                      if isinstance(v, (dict, list)):
+                          found.extend(walk(v, f"{path}[{i}]"))
+                          if len(found) >= 80:
+                              return found[:80]
+                      elif "quest" in str(v).lower() or "excelbin" in str(v).lower():
+                          found.append((f"{path}[{i}]", v))
+              elif "quest" in str(obj).lower() or "excelbin" in str(obj).lower():
+                  found.append((path, obj))
+              return found
+          hits = walk(data)
+          print("=== type-methods.json ===")
+          print(f"HITS {len(hits)}")
+          for path, value in hits:
+              print("HIT", path, json.dumps(value, ensure_ascii=False)[:3000])
+          PY
