@@ -55,6 +55,8 @@ jobs:
           assert row['type_name'] == 'NLOMEGMJDGJ'
           assert row['type_definition_index'] == '61556'
           PY
+      - name: Syntax-check Python package and research tools
+        run: python -m compileall -q genshinre tools
       - name: Syntax-check shell scripts
         run: bash -n scripts/*.sh
       - name: Syntax-check PowerShell scripts
