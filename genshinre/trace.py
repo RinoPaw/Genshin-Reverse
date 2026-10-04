@@ -35,14 +35,19 @@ def parse_trace_line(line: str, source: str = "") -> dict[str, str] | None:
 
 
 def import_trace(input_path: Path, output_csv: Path, source: str = "") -> int:
-    rows = []
-    for line in input_path.read_text(encoding="utf-8", errors="replace").splitlines():
-        row = parse_trace_line(line, source=source or input_path.name)
-        if row:
-            rows.append(row)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
-    with output_csv.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+    source_name = source or input_path.name
+    count = 0
+    with (
+        input_path.open("r", encoding="utf-8", errors="replace") as src,
+        output_csv.open("w", encoding="utf-8", newline="") as dst,
+    ):
+        writer = csv.DictWriter(dst, fieldnames=COLUMNS)
         writer.writeheader()
-        writer.writerows(rows)
-    return len(rows)
+        for line in src:
+            row = parse_trace_line(line, source=source_name)
+            if row is None:
+                continue
+            writer.writerow(row)
+            count += 1
+    return count
