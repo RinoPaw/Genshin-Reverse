@@ -4,13 +4,16 @@ import hashlib
 import struct
 from pathlib import Path
 
+_HASH_ALGORITHMS = ("sha256", "sha1", "md5")
 
-def _hash_file(path: Path, algorithm: str) -> str:
-    h = hashlib.new(algorithm)
+
+def _hashes(path: Path) -> dict[str, str]:
+    digests = {name: hashlib.new(name) for name in _HASH_ALGORITHMS}
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+            for digest in digests.values():
+                digest.update(chunk)
+    return {name: digest.hexdigest() for name, digest in digests.items()}
 
 
 def _format_name(magic: bytes) -> str:
@@ -56,14 +59,13 @@ def fingerprint(path: Path) -> dict[str, object]:
     stat = path.stat()
     with path.open("rb") as f:
         magic = f.read(32)
+    hashes = _hashes(path)
     result: dict[str, object] = {
         "path": path.name,
         "size_bytes": stat.st_size,
         "magic_hex": magic[:16].hex(),
         "format": _format_name(magic),
-        "sha256": _hash_file(path, "sha256"),
-        "sha1": _hash_file(path, "sha1"),
-        "md5": _hash_file(path, "md5"),
+        **hashes,
     }
     result.update(_pe_info(path))
     return result
