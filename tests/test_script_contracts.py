@@ -23,6 +23,27 @@ class ScriptContractTests(unittest.TestCase):
                 self.assertNotIn("metausage", text)
                 self.assertNotIn("usagejoin", text)
 
+    def test_publish_scripts_share_one_package_entrypoint(self) -> None:
+        for relative_path in (
+            "scripts/publish-artifacts-7.1.sh",
+            "scripts/publish-artifacts-7.1.ps1",
+        ):
+            with self.subTest(script=relative_path):
+                text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertEqual(1, text.count("genshinre.artifactpublish"))
+                self.assertNotIn("registrygraph", text)
+                self.assertNotIn("metausage", text)
+                self.assertNotIn("usagejoin", text)
+
+    def test_powershell_path_wrappers_preserve_rooted_paths(self) -> None:
+        for relative_path in (
+            "scripts/regenerate-7.1.ps1",
+            "scripts/publish-artifacts-7.1.ps1",
+        ):
+            with self.subTest(script=relative_path):
+                text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertIn("[System.IO.Path]::IsPathRooted", text)
+
     def test_heavy_generation_is_one_fail_closed_canonical_chain(self) -> None:
         text = (REPO_ROOT / ".github/workflows/generate-7.1-data.yml").read_text(
             encoding="utf-8"
