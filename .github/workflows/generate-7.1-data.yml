@@ -10,6 +10,7 @@ on:
       - 'genshinre/anchors.py'
       - 'genshinre/artifactmanifest.py'
       - 'genshinre/artifactpublish.py'
+      - 'genshinre/contracts.py'
       - 'genshinre/fingerprint.py'
       - 'genshinre/getcmdid.py'
       - 'genshinre/metadata.py'

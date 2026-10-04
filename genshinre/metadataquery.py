@@ -4,7 +4,7 @@ import csv
 import re
 from pathlib import Path
 
-from .metadatacsv import parse_parameter_types
+from .metadatacsv import load_methods, parse_parameter_types
 from .rowutil import int_matches
 
 
@@ -45,16 +45,6 @@ def _reference_row(
     row["parameter_positions"] = parameter_positions
     row["match_return"] = match_return
     return row
-
-
-def load_methods(methods_csv: Path) -> list[dict[str, object]]:
-    with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
-        rows = []
-        for raw in csv.DictReader(f):
-            row: dict[str, object] = dict(raw)
-            row["parameter_types"] = parse_parameter_types(raw.get("parameter_types", ""))
-            rows.append(row)
-        return rows
 
 
 def query_methods(

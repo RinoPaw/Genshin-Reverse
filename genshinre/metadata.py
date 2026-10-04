@@ -2,16 +2,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .metadatacsv import load_methods
 from .metadataindex import build_type_methods
 
 _QUERY_EXPORTS = (
-    "load_methods",
     "query_fields",
     "query_method_references",
     "query_methods",
 )
 
-__all__ = ["build_type_methods", *_QUERY_EXPORTS]
+__all__ = [
+    "build_type_methods",
+    "load_methods",
+    "query_fields",
+    "query_method_references",
+    "query_methods",
+]
 
 
 def __getattr__(name: str):

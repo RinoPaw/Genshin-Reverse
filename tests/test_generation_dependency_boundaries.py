@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class GenerationDependencyBoundaryTests(unittest.TestCase):
     def test_public_compatibility_surfaces_reexport_generation_contracts(self) -> None:
         self.assertIs(metadataindex.build_type_methods, metadata.build_type_methods)
+        self.assertIs(metadatacsv.load_methods, metadata.load_methods)
         self.assertEqual(
             registrycontract.CANONICAL_REGISTRY_COLUMNS,
             registry.CANONICAL_REGISTRY_COLUMNS,
@@ -38,6 +39,7 @@ class GenerationDependencyBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
         for path in (
+            "genshinre/contracts.py",
             "genshinre/metadata.py",
             "genshinre/metadatacsv.py",
             "genshinre/metadataindex.py",
