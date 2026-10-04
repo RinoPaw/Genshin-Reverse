@@ -32,93 +32,70 @@ jobs:
         run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Resolve QuestExcel metadata anchors
+      - name: Locate current QuestExcel accessor owners
         run: |
-          python - <<'PY' | tee quest-main-metadata.txt
+          python - <<'PY' | tee quest-accessor-candidates.txt
           import csv, json
+          from collections import defaultdict
           from pathlib import Path
 
           root = Path('versions/7.1.0-global/windows-x64/metadata')
-
-          def rows(name):
+          def read(name):
               with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
-                  yield from csv.DictReader(f)
+                  return list(csv.DictReader(f))
 
-          quest_tdi = '28858'
-          fields = [r for r in rows('fields.csv') if r.get('type_definition_index') == quest_tdi]
-          methods = [r for r in rows('methods.csv') if r.get('type_definition_index') == quest_tdi]
-          print('=== QuestExcelConfig fields ===')
-          for row in sorted(fields, key=lambda r: int(r['field_index'])):
-              print(json.dumps(row, ensure_ascii=False))
-          print('FIELD_COUNT', len(fields))
-          print('=== QuestExcelConfig methods ===')
+          types = {r['type_definition_index']: r for r in read('types.csv')}
+          fields = read('fields.csv')
+          methods = read('methods.csv')
+          by_type = defaultdict(list)
           for row in methods:
-              print(json.dumps(row, ensure_ascii=False))
+              by_type[row['type_definition_index']].append(row)
 
-          print('=== QuestExcel/config-data candidate types ===')
-          candidates = []
-          for row in rows('types.csv'):
+          needles = {
+              '_g_get_mainId', '_g_get_subId', '_g_get_order',
+              '_g_get_acceptCond', '_g_get_finishCond', '_g_get_failCond',
+              '_s_set_mainId', '_s_set_subId', '_s_set_acceptCond', '_s_set_failCond',
+          }
+          scored = []
+          for tdi, rows in by_type.items():
+              names = {r.get('method_name') or '' for r in rows}
+              hits = sorted(needles & names)
+              if hits:
+                  scored.append((len(hits), tdi, hits, rows))
+          scored.sort(reverse=True)
+          print('=== ACCESSOR OWNER CANDIDATES ===')
+          for score, tdi, hits, rows in scored[:30]:
+              print('OWNER', score, json.dumps(types.get(tdi), ensure_ascii=False))
+              print('HITS', hits)
+              for row in rows:
+                  name = row.get('method_name') or ''
+                  if name in needles or 'Quest' in name or 'quest' in name:
+                      print(' METHOD', json.dumps(row, ensure_ascii=False))
+
+          print('=== SEMANTIC QUEST TYPE NAMES ===')
+          for tdi, row in types.items():
               name = row.get('type_name') or ''
-              lower = name.lower()
-              if 'questexcel' in lower or ('excelconfigdata' in lower and 'quest' in lower):
-                  candidates.append(row)
-                  print(json.dumps(row, ensure_ascii=False))
+              ns = row.get('namespace') or ''
+              if 'questexcel' in name.lower() or ('quest' in name.lower() and 'config' in ns.lower()):
+                  print('TYPE', json.dumps(row, ensure_ascii=False))
 
-          candidate_tdis = {r.get('type_definition_index') for r in candidates}
-          print('=== candidate methods ===')
-          for row in rows('methods.csv'):
-              if row.get('type_definition_index') in candidate_tdis:
-                  print(json.dumps(row, ensure_ascii=False))
+          print('=== TYPES WITH FromBinaryInner + LARGE FIELD SET ===')
+          for tdi, rows in by_type.items():
+              method_names = {r.get('method_name') or '' for r in rows}
+              t = types.get(tdi) or {}
+              try:
+                  fc = int(t.get('field_count') or 0)
+              except ValueError:
+                  fc = 0
+              if 'FromBinaryInner' in method_names and 20 <= fc <= 80:
+                  print('TYPE', json.dumps(t, ensure_ascii=False))
+                  for row in rows:
+                      if row.get('method_name') in {'.ctor','FromBinary','FromBinaryInner'}:
+                          print(' METHOD', json.dumps(row, ensure_ascii=False))
           PY
-      - name: Trace main QuestExcel row deserializer and direct callers
-        run: |
-          python tools/trace_native_call_edges.py \
-            inputs/7.1.0-global/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-main-call-edges.json \
-            --focus quest-excel-from-binary-inner:0x1327C500 \
-            --focus quest-excel-from-binary:0x1327C430 \
-            --max-body 0x5000 | tee quest-main-call-summary.txt
-      - name: Summarize row header and field stores
-        run: |
-          python - <<'PY' | tee quest-main-row-summary.txt
-          import json, re
-
-          report = json.load(open('quest-main-call-edges.json', encoding='utf-8'))
-          item = report['focus']['quest-excel-from-binary-inner']
-          ins = item['disassembly']
-          print('OWNER', json.dumps(item['owner'], ensure_ascii=False))
-          print('DIRECT_CALLERS', item['validated_direct_caller_count'])
-          for caller in item['direct_callers']:
-              print('CALLER', json.dumps(caller, ensure_ascii=False))
-
-          print('=== first 100 instructions ===')
-          for row in ins[:100]:
-              print(f"{row['rva']:>11} {row['mnemonic']:<7} {row['op_str']}")
-
-          print('=== object stores / flag tests / calls ===')
-          for i, row in enumerate(ins):
-              op = row['op_str'].lower()
-              interesting = (
-                  row['mnemonic'] == 'call'
-                  or row['mnemonic'] == 'test'
-                  or bool(re.search(r'\[(?:rbx|rbp|rsi|rdi|r12|r13|r14|r15)\s*\+\s*0x[0-9a-f]+\]', op))
-              )
-              if not interesting:
-                  continue
-              lo, hi = max(0, i - 2), min(len(ins), i + 3)
-              print('--')
-              for x in ins[lo:hi]:
-                  print(f"{x['rva']:>11} {x['mnemonic']:<7} {x['op_str']}")
-          PY
-      - name: Upload focused native evidence
-        if: always()
+      - name: Upload focused metadata evidence
         uses: actions/upload-artifact@v6
         with:
-          name: main-quest-excel-native-probe
-          path: |
-            quest-main-metadata.txt
-            quest-main-call-edges.json
-            quest-main-call-summary.txt
-            quest-main-row-summary.txt
-          if-no-files-found: warn
+          name: quest-accessor-owner-probe
+          path: quest-accessor-candidates.txt
+          if-no-files-found: error
