@@ -35,7 +35,7 @@ jobs:
           path=Path('versions/7.1.0-global/windows-x64/metadata/methods.csv')
           with path.open('r',encoding='utf-8-sig',newline='') as f:
               rows=list(csv.DictReader(f))
-          target=0x14B6473F0
+          target=0x0B6473F0
           print('=== methods nearest acceptCond loader RVA ===')
           nearest=[]
           for r in rows:
@@ -53,7 +53,7 @@ jobs:
               if r.get('type_definition_index')=='54128' and 'Binary' in (r.get('method_name') or ''):
                   print(json.dumps(r,ensure_ascii=False))
           PY
-          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x14B6473F0 0x900 \
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x0B6473F0 0x900 \
             --expected-sha256 "$expected_sha" --label "RandomQuestExcelConfig.acceptCond loader" --output accept-loader.json >/dev/null
           python - <<'PY'
           import csv,json,re
@@ -85,7 +85,7 @@ jobs:
             inputs/7.1.0-global/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             quest-accept-loader-edges.json \
-            --focus accept-loader:0x14B6473F0 \
+            --focus accept-loader:0x0B6473F0 \
             --focus quest-cond-from-binary:0x11582570 \
             --focus quest-cond-inner:0x115825D0 \
             --max-body 0x3000
