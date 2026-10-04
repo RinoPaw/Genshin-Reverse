@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import unittest
 from pathlib import Path
 
@@ -32,20 +33,37 @@ class GenerationDependencyBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "JSON array"):
             metadatacsv.parse_parameter_types('{"type":"Alpha"}')
 
-    def test_heavy_workflow_tracks_generation_modules_not_query_surfaces(self) -> None:
+    def test_heavy_workflow_tracks_facades_and_generation_contracts(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "generate-7.1-data.yml").read_text(
             encoding="utf-8"
         )
         for path in (
+            "genshinre/metadata.py",
             "genshinre/metadatacsv.py",
             "genshinre/metadataindex.py",
+            "genshinre/registry.py",
             "genshinre/registrycontract.py",
         ):
             with self.subTest(path=path):
                 self.assertIn(f"- '{path}'", workflow)
-        for path in ("genshinre/metadata.py", "genshinre/registry.py"):
+        for path in ("genshinre/metadataquery.py", "genshinre/registryquery.py"):
             with self.subTest(path=path):
                 self.assertNotIn(f"- '{path}'", workflow)
+
+    def test_generation_facades_do_not_eagerly_import_query_modules(self) -> None:
+        for relative, forbidden in (
+            ("genshinre/metadata.py", "metadataquery"),
+            ("genshinre/registry.py", "registryquery"),
+        ):
+            tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"))
+            top_level_imports = [
+                node
+                for node in tree.body
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+            ]
+            rendered = ast.dump(ast.Module(body=top_level_imports, type_ignores=[]))
+            with self.subTest(path=relative):
+                self.assertNotIn(forbidden, rendered)
 
 
 if __name__ == "__main__":
