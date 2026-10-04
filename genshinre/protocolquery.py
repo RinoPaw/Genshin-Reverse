@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .metadata import query_fields, query_method_references, query_methods
+from .metadataquery import query_fields, query_method_evidence, query_methods
 from .registry import query_registry
 from .rowutil import parse_optional_int
 
@@ -130,19 +130,23 @@ def query_protocol(
 
         methods_path = version_dir / "metadata" / "methods.csv"
         fields_path = version_dir / "metadata" / "fields.csv"
-        methods = (
-            query_methods(methods_path, type_definition_index=identity_tdef)
-            if methods_path.is_file() and identity_tdef is not None
-            else []
-        )
+        methods: list[dict[str, object]] = []
+        signature_references: list[dict[str, object]] = []
+        if methods_path.is_file() and identity_tdef is not None:
+            if identity_type:
+                methods, signature_references = query_method_evidence(
+                    methods_path,
+                    type_definition_index=identity_tdef,
+                    referenced_type=identity_type,
+                )
+            else:
+                methods = query_methods(
+                    methods_path,
+                    type_definition_index=identity_tdef,
+                )
         fields = (
             query_fields(fields_path, type_definition_index=identity_tdef)
             if fields_path.is_file() and identity_tdef is not None
-            else []
-        )
-        signature_references = (
-            query_method_references(methods_path, identity_type)
-            if methods_path.is_file() and identity_type
             else []
         )
         external_signature_references = [

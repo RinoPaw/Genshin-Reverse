@@ -15,6 +15,38 @@ def _type_token_pattern(type_name: str) -> re.Pattern[str]:
     )
 
 
+def _reference_row(
+    raw: dict[str, str],
+    params: list[str],
+    referenced_type: str,
+    referenced_fold: str,
+    return_pattern: re.Pattern[str],
+) -> dict[str, object] | None:
+    declaring_type = str(raw.get("type_name", "")).strip()
+    is_self = declaring_type.casefold() == referenced_fold
+    parameter_positions = [
+        index
+        for index, item in enumerate(params)
+        if item.casefold() == referenced_fold
+    ]
+    return_type = str(raw.get("return_type", ""))
+    match_return = (
+        return_type.casefold() == referenced_fold
+        or return_pattern.search(return_type) is not None
+    )
+    if not parameter_positions and not match_return:
+        return None
+
+    row: dict[str, object] = dict(raw)
+    row["parameter_types"] = params
+    row["referenced_type"] = referenced_type
+    row["self_type"] = is_self
+    row["match_parameter"] = bool(parameter_positions)
+    row["parameter_positions"] = parameter_positions
+    row["match_return"] = match_return
+    return row
+
+
 def load_methods(methods_csv: Path) -> list[dict[str, object]]:
     with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
         rows = []
@@ -81,34 +113,57 @@ def query_method_references(
     result: list[dict[str, object]] = []
     with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
         for raw in csv.DictReader(f):
-            declaring_type = str(raw.get("type_name", "")).strip()
-            is_self = declaring_type.casefold() == referenced_fold
-            if external_only and is_self:
-                continue
-
             params = parse_parameter_types(raw.get("parameter_types", ""))
-            parameter_positions = [
-                index
-                for index, item in enumerate(params)
-                if item.casefold() == referenced_fold
-            ]
-            return_type = str(raw.get("return_type", ""))
-            match_return = (
-                return_type.casefold() == referenced_fold
-                or return_pattern.search(return_type) is not None
+            row = _reference_row(
+                raw,
+                params,
+                referenced_type,
+                referenced_fold,
+                return_pattern,
             )
-            if not parameter_positions and not match_return:
+            if row is None or (external_only and bool(row["self_type"])):
                 continue
-
-            row: dict[str, object] = dict(raw)
-            row["parameter_types"] = params
-            row["referenced_type"] = referenced_type
-            row["self_type"] = is_self
-            row["match_parameter"] = bool(parameter_positions)
-            row["parameter_positions"] = parameter_positions
-            row["match_return"] = match_return
             result.append(row)
     return result
+
+
+def query_method_evidence(
+    methods_csv: Path,
+    *,
+    type_definition_index: int,
+    referenced_type: str,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Collect declared methods and signature references in one methods.csv scan."""
+
+    referenced_type = referenced_type.strip()
+    if not referenced_type:
+        raise ValueError("referenced_type must not be empty")
+
+    referenced_fold = referenced_type.casefold()
+    return_pattern = _type_token_pattern(referenced_type)
+    methods: list[dict[str, object]] = []
+    references: list[dict[str, object]] = []
+
+    with methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
+        for raw in csv.DictReader(f):
+            params = parse_parameter_types(raw.get("parameter_types", ""))
+
+            if int_matches(raw.get("type_definition_index"), type_definition_index):
+                declared: dict[str, object] = dict(raw)
+                declared["parameter_types"] = params
+                methods.append(declared)
+
+            reference = _reference_row(
+                raw,
+                params,
+                referenced_type,
+                referenced_fold,
+                return_pattern,
+            )
+            if reference is not None:
+                references.append(reference)
+
+    return methods, references
 
 
 def query_fields(
