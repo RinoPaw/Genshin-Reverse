@@ -35,6 +35,7 @@ genshinre protocol-query <version-dir> --cmd-id <id>
 genshinre pointer-xrefs <GenshinImpact.exe> <start-rva> <end-rva> [--output pointer-xrefs.json]
 genshinre scene-handler-slots <exe> <methods.csv> <registry.csv> <owner-type> <slot-start> <slot-end>
 genshinre correlate-capture <capture.ndjson> --request-cmd <id> --candidate-cmd <id> [...]
+python -m genshinre.packetframe (--file <decrypted-frames.bin> | --hex <hex>) [--watch-cmd <id>]...
 ```
 
 `protocol-query` joins canonical registry identity, declared methods/fields, inbound method-signature references, handlers/senders/constructors, scene-handler dispatch evidence, runtime observations, message shapes and focused analysis records. It is an evidence aggregator and does not infer a semantic name on its own.
@@ -42,6 +43,8 @@ genshinre correlate-capture <capture.ndjson> --request-cmd <id> --candidate-cmd 
 `pointer-xrefs` scans file-backed aligned qword holders whose values point into the half-open RVA range `[start-rva, end-rva)`, then joins simple RIP-relative code references to those holders. Use `rip-xrefs` when the code directly references the target RVA itself.
 
 `correlate-capture` provides reusable request/response correlation for decrypted NDJSON packet captures. Version-specific collectors may keep build-bound hook addresses under `tools/runtime/`, while correlation policy stays in the package.
+
+`genshinre.packetframe` parses already-decrypted game frame buffers with the same standard-library implementation on every target. It does not perform transport decryption or semantic packet promotion.
 
 See `docs/getting-started.md` for the maintained workflow and `docs/native-profiles.md` for exact-target bring-up rules.
 
