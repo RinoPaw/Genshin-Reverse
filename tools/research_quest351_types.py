@@ -8,10 +8,23 @@ ROOT = Path(__file__).resolve().parents[1]
 META = ROOT / "versions/7.1.0-global/windows-x64/metadata"
 OUT = ROOT / "quest351-target-types.json"
 
-# 20622 is the generic-heavy core-module candidate from the structural pass.
-# 67518 is a quest-UI controller-shaped negative/control candidate.
-# 67347 owns MonoInLevelMainPage; 62829 owns MonoReturnToQuestBtn.
-TARGETS = {20622, 67518, 67347, 62829, 73130}
+# 61791 dominates current 7.1 methods that directly accept QuestProxy and is
+# therefore the strongest QuestModule-shaped candidate.  The other obfuscated
+# QuestProxy owners are controls for separating module/core logic from quest UI.
+# 20622 remains the old field-layout false-positive; 67347/62829 are the HUD
+# return-button owners; 73130 owns ReturnToQuestEvent/ToggleQuestTrackingEvent.
+TARGETS = {
+    20622,
+    37197,
+    61791,
+    64147,
+    67347,
+    67518,
+    62829,
+    73130,
+    74397,
+    83901,
+}
 
 
 def main() -> None:
