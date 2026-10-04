@@ -13,9 +13,9 @@ scripts/fetch-7.1-samples.ps1
 
 This is the only general push/PR workflow.
 
-It runs unit tests, committed-version validation, small wire/CLI/protocol-query smoke tests, and cheap Bash/PowerShell syntax checks. It must not download the full game client, decode full metadata, scan the executable, or run packet-specific investigations.
+Unit tests cover Python 3.11, 3.12 and 3.13. The 3.12 validation job also runs committed-version validation, small wire/CLI/protocol-query smoke tests, and cheap Bash/PowerShell syntax checks so repository-level maintenance checks are not repeated across the whole Python matrix.
 
-CI uses per-ref concurrency with `cancel-in-progress: true` so a newer push replaces stale work.
+Markdown-only and issue-template-only changes skip this workflow. CI has read-only repository contents permission, uses per-ref concurrency with `cancel-in-progress: true`, and must not download the full game client, decode full metadata, scan the executable, or run packet-specific investigations.
 
 ## `generate-7.1-data.yml`
 
