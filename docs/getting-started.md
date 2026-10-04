@@ -146,6 +146,16 @@ genshinre scene-handler-slots \
 
 Committed current-client evidence lives under `versions/7.1.0-global/windows-x64/analyses/scene-handler-dispatch/`.
 
+## Parse already-decrypted game frames
+
+Reusable frame parsing lives in the package rather than under `tools/`:
+
+```bash
+python -m genshinre.packetframe --file decrypted-frames.bin --watch-cmd 186
+```
+
+Hex input is also accepted with `--hex`. This command only validates and splits an already-decrypted game frame buffer; it does not decrypt transport traffic or assign packet semantics.
+
 ## Correlate a decrypted runtime transaction
 
 ```bash
