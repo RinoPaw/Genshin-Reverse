@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+MAX_FIELD_NUMBER = (1 << 29) - 1
+
 
 def read_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
     if offset < 0:
@@ -41,8 +43,8 @@ def parse_message(data: bytes) -> list[dict[str, object]]:
         tag, pos = read_varint(data, pos)
         field_number = tag >> 3
         wire_type = tag & 7
-        if field_number == 0:
-            raise ValueError("protobuf field number 0 is invalid")
+        if not 1 <= field_number <= MAX_FIELD_NUMBER:
+            raise ValueError(f"protobuf field number {field_number} is invalid")
 
         item: dict[str, object] = {
             "field_number": field_number,
