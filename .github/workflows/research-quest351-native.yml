@@ -32,6 +32,7 @@ jobs:
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
       - name: Resolve local-state and return-button field offsets
+        continue-on-error: true
         run: |
           python tools/resolve_7_1_field_offsets.py \
             inputs/7.1.0-global/GenshinImpact.exe \
@@ -52,11 +53,12 @@ jobs:
             --focus userlocal_wrapper:0xD7FD100
 
       - name: Preserve focused reports
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: quest351-native-edges
           path: |
             quest351-field-offsets.json
             quest351-native-edges.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
