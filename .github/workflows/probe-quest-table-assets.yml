@@ -2,7 +2,9 @@ name: Probe 7.1 QuestExcel serialized assets
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - probe/quest-blb3-binoutput
     paths:
       - ".github/workflows/probe-quest-table-assets.yml"
       - "genshinre/samplefetch.py"
@@ -21,13 +23,10 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct small exact-7.1 AssetBundle blocks
+      - name: Reconstruct exact 7.1 binoutput BLB3 block
         run: |
           python - <<'PY' | tee probe-summary.txt
-          from __future__ import annotations
-
-          import re
-          from pathlib import Path, PurePosixPath
+          from pathlib import Path
 
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.samplefetch import (
@@ -45,51 +44,84 @@ jobs:
               if '/assetbundles/blocks/' in normalized_name(row)
               and normalized_name(row).endswith('.blk')
           ]
-          small = [row for row in blk if int(row.get('size', 0) or 0) <= 300_000]
-          small.sort(key=lambda row: int(row.get('size', 0) or 0))
-
           print('manifest_files', len(rows))
           print('blk_count', len(blk))
-          print('small_blk_count', len(small))
 
-          out = Path('probe-small-blocks')
-          for row in small:
-              name = str(row['filename']).replace('\\', '/')
-              rel = '/'.join(name.split('/')[-3:])
-              target = out / rel
-              reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=2)
-              data = target.read_bytes()
-              strings = [
-                  m.group().decode('ascii', errors='replace')
-                  for m in re.finditer(rb'[ -~]{6,}', data)
-              ]
-              interesting = [
-                  s for s in strings
-                  if any(k in s.lower() for k in (
-                      'quest', 'excel', 'config', 'data/', 'asset', 'bundle',
-                      'version', 'revision', 'binoutput', 'json', 'lua'
-                  ))
-              ]
-              print(
-                  'SMALL', rel,
-                  'size=', len(data),
-                  'md5=', row.get('md5'),
-                  'head=', data[:32].hex(),
-              )
-              for s in interesting[:80]:
-                  print('STRING', rel, repr(s[:500]))
+          matches = [row for row in blk if normalized_name(row).endswith('/00/26986803.blk')]
+          if len(matches) != 1:
+              raise SystemExit(f'expected one 00/26986803.blk row, got {len(matches)}')
+
+          row = matches[0]
+          name = str(row['filename']).replace('\\', '/')
+          rel = '/'.join(name.split('/')[-3:])
+          target = Path('probe-block') / rel
+          reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=2)
+          data = target.read_bytes()
+          print('TARGET', rel, 'size=', len(data), 'md5=', row.get('md5'), 'head=', data[:32].hex())
+          print('contains_binoutput_path=', b'data/binoutput_1.asb' in data)
           PY
-      - name: Upload probe summary
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Extract BLB3 through AnimeStudio
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
+          archive=/tmp/animestudio.tar.gz
+          root=/tmp/animestudio
+          curl --fail --location --retry 3 "$url" --output "$archive"
+          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
+          mkdir -p "$root"
+          tar -xzf "$archive" -C "$root"
+
+          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
+          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
+          if ((${#apphosts[@]})); then
+            chmod +x "${apphosts[0]}"
+            cli=("${apphosts[0]}")
+          elif ((${#dlls[@]})); then
+            cli=(dotnet "${dlls[0]}")
+          else
+            echo 'AnimeStudio CLI entry point not found' >&2
+            find "$root" -maxdepth 3 -type f -printf '%P\n' | sort >&2
+            exit 2
+          fi
+
+          "${cli[@]}" list-games | tee animestudio-games.txt
+          input=$(find probe-block -type f -name '26986803.blk' -print -quit)
+          test -n "$input"
+          rm -rf animestudio-output
+          mkdir -p animestudio-output
+
+          set +e
+          "${cli[@]}" GI "$input" animestudio-output --raw --verbose 2>&1 | tee animestudio-probe.txt
+          status=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "animestudio_status=$status"
+            echo '--- extracted files ---'
+            find animestudio-output -type f -printf '%P\t%s bytes\n' | sort
+            echo '--- signatures / strings ---'
+            while IFS= read -r -d '' f; do
+              echo "FILE $f"
+              file "$f" || true
+              sha256sum "$f" || true
+              strings -a -n 6 "$f" | grep -Ei 'QuestExcel|ExcelBinOutput|Quest|acceptCond|binoutput|Data/' | head -n 120 || true
+            done < <(find animestudio-output -type f -print0 | sort -z)
+          } | tee animestudio-output-summary.txt
+
+          exit "$status"
+      - name: Upload AnimeStudio probe
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-table-assets-summary
-          path: probe-summary.txt
-          if-no-files-found: error
-      - name: Upload reconstructed small blocks
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: quest-table-small-blocks
-          path: probe-small-blocks
-          if-no-files-found: error
+          name: quest-binoutput-blb3-probe
+          path: |
+            probe-summary.txt
+            animestudio-games.txt
+            animestudio-probe.txt
+            animestudio-output-summary.txt
+            animestudio-output
+          if-no-files-found: warn
