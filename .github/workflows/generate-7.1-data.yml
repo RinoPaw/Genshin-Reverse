@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/generate-7.1-data.yml'
       - 'scripts/fetch-7.1-samples.sh'
       - 'scripts/regenerate-7.1.sh'
       - 'scripts/publish-artifacts-7.1.sh'
@@ -22,6 +21,7 @@ on:
       - 'genshinre/registryslots.py'
       - 'genshinre/registryslotxref.py'
       - 'genshinre/registryxrefpublish.py'
+      - 'genshinre/rowutil.py'
       - 'genshinre/samplefetch.py'
       - 'genshinre/sampleidentity.py'
       - 'genshinre/typearray.py'
@@ -43,12 +43,12 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout Genshin-Reverse
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -114,7 +114,7 @@ jobs:
 
       - name: Preserve work output as Actions artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: genshin-7.1-reverse-work
           path: work/7.1.0-global/windows-x64
