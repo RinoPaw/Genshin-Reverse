@@ -6,6 +6,7 @@ on:
       - research/quest351-return
     paths:
       - 'tools/research_quest351_metadata.py'
+      - 'tools/research_quest351_keywords.py'
       - '.github/workflows/research-quest351.yml'
 
 permissions:
@@ -28,10 +29,15 @@ jobs:
       - name: Correlate historical QuestModule layout with 7.1 metadata
         run: python tools/research_quest351_metadata.py
 
-      - name: Preserve candidate report
+      - name: Sweep semantic quest anchors
+        run: python tools/research_quest351_keywords.py
+
+      - name: Preserve candidate reports
         uses: actions/upload-artifact@v7
         with:
-          name: quest351-metadata-candidates
-          path: quest351-metadata-candidates.json
+          name: quest351-metadata-research
+          path: |
+            quest351-metadata-candidates.json
+            quest351-keyword-sweep.json
           if-no-files-found: error
           retention-days: 7
