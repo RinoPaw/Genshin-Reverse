@@ -84,4 +84,8 @@ Small direct maintenance commits are fine for maintainers. External contributors
 
 ## Licensing
 
-No repository-wide license has been selected yet. Do not assume a license for copied or contributed code/data; keep provenance clear and avoid importing proprietary raw game assets.
+Repository-authored code, documentation, schemas, and other original material are licensed under the Apache License 2.0; see `LICENSE`.
+
+By intentionally submitting a contribution for inclusion in this repository, you agree that the contribution is provided under the Apache License 2.0 as described by Section 5 of that license, unless you explicitly state otherwise.
+
+Do not import proprietary game binaries, raw `global-metadata.dat`, extracted third-party assets, or other material that you do not have permission to redistribute. Keep third-party provenance and licensing explicit when such material is referenced or incorporated.

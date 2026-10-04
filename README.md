@@ -115,3 +115,9 @@ Initial target: **Genshin Impact 7.1.0 Global / Windows x64**.
 Active protocol investigations are listed in `versions/7.1.0-global/windows-x64/reports/unresolved.md`. Their presence does not make them maintainer-owned work.
 
 Server integration and runtime probes live in [RinoPaw/AstaPS](https://github.com/RinoPaw/AstaPS).
+
+## License
+
+The repository-authored code, documentation, schemas, and other original material are licensed under the Apache License 2.0; see `LICENSE`.
+
+This license does not grant rights to proprietary game binaries, extracted third-party assets, trademarks, or other material owned by their respective rights holders. Raw proprietary game files are intentionally excluded from the repository.
