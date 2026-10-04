@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 
 from .contracts import ANALYSIS_STATUSES, MESSAGE_DIRECTIONS
+from .rowutil import parse_optional_int
 
 COLUMNS = ("name", "cmd_id", "direction", "status", "evidence")
 
@@ -40,13 +41,11 @@ def validate_observation_summary(path: Path) -> list[str]:
 
                 cmd_text = str(row.get("cmd_id", "")).strip()
                 if cmd_text:
-                    try:
-                        cmd_id = int(cmd_text, 0)
-                    except ValueError:
+                    cmd_id = parse_optional_int(cmd_text)
+                    if cmd_id is None:
                         errors.append(f"{prefix}: bad cmd_id {cmd_text}")
-                    else:
-                        if not 0 <= cmd_id <= 65535:
-                            errors.append(f"{prefix}: cmd_id out of range {cmd_id}")
+                    elif not 0 <= cmd_id <= 65535:
+                        errors.append(f"{prefix}: cmd_id out of range {cmd_id}")
 
                 direction = str(row.get("direction", "")).strip()
                 if direction not in MESSAGE_DIRECTIONS:
@@ -95,9 +94,8 @@ def validate_confirmed_semantic_alignment(
                         f"{observations_path.name}:{line_no}: CONFIRMED row must have cmd_id"
                     )
                     continue
-                try:
-                    cmd_id = int(cmd_text, 0)
-                except ValueError:
+                cmd_id = parse_optional_int(cmd_text)
+                if cmd_id is None:
                     continue
 
                 known = known_by_cmd.get(cmd_id)

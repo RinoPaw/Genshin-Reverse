@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .registry import CANONICAL_REGISTRY_COLUMNS
+from .registrycontract import CANONICAL_REGISTRY_COLUMNS
 
 DIRECTORIES = ("registry", "metadata", "proto", "cmdids", "xrefs", "analyses", "reports")
 

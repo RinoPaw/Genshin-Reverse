@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from capstone import CS_ARCH_X86, CS_MODE_64, Cs
 
 from genshinre.pe import PEImage
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from genshinre.sampleidentity import require_sha256, sha256_file
 
 
 def disassemble_rva(
@@ -31,12 +23,11 @@ def disassemble_rva(
     if size <= 0:
         raise ValueError("size must be positive")
 
-    exe_sha256 = _sha256(exe)
-    if expected_sha256 is not None and exe_sha256.lower() != expected_sha256.lower():
-        raise ValueError(
-            "unexpected executable SHA-256: "
-            f"{exe_sha256} != {expected_sha256.lower()}"
-        )
+    exe_sha256 = (
+        sha256_file(exe)
+        if expected_sha256 is None
+        else require_sha256(exe, expected_sha256, label="executable")
+    )
 
     with PEImage(exe) as image:
         code = image.read_rva(rva, size)

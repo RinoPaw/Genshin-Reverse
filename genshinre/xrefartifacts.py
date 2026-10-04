@@ -5,7 +5,8 @@ import re
 from pathlib import Path
 
 from .contracts import MESSAGE_DIRECTIONS
-from .registry import ALLOWED_STATUS
+from .registrycontract import ALLOWED_STATUS
+from .rowutil import parse_optional_int
 
 HEXADDR = re.compile(r"^0x[0-9A-Fa-f]+$")
 DIRECTIONS = {""} | MESSAGE_DIRECTIONS
@@ -78,13 +79,11 @@ def validate_xref_table(path: Path) -> list[str]:
 
             for line_no, row in enumerate(reader, start=2):
                 prefix = f"{path.name}:{line_no}"
-                try:
-                    cmd_id = int(str(row.get("cmd_id", "")).strip(), 0)
-                except ValueError:
+                cmd_id = parse_optional_int(row.get("cmd_id"))
+                if cmd_id is None:
                     errors.append(f"{prefix}: bad cmd_id {row.get('cmd_id', '')}")
-                else:
-                    if not 0 <= cmd_id <= 65535:
-                        errors.append(f"{prefix}: cmd_id out of range {cmd_id}")
+                elif not 0 <= cmd_id <= 65535:
+                    errors.append(f"{prefix}: cmd_id out of range {cmd_id}")
 
                 rva = str(row.get(rva_column, "")).strip()
                 if not rva or not HEXADDR.fullmatch(rva):
