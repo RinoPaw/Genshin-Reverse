@@ -10,23 +10,24 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .metadata import build_type_methods
+from .nativeprofile import PROFILE_71
 from .param71 import PARAMETER_RECORD_SIZE, decode_parameter_record
 from .pe import PEImage
 
 MASK32 = 0xFFFFFFFF
 MASK64 = 0xFFFFFFFFFFFFFFFF
 
-EXPECTED_EXE_SHA256 = "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
-EXPECTED_METADATA_SHA256 = "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
-EXPECTED_TYPE_COUNT = 88_904
-EXPECTED_FIELD_COUNT = 440_172
-EXPECTED_METHOD_COUNT = 733_442
+EXPECTED_EXE_SHA256 = PROFILE_71.exe_sha256
+EXPECTED_METADATA_SHA256 = PROFILE_71.metadata_sha256
+EXPECTED_TYPE_COUNT = PROFILE_71.type_definition_count
+EXPECTED_FIELD_COUNT = PROFILE_71.field_count
+EXPECTED_METHOD_COUNT = PROFILE_71.method_count
 
-BODY_SKIP = 0x210
-EMBEDDED_HEADER_RVA = 0x027D4BD0
-EMBEDDED_HEADER_SIZE = 0x210
-TYPE_ARRAY_POINTER_RVA = 0x02870A88 + 0x48
-METHOD_POINTER_TABLE_RVA = 0x02870B90
+BODY_SKIP = PROFILE_71.metadata_body_skip
+EMBEDDED_HEADER_RVA = PROFILE_71.embedded_header_rva
+EMBEDDED_HEADER_SIZE = PROFILE_71.embedded_header_size
+TYPE_ARRAY_POINTER_RVA = PROFILE_71.type_array_pointer_rva
+METHOD_POINTER_TABLE_RVA = PROFILE_71.method_pointer_table_rva
 
 PRIMITIVE_KINDS = {
     0x01: "void",
@@ -196,7 +197,9 @@ def decode_string_token(metadata: mmap.mmap | bytes, string_base: int, token: in
         raise ValueError(f"string token 0x{token:08X} is not valid UTF-8") from exc
 
 
-def _header_layout(header: bytes) -> dict[str, int]:
+def decode_metadata_header_71(header: bytes) -> dict[str, int]:
+    """Decode the preserved exact-7.1 embedded metadata header layout."""
+
     if len(header) != EMBEDDED_HEADER_SIZE:
         raise ValueError("invalid embedded 7.1 metadata header size")
     return {
@@ -291,7 +294,7 @@ def decode_metadata_71(
             if metadata[:4] != b"MHY\0":
                 raise ValueError("metadata does not start with MHY\\0")
             header = image.read_rva(EMBEDDED_HEADER_RVA, EMBEDDED_HEADER_SIZE)
-            layout = _header_layout(header)
+            layout = decode_metadata_header_71(header)
             if layout["type_count"] != EXPECTED_TYPE_COUNT:
                 raise ValueError(
                     f"decoded type count {layout['type_count']} != preserved {EXPECTED_TYPE_COUNT}"

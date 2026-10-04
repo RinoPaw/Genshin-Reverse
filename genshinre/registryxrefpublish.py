@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .nativeprofile import PROFILE_71
 from .registry import CANONICAL_REGISTRY_COLUMNS
+from .rowutil import parse_optional_int
 
 EXPECTED_ROWS = PROFILE_71.registry_row_count
 PRIMARY_STATUSES = {"UNIQUE_SLOT_XREF", "DOMINANT_SLOT_XREF"}
@@ -35,20 +36,12 @@ def _rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def _int(value: object) -> int | None:
-    text = str(value or "").strip()
-    if not text:
-        return None
-    try:
-        return int(text, 0)
-    except ValueError:
-        return None
+def validate_known_opcodes_rows(rows: list[dict[str, str]]) -> dict[int, dict[str, str]]:
+    """Validate rows eligible for canonical semantic enrichment and index them by CmdId."""
 
-
-def _validated_known_opcodes(rows: list[dict[str, str]]) -> dict[int, dict[str, str]]:
     known_by_cmd: dict[int, dict[str, str]] = {}
     for line_no, row in enumerate(rows, start=2):
-        cmd_id = _int(row.get("cmd_id"))
+        cmd_id = parse_optional_int(row.get("cmd_id"))
         if cmd_id is None or not 0 <= cmd_id <= 65535:
             raise ValueError(f"known-opcodes row {line_no} has invalid CmdId")
         if cmd_id in known_by_cmd:
@@ -92,8 +85,8 @@ def publish_registry_from_xrefs_71(
     slots_by_rva: dict[int, dict[str, str]] = {}
     slots_by_index: dict[int, dict[str, str]] = {}
     for row in slot_rows:
-        slot = _int(row.get("type_slot_rva"))
-        index = _int(row.get("index"))
+        slot = parse_optional_int(row.get("type_slot_rva"))
+        index = parse_optional_int(row.get("index"))
         if slot is None or index is None:
             raise ValueError("registry type-slot row lacks slot/index")
         if slot in slots_by_rva:
@@ -111,7 +104,7 @@ def publish_registry_from_xrefs_71(
     for row in xref_rows:
         if str(row.get("status", "")) not in PRIMARY_STATUSES:
             continue
-        tdi = _int(row.get("type_definition_index"))
+        tdi = parse_optional_int(row.get("type_definition_index"))
         if tdi is None:
             raise ValueError("primary xref row lacks type_definition_index")
         primary_by_type[tdi].append(row)
@@ -130,9 +123,9 @@ def publish_registry_from_xrefs_71(
     selected_cmds: Counter[int] = Counter()
     selected_types: Counter[int] = Counter()
     for row in primary_rows:
-        slot = _int(row.get("registry_slot_rva"))
-        cmd_id = _int(row.get("cmd_id"))
-        tdi = _int(row.get("type_definition_index"))
+        slot = parse_optional_int(row.get("registry_slot_rva"))
+        cmd_id = parse_optional_int(row.get("cmd_id"))
+        tdi = parse_optional_int(row.get("type_definition_index"))
         if slot is None or cmd_id is None or tdi is None:
             raise ValueError("primary xref row lacks slot/CmdId/type identity")
         if slot not in slots_by_rva:
@@ -154,18 +147,18 @@ def publish_registry_from_xrefs_71(
             f"missing_slots={[f'0x{x:X}' for x in missing_slots[:10]]}"
         )
 
-    known_by_cmd = _validated_known_opcodes(known_rows)
+    known_by_cmd = validate_known_opcodes_rows(known_rows)
 
-    selected_by_slot = {_int(row["registry_slot_rva"]): row for row in primary_rows}
+    selected_by_slot = {parse_optional_int(row["registry_slot_rva"]): row for row in primary_rows}
     output: list[dict[str, str]] = []
     anchor_results: dict[str, object] = {}
     for index in range(EXPECTED_ROWS):
         slot_row = slots_by_index[index]
-        slot = _int(slot_row["type_slot_rva"])
+        slot = parse_optional_int(slot_row["type_slot_rva"])
         assert slot is not None
         identity = selected_by_slot[slot]
-        cmd_id = _int(identity["cmd_id"])
-        tdi = _int(identity["type_definition_index"])
+        cmd_id = parse_optional_int(identity["cmd_id"])
+        tdi = parse_optional_int(identity["type_definition_index"])
         assert cmd_id is not None and tdi is not None
         known = known_by_cmd.get(cmd_id, {})
         direction = str(known.get("direction", "")).strip()

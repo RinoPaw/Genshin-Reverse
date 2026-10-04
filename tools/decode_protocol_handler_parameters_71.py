@@ -7,7 +7,12 @@ import json
 import mmap
 from pathlib import Path
 
-from genshinre.mhy71 import BODY_SKIP, EMBEDDED_HEADER_RVA, EMBEDDED_HEADER_SIZE, _header_layout
+from genshinre.mhy71 import (
+    BODY_SKIP,
+    EMBEDDED_HEADER_RVA,
+    EMBEDDED_HEADER_SIZE,
+    decode_metadata_header_71,
+)
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 
@@ -135,7 +140,7 @@ def main() -> None:
 
     with PEImage(args.exe) as image, args.metadata.open("rb") as metadata_file:
         header = image.read_rva(EMBEDDED_HEADER_RVA, EMBEDDED_HEADER_SIZE)
-        layout = _header_layout(header)
+        layout = decode_metadata_header_71(header)
         parameter_base = BODY_SKIP + int(layout["parameter_offset"])
         metadata = mmap.mmap(metadata_file.fileno(), 0, access=mmap.ACCESS_READ)
         try:

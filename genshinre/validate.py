@@ -12,7 +12,7 @@ from .cmdobservations import (
 )
 from .contracts import ANALYSIS_STATES, ANALYSIS_STATUSES, MESSAGE_DIRECTIONS
 from .registry import ALLOWED_STATUS, CANONICAL_REGISTRY_COLUMNS
-from .registryxrefpublish import _validated_known_opcodes
+from .registryxrefpublish import validate_known_opcodes_rows
 from .scenehandlerartifact import validate_scene_handler_dispatch
 from .xrefartifacts import XREF_TABLE_CONTRACTS, validate_xref_table
 
@@ -316,7 +316,7 @@ def _validate_known_opcodes(
                 )
                 return
             known_rows = list(reader)
-        known_by_cmd = _validated_known_opcodes(known_rows)
+        known_by_cmd = validate_known_opcodes_rows(known_rows)
     except Exception as exc:
         errors.append(f"proto/known-opcodes.csv: {exc}")
         return
