@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .metadata import query_fields, query_method_references, query_methods
 from .registry import query_registry
+from .rowutil import parse_optional_int
 
 _XREF_FILES = {
     "handlers": "message-handlers.csv",
@@ -17,23 +18,13 @@ _SCENE_HANDLER_SLOTS_FILE = "scene-handler-slots.csv"
 _SCENE_HANDLER_EVIDENCE_FILE = "evidence.json"
 
 
-def _row_int(row: dict[str, object], key: str) -> int | None:
-    text = str(row.get(key, "")).strip()
-    if not text:
-        return None
-    try:
-        return int(text, 0)
-    except ValueError:
-        return None
-
-
 def _matching_csv_rows(path: Path, cmd_id: int, type_name: str) -> list[dict[str, str]]:
     if not path.is_file():
         return []
     result: list[dict[str, str]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
-            row_cmd = _row_int(row, "cmd_id")
+            row_cmd = parse_optional_int(row.get("cmd_id"))
             row_type = str(row.get("type_name", "")).strip()
             if row_cmd == cmd_id or (row_type and row_type == type_name):
                 result.append(dict(row))
@@ -46,7 +37,7 @@ def _known_opcode_rows(path: Path, cmd_id: int) -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
-            if _row_int(row, "cmd_id") == cmd_id:
+            if parse_optional_int(row.get("cmd_id")) == cmd_id:
                 result.append(dict(row))
     return result
 
@@ -131,8 +122,8 @@ def query_protocol(
 
     results: list[dict[str, object]] = []
     for registry in registry_rows:
-        identity_cmd = _row_int(registry, "cmd_id")
-        identity_tdef = _row_int(registry, "type_definition_index")
+        identity_cmd = parse_optional_int(registry.get("cmd_id"))
+        identity_tdef = parse_optional_int(registry.get("type_definition_index"))
         identity_type = str(registry.get("type_name", "")).strip()
         if identity_cmd is None:
             continue

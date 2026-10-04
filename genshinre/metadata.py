@@ -6,6 +6,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from .rowutil import int_matches
+
 
 def _parse_params(value: str) -> list[str]:
     value = (value or "").strip()
@@ -15,18 +17,6 @@ def _parse_params(value: str) -> list[str]:
     if not isinstance(parsed, list):
         raise ValueError("parameter_types must be a JSON array")
     return [str(item) for item in parsed]
-
-
-def _int_matches(value: object, expected: int | None) -> bool:
-    if expected is None:
-        return True
-    text = str(value or "").strip()
-    if not text:
-        return False
-    try:
-        return int(text, 0) == expected
-    except ValueError:
-        return False
 
 
 def _type_token_matches(value: object, type_name: str) -> bool:
@@ -108,9 +98,9 @@ def query_methods(
         for raw in csv.DictReader(f):
             if type_name and type_name.casefold() not in str(raw.get("type_name", "")).casefold():
                 continue
-            if not _int_matches(raw.get("type_definition_index"), type_definition_index):
+            if not int_matches(raw.get("type_definition_index"), type_definition_index):
                 continue
-            if not _int_matches(raw.get("rva"), rva):
+            if not int_matches(raw.get("rva"), rva):
                 continue
             if method_name and method_name.casefold() not in str(raw.get("method_name", "")).casefold():
                 continue
@@ -187,13 +177,13 @@ def query_fields(
         for row in csv.DictReader(f):
             if type_name and type_name.casefold() not in str(row.get("type_name", "")).casefold():
                 continue
-            if not _int_matches(row.get("type_definition_index"), type_definition_index):
+            if not int_matches(row.get("type_definition_index"), type_definition_index):
                 continue
             if field_name and field_name.casefold() not in str(row.get("field_name", "")).casefold():
                 continue
             if field_type and field_type.casefold() != str(row.get("field_type", "")).casefold():
                 continue
-            if not _int_matches(row.get("field_type_index"), field_type_index):
+            if not int_matches(row.get("field_type_index"), field_type_index):
                 continue
             result.append(dict(row))
     return result
