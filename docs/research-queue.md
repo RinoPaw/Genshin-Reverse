@@ -19,13 +19,19 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 | --- | --- | --- | --- |
 | P0 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence |
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
-| P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
+| P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED; community 7.1 candidate table recorded | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
+| P1 | [#8 QuestExcel extraction / prerequisite corruption root cause](https://github.com/RinoPaw/Genshin-Reverse/issues/8) | UNRESOLVED | can remove a recurring resource-repair class by locating whether corruption occurs in client data, schema decode or post-processing |
 | P1/P2 | [#7 Structural protobuf recovery from obfuscated metadata](https://github.com/RinoPaw/Genshin-Reverse/issues/7) | EVALUATION | can recover richer field/container/oneof structure for unknown packets and future version migration |
 | P2 | [#6 Version-independent MHY string-literal recovery](https://github.com/RinoPaw/Genshin-Reverse/issues/6) | EVALUATION | may provide reusable semantic anchors and reduce per-version metadata reverse work |
 
 `UnlockTransPointRsp` remains paused in the 7.1 unresolved report because the corrected waypoint gameplay path no longer depends on it. Do not spend reverse-engineering time on it unless a concrete consumer reappears.
 
-External projects and newly discovered methods are triaged in [`external-intelligence.md`](external-intelligence.md). That log is for navigation and method discovery; actionable work belongs in a focused issue such as the entries above. The current structural-protobuf method note is [`methods/structural-protobuf-recovery.md`](methods/structural-protobuf-recovery.md).
+External projects and newly discovered methods are triaged in [`external-intelligence.md`](external-intelligence.md). That log is for navigation and method discovery; actionable work belongs in a focused issue such as the entries above.
+
+Current method notes created from reconnaissance:
+
+- [`methods/structural-protobuf-recovery.md`](methods/structural-protobuf-recovery.md) — generated-code invariants and composite protobuf fingerprints under obfuscation.
+- [`methods/binconfig-extraction-validation.md`](methods/binconfig-extraction-validation.md) — exact-client resource-table extraction, schema validation and corruption-boundary classification.
 
 ## Intake from AstaPS
 
@@ -38,6 +44,8 @@ When AstaPS reaches an unknown behavior, use this order before opening a reverse
 5. Keep server-side experiments in AstaPS; only portable evidence/methods belong here.
 
 Do not create reverse tasks for questions already closed by resource evidence. The skip-intro lifecycle bug is an example: the required rule is already known — presentation skipping must preserve the normal scene-ready/PostEnterSceneRsp/onPlayerBorn lifecycle — so additional reversing needs a new concrete uncertainty, not a generic request to inspect intro again.
+
+A resource discrepancy can still justify a reverse task when the uncertainty is in the extraction boundary itself. Issue #8 is the model: downstream repairs already work, but the exact-client serialization/decoder/post-processing boundary remains unknown and recurring corruption has a concrete AstaPS-Resource consumer.
 
 ## Researcher handoff contract
 
