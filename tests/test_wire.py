@@ -15,6 +15,15 @@ class WireVarintTests(unittest.TestCase):
         self.assertEqual(300, value)
         self.assertEqual(2, offset)
 
+    def test_read_varint_accepts_uint64_max(self) -> None:
+        value, offset = read_varint(bytes.fromhex("FFFFFFFFFFFFFFFFFF01"))
+        self.assertEqual((1 << 64) - 1, value)
+        self.assertEqual(10, offset)
+
+    def test_read_varint_rejects_more_than_64_bits(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exceeds 64 bits"):
+            read_varint(bytes.fromhex("FFFFFFFFFFFFFFFFFF02"))
+
 
 if __name__ == "__main__":
     unittest.main()

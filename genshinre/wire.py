@@ -11,6 +11,8 @@ def read_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
     while pos < len(data):
         byte = data[pos]
         pos += 1
+        if shift == 63 and byte > 1:
+            raise ValueError("varint exceeds 64 bits")
         value |= (byte & 0x7F) << shift
         if byte < 0x80:
             return value, pos
