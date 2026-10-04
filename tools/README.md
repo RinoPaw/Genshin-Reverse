@@ -8,9 +8,17 @@ Current helpers:
 
 - `decode_protocol_handler_parameters_71.py` independently decodes exact-7.1 parameter records and checks known handler controls. It stays separate from the normal decoded metadata path so it remains an independent evidence layer.
 - `disassemble_rva.py` is the small generic exact-sample RVA disassembler used by the opt-in disassembly workflow and focused investigations. It stays outside the base package because it depends on Capstone.
-- `locate_game_packet_framing_71.py` reproduces the exact-client packet-framing boundary used by the maintained runtime capture evidence.
+- `locate_game_packet_framing_71.py` reproduces the exact-client packet-framing boundary used by the maintained runtime capture evidence and depends on Capstone.
 - `trace_native_call_edges.py` traces focused native direct-call edges with metadata ownership. It stays outside the base package because it depends on Capstone.
-- `runtime/` contains build-bound runtime capture helpers; reusable correlation logic lives in `genshinre.capture` / `genshinre correlate-capture`.
+- `runtime/` contains build-bound runtime capture helpers; reusable correlation logic lives in `genshinre.capture` / `genshinre correlate-capture`. The Python launcher reports an explicit install hint when the optional Frida bindings are missing.
+
+Optional research dependencies are deliberately kept out of the base package. Install only what the selected helper needs:
+
+```bash
+python -m pip install capstone   # disassembly / framing / native-call helpers
+python -m pip install frida      # runtime capture launcher
+python -m pip install zstandard  # pinned sample acquisition
+```
 
 Already-decrypted game-frame parsing is reusable standard-library functionality and therefore lives in the package:
 
