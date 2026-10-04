@@ -52,10 +52,16 @@ class PacketFrameTests(unittest.TestCase):
 
     def test_parse_hex_accepts_whitespace_and_prefixes(self) -> None:
         self.assertEqual(b"Eg", parse_hex("0x45 0x67"))
+        self.assertEqual(b"Eg", parse_hex("0x4567"))
+        self.assertEqual(b"Eg", parse_hex("45\n67"))
 
     def test_parse_hex_rejects_odd_digit_count(self) -> None:
         with self.assertRaisesRegex(ValueError, "odd number of digits"):
             parse_hex("456")
+
+    def test_parse_hex_rejects_embedded_prefixes(self) -> None:
+        with self.assertRaisesRegex(ValueError, "non-hexadecimal"):
+            parse_hex("100x20")
 
     def test_parse_frames_rejects_bad_tail(self) -> None:
         data = _frame(186)[:-2] + b"\x00\x00"

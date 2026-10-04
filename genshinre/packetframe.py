@@ -78,10 +78,17 @@ def parse_frames(data: bytes) -> list[GamePacket]:
 
 
 def parse_hex(text: str) -> bytes:
-    cleaned = "".join(text.split()).replace("0x", "").replace("0X", "")
+    tokens = text.split()
+    cleaned = "".join(
+        token[2:] if token.lower().startswith("0x") else token
+        for token in tokens
+    )
     if len(cleaned) % 2:
         raise ValueError("hex input has an odd number of digits")
-    return bytes.fromhex(cleaned)
+    try:
+        return bytes.fromhex(cleaned)
+    except ValueError as exc:
+        raise ValueError("hex input contains non-hexadecimal characters") from exc
 
 
 def describe_frames(data: bytes, watched_cmds: Iterable[int] = ()) -> dict[str, object]:
