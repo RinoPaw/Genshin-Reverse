@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct 7.1 design asset index block
+      - name: Reconstruct native 7.1 QuestExcel block
         run: |
           python - <<'PY' | tee probe-summary.txt
           from pathlib import Path
@@ -30,11 +30,11 @@ jobs:
           from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest, reconstruct
 
           rows = parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
-          matches = [r for r in rows if normalized_name(r).endswith('/assetbundles/blocks/00/31049741.blk')]
+          matches = [r for r in rows if normalized_name(r).endswith('/assetbundles/blocks/00/25539185.blk')]
           if len(matches) != 1:
-              raise SystemExit(f'expected one 00/31049741.blk row, got {len(matches)}')
+              raise SystemExit(f'expected one 00/25539185.blk row, got {len(matches)}')
           row = matches[0]
-          target = Path('design-index/31049741.blk')
+          target = Path('quest-native/25539185.blk')
           reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=8)
           data = target.read_bytes()
           print('size=', len(data))
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Extract design asset index
+      - name: Extract QuestExcel BLB3
         shell: bash
         run: |
           set -euo pipefail
@@ -68,13 +68,21 @@ jobs:
           fi
           rm -rf animestudio-output
           mkdir -p animestudio-output
-          "${cli[@]}" design-index/31049741.blk animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
-          find animestudio-output -type f -printf '%P\t%s bytes\n' | sort | tee output-summary.txt
+          "${cli[@]}" quest-native/25539185.blk animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
+          {
+            find animestudio-output -type f -printf '%P\t%s bytes\n' | sort
+            while IFS= read -r -d '' f; do
+              echo "===== $f ====="
+              sha256sum "$f"
+              od -An -tx1 -N128 "$f" || true
+              strings -a -n 5 "$f" | grep -Ei 'Quest|acceptCond|finishCond|ExcelBinOutput|BinOutput' | head -n 200 || true
+            done < <(find animestudio-output -type f -print0 | sort -z)
+          } | tee output-summary.txt
       - name: Upload focused probe
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-design-index-probe
+          name: quest-native-block-probe
           path: |
             probe-summary.txt
             animestudio-probe.txt
