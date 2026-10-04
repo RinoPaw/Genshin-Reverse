@@ -25,6 +25,16 @@ class ToolsContractTests(unittest.TestCase):
         self.assertTrue((TOOLS / "runtime").is_dir())
         self.assertIn("`runtime/`", text)
 
+    def test_exact_parameter_decoder_reuses_shared_identity_utilities(self) -> None:
+        text = (TOOLS / "decode_protocol_handler_parameters_71.py").read_text(encoding="utf-8")
+
+        self.assertIn("require_profile_exe", text)
+        self.assertIn("require_profile_metadata", text)
+        self.assertIn("parse_optional_int", text)
+        self.assertNotIn("import hashlib", text)
+        self.assertNotIn("def _sha256", text)
+        self.assertNotIn("def _parse_int", text)
+
 
 if __name__ == "__main__":
     unittest.main()

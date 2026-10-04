@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import mmap
 from pathlib import Path
@@ -15,6 +14,8 @@ from genshinre.mhy71 import (
 )
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
+from genshinre.rowutil import parse_optional_int
+from genshinre.sampleidentity import require_profile_exe, require_profile_metadata
 
 MASK32 = 0xFFFFFFFF
 MASK64 = 0xFFFFFFFFFFFFFFFF
@@ -37,24 +38,6 @@ KNOWN_HANDLER_CONTROLS = {
     3064: ("PlayerNicknameNotify", 0x0C23BA20),
     20824: ("SetPlayerNameRsp", 0x0C2513A0),
 }
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _parse_int(value: str | None) -> int | None:
-    text = (value or "").strip()
-    if not text:
-        return None
-    try:
-        return int(text, 0)
-    except ValueError:
-        return None
 
 
 def _sx32(value: int) -> int:
@@ -84,7 +67,7 @@ def _runtime_type_maps(path: Path) -> tuple[dict[str, list[int]], dict[int, set[
     by_index: dict[int, set[str]] = {}
     for line_no, row in enumerate(_load_csv(path), start=2):
         name = (row.get("type_name") or "").strip()
-        index = _parse_int(row.get("type_index"))
+        index = parse_optional_int(row.get("type_index"))
         if not name or index is None:
             raise ValueError(f"{path}:{line_no}: invalid canonical runtime type row")
         by_name.setdefault(name, []).append(index)
@@ -107,12 +90,11 @@ def main() -> None:
     args = p.parse_args()
 
     profile = PROFILE_71
-    exe_sha = _sha256(args.exe)
-    metadata_sha = _sha256(args.metadata)
-    if exe_sha != profile.exe_sha256:
-        raise SystemExit(f"unexpected executable SHA-256: {exe_sha}")
-    if metadata_sha != profile.metadata_sha256:
-        raise SystemExit(f"unexpected metadata SHA-256: {metadata_sha}")
+    try:
+        exe_sha = require_profile_exe(args.exe, profile)
+        metadata_sha = require_profile_metadata(args.metadata, profile)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     registry_rows = _load_csv(args.registry_csv)
     registry = {int(row["cmd_id"], 0): row for row in registry_rows}
@@ -146,8 +128,8 @@ def main() -> None:
         try:
             with args.methods_csv.open("r", encoding="utf-8-sig", newline="") as f:
                 for line_no, row in enumerate(csv.DictReader(f), start=2):
-                    parameter_start = _parse_int(row.get("parameter_start"))
-                    parameter_count = _parse_int(row.get("parameter_count"))
+                    parameter_start = parse_optional_int(row.get("parameter_start"))
+                    parameter_count = parse_optional_int(row.get("parameter_count"))
                     if parameter_start is None or parameter_count is None:
                         raise ValueError(f"{args.methods_csv}:{line_no}: invalid parameter span")
                     if parameter_count < 0:
@@ -221,7 +203,7 @@ def main() -> None:
             hit
             for hit in hits_by_cmd[cmd]
             if hit["known_handler_owner"]
-            and _parse_int(str(hit.get("method_rva", ""))) == expected_rva
+            and parse_optional_int(str(hit.get("method_rva", ""))) == expected_rva
         ]
         ok = bool(exact)
         controls_ok &= ok
