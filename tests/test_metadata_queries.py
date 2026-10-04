@@ -119,6 +119,51 @@ class MetadataQueryTests(unittest.TestCase):
             self.assertEqual("OWNER", external[0]["type_name"])
             self.assertFalse(external[0]["self_type"])
 
+    def test_query_method_references_escapes_regex_metacharacters(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "methods.csv"
+            with path.open("w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        "method_index",
+                        "type_definition_index",
+                        "type_name",
+                        "method_name",
+                        "rva",
+                        "return_type",
+                        "parameter_types",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "method_index": "1",
+                        "type_definition_index": "10",
+                        "type_name": "OWNER",
+                        "method_name": "Exact",
+                        "rva": "0x1000",
+                        "return_type": "Wrapper<A+B>",
+                        "parameter_types": "[]",
+                    }
+                )
+                writer.writerow(
+                    {
+                        "method_index": "2",
+                        "type_definition_index": "20",
+                        "type_name": "OWNER",
+                        "method_name": "RegexLike",
+                        "rva": "0x2000",
+                        "return_type": "Wrapper<AAAB>",
+                        "parameter_types": "[]",
+                    }
+                )
+
+            rows = query_method_references(path, "A+B")
+            self.assertEqual(1, len(rows))
+            self.assertEqual("Exact", rows[0]["method_name"])
+            self.assertTrue(rows[0]["match_return"])
+
     def test_query_fields_combines_exact_indexes_and_text_filters(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "fields.csv"
