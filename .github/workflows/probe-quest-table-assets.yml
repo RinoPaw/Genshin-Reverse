@@ -21,72 +21,63 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Enumerate exact 7.1 AssetBundle block candidates
+      - name: Reconstruct small exact-7.1 AssetBundle blocks
         run: |
           python - <<'PY' | tee probe-summary.txt
           from __future__ import annotations
 
-          from collections import Counter
-          from pathlib import PurePosixPath
+          import re
+          from pathlib import Path, PurePosixPath
 
           from genshinre.nativeprofile import PROFILE_71
-          from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest
+          from genshinre.samplefetch import (
+              decompress_zstd,
+              download,
+              normalized_name,
+              parse_manifest,
+              reconstruct,
+          )
 
           raw = download(PROFILE_71.sophon_manifest_url)
           rows = parse_manifest(decompress_zstd(raw))
+          blk = [
+              row for row in rows
+              if '/assetbundles/blocks/' in normalized_name(row)
+              and normalized_name(row).endswith('.blk')
+          ]
+          small = [row for row in blk if int(row.get('size', 0) or 0) <= 300_000]
+          small.sort(key=lambda row: int(row.get('size', 0) or 0))
 
           print('manifest_files', len(rows))
-
-          suffixes = Counter()
-          for row in rows:
-              name = normalized_name(row)
-              suffix = PurePosixPath(name).suffix or '<none>'
-              suffixes[suffix] += 1
-          print('=== top suffix counts ===')
-          for suffix, count in suffixes.most_common(40):
-              print('SUFFIX', repr(suffix), count)
-
-          needles = ('streamingassets', 'assetbundles', '.blk', 'blocks')
-          candidates = [
-              row for row in rows
-              if any(needle in normalized_name(row) for needle in needles)
-          ]
-          print('candidate_count', len(candidates))
-          print('=== matching manifest rows ===')
-          for row in candidates:
-              print(
-                  'ROW',
-                  repr(row.get('filename')),
-                  'size=', row.get('size'),
-                  'chunks=', len(row.get('chunks', [])),
-                  'flags=', row.get('flags'),
-                  'md5=', row.get('md5'),
-              )
-
-          blk = [row for row in rows if normalized_name(row).endswith('.blk')]
           print('blk_count', len(blk))
-          for row in blk:
-              print(
-                  'BLK',
-                  repr(row.get('filename')),
-                  'size=', row.get('size'),
-                  'chunks=', len(row.get('chunks', [])),
-                  'md5=', row.get('md5'),
-              )
+          print('small_blk_count', len(small))
 
-          block_named = [
-              row for row in rows
-              if 'blocks' in PurePosixPath(normalized_name(row)).name
-          ]
-          print('block_named_count', len(block_named))
-          for row in block_named:
+          out = Path('probe-small-blocks')
+          for row in small:
+              name = str(row['filename']).replace('\\', '/')
+              rel = '/'.join(name.split('/')[-3:])
+              target = out / rel
+              reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=2)
+              data = target.read_bytes()
+              strings = [
+                  m.group().decode('ascii', errors='replace')
+                  for m in re.finditer(rb'[ -~]{6,}', data)
+              ]
+              interesting = [
+                  s for s in strings
+                  if any(k in s.lower() for k in (
+                      'quest', 'excel', 'config', 'data/', 'asset', 'bundle',
+                      'version', 'revision', 'binoutput', 'json', 'lua'
+                  ))
+              ]
               print(
-                  'BLOCK_NAMED',
-                  repr(row.get('filename')),
-                  'size=', row.get('size'),
-                  'chunks=', len(row.get('chunks', [])),
+                  'SMALL', rel,
+                  'size=', len(data),
                   'md5=', row.get('md5'),
+                  'head=', data[:32].hex(),
               )
+              for s in interesting[:80]:
+                  print('STRING', rel, repr(s[:500]))
           PY
       - name: Upload probe summary
         if: always()
@@ -94,4 +85,11 @@ jobs:
         with:
           name: quest-table-assets-summary
           path: probe-summary.txt
+          if-no-files-found: error
+      - name: Upload reconstructed small blocks
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-table-small-blocks
+          path: probe-small-blocks
           if-no-files-found: error
