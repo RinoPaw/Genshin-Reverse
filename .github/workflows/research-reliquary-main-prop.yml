@@ -91,6 +91,102 @@ jobs:
           print(json.dumps(out, indent=2, ensure_ascii=False))
           PY
 
+      - name: Export exact MHY decoder candidate anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          from genshinre.callxref import attach_caller_methods, decode_direct_call
+          from genshinre.nativeprofile import PROFILE_71
+          from tools.disassemble_rva import disassemble_rva
+
+          sys.path.insert(0, 'external/gi-stringliteral')
+          from extract_constants import extract_candidates, find_text_section
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          methods = Path('versions/7.1.0-global/windows-x64/metadata/methods.csv')
+          exe_data = exe.read_bytes()
+          text, text_rva, text_raw, image_base = find_text_section(exe_data)
+          literal_candidates, table_candidates = extract_candidates(str(exe))
+
+          candidate_rvas = [text_rva + int(row.file_off) for row in literal_candidates]
+          candidate_rvas += [text_rva + int(row.file_off) for row in table_candidates]
+          owners = attach_caller_methods(candidate_rvas, methods) if candidate_rvas else {}
+
+          literal_rows = []
+          for ordinal, row in enumerate(literal_candidates):
+              rva = text_rva + int(row.file_off)
+              literal_rows.append({
+                  'ordinal': ordinal,
+                  'file_offset_in_text': f'0x{int(row.file_off):X}',
+                  'rva': f'0x{rva:X}',
+                  'va': f'0x{image_base + rva:X}',
+                  'increment': f'0x{int(row.inc):X}',
+                  'seed0': f'0x{int(row.seed(0)):X}',
+                  'ops': [[op, f'0x{int(value):X}'] for op, value in row.ks_ops],
+                  'owner_methods': owners.get(rva, []),
+              })
+
+          table_rows = []
+          disassembly = []
+          for ordinal, row in enumerate(table_candidates):
+              rva = text_rva + int(row.file_off)
+              decoded_call = decode_direct_call(text, int(row.file_off), rva)
+              item = {
+                  'ordinal': ordinal,
+                  'file_offset_in_text': f'0x{int(row.file_off):X}',
+                  'rva': f'0x{rva:X}',
+                  'va': f'0x{image_base + rva:X}',
+                  'ast': repr(row.ast),
+                  'anchor0': None if row.anchor0() is None else f'0x{int(row.anchor0()):X}',
+                  'owner_methods': owners.get(rva, []),
+              }
+              if decoded_call is not None:
+                  item['call_target_rva'] = f"0x{int(decoded_call['target_rva']):X}"
+                  item['call_instruction_hex'] = decoded_call['instruction_hex']
+              table_rows.append(item)
+
+              start = max(0, rva - 0x100)
+              disassembly.append(
+                  disassemble_rva(
+                      exe,
+                      start,
+                      0x300,
+                      expected_sha256=PROFILE_71.exe_sha256,
+                      label=f'mhy-table-candidate-{ordinal}-around-0x{rva:X}',
+                  )
+              )
+
+          result = {
+              'sample': {
+                  'exe_sha256': PROFILE_71.exe_sha256,
+                  'metadata_sha256': PROFILE_71.metadata_sha256,
+              },
+              'external_tool': 'kuma-dayo/gi-stringliteral',
+              'external_tool_commit': '1008fd7db28dcbc55729d5bb6b3a585dab86cf8b',
+              'text_rva': f'0x{text_rva:X}',
+              'text_raw_offset': f'0x{text_raw:X}',
+              'image_base': f'0x{image_base:X}',
+              'literal_candidate_count': len(literal_rows),
+              'table_candidate_count': len(table_rows),
+              'literal_candidates': literal_rows,
+              'table_candidates': table_rows,
+          }
+          Path('mhy-string-literal-decoder-anchors.json').write_text(
+              json.dumps(result, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          Path('mhy-table-candidate-disassembly.json').write_text(
+              json.dumps(disassembly, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(result, indent=2, ensure_ascii=False))
+          PY
+
       - name: Build focused summary
         shell: bash
         run: |
@@ -100,6 +196,7 @@ jobs:
 
           anchor = json.loads(Path('reliquary-main-prop-anchor.json').read_text(encoding='utf-8'))
           recovered = json.loads(Path('reliquary-recovered-string-literals.json').read_text(encoding='utf-8'))
+          decoder = json.loads(Path('mhy-string-literal-decoder-anchors.json').read_text(encoding='utf-8'))
           summary = {
               'literal_hit_count': anchor['literal_hit_count'],
               'direct_code_xref_count': anchor['direct_code_xref_count'],
@@ -108,6 +205,9 @@ jobs:
               'recovered_literal_count': recovered['recovered_literal_count'],
               'recovered_reliquary_match_count': recovered['match_count'],
               'recovered_reliquary_matches': recovered['matches'],
+              'mhy_literal_candidate_count': decoder['literal_candidate_count'],
+              'mhy_table_candidate_count': decoder['table_candidate_count'],
+              'mhy_table_candidates': decoder['table_candidates'],
               'pe_hits': [
                   {
                       'literal': row['literal'],
@@ -135,5 +235,7 @@ jobs:
             reliquary-main-prop-anchor.json
             reliquary-main-prop-anchor-summary.json
             reliquary-recovered-string-literals.json
+            mhy-string-literal-decoder-anchors.json
+            mhy-table-candidate-disassembly.json
           if-no-files-found: error
           retention-days: 7
