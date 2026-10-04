@@ -1,18 +1,18 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "genshin-reverse-tools"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Reproducible tooling, artifacts, and provenance for Genshin Impact protocol research"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{name = "RinoPaw"}]
 keywords = ["genshin-impact", "reverse-engineering", "il2cpp", "protobuf", "protocol"]
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -26,6 +26,9 @@ Issues = "https://github.com/RinoPaw/Genshin-Reverse/issues"
 
 [project.scripts]
 genshinre = "genshinre.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "genshinre.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["genshinre*"]
