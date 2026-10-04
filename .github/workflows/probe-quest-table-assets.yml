@@ -3,7 +3,6 @@ name: Probe 7.1 QuestExcel serialized assets
 on:
   push:
     branches:
-      - main
       - probe/quest-blb3-binoutput
     paths:
       - ".github/workflows/probe-quest-table-assets.yml"
@@ -23,85 +22,54 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct 7.1 asset index block
+      - name: Reconstruct exact 7.1 catalog files
         run: |
-          python - <<'PY' | tee probe-summary.txt
+          python - <<'PY'
           from pathlib import Path
-
           from genshinre.nativeprofile import PROFILE_71
-          from genshinre.samplefetch import (
-              decompress_zstd,
-              download,
-              normalized_name,
-              parse_manifest,
-              reconstruct,
-          )
+          from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest, reconstruct
 
           rows = parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
-          matches = [
-              row for row in rows
-              if normalized_name(row).endswith('/assetbundles/blocks/00/31049740.blk')
-          ]
-          if len(matches) != 1:
-              raise SystemExit(f'expected one 00/31049740.blk row, got {len(matches)}')
-          row = matches[0]
-          target = Path('asset-index/31049740.blk')
-          reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=8)
-          data = target.read_bytes()
-          print('TARGET blocks/00/31049740.blk')
-          print('size=', len(data))
-          print('md5=', row.get('md5'))
-          print('head=', data[:64].hex())
-          for needle in (b'asset_index', b'QuestExcel', b'binoutput', b'87ae8396'):
-              print(needle.decode(), 'offset=', data.lower().find(needle.lower()))
+          wanted = {
+              'data_versions_streaming',
+              'res_versions_streaming',
+              'ctable_streaming.dat',
+              'svc_catalog',
+              'asb_settings.json',
+          }
+          out = Path('catalogs')
+          for name in wanted:
+              matches = [r for r in rows if normalized_name(r).endswith('/' + name)]
+              if len(matches) != 1:
+                  raise SystemExit(f'{name}: expected one manifest row, got {len(matches)}')
+              row = matches[0]
+              target = out / name
+              reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=8)
+              print(name, target.stat().st_size, row.get('md5'))
           PY
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-      - name: Decode asset index BLB3
+      - name: Inspect catalogs
         shell: bash
         run: |
           set -euo pipefail
-          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
-          archive=/tmp/animestudio.tar.gz
-          root=/tmp/animestudio
-          curl --fail --location --retry 3 "$url" --output "$archive"
-          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
-          mkdir -p "$root"
-          tar -xzf "$archive" -C "$root"
-          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
-          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
-          if ((${#apphosts[@]})); then
-            chmod +x "${apphosts[0]}"
-            cli=("${apphosts[0]}")
-          elif ((${#dlls[@]})); then
-            cli=(dotnet "${dlls[0]}")
-          else
-            echo 'AnimeStudio CLI entry point not found' >&2
-            exit 2
-          fi
-
-          rm -rf animestudio-output
-          mkdir -p animestudio-output
-          set +e
-          "${cli[@]}" asset-index/31049740.blk animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
-          status=${PIPESTATUS[0]}
-          set -e
           {
-            echo "animestudio_status=$status"
-            echo '--- outputs ---'
-            find animestudio-output -type f -printf '%P\t%s bytes\n' | sort
-            echo '--- target strings ---'
-            strings -a -n 6 asset-index/31049740.blk | grep -Ei 'asset_index|QuestExcel|binoutput|87ae8396' | head -n 200 || true
-          } | tee asset-index-summary.txt
+            for f in catalogs/*; do
+              echo "===== $f ====="
+              file "$f" || true
+              sha256sum "$f"
+              echo '-- head hex --'
+              od -An -tx1 -N128 "$f" || true
+              echo '-- relevant strings --'
+              strings -a -n 5 "$f" | grep -Ei 'QuestExcel|ExcelBinOutput|binoutput|asset_index|external_asset|data/binoutput|31049740|26986803|\.asb|blocks/' | head -n 300 || true
+              echo '-- first strings --'
+              strings -a -n 5 "$f" | head -n 80 || true
+            done
+          } | tee catalog-summary.txt
       - name: Upload focused probe
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-asset-index-probe
+          name: quest-catalog-probe
           path: |
-            probe-summary.txt
-            animestudio-probe.txt
-            asset-index-summary.txt
-            animestudio-output
+            catalog-summary.txt
+            catalogs
           if-no-files-found: warn
