@@ -12,6 +12,7 @@ on:
       - 'genshinre/artifactpublish.py'
       - 'genshinre/fingerprint.py'
       - 'genshinre/getcmdid.py'
+      - 'genshinre/metadatacsv.py'
       - 'genshinre/metadataindex.py'
       - 'genshinre/mhy71.py'
       - 'genshinre/nativeprofile.py'

@@ -1,22 +1,12 @@
 from __future__ import annotations
 
 import csv
-import json
 import re
 from pathlib import Path
 
+from .metadatacsv import parse_parameter_types
 from .metadataindex import build_type_methods
 from .rowutil import int_matches
-
-
-def _parse_params(value: str) -> list[str]:
-    value = (value or "").strip()
-    if not value:
-        return []
-    parsed = json.loads(value)
-    if not isinstance(parsed, list):
-        raise ValueError("parameter_types must be a JSON array")
-    return [str(item) for item in parsed]
 
 
 def _type_token_matches(value: object, type_name: str) -> bool:
@@ -34,7 +24,7 @@ def load_methods(methods_csv: Path) -> list[dict[str, object]]:
         rows = []
         for raw in csv.DictReader(f):
             row: dict[str, object] = dict(raw)
-            row["parameter_types"] = _parse_params(raw.get("parameter_types", ""))
+            row["parameter_types"] = parse_parameter_types(raw.get("parameter_types", ""))
             rows.append(row)
         return rows
 
@@ -61,7 +51,7 @@ def query_methods(
             if method_name and method_name.casefold() not in str(raw.get("method_name", "")).casefold():
                 continue
 
-            params = _parse_params(raw.get("parameter_types", ""))
+            params = parse_parameter_types(raw.get("parameter_types", ""))
             if parameter_type and parameter_type.casefold() not in {item.casefold() for item in params}:
                 continue
 
@@ -96,7 +86,7 @@ def query_method_references(
             if external_only and is_self:
                 continue
 
-            params = _parse_params(raw.get("parameter_types", ""))
+            params = parse_parameter_types(raw.get("parameter_types", ""))
             parameter_positions = [
                 index
                 for index, item in enumerate(params)

@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .metadata import _parse_params
+from .metadatacsv import parse_parameter_types
 
 
 def _norm_address(value: str) -> str:
@@ -62,7 +62,7 @@ def _method_matches(row: dict[str, str], anchor: dict[str, object]) -> bool:
 
     expected_params = [str(value) for value in anchor.get("parameter_types", [])]
     if expected_params:
-        params = _parse_params(row.get("parameter_types", ""))
+        params = parse_parameter_types(row.get("parameter_types", ""))
         if not all(value in params for value in expected_params):
             return False
     return True

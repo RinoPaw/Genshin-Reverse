@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import genshinre.metadata as metadata
+import genshinre.metadatacsv as metadatacsv
 import genshinre.metadataindex as metadataindex
 import genshinre.registry as registry
 import genshinre.registrycontract as registrycontract
@@ -25,11 +26,21 @@ class GenerationDependencyBoundaryTests(unittest.TestCase):
             registry.EXPECTED_REGISTRY_ROW_COUNT,
         )
 
+    def test_parameter_type_parser_is_shared_generation_contract(self) -> None:
+        self.assertEqual([], metadatacsv.parse_parameter_types(""))
+        self.assertEqual(["Alpha", "2"], metadatacsv.parse_parameter_types('["Alpha", 2]'))
+        with self.assertRaisesRegex(ValueError, "JSON array"):
+            metadatacsv.parse_parameter_types('{"type":"Alpha"}')
+
     def test_heavy_workflow_tracks_generation_modules_not_query_surfaces(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "generate-7.1-data.yml").read_text(
             encoding="utf-8"
         )
-        for path in ("genshinre/metadataindex.py", "genshinre/registrycontract.py"):
+        for path in (
+            "genshinre/metadatacsv.py",
+            "genshinre/metadataindex.py",
+            "genshinre/registrycontract.py",
+        ):
             with self.subTest(path=path):
                 self.assertIn(f"- '{path}'", workflow)
         for path in ("genshinre/metadata.py", "genshinre/registry.py"):
