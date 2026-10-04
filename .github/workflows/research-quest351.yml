@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
 
+# Ephemeral research compute for issue #9; keep it isolated from main CI.
 jobs:
   metadata-correlation:
     runs-on: ubuntu-latest
