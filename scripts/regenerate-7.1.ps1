@@ -23,7 +23,11 @@ function Invoke-Python {
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $RepoRoot
 try {
-    $Output = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Output))
+    if ([System.IO.Path]::IsPathRooted($Output)) {
+        $Output = [System.IO.Path]::GetFullPath($Output)
+    } else {
+        $Output = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Output))
+    }
     $MetadataOut = Join-Path $Output "metadata"
     New-Item -ItemType Directory -Force -Path $MetadataOut | Out-Null
 

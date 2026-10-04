@@ -10,8 +10,16 @@ Set-StrictMode -Version Latest
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Push-Location $RepoRoot
 try {
-    $Work = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Work))
-    $Version = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Version))
+    if ([System.IO.Path]::IsPathRooted($Work)) {
+        $Work = [System.IO.Path]::GetFullPath($Work)
+    } else {
+        $Work = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Work))
+    }
+    if ([System.IO.Path]::IsPathRooted($Version)) {
+        $Version = [System.IO.Path]::GetFullPath($Version)
+    } else {
+        $Version = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Version))
+    }
 
     & $Python -m genshinre.artifactpublish $Work $Version
     if ($LASTEXITCODE -ne 0) {
