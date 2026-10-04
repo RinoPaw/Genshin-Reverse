@@ -26,38 +26,100 @@ jobs:
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
-      - name: Disassemble row and condition deserializers
+      - name: Print exact metadata rows for Quest row and QuestCond
+        run: |
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
+          def read(name):
+              with (root/name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+          fields = read('fields.csv')
+          methods = read('methods.csv')
+          types = read('types.csv')
+          print('=== fields.csv header ===')
+          print(json.dumps(list(fields[0]), ensure_ascii=False))
+          for tdi in ('48735','54128'):
+              print(f'=== fields tdi={tdi} ===')
+              for r in fields:
+                  if r.get('type_definition_index') == tdi:
+                      print(json.dumps(r, ensure_ascii=False))
+          print('=== referenced type_index rows ===')
+          wanted = {'548703','548704','516809'}
+          for r in types:
+              if r.get('type_index') in wanted or r.get('index') in wanted:
+                  print(json.dumps(r, ensure_ascii=False))
+          print('=== methods tdi=48735 relevant ===')
+          for r in methods:
+              if r.get('type_definition_index') == '48735' and any(k in (r.get('method_name') or '').lower() for k in ('binary','acceptcond','mainid','subid','order')):
+                  print(json.dumps(r, ensure_ascii=False))
+          print('=== methods tdi=54128 ===')
+          for r in methods:
+              if r.get('type_definition_index') == '54128':
+                  print(json.dumps(r, ensure_ascii=False))
+          PY
+
+      - name: Disassemble narrow row and condition deserializers
         run: |
           expected_sha=$(python - <<'PY'
           from genshinre.nativeprofile import PROFILE_71
           print(PROFILE_71.exe_sha256)
           PY
           )
-          python tools/disassemble_rva.py \
-            inputs/7.1.0-global/GenshinImpact.exe \
-            0xCF24560 0xB00 \
-            --expected-sha256 "$expected_sha" \
-            --label "RandomQuestExcelConfig.FromBinaryInner" \
-            --output quest-row-disassembly.json
-          python tools/disassemble_rva.py \
-            inputs/7.1.0-global/GenshinImpact.exe \
-            0x115825D0 0x500 \
-            --expected-sha256 "$expected_sha" \
-            --label "QuestCond.FromBinaryInner" \
-            --output quest-cond-disassembly.json
-          echo '=== RandomQuestExcelConfig.FromBinaryInner disassembly ==='
-          cat quest-row-disassembly.json
-          echo '=== QuestCond.FromBinaryInner disassembly ==='
-          cat quest-cond-disassembly.json
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xCF24560 0x420 \
+            --expected-sha256 "$expected_sha" --label "RandomQuestExcelConfig.FromBinaryInner" --output quest-row.json >/dev/null
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x115825D0 0x1C0 \
+            --expected-sha256 "$expected_sha" --label "QuestCond.FromBinaryInner" --output quest-cond.json >/dev/null
+          python - <<'PY'
+          import json, re
+          def dump(path):
+              obj=json.load(open(path,encoding='utf-8'))
+              print('===', obj['label'], '===')
+              ins=obj['instructions']
+              for i,x in enumerate(ins):
+                  op=x['op_str'].lower()
+                  interesting=(x['mnemonic']=='call' or '[rdi +' in op or '[rdi+' in op or '[rbx +' in op or '[rbx+' in op or x['mnemonic']=='ret')
+                  if interesting:
+                      lo=max(0,i-2); hi=min(len(ins),i+3)
+                      print('--')
+                      for y in ins[lo:hi]:
+                          print(f"{y['rva']:>11} {y['mnemonic']:<7} {y['op_str']}")
+          dump('quest-row.json')
+          dump('quest-cond.json')
+          PY
 
-      - name: Trace metadata-resolved call edges
+      - name: Disassemble candidate property accessors to recover object offsets
         run: |
-          python tools/trace_native_call_edges.py \
-            inputs/7.1.0-global/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-native-call-edges.json \
-            --focus row-from-binary-inner:0xCF24560 \
-            --focus quest-cond-from-binary-inner:0x115825D0 \
-            --max-body 0x4000
-          echo '=== native call edges ==='
-          cat quest-native-call-edges.json
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          exe=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          require_sha256(exe, PROFILE_71.exe_sha256, label='executable')
+          meta=Path('versions/7.1.0-global/windows-x64/metadata/methods.csv')
+          with meta.open('r',encoding='utf-8-sig',newline='') as f:
+              rows=list(csv.DictReader(f))
+          keys=('mainid','subid','order','acceptcond','acceptcondcomb','finishcond','finishcondcomb','failcond','beginexec','finishexec','failexec','guide')
+          picked=[]
+          for r in rows:
+              if r.get('type_definition_index')!='48735': continue
+              n=(r.get('method_name') or '').lower()
+              if any(k in n for k in keys) and r.get('rva') and r['rva'] not in ('0','0x0'):
+                  picked.append(r)
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          with PEImage(exe) as image:
+              base=image.image_base
+              for r in picked:
+                  rv=int(r['rva'],0)
+                  code=image.read_rva(rv,0x30)
+                  print('=== ACCESSOR',r.get('method_name'),'rva',r['rva'],'===')
+                  for ins in md.disasm(code,base+rv):
+                      irva=ins.address-base
+                      print(f'0x{irva:X} {ins.mnemonic} {ins.op_str}')
+                      if ins.mnemonic=='ret': break
+          PY
