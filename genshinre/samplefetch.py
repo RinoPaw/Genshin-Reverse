@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .nativeprofile import get_native_profile
+from .sampleidentity import sha256_file
 
 
 def read_varint(data: bytes, pos: int) -> tuple[int, int]:
@@ -127,14 +128,6 @@ def decompress_zstd(data: bytes) -> bytes:
 
 def md5(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as file:
-        for chunk in iter(lambda: file.read(8 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def normalized_name(row: dict[str, object]) -> str:

@@ -20,8 +20,17 @@ class PEImage:
     def __init__(self, path: Path):
         self.path = path
         self._file = path.open("rb")
-        self._map = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
-        self.image_base, self.sections = self._parse_headers()
+        try:
+            self._map = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
+        except Exception:
+            self._file.close()
+            raise
+        try:
+            self.image_base, self.sections = self._parse_headers()
+        except Exception:
+            self._map.close()
+            self._file.close()
+            raise
 
     def _parse_headers(self) -> tuple[int, list[PESection]]:
         data = self._map
