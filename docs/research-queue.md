@@ -8,7 +8,7 @@ The maintainer owns prioritization, task boundaries, evidence contracts, reusabl
 
 - **P0 — integration blocker:** current AstaPS behavior is blocked or risks implementing a materially wrong protocol/lifecycle rule.
 - **P1 — fidelity:** the server has a fallback/approximation and current-client evidence can replace it with a native model.
-- **P2 — coverage:** useful current-version semantics/data that improve completeness but do not block gameplay.
+- **P2 — coverage:** useful current-version semantics/data or infrastructure that improve completeness but do not block gameplay.
 - **P3 — exploratory:** interesting work without a current integration consumer.
 
 A task moves up when it blocks an AstaPS change. It moves down or pauses when a resource-level answer closes the gameplay need without further client reversing.
@@ -20,8 +20,11 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 | P0 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence |
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
 | P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
+| P2 | [#6 Version-independent MHY string-literal recovery](https://github.com/RinoPaw/Genshin-Reverse/issues/6) | EVALUATION | may provide reusable semantic anchors and reduce per-version metadata reverse work |
 
 `UnlockTransPointRsp` remains paused in the 7.1 unresolved report because the corrected waypoint gameplay path no longer depends on it. Do not spend reverse-engineering time on it unless a concrete consumer reappears.
+
+External projects and newly discovered methods are triaged in [`external-intelligence.md`](external-intelligence.md). That log is for navigation and method discovery; actionable work belongs in a focused issue such as the entries above.
 
 ## Intake from AstaPS
 
