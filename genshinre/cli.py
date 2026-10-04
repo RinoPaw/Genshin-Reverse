@@ -4,25 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-from .analysis import research_status
-from .anchors import verify_metadata_anchors
-from .callxref import scan_direct_call_xrefs
-from .capture import analyze_capture_file
-from .fingerprint import fingerprint
-from .getcmdid import scan_constant_cmdids
-from .metadata import build_type_methods, query_fields, query_methods
-from .mhy71 import decode_metadata_71
-from .opcodes import crosscheck_registry, import_java_opcodes, write_crosscheck
-from .pointerxref import scan_pointer_xrefs
-from .protocolquery import query_protocol
-from .registry import query_registry
-from .scaffold import scaffold
-from .scenehandlers import extract_scene_handler_slots
-from .trace import import_trace
-from .validate import validate_version
-from .wire import parse_message
-from .xrefs import inspect_rva, scan_rip_xrefs, write_json
-
 
 def _rva(text: str) -> int:
     return int(text, 0)
@@ -191,11 +172,17 @@ def main() -> None:
     args = build_parser().parse_args()
 
     if args.command == "fingerprint":
+        from .fingerprint import fingerprint
+
         print(json.dumps([fingerprint(path) for path in args.files], indent=2, ensure_ascii=False))
     elif args.command == "wire":
+        from .wire import parse_message
+
         payload = bytes.fromhex(args.hex_payload.replace(" ", ""))
         print(json.dumps(parse_message(payload), indent=2, ensure_ascii=False))
     elif args.command == "query-registry":
+        from .registry import query_registry
+
         if not any(
             (
                 args.cmd_id is not None,
@@ -216,6 +203,8 @@ def main() -> None:
         if not rows:
             raise SystemExit(1)
     elif args.command == "protocol-query":
+        from .protocolquery import query_protocol
+
         if not any(
             (
                 args.cmd_id is not None,
@@ -236,8 +225,12 @@ def main() -> None:
         if result["result_count"] == 0:
             raise SystemExit(1)
     elif args.command == "import-opcodes-java":
+        from .opcodes import import_java_opcodes
+
         print(import_java_opcodes(args.java_file, args.output_csv))
     elif args.command == "crosscheck-registry":
+        from .opcodes import crosscheck_registry, write_crosscheck
+
         result = crosscheck_registry(args.registry, args.control_set)
         if args.output:
             write_crosscheck(result, args.output)
@@ -245,8 +238,13 @@ def main() -> None:
         if not result["all_control_ids_present"]:
             raise SystemExit(1)
     elif args.command == "import-trace":
+        from .trace import import_trace
+
         print(import_trace(args.input_log, args.output_csv, source=args.source))
     elif args.command == "correlate-capture":
+        from .capture import analyze_capture_file
+        from .xrefs import write_json
+
         result = analyze_capture_file(
             args.capture,
             request_cmd=args.request_cmd,
@@ -261,9 +259,13 @@ def main() -> None:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "build-type-methods":
+        from .metadata import build_type_methods
+
         index = build_type_methods(args.methods_csv, args.output_json)
         print(json.dumps({"keys": len(index)}, indent=2))
     elif args.command == "query-methods":
+        from .metadata import query_methods
+
         if not any(
             (
                 args.type,
@@ -286,6 +288,8 @@ def main() -> None:
         if not rows:
             raise SystemExit(1)
     elif args.command == "query-fields":
+        from .metadata import query_fields
+
         if not any(
             (
                 args.type,
@@ -310,6 +314,8 @@ def main() -> None:
         if not rows:
             raise SystemExit(1)
     elif args.command == "scan-constant-cmdids":
+        from .getcmdid import scan_constant_cmdids
+
         result = scan_constant_cmdids(
             args.exe,
             args.methods_csv,
@@ -320,6 +326,8 @@ def main() -> None:
         )
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "rip-xrefs":
+        from .xrefs import scan_rip_xrefs, write_json
+
         result = scan_rip_xrefs(
             args.exe,
             args.target_rvas,
@@ -330,6 +338,9 @@ def main() -> None:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "call-xrefs":
+        from .callxref import scan_direct_call_xrefs
+        from .xrefs import write_json
+
         result = scan_direct_call_xrefs(
             args.exe,
             args.target_rvas,
@@ -341,6 +352,9 @@ def main() -> None:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "pointer-xrefs":
+        from .pointerxref import scan_pointer_xrefs
+        from .xrefs import write_json
+
         result = scan_pointer_xrefs(
             args.exe,
             args.target_start_rva,
@@ -353,6 +367,9 @@ def main() -> None:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "scene-handler-slots":
+        from .scenehandlers import extract_scene_handler_slots
+        from .xrefs import write_json
+
         result = extract_scene_handler_slots(
             args.exe,
             args.methods_csv,
@@ -367,23 +384,35 @@ def main() -> None:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "inspect-rva":
+        from .xrefs import inspect_rva, write_json
+
         result = inspect_rva(args.exe, args.rva, before=args.before, after=args.after)
         if args.output:
             write_json(result, args.output)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "decode-metadata-71":
+        from .mhy71 import decode_metadata_71
+
         result = decode_metadata_71(args.exe, args.metadata, args.output_dir)
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "verify-metadata":
+        from .anchors import verify_metadata_anchors
+
         result = verify_metadata_anchors(args.metadata_dir, args.anchors_json)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         if not result["passed"]:
             raise SystemExit(1)
     elif args.command == "scaffold":
+        from .scaffold import scaffold
+
         print(scaffold(args.root, args.version, args.region, args.platform))
     elif args.command == "research-status":
+        from .analysis import research_status
+
         print(json.dumps(research_status(args.path), indent=2, ensure_ascii=False))
     elif args.command == "validate":
+        from .validate import validate_version
+
         errors, warnings = validate_version(args.path, allow_partial=args.allow_partial)
         for warning in warnings:
             print(f"WARNING: {warning}")
