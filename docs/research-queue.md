@@ -17,12 +17,14 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 
 | Priority | Investigation | Current state | Integration value |
 | --- | --- | --- | --- |
-| P0 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence |
+| P0 | [#12 WorldPlayerReviveRsp opcode / shape](https://github.com/RinoPaw/Genshin-Reverse/issues/12) | UNRESOLVED | closes the confirmed 7.1 team-wipe revive request path so AstaPS can emit the native response and finish respawn |
+| P0 | [#11 Monster drowning packet](https://github.com/RinoPaw/Genshin-Reverse/issues/11) | UNRESOLVED | identifies the exact 7.1 environmental-death message so drowned monsters complete authoritative death/despawn/drop without a follow-up player hit |
 | P0 | [#9 Quest 351 persistent “Return to quest point” client state](https://github.com/RinoPaw/Genshin-Reverse/issues/9) | UNRESOLVED | identifies the exact 7.1 client state/transition needed to stop the return prompt being permanently visible in AstaPS fresh-player intro |
+| P1 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence; no current gameplay path is blocked by the remaining semantic edge |
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
 | P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED parent; historical continuity and restored tables documented | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
 | P1 | [#10 ReliquaryMainProp exact weight field / consumer](https://github.com/RinoPaw/Genshin-Reverse/issues/10) | UNRESOLVED | first narrow #5 closure: bind the historical main-prop weight field and weighted-selection semantics on exact Global 7.1 |
-| P1 | [#8 QuestExcel extraction / prerequisite corruption root cause](https://github.com/RinoPaw/Genshin-Reverse/issues/8) | UNRESOLVED | can remove a recurring resource-repair class by locating whether corruption occurs in client data, schema decode or post-processing |
+| P1 | [#8 QuestExcel extraction / prerequisite corruption root cause](https://github.com/RinoPaw/Genshin-Reverse/issues/8) | ACTIVE / UNRESOLVED | can remove a recurring resource-repair class by locating whether corruption occurs in client data, schema decode or post-processing |
 | P1/P2 | [#7 Structural protobuf recovery from obfuscated metadata](https://github.com/RinoPaw/Genshin-Reverse/issues/7) | EVALUATION | can recover richer field/container/oneof structure for unknown packets and future version migration |
 | P2 | [#6 Version-independent MHY string-literal recovery](https://github.com/RinoPaw/Genshin-Reverse/issues/6) | EVALUATION | may provide reusable semantic anchors and reduce per-version metadata reverse work |
 
@@ -34,6 +36,29 @@ Current method notes created from reconnaissance:
 
 - [`methods/structural-protobuf-recovery.md`](methods/structural-protobuf-recovery.md) — generated-code invariants and composite protobuf fingerprints under obfuscation.
 - [`methods/binconfig-extraction-validation.md`](methods/binconfig-extraction-validation.md) — exact-client resource-table extraction, schema validation and corruption-boundary classification.
+
+## Maintainer operating order
+
+The queue is AstaPS-driven. Work in this order unless new evidence changes the integration impact:
+
+1. Close the narrowest active P0 blocker with a reproducible current-client result. The current death-lifecycle pair is #12 first, then #11; both share runtime reproduction context and should reuse any recovered packet tooling.
+2. Return to #9 after the death-lifecycle blockers because it is a larger client-state investigation with an upstream integration consumer.
+3. Checkpoint #8 whenever a durable loader/schema/artifact boundary is reached. Do not let a long resource investigation monopolize the exact-sample tooling while P0 gameplay blockers are open.
+4. Use #10 as the next narrow P1 data-fidelity target; promote into parent #5 only after the exact field consumer is proven.
+5. Keep #4 available for gameplay fidelity, but do not prioritize it above a current reproducible P0.
+6. Work on #7 or #6 only when the resulting infrastructure directly shortens an active protocol/native investigation or when no higher-priority consumer is waiting.
+
+Do not keep more than one broad infrastructure investigation active merely because the tooling is interesting. A reusable method earns maintenance cost by closing concrete current-version questions.
+
+## Default-branch and workflow hygiene
+
+`main` is the durable evidence/infrastructure branch. It should contain stable code, schemas, canonical artifacts, method documentation and the smallest practical Actions surface.
+
+Use `research/<topic>` for investigation-specific checkpoints and `maintenance/<topic>` for repository/infrastructure work when isolation helps. Before promotion, update the branch from `main`, preserve rejected paths that prevent duplicate work, and move durable results into the canonical version/analysis tree.
+
+Topic-specific GitHub Actions are temporary orchestration. They require an active investigation, a concrete reason that the work cannot be done efficiently with local/reusable tools, and an explicit retirement condition. Once the reusable logic and unique evidence are committed, remove the workflow shell; Git history preserves it.
+
+Do not use CI as the normal interactive reverse-engineering loop. Prefer local commands and maintained tools for iteration. Full required validation is mandatory before asking the user to test, before preparing an upstream submission, and before publishing/regenerating canonical target artifacts.
 
 ## Intake from AstaPS
 
