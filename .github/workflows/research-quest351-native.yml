@@ -37,6 +37,8 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             quest351-native-edges.json \
             --focus return_btn_get:0x121DA9C0 \
+            --focus return_btn_controller:0xC8FAC20 \
+            --focus return_btn_text_helper:0xC935880 \
             --focus actor_clear_before_quest_list:0xFDEE440 \
             --focus actor_quest_update_post:0xFDF08C0 \
             --focus questproxy_mark_cache_rewind:0xFF26630 \
