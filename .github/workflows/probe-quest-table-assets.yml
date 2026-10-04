@@ -12,7 +12,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -20,47 +20,70 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Inventory exact 7.1 AssetBundles files
+      - name: Reconstruct and inspect exact 7.1 AssetBundle indexes
         run: |
           python - <<'PY'
-          import json
-          from genshinre.nativeprofile import PROFILE_71
-          from genshinre.samplefetch import download,decompress_zstd,parse_manifest,normalized_name
-          raw=download(PROFILE_71.sophon_manifest_url)
-          rows=parse_manifest(decompress_zstd(raw))
-          print('manifest files',len(rows))
-          picked=[]
-          for row in rows:
-              n=normalized_name(row)
-              if '/streamingassets/streamingassets/assetbundles/' in n:
-                  picked.append(row)
-          print('assetbundle manifest files',len(picked))
-          for row in picked:
-              print('ASSETBUNDLE_ROW', json.dumps(row,ensure_ascii=False,sort_keys=True))
-          print('=== likely catalogs/indexes anywhere in manifest ===')
-          for row in rows:
-              n=normalized_name(row)
-              base=n.rsplit('/',1)[-1]
-              if any(k in base for k in ('catalog','index','manifest','blk','block','binasset','bundle')):
-                  print('INDEX_CANDIDATE',json.dumps(row,ensure_ascii=False,sort_keys=True))
-          PY
-      - name: Search executable strings for QuestExcel table identity
-        run: |
-          bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-          python - <<'PY'
+          from __future__ import annotations
+
+          import re
           from pathlib import Path
-          data=Path('inputs/7.1.0-global/GenshinImpact.exe').read_bytes()
-          needles=[
-              b'Data/_ExcelBinOutput/QuestExcelConfigData',
-              b'QuestExcelConfigData',
-              'Data/_ExcelBinOutput/QuestExcelConfigData'.encode('utf-16le'),
-              'QuestExcelConfigData'.encode('utf-16le'),
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import (
+              choose_file,
+              decompress_zstd,
+              download,
+              parse_manifest,
+              reconstruct,
+          )
+
+          raw = download(PROFILE_71.sophon_manifest_url)
+          rows = parse_manifest(decompress_zstd(raw))
+          out = Path('inputs/7.1.0-asset-index')
+          out.mkdir(parents=True, exist_ok=True)
+
+          targets = [
+              'GenshinImpact_Data/StreamingAssets/AssetBundles/blocks.xmf',
+              'GenshinImpact_Data/StreamingAssets/AssetBundles/data.xmf',
           ]
-          for needle in needles:
-              pos=0; hits=[]
-              while True:
-                  pos=data.find(needle,pos)
-                  if pos<0: break
-                  hits.append(pos); pos+=1
-              print(needle[:60], 'hits=', [hex(x) for x in hits[:50]], 'count=',len(hits))
+          needles = [
+              b'QuestExcelConfigData',
+              b'QuestExcel',
+              b'_ExcelBinOutput',
+              b'ExcelBinOutput',
+              b'ConfigData',
+              b'quest',
+              b'excel',
+          ]
+
+          def printable_strings(data: bytes, minimum: int = 5):
+              return [m.group().decode('ascii', 'replace') for m in re.finditer(rb'[ -~]{%d,}' % minimum, data)]
+
+          for target in targets:
+              row = choose_file(rows, target)
+              path = out / Path(target).name
+              reconstruct(PROFILE_71.sophon_chunk_prefix, row, path, workers=2)
+              data = path.read_bytes()
+              print(f'=== {target} ===')
+              print('size', len(data))
+              print('head_hex', data[:256].hex())
+              print('head_ascii', ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[:256]))
+              for needle in needles:
+                  lower = data.lower()
+                  pos = lower.find(needle.lower())
+                  print('needle', needle.decode('ascii', 'replace'), 'pos', pos)
+                  if pos >= 0:
+                      lo=max(0,pos-128); hi=min(len(data),pos+len(needle)+256)
+                      print('context_hex', data[lo:hi].hex())
+                      print('context_ascii', ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[lo:hi]))
+              strings = printable_strings(data)
+              print('ascii_string_count', len(strings))
+              print('ascii_strings_first_300')
+              for s in strings[:300]:
+                  print('STR', repr(s))
+              print('ascii_strings_quest_excel')
+              for s in strings:
+                  sl=s.lower()
+                  if 'quest' in sl or 'excel' in sl or 'config' in sl or 'binoutput' in sl:
+                      print('MATCH', repr(s))
           PY
