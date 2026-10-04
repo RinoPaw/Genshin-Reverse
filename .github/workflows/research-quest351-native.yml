@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/research-quest351-native.yml'
       - 'tools/trace_native_call_edges.py'
+      - 'tools/resolve_7_1_field_offsets.py'
 
 permissions:
   contents: read
@@ -30,25 +31,32 @@ jobs:
       - name: Fetch pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
-      - name: Trace native callers and callees
+      - name: Resolve local-state and return-button field offsets
+        run: |
+          python tools/resolve_7_1_field_offsets.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/types.csv \
+            versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            quest351-field-offsets.json \
+            --field UserLocalDataItem.trackingMainQuestIDList \
+            --field MonoInLevelMainPage.OCGBIKAEGJI
+
+      - name: Trace current local-state/UI native edges
         run: |
           python tools/trace_native_call_edges.py \
             inputs/7.1.0-global/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             quest351-native-edges.json \
-            --focus return_btn_get:0x121DA9C0 \
-            --focus return_btn_controller:0xC8FAC20 \
-            --focus return_btn_text_helper:0xC935880 \
-            --focus actor_clear_before_quest_list:0xFDEE440 \
-            --focus actor_quest_update_post:0xFDF08C0 \
-            --focus questproxy_mark_cache_rewind:0xFF26630 \
-            --focus questproxy_rewind_unfinished:0xFF29C80 \
-            --focus questactor_record_rewind_avatar:0x85B7340
+            --focus refresh_ui_setting:0x121DC4A0 \
+            --focus userlocal_consumer:0x7C32E00 \
+            --focus userlocal_wrapper:0xD7FD100
 
-      - name: Preserve native edge report
+      - name: Preserve focused reports
         uses: actions/upload-artifact@v7
         with:
           name: quest351-native-edges
-          path: quest351-native-edges.json
+          path: |
+            quest351-field-offsets.json
+            quest351-native-edges.json
           if-no-files-found: error
           retention-days: 7
