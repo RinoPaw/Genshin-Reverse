@@ -88,14 +88,14 @@ jobs:
             exit 2
           fi
 
-          "${cli[@]}" list-games | tee animestudio-games.txt
+          "${cli[@]}" --help > animestudio-help.txt
           input=$(find probe-block -type f -name '26986803.blk' -print -quit)
           test -n "$input"
           rm -rf animestudio-output
           mkdir -p animestudio-output
 
           set +e
-          "${cli[@]}" GI "$input" animestudio-output --raw --verbose 2>&1 | tee animestudio-probe.txt
+          "${cli[@]}" "$input" animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
           status=${PIPESTATUS[0]}
           set -e
 
@@ -120,7 +120,7 @@ jobs:
           name: quest-binoutput-blb3-probe
           path: |
             probe-summary.txt
-            animestudio-games.txt
+            animestudio-help.txt
             animestudio-probe.txt
             animestudio-output-summary.txt
             animestudio-output
