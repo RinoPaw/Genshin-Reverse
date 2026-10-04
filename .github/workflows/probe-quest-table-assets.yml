@@ -20,19 +20,29 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Inspect exact 7.1 Sophon manifest
+      - name: Inventory exact 7.1 AssetBundles files
         run: |
           python - <<'PY'
+          import json
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.samplefetch import download,decompress_zstd,parse_manifest,normalized_name
           raw=download(PROFILE_71.sophon_manifest_url)
           rows=parse_manifest(decompress_zstd(raw))
           print('manifest files',len(rows))
-          needles=('streamingassets','assetbundle','blocks','blk','data','resource')
+          picked=[]
           for row in rows:
               n=normalized_name(row)
-              if any(x in n for x in needles):
-                  print(row.get('filename'), 'size=',row.get('size'), 'chunks=',len(row.get('chunks',[])))
+              if '/streamingassets/streamingassets/assetbundles/' in n:
+                  picked.append(row)
+          print('assetbundle manifest files',len(picked))
+          for row in picked:
+              print('ASSETBUNDLE_ROW', json.dumps(row,ensure_ascii=False,sort_keys=True))
+          print('=== likely catalogs/indexes anywhere in manifest ===')
+          for row in rows:
+              n=normalized_name(row)
+              base=n.rsplit('/',1)[-1]
+              if any(k in base for k in ('catalog','index','manifest','blk','block','binasset','bundle')):
+                  print('INDEX_CANDIDATE',json.dumps(row,ensure_ascii=False,sort_keys=True))
           PY
       - name: Search executable strings for QuestExcel table identity
         run: |
