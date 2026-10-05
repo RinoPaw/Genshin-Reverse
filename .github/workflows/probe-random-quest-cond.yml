@@ -6,6 +6,10 @@ on:
     paths:
       - ".github/workflows/probe-random-quest-cond.yml"
 
+concurrency:
+  group: probe-random-quest-cond-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
