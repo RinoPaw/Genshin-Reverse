@@ -9,6 +9,7 @@ on:
       - "genshinre/nativeprofile.py"
       - "genshinre/typearray.py"
       - "genshinre/pe.py"
+      - "genshinre/xrefs.py"
       - "scripts/fetch-7.1-samples.sh"
 
 concurrency:
@@ -28,25 +29,49 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install focused research dependencies
-        run: python -m pip install -e . zstandard
+        run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Locate MetadataRegistration and inspect generic handle
+      - name: Inspect compact generic record table
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-generic-registration-probe.txt
+          python - <<'PY' | tee quest-generic-record-probe.txt
+          import csv
           import json
           import struct
           from pathlib import Path
 
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
           from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+          from genshinre.xrefs import scan_rip_xrefs
 
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
           known_runtime_index = 476756
           known_generic_handle = 0x12F8
+          generic_owner_slot_rva = 0x5AD4E98
+          type_base_slot_rva = 0x5AD4E90
+          resolver_rva = 0x51CD50
+
+          with (root / 'types.csv').open('r', encoding='utf-8-sig', newline='') as f:
+              types = {int(r['type_definition_index']): r for r in csv.DictReader(f)}
+
+          def fmt_type(value):
+              row = types.get(value)
+              if row is None:
+                  return None
+              return {
+                  'type_definition_index': value,
+                  'type_name': row.get('type_name', ''),
+                  'namespace': row.get('namespace', ''),
+              }
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = False
 
           with PEImage(exe) as image:
               base = image.image_base
@@ -69,96 +94,100 @@ jobs:
                   return struct.unpack('<Q', read_va(va, 8))[0]
 
               types_va = qword_rva(PROFILE_71.type_array_pointer_rva)
-              types_count = PROFILE_71.runtime_type_count
-              needle = struct.pack('<QQ', types_count, types_va)
-              sites = []
-              for section in image.sections:
-                  blob = image.read_rva(section.virtual_address, section.raw_size)
-                  start = 0
-                  while True:
-                      pos = blob.find(needle, start)
-                      if pos < 0:
-                          break
-                      sites.append((section.name, section.virtual_address + pos))
-                      start = pos + 1
-
-              print('types_count=', types_count)
-              print('types_va=', hex(types_va), 'types_rva=', hex(types_va - base))
-              print('registration_type_pair_sites=', [(name, hex(rva)) for name, rva in sites])
-              if len(sites) != 1:
-                  raise SystemExit(f'expected exactly one MetadataRegistration type pair, got {len(sites)}')
-
-              section_name, types_pair_rva = sites[0]
-              registration_rva = types_pair_rva - 0x30
-              print('registration_section=', section_name)
-              print('registration_rva=', hex(registration_rva), 'registration_va=', hex(base + registration_rva))
-
-              labels = [
-                  ('genericClassesCount', 0x00),
-                  ('genericClasses', 0x08),
-                  ('genericInstsCount', 0x10),
-                  ('genericInsts', 0x18),
-                  ('genericMethodTableCount', 0x20),
-                  ('genericMethodTable', 0x28),
-                  ('typesCount', 0x30),
-                  ('types', 0x38),
-                  ('methodSpecsCount', 0x40),
-                  ('methodSpecs', 0x48),
-                  ('fieldOffsetsCount', 0x50),
-                  ('fieldOffsets', 0x58),
-                  ('typeDefinitionsSizesCount', 0x60),
-                  ('typeDefinitionsSizes', 0x68),
-                  ('metadataUsagesCount', 0x70),
-                  ('metadataUsages', 0x78),
-              ]
-              registration = {}
-              for label, off in labels:
-                  value = qword_rva(registration_rva + off)
-                  registration[label] = value
-                  suffix = f' rva=0x{value-base:X}' if value >= base else ''
-                  print(f'{label:28s} 0x{value:X}{suffix}')
-
-              if registration['typesCount'] != types_count or registration['types'] != types_va:
-                  raise SystemExit('MetadataRegistration standard pair layout did not validate')
-
               type_entry = read_va(types_va + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
               if not is_valid_type_entry(type_entry):
                   raise SystemExit('known List<uint> runtime type entry is invalid')
               decoded = decode_type_entry(type_entry)
-              data_u64 = int.from_bytes(type_entry[:8], 'little')
+              handle = int.from_bytes(type_entry[:8], 'little')
               print('known_runtime_type=', {
                   'index': known_runtime_index,
                   'kind': decoded['kind_name'],
-                  'data_u64': hex(data_u64),
+                  'handle': hex(handle),
               })
-              if decoded['kind'] != 0x15 or data_u64 != known_generic_handle:
-                  raise SystemExit('known List<uint> compact generic handle drifted')
+              if decoded['kind'] != 0x15 or handle != known_generic_handle:
+                  raise SystemExit('known List<uint> generic handle drifted')
 
-              evidence = {'registration': registration, 'handle': known_generic_handle, 'views': {}}
-              for table_name, count_name in (('genericClasses', 'genericClassesCount'), ('genericInsts', 'genericInstsCount')):
-                  table_va = registration[table_name]
-                  count = registration[count_name]
-                  view = {'count': count, 'table_va': hex(table_va)}
-                  if 0 <= known_generic_handle < count and table_va >= base:
-                      entry_va = qword_va(table_va + known_generic_handle * 8)
-                      view['entry_va'] = hex(entry_va)
-                      if entry_va >= base:
-                          raw = read_va(entry_va, 64)
-                          view['raw64'] = raw.hex()
-                          view['qwords'] = [hex(x) for x in struct.unpack('<8Q', raw)]
-                  evidence['views'][table_name] = view
-                  print(table_name, json.dumps(view, sort_keys=True))
+              print('=== COMPACT GENERIC GLOBALS ===')
+              type_base_owner_va = qword_rva(type_base_slot_rva)
+              generic_owner_va = qword_rva(generic_owner_slot_rva)
+              print('type_base_slot=', hex(type_base_slot_rva), 'owner=', hex(type_base_owner_va))
+              print('generic_owner_slot=', hex(generic_owner_slot_rva), 'owner=', hex(generic_owner_va))
+              if type_base_owner_va < base or generic_owner_va < base:
+                  raise SystemExit('compact generic owner globals are not static image pointers')
 
-              Path('quest-generic-registration.json').write_text(
-                  json.dumps(evidence, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+              type_base_owner_raw = read_va(type_base_owner_va, 0x40)
+              generic_owner_raw = read_va(generic_owner_va, 0x40)
+              print('type_base_owner_qwords=', [hex(x) for x in struct.unpack('<8Q', type_base_owner_raw)])
+              print('generic_owner_qwords=', [hex(x) for x in struct.unpack('<8Q', generic_owner_raw)])
+
+              generic_table_va = struct.unpack_from('<Q', generic_owner_raw, 8)[0]
+              if generic_table_va < base:
+                  raise SystemExit(f'invalid compact generic table VA 0x{generic_table_va:X}')
+              record_va = generic_table_va + handle * 0x20
+              record = read_va(record_va, 0x20)
+              dwords = list(struct.unpack('<8I', record))
+              qwords = list(struct.unpack('<4Q', record))
+              print('generic_table_va=', hex(generic_table_va), 'rva=', hex(generic_table_va - base))
+              print('known_record_va=', hex(record_va), 'rva=', hex(record_va - base))
+              print('known_record_hex=', record.hex())
+              print('known_record_dwords=', [hex(x) for x in dwords])
+              print('known_record_qwords=', [hex(x) for x in qwords])
+              print('known_record_dword_type_matches=', [fmt_type(x) for x in dwords])
+
+              # The client helper at 0x4C853D performs exactly:
+              # owner=[slot]; table=[owner+8]; record=table+type.data*0x20;
+              # resolver(record[0]).  Validate record[0] against published type metadata.
+              definition = fmt_type(dwords[0])
+              print('known_record_definition=', json.dumps(definition, ensure_ascii=False, sort_keys=True))
+
+              print('=== RESOLVER DISASSEMBLY ===')
+              start = resolver_rva - 0x40
+              blob = read_rva(start, 0x280)
+              for insn in md.disasm(blob, base + start):
+                  irva = insn.address - base
+                  marker = ' <==' if irva == resolver_rva else ''
+                  print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
+
+              print('=== GENERIC OWNER SLOT XREFS ===')
+              scan = scan_rip_xrefs(exe, [generic_owner_slot_rva, type_base_slot_rva], window=96)
+              print(json.dumps(scan['matches'], indent=2))
+              seen = set()
+              for target, rows in scan['matches'].items():
+                  for row in rows:
+                      rva = int(row['instruction_rva'], 0)
+                      if rva in seen:
+                          continue
+                      seen.add(rva)
+                      start = max(0, rva - 96)
+                      blob = read_rva(start, 256)
+                      print(f'--- xref RVA 0x{rva:X} target {target} ---')
+                      for insn in md.disasm(blob, base + start):
+                          irva = insn.address - base
+                          marker = ' <==' if irva == rva else ''
+                          print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
+
+              evidence = {
+                  'known_runtime_index': known_runtime_index,
+                  'known_generic_handle': handle,
+                  'generic_owner_slot_rva': hex(generic_owner_slot_rva),
+                  'generic_owner_va': hex(generic_owner_va),
+                  'generic_table_va': hex(generic_table_va),
+                  'known_record_va': hex(record_va),
+                  'known_record_hex': record.hex(),
+                  'known_record_dwords': dwords,
+                  'known_record_definition': definition,
+                  'slot_xrefs': scan['matches'],
+              }
+              Path('quest-generic-record.json').write_text(
+                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
               )
           PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-generic-registration
+          name: quest-generic-record
           path: |
-            quest-generic-registration-probe.txt
-            quest-generic-registration.json
+            quest-generic-record-probe.txt
+            quest-generic-record.json
           if-no-files-found: warn
