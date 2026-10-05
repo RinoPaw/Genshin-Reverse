@@ -33,7 +33,9 @@ jobs:
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
       - name: Resolve array element types and rank main Quest row
+        shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY' | tee quest-array-signature.txt
           import csv, json
           from collections import Counter, defaultdict
@@ -119,84 +121,115 @@ jobs:
                       return f"tdi:{desc['type_definition_index']}:{desc.get('type_name','')}"
                   return kind
 
-              anchors = {
-                  548701: 71568,  # RandomQuest begin/fail/finishExec -> QuestExec[]
-                  548703: 54128,  # acceptCond -> QuestCond[]
-                  548704: 21416,  # finish/failCond -> QuestContent[]
-              }
-              print('=== KNOWN RANDOM QUEST ARRAY ANCHORS ===')
-              for index, expected_tdi in anchors.items():
-                  desc = describe_runtime(index)
-                  print(index, json.dumps(desc, ensure_ascii=False, sort_keys=True))
-                  actual = ((desc.get('element') or {}).get('type_definition_index'))
-                  if actual != expected_tdi:
-                      raise SystemExit(f'array anchor {index} resolved to typeDef {actual}, expected {expected_tdi}')
-
               random_tdi = 36711
-              random_signature = Counter(
-                  semantic_key(int(row['field_type_index']))
-                  for row in fields_by_type[random_tdi]
-                  if row.get('field_type_index')
-              )
+              print('=== RANDOM QUEST FIELD SEMANTICS ===')
+              random_signature = Counter()
+              for row in sorted(fields_by_type[random_tdi], key=lambda r: int(r['field_index'])):
+                  index = int(row['field_type_index'])
+                  key = semantic_key(index)
+                  random_signature[key] += 1
+                  print(row['field_name'], index, key)
               print('=== RANDOM QUEST SEMANTIC SIGNATURE ===')
               for key, count in random_signature.most_common():
                   print(count, key)
 
-              # Main QuestExcel historically shares the core Quest condition/exec/show
-              # shape with RandomQuest, but has extra uint arrays and text-map fields.
-              # Score every plausible row type; do not require preserved method names.
+              quest_array_keys = {
+                  'array:tdi:71568:QuestExec',
+                  'array:tdi:54128:QuestCond',
+                  'array:tdi:21416:QuestContent',
+              }
+              print('=== RUNTIME FIELD-TYPE INDICES FOR QUEST ARRAYS ===')
+              quest_array_indices = defaultdict(set)
+              for row in field_rows:
+                  raw = row.get('field_type_index')
+                  if not raw:
+                      continue
+                  index = int(raw)
+                  try:
+                      key = semantic_key(index)
+                  except (ValueError, OSError):
+                      continue
+                  if key in quest_array_keys:
+                      quest_array_indices[key].add(index)
+              for key in sorted(quest_array_keys):
+                  print(key, sorted(quest_array_indices.get(key, ())))
+                  if not quest_array_indices.get(key):
+                      raise SystemExit(f'no runtime field type found for {key}')
+
               weighted_targets = {
                   'array:tdi:71568:QuestExec': (3, 22),
                   'array:tdi:54128:QuestCond': (1, 28),
                   'array:tdi:21416:QuestContent': (2, 26),
-                  semantic_key(495518): (3, 14),  # LogicType-equivalent
-                  semantic_key(501812): (2, 12),  # QuestShowType
-                  semantic_key(548705): (1, 12),  # ShowQuestGuideType
+                  semantic_key(495518): (3, 14),
+                  semantic_key(501812): (2, 12),
+                  semantic_key(548705): (1, 12),
               }
               ranked = []
               for tdi, rows in fields_by_type.items():
                   if tdi in {19426, 36711} or not (24 <= len(rows) <= 60):
                       continue
-                  sig = Counter(
-                      semantic_key(int(row['field_type_index']))
-                      for row in rows
-                      if row.get('field_type_index')
-                  )
+                  sig = Counter()
+                  for row in rows:
+                      raw = row.get('field_type_index')
+                      if raw:
+                          sig[semantic_key(int(raw))] += 1
                   score = 0
                   hits = []
                   for key, (wanted, weight) in weighted_targets.items():
                       found = sig.get(key, 0)
                       overlap = min(found, wanted)
                       if overlap:
-                          score += overlap * weight
-                          hits.append((key, found, wanted, overlap * weight))
-                  # Historical QuestExcel is around thirty instance fields. Keep this a
-                  # weak tie-breaker only; semantic nested types dominate the score.
+                          points = overlap * weight
+                          score += points
+                          hits.append((key, found, wanted, points))
                   score += max(0, 12 - abs(len(rows) - 32))
-                  row = types.get(tdi, {})
-                  ranked.append((score, tdi, len(rows), row, sig, hits))
+                  ranked.append((score, tdi, len(rows), types.get(tdi, {}), sig, hits))
 
               ranked.sort(key=lambda item: (item[0], -abs(item[2] - 32)), reverse=True)
               print('=== MAIN QUEST STRUCTURAL CANDIDATES ===')
-              for score, tdi, field_count, type_row, sig, hits in ranked[:40]:
+              for score, tdi, field_count, type_row, sig, hits in ranked[:30]:
                   print('CANDIDATE', score, 'tdi=', tdi, 'fields=', field_count,
                         json.dumps(type_row, ensure_ascii=False, sort_keys=True))
                   print(' HITS', json.dumps(hits, ensure_ascii=False))
                   print(' SIGNATURE', json.dumps(sig.most_common(), ensure_ascii=False))
-                  binary = [r for r in methods_by_type.get(tdi, ()) if 'Binary' in (r.get('method_name') or '')]
-                  print(' BINARY_METHODS', json.dumps(binary, ensure_ascii=False, sort_keys=True))
-                  print(' ALL_METHODS', json.dumps(methods_by_type.get(tdi, ()), ensure_ascii=False, sort_keys=True))
+                  print(' BINARY_METHODS', json.dumps([
+                      r for r in methods_by_type.get(tdi, ())
+                      if 'Binary' in (r.get('method_name') or '')
+                  ], ensure_ascii=False, sort_keys=True))
                   print(' FIELDS', json.dumps([
-                      [r.get('field_index'), r.get('field_name'), r.get('field_type'), r.get('field_type_index'), semantic_key(int(r['field_type_index']))]
-                      for r in sorted(rows if tdi == int(rows[0]['type_definition_index']) else fields_by_type[tdi], key=lambda x: int(x['field_index']))
+                      [r.get('field_index'), r.get('field_name'), r.get('field_type'),
+                       r.get('field_type_index'), semantic_key(int(r['field_type_index']))]
+                      for r in sorted(fields_by_type[tdi], key=lambda x: int(x['field_index']))
+                      if r.get('field_type_index')
                   ], ensure_ascii=False))
 
-              if not ranked or ranked[0][0] < 80:
+              if not ranked or ranked[0][0] < 100:
                   raise SystemExit(f'no strong main Quest structural candidate; top score={ranked[0][0] if ranked else None}')
+
+              score, tdi, field_count, type_row, sig, hits = ranked[0]
+              selected = {
+                  'score': score,
+                  'type_definition_index': tdi,
+                  'field_count': field_count,
+                  'type': type_row,
+                  'hits': hits,
+                  'binary_methods': [
+                      r for r in methods_by_type.get(tdi, ())
+                      if 'Binary' in (r.get('method_name') or '')
+                  ],
+              }
+              Path('selected-quest-row.json').write_text(
+                  json.dumps(selected, ensure_ascii=False, indent=2) + '\n',
+                  encoding='utf-8',
+              )
+              print('=== SELECTED MAIN QUEST ROW ===')
+              print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
           PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
           name: quest-main-array-signature
-          path: quest-array-signature.txt
+          path: |
+            quest-array-signature.txt
+            selected-quest-row.json
           if-no-files-found: error
