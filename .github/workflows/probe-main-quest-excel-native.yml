@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/probe-main-quest-excel-native.yml"
       - "genshinre/nativeprofile.py"
+      - "genshinre/typearray.py"
       - "genshinre/pe.py"
       - "genshinre/samplefetch.py"
       - "scripts/fetch-7.1-samples.sh"
@@ -28,25 +29,23 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install focused research dependencies
-        run: python -m pip install -e . capstone zstandard
+        run: python -m pip install -e . zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Find main Quest row from child FromBinaryInner calls
+      - name: Decode generic field types and find Quest owners
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-child-caller-probe.txt
-          import bisect
+          python - <<'PY' | tee quest-generic-field-probe.txt
           import csv
           import json
           import struct
           from collections import defaultdict
           from pathlib import Path
 
-          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
-          from capstone.x86 import X86_OP_IMM
-
+          from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, TYPE_KIND_NAMES, decode_type_entry, is_valid_type_entry
 
           root = Path('versions/7.1.0-global/windows-x64/metadata')
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
@@ -61,206 +60,271 @@ jobs:
           types = {int(r['type_definition_index']): r for r in type_rows}
           fields_by_type = defaultdict(list)
           methods_by_type = defaultdict(list)
-          methods_by_rva = defaultdict(list)
           for row in field_rows:
               fields_by_type[int(row['type_definition_index'])].append(row)
           for row in method_rows:
-              tdi = int(row['type_definition_index'])
-              methods_by_type[tdi].append(row)
-              raw = row.get('rva') or ''
-              if raw:
-                  try:
-                      rva = int(raw, 0)
-                  except ValueError:
-                      continue
-                  if rva > 0:
-                      methods_by_rva[rva].append(row)
+              methods_by_type[int(row['type_definition_index'])].append(row)
 
-          starts = sorted(methods_by_rva)
-
-          def compact_method(row):
-              return {
-                  'method_index': row.get('method_index', ''),
-                  'type_definition_index': row.get('type_definition_index', ''),
-                  'type_name': row.get('type_name', ''),
-                  'method_name': row.get('method_name', ''),
-                  'parameter_count': row.get('parameter_count', ''),
-                  'parameter_types': row.get('parameter_types', ''),
-                  'rva': row.get('rva', ''),
-              }
-
-          def owner_start_for(rva):
-              i = bisect.bisect_right(starts, rva) - 1
-              if i < 0:
-                  return None
-              start = starts[i]
-              end = starts[i + 1] if i + 1 < len(starts) else start + 0x10000
-              if start <= rva < end:
-                  return start
-              return None
-
-          child_types = {
-              'QuestCond': 54128,
-              'QuestContent': 21416,
-              'QuestExec': 71568,
+          target_types = {
+              54128: 'QuestCond',
+              21416: 'QuestContent',
+              71568: 'QuestExec',
           }
-          target_family = {}
-          print('=== CHILD DESERIALIZERS ===')
-          for family, tdi in child_types.items():
-              rows = [
-                  row for row in methods_by_type[tdi]
-                  if row.get('method_name') == 'FromBinaryInner' and row.get('rva')
-              ]
-              print(family, 'tdi=', tdi, json.dumps([compact_method(r) for r in rows], ensure_ascii=False))
-              if not rows:
-                  raise SystemExit(f'no FromBinaryInner method for {family} TDI {tdi}')
-              for row in rows:
-                  target_family[int(row['rva'], 0)] = family
-
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = True
-
-          def direct_call_target(image_base, insn):
-              if insn.mnemonic != 'call':
-                  return None
-              for operand in insn.operands:
-                  if operand.type == X86_OP_IMM:
-                      value = int(operand.imm)
-                      return value - image_base if value >= image_base else value
-              return None
 
           with PEImage(exe) as image:
-              raw_sites = defaultdict(list)
-              wanted = set(target_family)
-              for sec in image.sections:
-                  if not (sec.characteristics & 0x20000000):
+              image_base = image.image_base
+              pointer_blob = image.read_rva(PROFILE_71.type_array_pointer_rva, 8)
+              type_array_va = int.from_bytes(pointer_blob, 'little')
+              type_array_rva = type_array_va - image_base
+
+              def read_va(va, size):
+                  if va < image_base:
+                      raise ValueError(f'not an image VA: 0x{va:X}')
+                  return image.read_rva(va - image_base, size)
+
+              def runtime_entry(index):
+                  if not (0 <= index < PROFILE_71.runtime_type_count):
+                      raise ValueError(f'runtime type index out of range: {index}')
+                  data = image.read_rva(type_array_rva + index * ENTRY_SIZE, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE or not is_valid_type_entry(data):
+                      raise ValueError(f'invalid runtime Il2CppType entry {index}')
+                  return data
+
+              def direct_type(entry):
+                  decoded = decode_type_entry(entry)
+                  kind = int(decoded['kind'])
+                  data_u64 = int.from_bytes(entry[:8], 'little')
+                  result = {
+                      'kind': TYPE_KIND_NAMES.get(kind, f'kind_0x{kind:02X}'),
+                      'kind_value': kind,
+                      'data_u64': f'0x{data_u64:X}',
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(decoded['data_u32'])
+                      if tdi in types:
+                          result['type_definition_index'] = tdi
+                          result['type_name'] = types[tdi].get('type_name', '')
+                          result['namespace'] = types[tdi].get('namespace', '')
+                  return result
+
+              seen_vas = set()
+              def describe_entry(entry, depth=0):
+                  result = direct_type(entry)
+                  kind = result['kind_value']
+                  data_u64 = int(result['data_u64'], 0)
+                  if depth >= 5:
+                      result['truncated'] = True
+                      return result
+                  if kind == 0x1D:
+                      try:
+                          child = read_va(data_u64, ENTRY_SIZE)
+                          if is_valid_type_entry(child):
+                              result['element'] = describe_entry(child, depth + 1)
+                      except (OSError, ValueError):
+                          result['element_error'] = f'bad Il2CppType* 0x{data_u64:X}'
+                  elif kind == 0x15:
+                      generic_va = data_u64
+                      if generic_va in seen_vas:
+                          result['generic_error'] = 'recursive generic class'
+                          return result
+                      seen_vas.add(generic_va)
+                      try:
+                          blob = read_va(generic_va, 32)
+                          first = struct.unpack_from('<Q', blob, 0)[0]
+                          class_inst_va = struct.unpack_from('<Q', blob, 8)[0]
+                          method_inst_va = struct.unpack_from('<Q', blob, 16)[0]
+                          cached_class_va = struct.unpack_from('<Q', blob, 24)[0]
+                          generic = {
+                              'generic_class_va': f'0x{generic_va:X}',
+                              'class_inst_va': f'0x{class_inst_va:X}',
+                              'method_inst_va': f'0x{method_inst_va:X}',
+                              'cached_class_va': f'0x{cached_class_va:X}',
+                          }
+                          if first in types:
+                              generic['definition_layout'] = 'type_definition_index'
+                              generic['definition'] = {
+                                  'type_definition_index': first,
+                                  'type_name': types[first].get('type_name', ''),
+                                  'namespace': types[first].get('namespace', ''),
+                              }
+                          elif first >= image_base:
+                              generic['definition_layout'] = 'type_pointer'
+                              generic['definition_type_va'] = f'0x{first:X}'
+                              definition_entry = read_va(first, ENTRY_SIZE)
+                              if is_valid_type_entry(definition_entry):
+                                  generic['definition'] = describe_entry(definition_entry, depth + 1)
+                          else:
+                              generic['definition_layout'] = 'unknown'
+                              generic['definition_raw'] = f'0x{first:X}'
+
+                          inst = read_va(class_inst_va, 16)
+                          argc = struct.unpack_from('<I', inst, 0)[0]
+                          argv_va = struct.unpack_from('<Q', inst, 8)[0]
+                          generic['argument_count'] = argc
+                          generic['argument_vector_va'] = f'0x{argv_va:X}'
+                          if not (1 <= argc <= 16):
+                              raise ValueError(f'implausible generic argc={argc}')
+                          argv_blob = read_va(argv_va, argc * 8)
+                          args = []
+                          for i in range(argc):
+                              arg_va = struct.unpack_from('<Q', argv_blob, i * 8)[0]
+                              arg = {'type_va': f'0x{arg_va:X}'}
+                              arg_entry = read_va(arg_va, ENTRY_SIZE)
+                              if is_valid_type_entry(arg_entry):
+                                  arg['type'] = describe_entry(arg_entry, depth + 1)
+                              else:
+                                  arg['error'] = 'invalid Il2CppType'
+                              args.append(arg)
+                          generic['arguments'] = args
+                          result['generic'] = generic
+                      except (OSError, ValueError, struct.error) as exc:
+                          result['generic_error'] = str(exc)
+                      finally:
+                          seen_vas.discard(generic_va)
+                  return result
+
+              runtime_cache = {}
+              def describe_runtime(index):
+                  if index not in runtime_cache:
+                      runtime_cache[index] = describe_entry(runtime_entry(index))
+                  return runtime_cache[index]
+
+              def argument_tdis(desc):
+                  out = set()
+                  if desc.get('kind_value') == 0x1D:
+                      elem = desc.get('element') or {}
+                      tdi = elem.get('type_definition_index')
+                      if tdi is not None:
+                          out.add(int(tdi))
+                      out.update(argument_tdis(elem))
+                  generic = desc.get('generic') or {}
+                  for arg in generic.get('arguments', []):
+                      item = arg.get('type') or {}
+                      tdi = item.get('type_definition_index')
+                      if tdi is not None:
+                          out.add(int(tdi))
+                      out.update(argument_tdis(item))
+                  return out
+
+              # Calibrate the runtime GenericInst layout with a field known from
+              # earlier client dumps to be List<uint>.
+              talk_tdi = 50151
+              talk_field = next(
+                  (r for r in fields_by_type[talk_tdi] if r.get('field_name') == '_nextValidTalkList'),
+                  None,
+              )
+              if talk_field is None:
+                  raise SystemExit('TalkExcelConfig._nextValidTalkList calibration field missing')
+              talk_index = int(talk_field['field_type_index'])
+              talk_desc = describe_runtime(talk_index)
+              print('=== GENERIC LAYOUT CALIBRATION ===')
+              print('TalkExcelConfig._nextValidTalkList', talk_index, json.dumps(talk_desc, ensure_ascii=False, sort_keys=True))
+              if talk_desc.get('kind_value') != 0x15:
+                  raise SystemExit('calibration field is not genericinst')
+              talk_args = (talk_desc.get('generic') or {}).get('arguments') or []
+              if len(talk_args) != 1 or (talk_args[0].get('type') or {}).get('kind') != 'u4':
+                  raise SystemExit('7.1 Il2CppGenericClass layout calibration failed: expected List<uint>')
+
+              print('=== QUEST CHILD TYPE FIELD USERS ===')
+              matches = []
+              owner_hits = defaultdict(list)
+              for row in field_rows:
+                  raw = row.get('field_type_index')
+                  if not raw:
                       continue
-                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
-                  pos = 0
-                  while True:
-                      pos = blob.find(b'\xE8', pos)
-                      if pos < 0:
-                          break
-                      if pos + 5 <= len(blob):
-                          rel = struct.unpack_from('<i', blob, pos + 1)[0]
-                          site = sec.virtual_address + pos
-                          target = site + 5 + rel
-                          if target in wanted:
-                              raw_sites[target].append(site)
-                      pos += 1
+                  index = int(raw)
+                  try:
+                      desc = describe_runtime(index)
+                  except (OSError, ValueError):
+                      continue
+                  hits = sorted(argument_tdis(desc).intersection(target_types))
+                  if not hits:
+                      continue
+                  owner_tdi = int(row['type_definition_index'])
+                  item = {
+                      'owner_tdi': owner_tdi,
+                      'owner_type': types.get(owner_tdi, {}),
+                      'field_index': row.get('field_index', ''),
+                      'field_name': row.get('field_name', ''),
+                      'field_type': row.get('field_type', ''),
+                      'field_type_index': index,
+                      'target_types': [{'tdi': tdi, 'name': target_types[tdi]} for tdi in hits],
+                      'decoded_type': desc,
+                  }
+                  matches.append(item)
+                  owner_hits[owner_tdi].append(item)
+                  print(json.dumps(item, ensure_ascii=False, sort_keys=True))
 
-              owner_candidate_sites = defaultdict(set)
-              for target, sites in raw_sites.items():
-                  for site in sites:
-                      owner = owner_start_for(site)
-                      if owner is not None:
-                          owner_candidate_sites[owner].add(site)
+              ranked = []
+              for owner_tdi, items in owner_hits.items():
+                  families = sorted({hit['name'] for item in items for hit in item['target_types']})
+                  fields = fields_by_type[owner_tdi]
+                  binary_methods = [
+                      r for r in methods_by_type[owner_tdi]
+                      if 'Binary' in (r.get('method_name') or '')
+                  ]
+                  score = 100 * len(families) + min(len(fields), 80) + 20 * bool(binary_methods)
+                  ranked.append((score, owner_tdi, families, fields, binary_methods, items))
+              ranked.sort(reverse=True, key=lambda x: x[0])
 
-              validated = []
-              for owner_start, candidate_sites in owner_candidate_sites.items():
-                  i = bisect.bisect_left(starts, owner_start)
-                  owner_end = starts[i + 1] if i + 1 < len(starts) else owner_start + 0x10000
-                  owner_end = min(owner_end, owner_start + 0x20000)
-                  body = image.read_rva(owner_start, owner_end - owner_start)
-                  for insn in md.disasm(body, image.image_base + owner_start):
-                      site = insn.address - image.image_base
-                      if site not in candidate_sites:
-                          continue
-                      target = direct_call_target(image.image_base, insn)
-                      if target in target_family:
-                          validated.append((owner_start, site, target, target_family[target]))
+              print('=== RANKED QUEST OWNER CANDIDATES ===')
+              candidates = []
+              for score, owner_tdi, families, fields, binary_methods, items in ranked[:30]:
+                  candidate = {
+                      'score': score,
+                      'type_definition_index': owner_tdi,
+                      'type': types.get(owner_tdi, {}),
+                      'families': families,
+                      'field_count': len(fields),
+                      'matched_fields': [
+                          {
+                              'field_index': x['field_index'],
+                              'field_name': x['field_name'],
+                              'field_type': x['field_type'],
+                              'field_type_index': x['field_type_index'],
+                              'target_types': x['target_types'],
+                          }
+                          for x in items
+                      ],
+                      'binary_methods': binary_methods,
+                  }
+                  candidates.append(candidate)
+                  print(json.dumps(candidate, ensure_ascii=False, sort_keys=True))
 
-          hits_by_owner = defaultdict(list)
-          for owner_start, site, target, family in validated:
-              hits_by_owner[owner_start].append({
-                  'site_rva': f'0x{site:X}',
-                  'target_rva': f'0x{target:X}',
-                  'family': family,
-              })
-
-          ranked = []
-          for owner_start, hits in hits_by_owner.items():
-              owner_rows = methods_by_rva[owner_start]
-              families = sorted({h['family'] for h in hits})
-              binary_inner = any(r.get('method_name') == 'FromBinaryInner' for r in owner_rows)
-              config_owner = any((types.get(int(r['type_definition_index']), {}).get('namespace') or '') == 'MoleMole.Config' for r in owner_rows)
-              field_count = max((len(fields_by_type[int(r['type_definition_index'])]) for r in owner_rows), default=0)
-              score = 100 * len(families) + 20 * int(binary_inner) + 10 * int(config_owner) + min(field_count, 80) / 10
-              ranked.append((score, owner_start, families, hits, owner_rows, field_count))
-          ranked.sort(reverse=True, key=lambda item: item[0])
-
-          print('=== VALIDATED DIRECT CALLER CANDIDATES ===')
-          report_candidates = []
-          for score, owner_start, families, hits, owner_rows, field_count in ranked[:40]:
-              td_indices = sorted({int(r['type_definition_index']) for r in owner_rows})
-              entry = {
-                  'score': score,
-                  'owner_rva': f'0x{owner_start:X}',
-                  'families': families,
-                  'field_count': field_count,
-                  'methods': [compact_method(r) for r in owner_rows],
-                  'types': [types.get(tdi, {}) for tdi in td_indices],
-                  'hits': hits,
-              }
-              report_candidates.append(entry)
-              print(json.dumps(entry, ensure_ascii=False, sort_keys=True))
-
-          all_three = [item for item in ranked if set(item[2]) == set(child_types)]
-          if not all_three:
-              Path('quest-child-callers.json').write_text(
-                  json.dumps({'child_types': child_types, 'candidates': report_candidates}, ensure_ascii=False, indent=2) + '\n',
+              Path('quest-generic-field-users.json').write_text(
+                  json.dumps({'matches': matches, 'candidates': candidates}, ensure_ascii=False, indent=2) + '\n',
                   encoding='utf-8',
               )
-              raise SystemExit('no native method directly calls QuestCond, QuestContent, and QuestExec FromBinaryInner')
 
-          score, owner_start, families, hits, owner_rows, field_count = all_three[0]
-          owner_tdis = sorted({int(r['type_definition_index']) for r in owner_rows})
-          selected_tdi = None
-          for tdi in owner_tdis:
-              if any(r.get('method_name') == 'FromBinaryInner' for r in methods_by_type[tdi]):
-                  selected_tdi = tdi
-                  break
-          if selected_tdi is None:
-              selected_tdi = owner_tdis[0]
+              strong = [x for x in ranked if {'QuestCond', 'QuestContent'}.issubset(set(x[2]))]
+              if not strong:
+                  raise SystemExit('no field owner references both QuestCond and QuestContent through decoded array/generic types')
 
-          selected = {
-              'score': score,
-              'owner_rva': f'0x{owner_start:X}',
-              'type_definition_index': selected_tdi,
-              'type': types.get(selected_tdi, {}),
-              'field_count': len(fields_by_type[selected_tdi]),
-              'families': families,
-              'hits': hits,
-              'methods_at_rva': [compact_method(r) for r in owner_rows],
-              'binary_methods': [compact_method(r) for r in methods_by_type[selected_tdi] if 'Binary' in (r.get('method_name') or '')],
-              'fields': [
-                  {
-                      'field_index': r.get('field_index', ''),
-                      'field_name': r.get('field_name', ''),
-                      'field_type': r.get('field_type', ''),
-                      'field_type_index': r.get('field_type_index', ''),
-                  }
-                  for r in sorted(fields_by_type[selected_tdi], key=lambda r: int(r['field_index']))
-              ],
-          }
-          Path('quest-child-callers.json').write_text(
-              json.dumps({'child_types': child_types, 'candidates': report_candidates}, ensure_ascii=False, indent=2) + '\n',
-              encoding='utf-8',
-          )
-          Path('selected-quest-row.json').write_text(
-              json.dumps(selected, ensure_ascii=False, indent=2) + '\n',
-              encoding='utf-8',
-          )
-          print('=== SELECTED MAIN QUEST ROW ===')
-          print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
+              score, owner_tdi, families, fields, binary_methods, items = strong[0]
+              selected = {
+                  'score': score,
+                  'type_definition_index': owner_tdi,
+                  'type': types.get(owner_tdi, {}),
+                  'families': families,
+                  'field_count': len(fields),
+                  'fields': fields,
+                  'binary_methods': binary_methods,
+                  'matched_fields': items,
+              }
+              Path('selected-quest-row.json').write_text(
+                  json.dumps(selected, ensure_ascii=False, indent=2) + '\n',
+                  encoding='utf-8',
+              )
+              print('=== SELECTED MAIN QUEST ROW ===')
+              print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
           PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-main-native-child-callers
+          name: quest-main-generic-field-types
           path: |
-            quest-child-caller-probe.txt
-            quest-child-callers.json
+            quest-generic-field-probe.txt
+            quest-generic-field-users.json
             selected-quest-row.json
           if-no-files-found: warn
