@@ -97,7 +97,8 @@
       "path": "ExcelBinOutput/AvatarFettersLevelExcelConfigData.json",
       "blob_sha": "32305bc4b7de8a5bfcb84c1b858e84bff283bae9",
       "area": "friendship",
-      "status": "indexed_only"
+      "status": "raw_snapshot",
+      "archive_path": "raw/AvatarFettersLevelExcelConfigData.json"
     }
   ]
 }
