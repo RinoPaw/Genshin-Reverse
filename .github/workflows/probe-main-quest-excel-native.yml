@@ -32,14 +32,12 @@ jobs:
         run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Inspect compact generic record table
+      - name: Trace compact generic table owner initialization
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-generic-record-probe.txt
-          import csv
+          python - <<'PY' | tee quest-generic-owner-xrefs.txt
           import json
-          import struct
           from pathlib import Path
 
           from capstone import CS_ARCH_X86, CS_MODE_64, Cs
@@ -49,26 +47,12 @@ jobs:
           from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
           from genshinre.xrefs import scan_rip_xrefs
 
-          root = Path('versions/7.1.0-global/windows-x64/metadata')
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
-          known_runtime_index = 476756
-          known_generic_handle = 0x12F8
           generic_owner_slot_rva = 0x5AD4E98
           type_base_slot_rva = 0x5AD4E90
           resolver_rva = 0x51CD50
-
-          with (root / 'types.csv').open('r', encoding='utf-8-sig', newline='') as f:
-              types = {int(r['type_definition_index']): r for r in csv.DictReader(f)}
-
-          def fmt_type(value):
-              row = types.get(value)
-              if row is None:
-                  return None
-              return {
-                  'type_definition_index': value,
-                  'type_name': row.get('type_name', ''),
-                  'namespace': row.get('namespace', ''),
-              }
+          known_runtime_index = 476756
+          known_generic_handle = 0x12F8
 
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = False
@@ -82,75 +66,25 @@ jobs:
                       raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
                   return data
 
-              def read_va(va, size):
-                  if va < base:
-                      raise ValueError(f'not image VA: 0x{va:X}')
-                  return read_rva(va - base, size)
-
-              def qword_rva(rva):
-                  return struct.unpack('<Q', read_rva(rva, 8))[0]
-
-              def qword_va(va):
-                  return struct.unpack('<Q', read_va(va, 8))[0]
-
-              types_va = qword_rva(PROFILE_71.type_array_pointer_rva)
-              type_entry = read_va(types_va + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
-              if not is_valid_type_entry(type_entry):
-                  raise SystemExit('known List<uint> runtime type entry is invalid')
-              decoded = decode_type_entry(type_entry)
-              handle = int.from_bytes(type_entry[:8], 'little')
-              print('known_runtime_type=', {
-                  'index': known_runtime_index,
-                  'kind': decoded['kind_name'],
-                  'handle': hex(handle),
-              })
+              types_va = int.from_bytes(read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little')
+              entry = read_rva(types_va - base + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
+              if not is_valid_type_entry(entry):
+                  raise SystemExit('known generic runtime type entry invalid')
+              decoded = decode_type_entry(entry)
+              handle = int.from_bytes(entry[:8], 'little')
+              print('known_runtime_type=', {'index': known_runtime_index, 'kind': decoded['kind_name'], 'handle': hex(handle)})
               if decoded['kind'] != 0x15 or handle != known_generic_handle:
-                  raise SystemExit('known List<uint> generic handle drifted')
+                  raise SystemExit('List<uint> generic handle drifted')
 
-              print('=== COMPACT GENERIC GLOBALS ===')
-              type_base_owner_va = qword_rva(type_base_slot_rva)
-              generic_owner_va = qword_rva(generic_owner_slot_rva)
-              print('type_base_slot=', hex(type_base_slot_rva), 'owner=', hex(type_base_owner_va))
-              print('generic_owner_slot=', hex(generic_owner_slot_rva), 'owner=', hex(generic_owner_va))
-              if type_base_owner_va < base or generic_owner_va < base:
-                  raise SystemExit('compact generic owner globals are not static image pointers')
-
-              type_base_owner_raw = read_va(type_base_owner_va, 0x40)
-              generic_owner_raw = read_va(generic_owner_va, 0x40)
-              print('type_base_owner_qwords=', [hex(x) for x in struct.unpack('<8Q', type_base_owner_raw)])
-              print('generic_owner_qwords=', [hex(x) for x in struct.unpack('<8Q', generic_owner_raw)])
-
-              generic_table_va = struct.unpack_from('<Q', generic_owner_raw, 8)[0]
-              if generic_table_va < base:
-                  raise SystemExit(f'invalid compact generic table VA 0x{generic_table_va:X}')
-              record_va = generic_table_va + handle * 0x20
-              record = read_va(record_va, 0x20)
-              dwords = list(struct.unpack('<8I', record))
-              qwords = list(struct.unpack('<4Q', record))
-              print('generic_table_va=', hex(generic_table_va), 'rva=', hex(generic_table_va - base))
-              print('known_record_va=', hex(record_va), 'rva=', hex(record_va - base))
-              print('known_record_hex=', record.hex())
-              print('known_record_dwords=', [hex(x) for x in dwords])
-              print('known_record_qwords=', [hex(x) for x in qwords])
-              print('known_record_dword_type_matches=', [fmt_type(x) for x in dwords])
-
-              # The client helper at 0x4C853D performs exactly:
-              # owner=[slot]; table=[owner+8]; record=table+type.data*0x20;
-              # resolver(record[0]).  Validate record[0] against published type metadata.
-              definition = fmt_type(dwords[0])
-              print('known_record_definition=', json.dumps(definition, ensure_ascii=False, sort_keys=True))
-
-              print('=== RESOLVER DISASSEMBLY ===')
-              start = resolver_rva - 0x40
-              blob = read_rva(start, 0x280)
-              for insn in md.disasm(blob, base + start):
-                  irva = insn.address - base
-                  marker = ' <==' if irva == resolver_rva else ''
-                  print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
-
-              print('=== GENERIC OWNER SLOT XREFS ===')
-              scan = scan_rip_xrefs(exe, [generic_owner_slot_rva, type_base_slot_rva], window=96)
+              targets = [generic_owner_slot_rva, type_base_slot_rva]
+              scan = scan_rip_xrefs(exe, targets, window=128)
+              print('=== SLOT XREF SUMMARY ===')
               print(json.dumps(scan['matches'], indent=2))
+              if not any(scan['matches'].values()):
+                  raise SystemExit('no direct code xrefs to compact generic owner slots')
+
+              print('=== SLOT XREF WINDOWS ===')
+              windows = []
               seen = set()
               for target, rows in scan['matches'].items():
                   for row in rows:
@@ -158,36 +92,51 @@ jobs:
                       if rva in seen:
                           continue
                       seen.add(rva)
-                      start = max(0, rva - 96)
-                      blob = read_rva(start, 256)
+                      start = max(0, rva - 112)
+                      blob = read_rva(start, 320)
                       print(f'--- xref RVA 0x{rva:X} target {target} ---')
+                      lines = []
                       for insn in md.disasm(blob, base + start):
                           irva = insn.address - base
                           marker = ' <==' if irva == rva else ''
-                          print(f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}')
+                          text = f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}'
+                          print(text)
+                          lines.append(text)
+                      windows.append({'target': target, 'xref_rva': hex(rva), 'lines': lines})
 
-              evidence = {
-                  'known_runtime_index': known_runtime_index,
-                  'known_generic_handle': handle,
-                  'generic_owner_slot_rva': hex(generic_owner_slot_rva),
-                  'generic_owner_va': hex(generic_owner_va),
-                  'generic_table_va': hex(generic_table_va),
-                  'known_record_va': hex(record_va),
-                  'known_record_hex': record.hex(),
-                  'known_record_dwords': dwords,
-                  'known_record_definition': definition,
-                  'slot_xrefs': scan['matches'],
-              }
-              Path('quest-generic-record.json').write_text(
-                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+              print('=== TYPE RESOLVER 0x51CD50 ===')
+              start = resolver_rva - 0x40
+              blob = read_rva(start, 0x300)
+              resolver_lines = []
+              for insn in md.disasm(blob, base + start):
+                  irva = insn.address - base
+                  marker = ' <==' if irva == resolver_rva else ''
+                  text = f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}'
+                  print(text)
+                  resolver_lines.append(text)
+
+              Path('quest-generic-owner-xrefs.json').write_text(
+                  json.dumps({
+                      'known_runtime_index': known_runtime_index,
+                      'known_generic_handle': handle,
+                      'slots': {
+                          'type_base': hex(type_base_slot_rva),
+                          'generic_owner': hex(generic_owner_slot_rva),
+                      },
+                      'xrefs': scan['matches'],
+                      'windows': windows,
+                      'resolver_rva': hex(resolver_rva),
+                      'resolver_lines': resolver_lines,
+                  }, indent=2) + '\n',
+                  encoding='utf-8',
               )
           PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-generic-record
+          name: quest-generic-owner-xrefs
           path: |
-            quest-generic-record-probe.txt
-            quest-generic-record.json
+            quest-generic-owner-xrefs.txt
+            quest-generic-owner-xrefs.json
           if-no-files-found: warn
