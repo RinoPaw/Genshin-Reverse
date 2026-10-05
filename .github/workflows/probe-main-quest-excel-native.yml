@@ -31,55 +31,128 @@ jobs:
         run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Search metadata for surviving QuestExcel identities
+      - name: Rank QuestExcel row candidates by preserved field shape
         run: |
-          python - <<'PY' | tee quest-metadata-search.txt
+          python - <<'PY' | tee quest-field-fingerprint.txt
           import csv, json
+          from collections import defaultdict
           from pathlib import Path
 
           root = Path('versions/7.1.0-global/windows-x64/metadata')
-          needles = ('questexcel', 'questexcelconfig')
-          hits = 0
-          for path in sorted(root.glob('*.csv')):
-              with path.open('r', encoding='utf-8-sig', newline='') as f:
-                  for row in csv.DictReader(f):
-                      haystack = '\n'.join(str(value) for value in row.values()).lower()
-                      if any(needle in haystack for needle in needles):
-                          print(path.name, json.dumps(row, ensure_ascii=False, sort_keys=True))
-                          hits += 1
-          print('HIT_COUNT', hits)
+          def read(name):
+              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          types = {r['type_definition_index']: r for r in read('types.csv')}
+          fields = read('fields.csv')
+          methods = read('methods.csv')
+          fields_by_type = defaultdict(list)
+          methods_by_type = defaultdict(list)
+          for row in fields:
+              fields_by_type[row['type_definition_index']].append(row)
+          for row in methods:
+              methods_by_type[row['type_definition_index']].append(row)
+
+          fingerprint = {
+              '_subId', '_mainId', '_order', '_subIdSet', '_isMpBlock',
+              '_descTextMapHash', '_stepDescTextMapHash', '_guideTipsTextMapHash',
+              '_showType', '_banType', '_acceptCondComb', '_acceptCond',
+              '_finishCondComb', '_finishCond', '_failCondComb', '_failCond',
+              '_guide', '_showGuide', '_finishParent', '_failParent',
+              '_failParentShow', '_isRewind', '_finishExec', '_failExec',
+              '_beginExec', '_exclusiveNpcPriority', '_forcePaimonGuidePriority',
+          }
+          ranked = []
+          for tdi, rows in fields_by_type.items():
+              type_row = types.get(tdi) or {}
+              namespace = type_row.get('namespace') or ''
+              type_name = type_row.get('type_name') or ''
+              if namespace == 'XLua.CSObjectWrap' or 'RandomQuestExcelConfig' in type_name or 'RandomMainQuestExcelConfig' in type_name:
+                  continue
+              field_names = {r.get('field_name') or '' for r in rows}
+              matches = sorted(fingerprint & field_names)
+              method_names = {r.get('method_name') or '' for r in methods_by_type.get(tdi, ())}
+              has_binary = 'FromBinaryInner' in method_names or 'FromBinary' in method_names
+              if matches:
+                  ranked.append((len(matches), has_binary, len(rows), tdi, matches))
+
+          ranked.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+          print('=== TOP FIELD-SHAPE CANDIDATES ===')
+          for score, has_binary, field_count, tdi, matches in ranked[:30]:
+              print('CANDIDATE', score, 'binary=', int(has_binary), 'fields=', field_count,
+                    json.dumps(types.get(tdi), ensure_ascii=False, sort_keys=True))
+              print(' MATCHES', json.dumps(matches, ensure_ascii=False))
+
+          binary_ranked = [item for item in ranked if item[1]]
+          if not binary_ranked:
+              raise SystemExit('no field-shape candidate with FromBinary/FromBinaryInner methods')
+          score, _, field_count, tdi, matches = binary_ranked[0]
+          print('=== SELECTED ===')
+          print('TDI', tdi)
+          print('SCORE', score)
+          print('FIELD_COUNT', field_count)
+          print('TYPE', json.dumps(types.get(tdi), ensure_ascii=False, sort_keys=True))
+          print('MATCHED_FIELDS', json.dumps(matches, ensure_ascii=False))
+          print('=== SELECTED FIELDS ===')
+          for row in sorted(fields_by_type[tdi], key=lambda r: int(r['field_index'])):
+              print(json.dumps(row, ensure_ascii=False, sort_keys=True))
+          print('=== SELECTED BINARY METHODS ===')
+          selected_methods = []
+          for row in methods_by_type[tdi]:
+              if row.get('method_name') in {'FromBinary', 'FromBinaryInner'}:
+                  print(json.dumps(row, ensure_ascii=False, sort_keys=True))
+                  selected_methods.append(row)
+          one_arg_inner = [r for r in selected_methods if r.get('method_name') == 'FromBinaryInner' and r.get('parameter_count') == '1' and r.get('rva')]
+          if len(one_arg_inner) != 1:
+              raise SystemExit(f'expected one one-argument FromBinaryInner for selected type, got {len(one_arg_inner)}')
+          Path('selected-quest-row.env').write_text(
+              f"QUEST_TDI={tdi}\nQUEST_ROW_RVA={one_arg_inner[0]['rva']}\n",
+              encoding='utf-8',
+          )
           PY
-      - name: Trace all QuestCond binary entry points
+      - name: Trace selected row deserializer
+        shell: bash
         run: |
+          set -euo pipefail
+          source selected-quest-row.env
+          echo "selected TDI=$QUEST_TDI RVA=$QUEST_ROW_RVA" | tee quest-selected-row.txt
           python tools/trace_native_call_edges.py \
             inputs/7.1.0-global/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-cond-call-edges.json \
-            --focus quest-cond-from-binary-1:0x11582570 \
-            --focus quest-cond-inner-1:0x115825D0 \
-            --focus quest-cond-from-binary-2:0x115828F0 \
-            --focus quest-cond-inner-2:0x11582950 \
-            --max-body 0x4000 | tee quest-cond-call-summary.txt
-      - name: Summarize caller owners
+            quest-selected-row-edges.json \
+            --focus quest-row-inner:"$QUEST_ROW_RVA" \
+            --max-body 0x6000 | tee quest-selected-row-trace.txt
+      - name: Summarize selected row native shape
         run: |
-          python - <<'PY' | tee quest-main-caller-summary.txt
-          import json
-
-          report = json.load(open('quest-cond-call-edges.json', encoding='utf-8'))
-          for key, item in report['focus'].items():
-              print('===', key, '===')
-              print('OWNER', json.dumps(item['owner'], ensure_ascii=False, sort_keys=True))
-              print('CALLER_COUNT', item['validated_direct_caller_count'])
-              for caller in item['direct_callers']:
-                  print('CALLER', json.dumps(caller, ensure_ascii=False, sort_keys=True))
+          python - <<'PY' | tee quest-selected-row-summary.txt
+          import json, re
+          report = json.load(open('quest-selected-row-edges.json', encoding='utf-8'))
+          item = report['focus']['quest-row-inner']
+          print('OWNER', json.dumps(item['owner'], ensure_ascii=False, sort_keys=True))
+          print('CALLER_COUNT', item['validated_direct_caller_count'])
+          for caller in item['direct_callers'][:20]:
+              print('CALLER', json.dumps(caller, ensure_ascii=False, sort_keys=True))
+          print('=== PROLOGUE ===')
+          for row in item['disassembly'][:120]:
+              print(f"{row['rva']:>12} {row['mnemonic']:<7} {row['op_str']}")
+          print('=== OBJECT STORES / CALLS ===')
+          for i, row in enumerate(item['disassembly']):
+              op = row['op_str'].lower()
+              if row['mnemonic'] == 'call' or re.search(r'\[(?:rbx|rbp|rsi|rdi|r12|r13|r14|r15)\s*\+\s*0x[0-9a-f]+\]', op):
+                  lo, hi = max(0, i - 1), min(len(item['disassembly']), i + 2)
+                  print('--')
+                  for x in item['disassembly'][lo:hi]:
+                      print(f"{x['rva']:>12} {x['mnemonic']:<7} {x['op_str']}")
           PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
-          name: quest-main-caller-probe
+          name: quest-main-field-fingerprint-probe
           path: |
-            quest-metadata-search.txt
-            quest-cond-call-edges.json
-            quest-cond-call-summary.txt
-            quest-main-caller-summary.txt
+            quest-field-fingerprint.txt
+            selected-quest-row.env
+            quest-selected-row.txt
+            quest-selected-row-edges.json
+            quest-selected-row-trace.txt
+            quest-selected-row-summary.txt
           if-no-files-found: error
