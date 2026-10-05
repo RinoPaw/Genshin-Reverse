@@ -36,11 +36,12 @@ class AssetIndexTest(unittest.TestCase):
         payload += u32(0)  # sort list
 
         index = parse_asset_index(raw_export(bytes(payload)))
-        self.assertEqual(index.names[0].value, 0x3B87AE8396)
-        self.assertEqual(index.names[0].exported_name, "3b87ae83")
+        name = index.name_for_hash(0x3B87AE8396)
+        self.assertEqual(name.sub_asset_id, 178)
+        self.assertEqual(name.exported_name, "3b87ae83")
         self.assertEqual(index.block_groups[25539185], 0)
-        location = index.location_for_asset(178)
-        self.assertEqual((location.block_id, location.offset, location.size), (25539185, 0, 0))
+        block_ref = index.block_ref_for_asset(name.sub_asset_id)
+        self.assertEqual((block_ref.block_id, block_ref.unknown0, block_ref.unknown1), (25539185, 0, 0))
 
     def test_reject_nonzero_raw_export_padding(self):
         with self.assertRaisesRegex(ValueError, "padding"):
