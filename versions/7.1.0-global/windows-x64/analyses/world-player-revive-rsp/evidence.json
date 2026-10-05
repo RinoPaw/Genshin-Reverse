@@ -1,0 +1,119 @@
+{
+  "topic": "world-player-revive-rsp",
+  "state": "ACTIVE",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json"
+  },
+  "questions": [
+    "What is the current 7.1 Global CmdId and direction of WorldPlayerReviveRsp?",
+    "Does the current response retain int32 retcode at protobuf field 14?"
+  ],
+  "claims": [
+    {
+      "id": "request-anchor",
+      "status": "CONFIRMED",
+      "statement": "WorldPlayerReviveReq is CmdId 5232 in the current 7.1 client and is sent C2S by the team-wipe revive flow.",
+      "evidence": [
+        {
+          "kind": "current-runtime-plus-static",
+          "source": "issue #12 and exact 7.1 registry",
+          "locator": "CmdId 5232 / OCEMECOHKDK",
+          "note": "Type slot 0x57F4EC8; GetCmdId RVA 0x0E7431E0."
+        }
+      ]
+    },
+    {
+      "id": "field14-finalists",
+      "status": "CONFIRMED",
+      "statement": "Among the 13 current inbound one-int32 response-family candidates, only CmdIds 7003/GFPMFMJPNMA and 22060/DAKFNDLCAHC parse protobuf field 14 with wire type 0.",
+      "evidence": [
+        {
+          "kind": "exact-client-parser-scan",
+          "source": "workflow run 37280196466",
+          "locator": "world-player-revive-rsp-candidate-tags / candidate-wire-tags.csv",
+          "note": "7003 parser tag at 0x0A537548; 22060 parser tag at 0x13F18128; all other candidates use different field numbers."
+        }
+      ]
+    },
+    {
+      "id": "cmd7003-s2c-shape",
+      "status": "CONFIRMED",
+      "statement": "CmdId 7003 maps to GFPMFMJPNMA and is consumed by LLCGIEDMIIG.AAHPLLIEFIB at RVA 0x0C241960; the message parser reads field 14 varint and the handler treats object offset +0x18 as retcode.",
+      "evidence": [
+        {
+          "kind": "canonical-registry",
+          "source": "../../registry/registry.csv",
+          "locator": "cmd_id=7003",
+          "note": "typeDefinition 30947; type slot 0x057F55A0; GetCmdId 0x0A5374C0."
+        },
+        {
+          "kind": "exact-client-disassembly",
+          "source": "workflow run 37280399233",
+          "locator": "CmdId 7003 handler",
+          "note": "Nonzero retcode reaches shared error path 0x0B515410; success returns."
+        }
+      ]
+    },
+    {
+      "id": "cmd22060-exclusion",
+      "status": "REJECTED",
+      "statement": "CmdId 22060 is not WorldPlayerReviveRsp: on success its current client handler fires Notify value 2638, which current 7.1 metadata names SaveAvatarsToNewBackupTeam.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "workflow run 37280399233",
+          "locator": "LLCGIEDMIIG.KCLOEKKLMLH @ 0x0C25D900",
+          "note": "Success path loads immediate 0xA4E / 2638 and invokes the client Notify path."
+        },
+        {
+          "kind": "current-metadata",
+          "source": "workflow runs 37280815012 and 37281259847",
+          "locator": "GFJCNBMJPCH / typeDefinition 14478",
+          "note": "AvatarReviveRequested=514; SaveAvatarsToNewBackupTeam=2638."
+        }
+      ]
+    },
+    {
+      "id": "semantic-binding",
+      "status": "HIGH_CONFIDENCE",
+      "statement": "WorldPlayerReviveRsp is CmdId 7003, direction S2C, current type GFPMFMJPNMA, with int32 retcode at protobuf field 14.",
+      "evidence": [
+        {
+          "kind": "exact-current-client-elimination",
+          "source": "candidate-wire-tags.csv + workflow runs 37280399233/37281259847",
+          "locator": "README.md#conclusion",
+          "note": "7003 is the sole remaining current-client field-14 inbound candidate after 22060 is semantically rejected."
+        }
+      ],
+      "notes": "Runtime observation of the exact 5232 -> 7003 transaction is still required for canonical semantic promotion."
+    }
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Promote historical WorldPlayerReviveRsp opcode 24752 into 7.1.",
+      "reason": "CmdIds are version-remapped; historical equality is only comparative evidence."
+    },
+    {
+      "statement": "Select CmdId 9129 from death/scene handler adjacency.",
+      "reason": "Its exact current parser reads field 15 (tag 0x78), which conflicts with the field-14 response schema."
+    },
+    {
+      "statement": "Select CmdId 22060 because its success handler fires a Notify.",
+      "reason": "Current 7.1 Notify metadata resolves its value 2638 to SaveAvatarsToNewBackupTeam; AvatarReviveRequested is 514."
+    }
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json",
+    "candidate-wire-tags.csv"
+  ],
+  "next_steps": [
+    "Patch the 7.1 AstaPS WorldPlayerReviveRsp opcode to 7003 on a test branch.",
+    "Run repository CI before requesting gameplay validation.",
+    "Capture a current 7.1 team-wipe revive transaction and verify C2S 5232 followed by S2C 7003.",
+    "On runtime confirmation, promote WorldPlayerReviveRsp to proto/known-opcodes.csv and mark this analysis COMPLETE."
+  ]
+}

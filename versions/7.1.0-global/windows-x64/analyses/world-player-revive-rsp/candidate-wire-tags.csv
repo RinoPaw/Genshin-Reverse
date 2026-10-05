@@ -1,0 +1,14 @@
+cmd_id,type_name,retcode_field,wire_type,parser_tag,field14_varint,notes
+4385,LBLELLCECLL,7,0,0x38,no,SetPlayerBornDataRsp control
+4761,CHPMLJLBLCB,3,0,0x18,no,
+5923,PHBICGAIPPF,15,0,0x78,no,
+7003,GFPMFMJPNMA,14,0,0x70,yes,finalist; surviving candidate
+8223,LOGPEGIEACK,11,0,0x58,no,
+9129,INDKHBFONJA,15,0,0x78,no,death/scene adjacency rejected by wire shape
+21465,EFOIEAELKHD,9,0,0x48,no,
+22060,DAKFNDLCAHC,14,0,0x70,yes,finalist; rejected: success Notify 2638=SaveAvatarsToNewBackupTeam
+22120,IGNKDDIOJEO,4,0,0x20,no,
+22691,DNFJMDOKCML,8,0,0x40,no,
+22904,MOKBJEHGENJ,7,0,0x38,no,
+23684,JMMBKLEPMMC,12,0,0x60,no,
+24380,HIADLALFEFD,4,0,0x20,no,
