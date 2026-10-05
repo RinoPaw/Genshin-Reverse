@@ -31,63 +31,55 @@ jobs:
         run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Dump obfuscated candidate contracts
+      - name: Search metadata for surviving QuestExcel identities
         run: |
-          python - <<'PY' | tee quest-candidate-contracts.txt
+          python - <<'PY' | tee quest-metadata-search.txt
           import csv, json
           from pathlib import Path
+
           root = Path('versions/7.1.0-global/windows-x64/metadata')
-          def read(name):
-              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
-                  return list(csv.DictReader(f))
-          types = {r['type_definition_index']: r for r in read('types.csv')}
-          fields = read('fields.csv')
-          methods = read('methods.csv')
-          for tdi in ('35267','48659'):
-              print('=== TYPE', tdi, '===')
-              print(json.dumps(types[tdi], ensure_ascii=False))
-              for row in fields:
-                  if row.get('type_definition_index') == tdi:
-                      print('FIELD', json.dumps(row, ensure_ascii=False))
-              for row in methods:
-                  if row.get('type_definition_index') == tdi:
-                      print('METHOD', json.dumps(row, ensure_ascii=False))
+          needles = ('questexcel', 'questexcelconfig')
+          hits = 0
+          for path in sorted(root.glob('*.csv')):
+              with path.open('r', encoding='utf-8-sig', newline='') as f:
+                  for row in csv.DictReader(f):
+                      haystack = '\n'.join(str(value) for value in row.values()).lower()
+                      if any(needle in haystack for needle in needles):
+                          print(path.name, json.dumps(row, ensure_ascii=False, sort_keys=True))
+                          hits += 1
+          print('HIT_COUNT', hits)
           PY
-      - name: Trace both candidate FromBinaryInner methods
+      - name: Trace all QuestCond binary entry points
         run: |
           python tools/trace_native_call_edges.py \
             inputs/7.1.0-global/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-candidate-call-edges.json \
-            --focus candidate-35267:0x11098B90 \
-            --focus candidate-48659:0x0EB4B400 \
-            --focus quest-cond-inner:0x115825D0 \
-            --max-body 0x6000 | tee quest-candidate-call-summary.txt
-      - name: Summarize candidate calls and stores
+            quest-cond-call-edges.json \
+            --focus quest-cond-from-binary-1:0x11582570 \
+            --focus quest-cond-inner-1:0x115825D0 \
+            --focus quest-cond-from-binary-2:0x115828F0 \
+            --focus quest-cond-inner-2:0x11582950 \
+            --max-body 0x4000 | tee quest-cond-call-summary.txt
+      - name: Summarize caller owners
         run: |
-          python - <<'PY' | tee quest-candidate-native-summary.txt
-          import json, re
-          report=json.load(open('quest-candidate-call-edges.json',encoding='utf-8'))
-          for key in ('candidate-35267','candidate-48659'):
-              item=report['focus'][key]
-              print('===',key,'===')
-              print('OWNER',json.dumps(item['owner'],ensure_ascii=False))
-              print('CALLERS',item['validated_direct_caller_count'])
+          python - <<'PY' | tee quest-main-caller-summary.txt
+          import json
+
+          report = json.load(open('quest-cond-call-edges.json', encoding='utf-8'))
+          for key, item in report['focus'].items():
+              print('===', key, '===')
+              print('OWNER', json.dumps(item['owner'], ensure_ascii=False, sort_keys=True))
+              print('CALLER_COUNT', item['validated_direct_caller_count'])
               for caller in item['direct_callers']:
-                  print('CALLER',json.dumps(caller,ensure_ascii=False))
-              for row in item['direct_edges']:
-                  print('EDGE',json.dumps(row,ensure_ascii=False))
-              print('FIRST')
-              for row in item['disassembly'][:180]:
-                  print(f"{row['rva']}\t{row['mnemonic']}\t{row['op_str']}")
+                  print('CALLER', json.dumps(caller, ensure_ascii=False, sort_keys=True))
           PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
-          name: quest-obfuscated-candidate-probe
+          name: quest-main-caller-probe
           path: |
-            quest-candidate-contracts.txt
-            quest-candidate-call-edges.json
-            quest-candidate-call-summary.txt
-            quest-candidate-native-summary.txt
+            quest-metadata-search.txt
+            quest-cond-call-edges.json
+            quest-cond-call-summary.txt
+            quest-main-caller-summary.txt
           if-no-files-found: error
