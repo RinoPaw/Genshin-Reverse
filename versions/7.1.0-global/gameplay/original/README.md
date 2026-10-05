@@ -17,7 +17,7 @@ The source pin is authoritative for this archive. Do not silently refresh these 
 - `source-index.json`: inventory of all progression tables currently used or under investigation. Every entry carries its source path and Git blob SHA.
 - Future normalized projections should live outside `raw/` and state their transformation explicitly.
 
-`indexed_only` entries are still reproducible from the immutable source commit and blob identity, but have not yet been duplicated into this repository. They remain distinct from `raw_snapshot` entries.
+`indexed_only` entries are reproducible from the pinned source commit and blob identity, but have not yet been duplicated into this repository. They remain distinct from `raw_snapshot` entries.
 
 ## Provenance classes
 
@@ -39,8 +39,15 @@ The archive currently contains exact snapshots for:
 - `AvatarLevelExcelConfigData.json`
 - `PlayerLevelExcelConfigData.json`
 - `WorldLevelExcelConfigData.json`
+- `AvatarFettersLevelExcelConfigData.json`
 
-More source tables can be copied into `raw/` without changing the meaning of the archive. Their identity must match `source-index.json`.
+The Git blob SHA of every current raw snapshot has been checked against its source-table blob SHA. More source tables can be copied into `raw/` without changing the meaning of the archive. Their identity must match `source-index.json`.
+
+## Important interpretation boundaries
+
+`AvatarLevelExcelConfigData.json` ends at level 90, but its level-90 row still contains `exp: 613950`. The raw archive preserves that field exactly. Do not rewrite it to zero or infer an enabled ordinary 90 -> 91 level-up from it; the post-90 mechanism must be bound separately.
+
+`WorldLevelExcelConfigData.json` at the pinned source contains rows for WL1..9 with `monsterLevel` values `26, 34, 47, 59, 69, 80, 88, 90, 100`. WL0 is not represented by a row in this source table. Any WL0 baseline or alternate monster-level projection is derived evidence and must not be presented as the raw table.
 
 ## Design separation
 
