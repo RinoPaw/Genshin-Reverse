@@ -9,12 +9,13 @@ Status: **IN PROGRESS**. This analysis inventories progression data relevant to 
 - Primary integration resource: `RinoPaw/AstaPS-Resource@b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd`
 - Native/reverse target: the pinned 7.1 Global client under this version directory
 - Consumer: `RinoPaw/AstaPS`
+- Original-data archive: `../../../gameplay/original/`
 
-Do not treat a value as exact 7.1 native provenance merely because it is present in AstaPS-Resource. Some resource fields were restored after import. See `../artifact-generation/README.md` for the known reliquary-weight provenance boundary.
+Do not treat a value as exact 7.1 native provenance merely because it is present in AstaPS-Resource. Some resource fields were restored after import. The original-data archive preserves that distinction explicitly.
 
 ## Scope
 
-The baseline covers these progression axes:
+The baseline covers:
 
 1. character level EXP and stat growth;
 2. character ascension gates/costs;
@@ -28,13 +29,13 @@ The baseline covers these progression axes:
 10. monster level/stat growth;
 11. time-gated/resource-gated progression when a source can be bound separately.
 
-`tools/extract_growth_curves.py` copies the exact source tables and emits compact CSV projections from a checkout of the pinned AstaPS-Resource commit.
+`tools/extract_growth_curves.py` copies source tables and emits compact CSV projections from a checkout of the pinned AstaPS-Resource commit. The durable original-data identity is recorded under `versions/7.1.0-global/gameplay/original/source-index.json`.
 
 ## Current exact-resource observations
 
 ### Character levels
 
-`AvatarLevelExcelConfigData.json` contains the ordinary character EXP curve through level 90. Level 90 has zero next-level EXP.
+`AvatarLevelExcelConfigData.json` contains rows through level 90. The exact archived level-90 row still contains `exp: 613950`; therefore it is incorrect to describe the raw row itself as zero EXP. Ordinary character leveling still terminates at the normal level-90 cap in the live system, so this field must not be interpreted as proof of an enabled ordinary 90 -> 91 EXP step.
 
 `AvatarCurveExcelConfigData.json` continues stat-growth multipliers through level 100. Representative values for the standard S4/S5 HP/ATK curves are approximately:
 
@@ -49,34 +50,46 @@ The baseline covers these progression axes:
 | 95 | 8.15 |
 | 100 | 8.55 |
 
-This establishes a structural split: the ordinary EXP table stops at 90, while the stat curve extends to 100. Do not model 90 -> 100 by extending the ordinary EXP curve.
+This establishes a structural split between the ordinary 1..90 leveling table and the stat curve extending to 100. Do not model 90 -> 100 by extrapolating the ordinary EXP curve.
 
-External continuity evidence for the live 6.0+ rule says the post-90 system raises the cap directly: 90 -> 95 costs one Masterless Stella Fortuna and 95 -> 100 costs two; no ordinary Character EXP Material or Mora is consumed. This rule still needs a target-native/server-authoritative binding before promotion here.
+External continuity evidence for the live 6.0+ rule says post-90 limit raising uses Masterless Stella Fortuna: 90 -> 95 costs one and 95 -> 100 costs two, without ordinary Character EXP Material or Mora. This still needs target-native/server-authoritative binding before it can be promoted from external continuity evidence.
 
-### Adventure Rank and World Level
+### Adventure Rank
 
-`PlayerLevelExcelConfigData.json` still caps Adventure Rank at 60. Current high-level thresholds include AR55 232350, AR56 258950, AR57 285750, AR58 312825, AR59 340125 and AR60 0 next-level EXP.
+`PlayerLevelExcelConfigData.json` caps Adventure Rank at 60. Current high-level `exp` rows are:
 
-`WorldLevelExcelConfigData.json` contains world levels 0..9. Base monster levels are:
+- AR55: 232350
+- AR56: 258950
+- AR57: 285750
+- AR58: 312825
+- AR59: 340125
+- AR60: no `exp` field
 
-| WL | base monster level | monster upper limit |
-|---:|---:|---:|
-| 0 | 25 | 110 |
-| 1 | 36 | 110 |
-| 2 | 41 | 110 |
-| 3 | 50 | 110 |
-| 4 | 62 | 110 |
-| 5 | 72 | 200 |
-| 6 | 83 | 200 |
-| 7 | 91 | 200 |
-| 8 | 93 | 200 |
-| 9 | 100 | 200 |
+The same table binds World Level unlocks at AR20/25/30/35/40/45/50/55/58 for WL1..9.
 
-AR58 unlocks World Level 9 in the current table. Old WL8/level-90 baselines are stale for 7.1.
+### World Level
+
+The pinned `WorldLevelExcelConfigData.json` raw table contains WL1..9, not a WL0 row. Its exact `monsterLevel` values are:
+
+| WL | monsterLevel |
+|---:|---:|
+| 1 | 26 |
+| 2 | 34 |
+| 3 | 47 |
+| 4 | 59 |
+| 5 | 69 |
+| 6 | 80 |
+| 7 | 88 |
+| 8 | 90 |
+| 9 | 100 |
+
+WL9 also carries an unresolved obfuscated field `IDLGNALCKNN: -10`. Do not assign semantics to that field without a consumer/native binding.
+
+Earlier local projections that listed WL0 or alternate base monster levels were derived/incorrectly conflated and are superseded by the archived raw table for source-level claims.
 
 ### Friendship
 
-`AvatarFettersLevelExcelConfigData.json` is intact. `need_exp` by friendship level is:
+`AvatarFettersLevelExcelConfigData.json` is intact and archived. `need_exp` by friendship level is:
 
 `1:1000, 2:1550, 3:2050, 4:2600, 5:3175, 6:3750, 7:4350, 8:4975, 9:5650, 10:6325`.
 
@@ -92,11 +105,11 @@ The current AstaPS-Resource table contains the familiar ordinary main-stat depot
 
 Normalized candidate distributions are therefore sands 26.68/26.66/26.66/10/10%, circlet 22/22/22/10/10/10/4%, and goblet 19.25/19.25/19/2.5% plus 5% for each damage-bonus row.
 
-**Provenance warning:** these `weight` fields were restored after the 7.1 resource import. They are strong historical-continuity/integration values, not yet an exact current Global 7.1 native-field proof. `../artifact-generation/README.md` owns that investigation.
+**Provenance warning:** these `weight` fields were restored after the 7.1 resource import. They are historical-continuity/integration values, not yet exact current Global 7.1 native-field proof.
 
 ### Artifact 5-star append-stat rolls
 
-The current restored `ReliquaryAffixExcelConfigData.json`, depot `501`, has four concrete roll rows per ordinary append stat. Candidate class weights are obtained by summing the four equal per-roll `weight` values:
+The current restored `ReliquaryAffixExcelConfigData.json`, depot `501`, has four concrete roll rows per ordinary append stat. Candidate class weights in the integration table are obtained by summing equal per-roll weights:
 
 | stat class | per-roll weight | class weight | relative |
 |---|---:|---:|---:|
@@ -104,7 +117,7 @@ The current restored `ReliquaryAffixExcelConfigData.json`, depot `501`, has four
 | HP% / ATK% / DEF% / ER / EM | 100 | 400 | 4 |
 | Crit Rate / Crit DMG | 75 | 300 | 3 |
 
-All four ordinary 5-star roll tiers carry `upgradeWeight = 1000` in the restored table. The values are:
+All four ordinary 5-star roll tiers carry `upgradeWeight = 1000` in the restored table. Concrete values are:
 
 - flat HP: 209.13 / 239.00 / 268.88 / 298.75
 - flat ATK: 13.62 / 15.56 / 17.51 / 19.45
@@ -116,13 +129,13 @@ All four ordinary 5-star roll tiers carry `upgradeWeight = 1000` in the restored
 - Energy Recharge: 4.53 / 5.18 / 5.83 / 6.48%
 - Elemental Mastery: 16.32 / 18.65 / 20.98 / 23.31
 
-The same provenance warning applies: these weight fields are restored/historical-continuity evidence. The concrete roll-value rows themselves are useful exact current-resource integration data.
+The same provenance warning applies to the weight fields. Concrete roll-value rows remain useful exact current-resource integration data.
 
 ### Talents and skills
 
 `AvatarSkillExcelConfigData.json`, `AvatarSkillDepotExcelConfigData.json` and `AvatarTalentExcelConfigData.json` are populated. Skill depots still reference `proudSkillGroupId` for passive/talent groups.
 
-`ProudSkillExcelConfigData.json` exists at the pinned resource commit but is empty. Therefore the old-table path cannot be used as the 7.1 authority for talent level multipliers/costs. Current storage/authority remains to be recovered.
+`ProudSkillExcelConfigData.json` exists at the pinned resource commit but is empty. The old ProudSkill table therefore cannot be used as the 7.1 authority for talent level multipliers/costs. Current storage/authority remains to be recovered.
 
 ### Empty/moved legacy tables
 
@@ -136,16 +149,18 @@ These are migration/extraction gaps, not evidence that the gameplay systems disa
 
 ## Evidence classes
 
+- **raw-snapshot**: exact Git-blob-identical copy preserved under `gameplay/original/raw/`;
 - **observed-resource**: directly present at the pinned AstaPS-Resource commit;
 - **restored-historical**: present in the integration resource but Git history proves restoration from older evidence;
-- **external-continuity**: current live-game/community documentation useful as a cross-check, not target-native proof;
+- **external-continuity**: live-game/official/community evidence useful as a cross-check, not target-native proof;
 - **unresolved-native**: needs exact 7.1 Global schema/consumer/server binding.
 
 ## Open recovery work
 
-1. recover the current talent-level/cost authority replacing the empty ProudSkill table;
-2. recover weapon promotion authority replacing the empty WeaponPromote table;
-3. bind the 90 -> 100 limit-raise rule to target-native/protocol/server evidence;
-4. normalize artifact enhancement EXP/main-stat progression variants in ReliquaryLevel;
-5. recover the initial 3-vs-4 append-stat count rule and upgrade selection consumer rather than importing the familiar 20% rule as provenance;
-6. bind resin/reward/time gates separately; those are pacing inputs but should not be conflated with stat-growth curves.
+1. copy the remaining clean source tables into the original-data archive where practical;
+2. recover the current talent-level/cost authority replacing the empty ProudSkill table;
+3. recover weapon promotion authority replacing the empty WeaponPromote table;
+4. bind the 90 -> 100 limit-raise rule to target-native/protocol/server evidence;
+5. normalize artifact enhancement EXP/main-stat progression variants in ReliquaryLevel;
+6. recover the initial 3-vs-4 append-stat count rule and upgrade selection consumer rather than importing the familiar 20% rule as provenance;
+7. bind Resin/reward/time gates separately; those are pacing inputs but should not be conflated with stat-growth curves.
