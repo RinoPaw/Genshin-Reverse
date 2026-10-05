@@ -46,20 +46,11 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary active research orchestration
 
-The default branch currently also contains temporary exact-sample workflows created during active Quest/resource work:
+Issue #8 still has one temporary exact-sample workflow on the default branch: `probe-quest-table-assets.yml`.
 
-```text
-probe-blocks0.yml
-probe-quest-accept-loader.yml
-probe-quest-excel-metadata.yml
-probe-quest-excel-native.yml
-probe-quest-table-assets.yml
-probe-random-quest-cond.yml
-scan-7.1-field-displacements.yml
-trace-7.1-native-call-edges.yml
-```
+It reconstructs small pinned 7.1 AssetBundle block entries for the active QuestExcel storage investigation. The current handoff still depends on the hosted reconstruction artifacts from this path, so it remains `active-temporary`. It uses same-ref stale-run cancellation and must be retired as soon as the block/index relationship and required evidence become durable.
 
-These are not permanent workflow commitments. Their cleanup is tracked in issue #13. Keep a temporary workflow only while at least one active investigation still depends on unique hosted orchestration or parameters that have not yet been promoted into reusable tooling and durable evidence.
+The 2026-10-05 maintenance checkpoint retired the other one-off Quest/native probe shells after their reusable operations or exploratory parameters were preserved in generic tools, durable notes, or Git history. The classification and retained anchors are recorded under `versions/7.1.0-global/windows-x64/analyses/quest-extraction/` and issue #13.
 
 Do not add another topic-specific workflow when a local command, an existing retained workflow, or a small reusable tool can answer the same question efficiently. CI is not the default interactive reverse-engineering loop.
 
