@@ -6,6 +6,10 @@ on:
     paths:
       - ".github/workflows/probe-quest-excel-native.yml"
 
+concurrency:
+  group: probe-quest-excel-native-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
