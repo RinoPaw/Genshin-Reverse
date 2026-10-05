@@ -9,7 +9,6 @@ on:
       - "genshinre/nativeprofile.py"
       - "genshinre/typearray.py"
       - "genshinre/pe.py"
-      - "genshinre/samplefetch.py"
       - "scripts/fetch-7.1-samples.sh"
 
 concurrency:
@@ -32,44 +31,25 @@ jobs:
         run: python -m pip install -e . zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Resolve compact generic handles and find Quest owners
+      - name: Locate MetadataRegistration and inspect generic handle
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-generic-field-probe.txt
-          import csv
+          python - <<'PY' | tee quest-generic-registration-probe.txt
           import json
           import struct
-          from collections import defaultdict
           from pathlib import Path
 
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
-          from genshinre.typearray import ENTRY_SIZE, TYPE_KIND_NAMES, decode_type_entry, is_valid_type_entry
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
 
-          root = Path('versions/7.1.0-global/windows-x64/metadata')
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
-
-          def read_csv(name):
-              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
-                  return list(csv.DictReader(f))
-
-          type_rows = read_csv('types.csv')
-          field_rows = read_csv('fields.csv')
-          method_rows = read_csv('methods.csv')
-          types = {int(r['type_definition_index']): r for r in type_rows}
-          fields_by_type = defaultdict(list)
-          methods_by_type = defaultdict(list)
-          for row in field_rows:
-              fields_by_type[int(row['type_definition_index'])].append(row)
-          for row in method_rows:
-              methods_by_type[int(row['type_definition_index'])].append(row)
-
-          target_types = {54128: 'QuestCond', 21416: 'QuestContent', 71568: 'QuestExec'}
+          known_runtime_index = 476756
+          known_generic_handle = 0x12F8
 
           with PEImage(exe) as image:
               base = image.image_base
-              src = PROFILE_71.type_array_pointer_rva
 
               def read_rva(rva, size):
                   data = image.read_rva(rva, size)
@@ -88,252 +68,97 @@ jobs:
               def qword_va(va):
                   return struct.unpack('<Q', read_va(va, 8))[0]
 
-              print('=== METADATA REGISTRATION NEIGHBORHOOD ===')
+              types_va = qword_rva(PROFILE_71.type_array_pointer_rva)
+              types_count = PROFILE_71.runtime_type_count
+              needle = struct.pack('<QQ', types_count, types_va)
+              sites = []
+              for section in image.sections:
+                  blob = image.read_rva(section.virtual_address, section.raw_size)
+                  start = 0
+                  while True:
+                      pos = blob.find(needle, start)
+                      if pos < 0:
+                          break
+                      sites.append((section.name, section.virtual_address + pos))
+                      start = pos + 1
+
+              print('types_count=', types_count)
+              print('types_va=', hex(types_va), 'types_rva=', hex(types_va - base))
+              print('registration_type_pair_sites=', [(name, hex(rva)) for name, rva in sites])
+              if len(sites) != 1:
+                  raise SystemExit(f'expected exactly one MetadataRegistration type pair, got {len(sites)}')
+
+              section_name, types_pair_rva = sites[0]
+              registration_rva = types_pair_rva - 0x30
+              print('registration_section=', section_name)
+              print('registration_rva=', hex(registration_rva), 'registration_va=', hex(base + registration_rva))
+
+              labels = [
+                  ('genericClassesCount', 0x00),
+                  ('genericClasses', 0x08),
+                  ('genericInstsCount', 0x10),
+                  ('genericInsts', 0x18),
+                  ('genericMethodTableCount', 0x20),
+                  ('genericMethodTable', 0x28),
+                  ('typesCount', 0x30),
+                  ('types', 0x38),
+                  ('methodSpecsCount', 0x40),
+                  ('methodSpecs', 0x48),
+                  ('fieldOffsetsCount', 0x50),
+                  ('fieldOffsets', 0x58),
+                  ('typeDefinitionsSizesCount', 0x60),
+                  ('typeDefinitionsSizes', 0x68),
+                  ('metadataUsagesCount', 0x70),
+                  ('metadataUsages', 0x78),
+              ]
               registration = {}
-              for delta in range(-0x40, 0x51, 8):
-                  value = qword_rva(src + delta)
-                  registration[f'{delta:+#x}'] = value
-                  suffix = ''
-                  if value >= base:
-                      suffix = f' rva=0x{value-base:X}'
-                  print(f'{delta:+#x} 0x{value:X}{suffix}')
+              for label, off in labels:
+                  value = qword_rva(registration_rva + off)
+                  registration[label] = value
+                  suffix = f' rva=0x{value-base:X}' if value >= base else ''
+                  print(f'{label:28s} 0x{value:X}{suffix}')
 
-              types_count = registration['-0x8']
-              types_va = registration['+0x0']
-              if types_count != PROFILE_71.runtime_type_count:
-                  raise SystemExit(f'metadata registration layout mismatch: types_count={types_count}')
+              if registration['typesCount'] != types_count or registration['types'] != types_va:
+                  raise SystemExit('MetadataRegistration standard pair layout did not validate')
 
-              generic_classes_count = registration['-0x38']
-              generic_classes_va = registration['-0x30']
-              generic_insts_count = registration['-0x28']
-              generic_insts_va = registration['-0x20']
-              print('generic_classes_count=', generic_classes_count, 'generic_classes_va=', hex(generic_classes_va))
-              print('generic_insts_count=', generic_insts_count, 'generic_insts_va=', hex(generic_insts_va))
-              if not (0 < generic_classes_count < 10_000_000 and generic_classes_va >= base):
-                  raise SystemExit('invalid genericClasses registration pair')
-              if not (0 < generic_insts_count < 10_000_000 and generic_insts_va >= base):
-                  raise SystemExit('invalid genericInsts registration pair')
+              type_entry = read_va(types_va + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
+              if not is_valid_type_entry(type_entry):
+                  raise SystemExit('known List<uint> runtime type entry is invalid')
+              decoded = decode_type_entry(type_entry)
+              data_u64 = int.from_bytes(type_entry[:8], 'little')
+              print('known_runtime_type=', {
+                  'index': known_runtime_index,
+                  'kind': decoded['kind_name'],
+                  'data_u64': hex(data_u64),
+              })
+              if decoded['kind'] != 0x15 or data_u64 != known_generic_handle:
+                  raise SystemExit('known List<uint> compact generic handle drifted')
 
-              type_array_rva = types_va - base
+              evidence = {'registration': registration, 'handle': known_generic_handle, 'views': {}}
+              for table_name, count_name in (('genericClasses', 'genericClassesCount'), ('genericInsts', 'genericInstsCount')):
+                  table_va = registration[table_name]
+                  count = registration[count_name]
+                  view = {'count': count, 'table_va': hex(table_va)}
+                  if 0 <= known_generic_handle < count and table_va >= base:
+                      entry_va = qword_va(table_va + known_generic_handle * 8)
+                      view['entry_va'] = hex(entry_va)
+                      if entry_va >= base:
+                          raw = read_va(entry_va, 64)
+                          view['raw64'] = raw.hex()
+                          view['qwords'] = [hex(x) for x in struct.unpack('<8Q', raw)]
+                  evidence['views'][table_name] = view
+                  print(table_name, json.dumps(view, sort_keys=True))
 
-              def runtime_entry(index):
-                  if not (0 <= index < PROFILE_71.runtime_type_count):
-                      raise ValueError(f'runtime type index out of range: {index}')
-                  entry = read_rva(type_array_rva + index * ENTRY_SIZE, ENTRY_SIZE)
-                  if not is_valid_type_entry(entry):
-                      raise ValueError(f'invalid runtime Il2CppType {index}')
-                  return entry
-
-              type_ptr_cache = {}
-              generic_cache = {}
-              runtime_cache = {}
-              resolving_generic = set()
-
-              def direct(entry):
-                  decoded = decode_type_entry(entry)
-                  kind = int(decoded['kind'])
-                  data_u64 = int.from_bytes(entry[:8], 'little')
-                  out = {
-                      'kind': TYPE_KIND_NAMES.get(kind, f'kind_0x{kind:02X}'),
-                      'kind_value': kind,
-                      'data_u64': f'0x{data_u64:X}',
-                  }
-                  if kind in (0x11, 0x12):
-                      tdi = int(decoded['data_u32'])
-                      row = types.get(tdi)
-                      if row is not None:
-                          out['type_definition_index'] = tdi
-                          out['type_name'] = row.get('type_name', '')
-                          out['namespace'] = row.get('namespace', '')
-                  return out
-
-              def describe_type_ptr(va, depth=0):
-                  if va in type_ptr_cache:
-                      return type_ptr_cache[va]
-                  entry = read_va(va, ENTRY_SIZE)
-                  if not is_valid_type_entry(entry):
-                      raise ValueError(f'invalid Il2CppType* 0x{va:X}')
-                  out = describe_entry(entry, depth)
-                  type_ptr_cache[va] = out
-                  return out
-
-              def describe_generic(handle, depth=0):
-                  if handle in generic_cache:
-                      return generic_cache[handle]
-                  if handle in resolving_generic:
-                      return {'handle': handle, 'recursive': True}
-                  if not (0 <= handle < generic_classes_count):
-                      raise ValueError(f'generic handle {handle} outside genericClassesCount={generic_classes_count}')
-                  resolving_generic.add(handle)
-                  try:
-                      generic_class_va = qword_va(generic_classes_va + handle * 8)
-                      blob = read_va(generic_class_va, 32)
-                      definition_type_va, class_inst_va, method_inst_va, cached_class_va = struct.unpack('<QQQQ', blob)
-                      out = {
-                          'handle': handle,
-                          'generic_class_va': f'0x{generic_class_va:X}',
-                          'definition_type_va': f'0x{definition_type_va:X}',
-                          'class_inst_va': f'0x{class_inst_va:X}',
-                          'method_inst_va': f'0x{method_inst_va:X}',
-                          'cached_class_va': f'0x{cached_class_va:X}',
-                      }
-                      if definition_type_va:
-                          out['definition'] = describe_type_ptr(definition_type_va, depth + 1)
-                      if class_inst_va:
-                          inst = read_va(class_inst_va, 16)
-                          argc = struct.unpack_from('<I', inst, 0)[0]
-                          argv_va = struct.unpack_from('<Q', inst, 8)[0]
-                          if not (0 < argc <= 16):
-                              raise ValueError(f'generic handle {handle} has implausible argc={argc}')
-                          args = []
-                          argv = read_va(argv_va, argc * 8)
-                          for i in range(argc):
-                              arg_va = struct.unpack_from('<Q', argv, i * 8)[0]
-                              args.append(describe_type_ptr(arg_va, depth + 1))
-                          out['argument_count'] = argc
-                          out['arguments'] = args
-                      generic_cache[handle] = out
-                      return out
-                  finally:
-                      resolving_generic.discard(handle)
-
-              def describe_entry(entry, depth=0):
-                  out = direct(entry)
-                  if depth >= 6:
-                      out['truncated'] = True
-                      return out
-                  kind = out['kind_value']
-                  data_u64 = int(out['data_u64'], 0)
-                  if kind == 0x1D:
-                      out['element'] = describe_type_ptr(data_u64, depth + 1)
-                  elif kind == 0x15:
-                      out['generic'] = describe_generic(data_u64, depth + 1)
-                  return out
-
-              def describe_runtime(index):
-                  if index not in runtime_cache:
-                      runtime_cache[index] = describe_entry(runtime_entry(index))
-                  return runtime_cache[index]
-
-              # Known client anchor: TalkExcelConfig._nextValidTalkList is List<uint>.
-              talk_tdi = 50151
-              talk_field = next((r for r in fields_by_type[talk_tdi] if r.get('field_name') == '_nextValidTalkList'), None)
-              if talk_field is None:
-                  raise SystemExit('TalkExcelConfig._nextValidTalkList calibration field missing')
-              talk_index = int(talk_field['field_type_index'])
-              talk_desc = describe_runtime(talk_index)
-              print('=== GENERIC HANDLE CALIBRATION ===')
-              print('TalkExcelConfig._nextValidTalkList', talk_index, json.dumps(talk_desc, ensure_ascii=False, sort_keys=True))
-              generic = talk_desc.get('generic') or {}
-              args = generic.get('arguments') or []
-              if talk_desc.get('kind') != 'genericinst' or len(args) != 1 or args[0].get('kind') != 'u4':
-                  raise SystemExit('compact genericClasses handle calibration failed for List<uint>')
-
-              def referenced_tdis(desc):
-                  out = set()
-                  tdi = desc.get('type_definition_index')
-                  if tdi is not None:
-                      out.add(int(tdi))
-                  elem = desc.get('element')
-                  if isinstance(elem, dict):
-                      out.update(referenced_tdis(elem))
-                  gen = desc.get('generic') or {}
-                  definition = gen.get('definition')
-                  if isinstance(definition, dict):
-                      out.update(referenced_tdis(definition))
-                  for arg in gen.get('arguments') or []:
-                      out.update(referenced_tdis(arg))
-                  return out
-
-              print('=== QUEST CHILD TYPE FIELD USERS ===')
-              matches = []
-              owner_hits = defaultdict(list)
-              for row in field_rows:
-                  raw = row.get('field_type_index')
-                  if not raw:
-                      continue
-                  index = int(raw)
-                  try:
-                      desc = describe_runtime(index)
-                  except (OSError, ValueError, struct.error):
-                      continue
-                  hits = sorted(referenced_tdis(desc).intersection(target_types))
-                  if not hits:
-                      continue
-                  owner_tdi = int(row['type_definition_index'])
-                  item = {
-                      'owner_tdi': owner_tdi,
-                      'owner_type': types.get(owner_tdi, {}),
-                      'field_index': row.get('field_index', ''),
-                      'field_name': row.get('field_name', ''),
-                      'field_type': row.get('field_type', ''),
-                      'field_type_index': index,
-                      'target_types': [{'tdi': tdi, 'name': target_types[tdi]} for tdi in hits],
-                      'decoded_type': desc,
-                  }
-                  matches.append(item)
-                  owner_hits[owner_tdi].append(item)
-                  print(json.dumps(item, ensure_ascii=False, sort_keys=True))
-
-              ranked = []
-              for owner_tdi, items in owner_hits.items():
-                  families = sorted({hit['name'] for item in items for hit in item['target_types']})
-                  fields = fields_by_type[owner_tdi]
-                  binary_methods = [r for r in methods_by_type[owner_tdi] if 'Binary' in (r.get('method_name') or '')]
-                  score = 100 * len(families) + min(len(fields), 80) + 20 * bool(binary_methods)
-                  ranked.append((score, owner_tdi, families, fields, binary_methods, items))
-              ranked.sort(reverse=True, key=lambda x: x[0])
-
-              print('=== RANKED QUEST OWNER CANDIDATES ===')
-              candidates = []
-              for score, owner_tdi, families, fields, binary_methods, items in ranked[:30]:
-                  candidate = {
-                      'score': score,
-                      'type_definition_index': owner_tdi,
-                      'type': types.get(owner_tdi, {}),
-                      'families': families,
-                      'field_count': len(fields),
-                      'matched_fields': [{
-                          'field_index': x['field_index'],
-                          'field_name': x['field_name'],
-                          'field_type': x['field_type'],
-                          'field_type_index': x['field_type_index'],
-                          'target_types': x['target_types'],
-                      } for x in items],
-                      'binary_methods': binary_methods,
-                  }
-                  candidates.append(candidate)
-                  print(json.dumps(candidate, ensure_ascii=False, sort_keys=True))
-
-              Path('quest-generic-field-users.json').write_text(
-                  json.dumps({'registration': registration, 'matches': matches, 'candidates': candidates}, ensure_ascii=False, indent=2) + '\n',
-                  encoding='utf-8',
+              Path('quest-generic-registration.json').write_text(
+                  json.dumps(evidence, indent=2, sort_keys=True) + '\n', encoding='utf-8'
               )
-              strong = [x for x in ranked if {'QuestCond', 'QuestContent'}.issubset(set(x[2]))]
-              if not strong:
-                  raise SystemExit('no field owner references both QuestCond and QuestContent')
-              score, owner_tdi, families, fields, binary_methods, items = strong[0]
-              selected = {
-                  'score': score,
-                  'type_definition_index': owner_tdi,
-                  'type': types.get(owner_tdi, {}),
-                  'families': families,
-                  'field_count': len(fields),
-                  'fields': fields,
-                  'binary_methods': binary_methods,
-                  'matched_fields': items,
-              }
-              Path('selected-quest-row.json').write_text(json.dumps(selected, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-              print('=== SELECTED MAIN QUEST ROW ===')
-              print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
           PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-main-generic-field-types
+          name: quest-generic-registration
           path: |
-            quest-generic-field-probe.txt
-            quest-generic-field-users.json
-            selected-quest-row.json
+            quest-generic-registration-probe.txt
+            quest-generic-registration.json
           if-no-files-found: warn
