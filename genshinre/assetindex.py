@@ -21,27 +21,33 @@ class AssetNameHash:
 
 
 @dataclass(frozen=True)
-class AssetLocation:
+class AssetBlockRef:
     asset_id: int
     block_id: int
-    offset: int
-    size: int
+    unknown0: int
+    unknown1: int
 
 
 @dataclass(frozen=True)
 class AssetIndex:
     names: tuple[AssetNameHash, ...]
     block_groups: dict[int, int]
-    locations: tuple[AssetLocation, ...]
+    block_refs: tuple[AssetBlockRef, ...]
     sort_list: tuple[int, ...]
+
+    def name_for_hash(self, value: int) -> AssetNameHash:
+        matches = [item for item in self.names if item.value == value]
+        if len(matches) != 1:
+            raise KeyError(f"expected one name record for hash 0x{value:010X}, got {len(matches)}")
+        return matches[0]
 
     def names_for_sub_asset(self, sub_asset_id: int) -> tuple[AssetNameHash, ...]:
         return tuple(item for item in self.names if item.sub_asset_id == sub_asset_id)
 
-    def location_for_asset(self, asset_id: int) -> AssetLocation:
-        matches = [item for item in self.locations if item.asset_id == asset_id]
+    def block_ref_for_asset(self, asset_id: int) -> AssetBlockRef:
+        matches = [item for item in self.block_refs if item.asset_id == asset_id]
         if len(matches) != 1:
-            raise KeyError(f"expected one location for asset {asset_id}, got {len(matches)}")
+            raise KeyError(f"expected one block reference for asset {asset_id}, got {len(matches)}")
         return matches[0]
 
 
@@ -98,11 +104,13 @@ def mihoyo_name_hash(path: str, type_suffix: str = ".MiHoYoBinData") -> int:
 
 
 def parse_asset_index(data: bytes, *, raw_export: bool = True) -> AssetIndex:
-    """Parse the 7.1 AssetBundle asset-index payload.
+    """Parse the observed Genshin 7.1 AssetBundle asset-index payload.
 
-    The current layout is the Dedicatus545/YSAssetIdx family with two observed
-    7.1 changes: two u32 dependency-header words and a size u32 in each asset
-    location record. Block-group entries remain six bytes (u32 id + u16 flags).
+    The layout remains close to the Dedicatus545/YSAssetIdx family. Genshin 7.1
+    adds a second u32 after the dependency count and stores two trailing u32s in
+    every asset-to-block record. Their meaning is still unknown; the observed
+    7.1 design index has both words set to zero for all 536 records, so they must
+    not be treated as byte offsets or sizes without further evidence.
     """
     payload = unwrap_mihoyo_bin_data(data) if raw_export else data
     reader = _Reader(payload)
@@ -155,15 +163,15 @@ def parse_asset_index(data: bytes, *, raw_export: bool = True) -> AssetIndex:
             block_groups[block_id] = group_id
 
     block_info_count = reader.u32()
-    locations: list[AssetLocation] = []
+    block_refs: list[AssetBlockRef] = []
     for _ in range(block_info_count):
         block_id = reader.u32()
-        location_count = reader.u32()
-        for _ in range(location_count):
+        ref_count = reader.u32()
+        for _ in range(ref_count):
             asset_id = reader.u32()
-            offset = reader.u32()
-            size = reader.u32()
-            locations.append(AssetLocation(asset_id, block_id, offset, size))
+            unknown0 = reader.u32()
+            unknown1 = reader.u32()
+            block_refs.append(AssetBlockRef(asset_id, block_id, unknown0, unknown1))
 
     sort_count = reader.u32()
     sort_list = tuple(reader.u32() for _ in range(sort_count))
@@ -173,4 +181,4 @@ def parse_asset_index(data: bytes, *, raw_export: bool = True) -> AssetIndex:
             f"at 0x{reader.pos:x}"
         )
 
-    return AssetIndex(tuple(names), block_groups, tuple(locations), sort_list)
+    return AssetIndex(tuple(names), block_groups, tuple(block_refs), sort_list)
