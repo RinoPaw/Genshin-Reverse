@@ -19,6 +19,8 @@ The Python compile pass intentionally does not import optional research dependen
 
 Markdown-only and issue-template-only changes skip this workflow. CI has read-only repository contents permission, uses per-ref concurrency with `cancel-in-progress: true`, and must not download the full game client, decode full metadata, scan the executable, or run packet-specific investigations.
 
+`tests/test_workflow_policy.py` keeps the workflow surface fail-closed: every retained workflow must be listed in this document, every workflow must declare explicit top-level permissions, push-triggered workflows must cancel stale runs, and `generate-7.1-data.yml` is the only workflow allowed to request repository contents write permission. This is a cheap repository-structure test and does not invoke GitHub Actions or exact-client work itself.
+
 ## `generate-7.1-data.yml`
 
 This is the only canonical exact-sample generation workflow for the current 7.1 Global Windows x64 target.
