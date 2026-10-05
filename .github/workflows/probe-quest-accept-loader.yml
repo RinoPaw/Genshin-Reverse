@@ -6,6 +6,10 @@ on:
     paths:
       - ".github/workflows/probe-quest-accept-loader.yml"
 
+concurrency:
+  group: probe-quest-accept-loader-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
