@@ -9,7 +9,6 @@ on:
       - "genshinre/nativeprofile.py"
       - "genshinre/typearray.py"
       - "genshinre/pe.py"
-      - "genshinre/xrefs.py"
       - "scripts/fetch-7.1-samples.sh"
 
 concurrency:
@@ -32,30 +31,54 @@ jobs:
         run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Trace compact generic table owner initialization
+      - name: Recover compact generic source pair and resolver target
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-generic-owner-xrefs.txt
+          python - <<'PY' | tee quest-generic-source-probe.txt
+          import csv
           import json
+          import struct
           from pathlib import Path
 
           from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_MEM, X86_REG_RIP
 
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
           from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
-          from genshinre.xrefs import scan_rip_xrefs
 
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
-          generic_owner_slot_rva = 0x5AD4E98
-          type_base_slot_rva = 0x5AD4E90
-          resolver_rva = 0x51CD50
+          metadata_root = Path('versions/7.1.0-global/windows-x64/metadata')
+
           known_runtime_index = 476756
           known_generic_handle = 0x12F8
+          generic_table_slot_rva = 0x5AD4E98
+          builder_anchor_rva = 0x5357AB
+          resolver_stub_rva = 0x51CD50
+          consumer_rva = 0x4C853D
+
+          source_seed_load_rva = 0x53575D
+          source_base_add_rva = 0x535772
+          type_owner_load_rva = 0x5357E3
+          source_delta_bias = 0x85BF6C9F
+
+          with (metadata_root / 'types.csv').open('r', encoding='utf-8-sig', newline='') as f:
+              type_names = {
+                  int(row['type_definition_index']): {
+                      'type_definition_index': int(row['type_definition_index']),
+                      'type_name': row.get('type_name', ''),
+                      'namespace': row.get('namespace', ''),
+                  }
+                  for row in csv.DictReader(f)
+              }
 
           md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = False
+          md.detail = True
+
+          def signed32(value):
+              value &= 0xFFFFFFFF
+              return value if value < 0x80000000 else value - 0x100000000
 
           with PEImage(exe) as image:
               base = image.image_base
@@ -66,68 +89,205 @@ jobs:
                       raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
                   return data
 
-              types_va = int.from_bytes(read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little')
-              entry = read_rva(types_va - base + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
-              if not is_valid_type_entry(entry):
+              def read_va(va, size):
+                  if va < base:
+                      raise ValueError(f'not image VA: 0x{va:X}')
+                  return read_rva(va - base, size)
+
+              def qword_rva(rva):
+                  return struct.unpack('<Q', read_rva(rva, 8))[0]
+
+              def qword_va(va):
+                  return struct.unpack('<Q', read_va(va, 8))[0]
+
+              def dword_va(va):
+                  return struct.unpack('<I', read_va(va, 4))[0]
+
+              def rip_targets(insn):
+                  result = []
+                  for operand in insn.operands:
+                      if operand.type == X86_OP_MEM and operand.mem.base == X86_REG_RIP:
+                          target_va = insn.address + insn.size + operand.mem.disp
+                          result.append(target_va - base)
+                  return result
+
+              def disassemble(start_rva, size):
+                  blob = read_rva(start_rva, size)
+                  return list(md.disasm(blob, base + start_rva))
+
+              def line(insn):
+                  return (
+                      f'0x{insn.address-base:09X}: {insn.bytes.hex():<24} '
+                      f'{insn.mnemonic:<8} {insn.op_str}'
+                  )
+
+              def nearest_cc_function_start(target_rva, lookback=0x2000):
+                  start = max(0, target_rva - lookback)
+                  blob = read_rva(start, target_rva - start)
+                  last = None
+                  cursor = 0
+                  while True:
+                      pos = blob.find(b'\xCC' * 8, cursor)
+                      if pos < 0:
+                          break
+                      end = pos + 8
+                      while end < len(blob) and blob[end] == 0xCC:
+                          end += 1
+                      candidate = start + end
+                      if candidate < target_rva:
+                          last = candidate
+                      cursor = end
+                  return last
+
+              def describe_runtime_type(index):
+                  if not (0 <= index < PROFILE_71.runtime_type_count):
+                      return {'index': index, 'status': 'outside-runtime-type-array'}
+                  types_va = qword_rva(PROFILE_71.type_array_pointer_rva)
+                  entry = read_va(types_va + index * ENTRY_SIZE, ENTRY_SIZE)
+                  if not is_valid_type_entry(entry):
+                      return {'index': index, 'status': 'invalid-runtime-type-entry'}
+                  decoded = decode_type_entry(entry)
+                  result = {
+                      'index': index,
+                      'kind': decoded['kind_name'],
+                      'data_u64': hex(int.from_bytes(entry[:8], 'little')),
+                  }
+                  if decoded['kind'] in (0x11, 0x12):
+                      definition = int(decoded['data_u32'])
+                      result['type_definition'] = type_names.get(definition, {'type_definition_index': definition})
+                  return result
+
+              types_va = qword_rva(PROFILE_71.type_array_pointer_rva)
+              known_entry = read_va(types_va + known_runtime_index * ENTRY_SIZE, ENTRY_SIZE)
+              if not is_valid_type_entry(known_entry):
                   raise SystemExit('known generic runtime type entry invalid')
-              decoded = decode_type_entry(entry)
-              handle = int.from_bytes(entry[:8], 'little')
-              print('known_runtime_type=', {'index': known_runtime_index, 'kind': decoded['kind_name'], 'handle': hex(handle)})
-              if decoded['kind'] != 0x15 or handle != known_generic_handle:
+              known_decoded = decode_type_entry(known_entry)
+              handle = int.from_bytes(known_entry[:8], 'little')
+              if known_decoded['kind'] != 0x15 or handle != known_generic_handle:
                   raise SystemExit('List<uint> generic handle drifted')
+              print('known_runtime_type=', {
+                  'index': known_runtime_index,
+                  'kind': known_decoded['kind_name'],
+                  'handle': hex(handle),
+              })
 
-              targets = [generic_owner_slot_rva, type_base_slot_rva]
-              scan = scan_rip_xrefs(exe, targets, window=128)
-              print('=== SLOT XREF SUMMARY ===')
-              print(json.dumps(scan['matches'], indent=2))
-              if not any(scan['matches'].values()):
-                  raise SystemExit('no direct code xrefs to compact generic owner slots')
-
-              print('=== SLOT XREF WINDOWS ===')
-              windows = []
-              seen = set()
-              for target, rows in scan['matches'].items():
-                  for row in rows:
-                      rva = int(row['instruction_rva'], 0)
-                      if rva in seen:
-                          continue
-                      seen.add(rva)
-                      start = max(0, rva - 112)
-                      blob = read_rva(start, 320)
-                      print(f'--- xref RVA 0x{rva:X} target {target} ---')
-                      lines = []
-                      for insn in md.disasm(blob, base + start):
-                          irva = insn.address - base
-                          marker = ' <==' if irva == rva else ''
-                          text = f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}'
-                          print(text)
-                          lines.append(text)
-                      windows.append({'target': target, 'xref_rva': hex(rva), 'lines': lines})
-
-              print('=== TYPE RESOLVER 0x51CD50 ===')
-              start = resolver_rva - 0x40
-              blob = read_rva(start, 0x300)
-              resolver_lines = []
-              for insn in md.disasm(blob, base + start):
+              builder_start = nearest_cc_function_start(builder_anchor_rva)
+              if builder_start is None:
+                  raise SystemExit('could not find a padded function boundary before compact-generic builder')
+              builder_end = builder_anchor_rva + 0x220
+              builder_insns = disassemble(builder_start, builder_end - builder_start)
+              by_rva = {insn.address - base: insn for insn in builder_insns}
+              print(f'=== COMPACT GENERIC BUILDER 0x{builder_start:X}..0x{builder_end:X} ===')
+              for insn in builder_insns:
                   irva = insn.address - base
-                  marker = ' <==' if irva == resolver_rva else ''
-                  text = f'0x{irva:09X}: {insn.bytes.hex():<24} {insn.mnemonic:<8} {insn.op_str}{marker}'
+                  if (
+                      irva >= builder_anchor_rva - 0x300
+                      or '0x2c0' in insn.op_str.lower()
+                      or '0x2b8' in insn.op_str.lower()
+                      or generic_table_slot_rva in rip_targets(insn)
+                  ):
+                      print(line(insn))
+
+              required = [source_seed_load_rva, source_base_add_rva, type_owner_load_rva]
+              missing = [hex(rva) for rva in required if rva not in by_rva]
+              if missing:
+                  raise SystemExit(f'expected compact-generic builder instructions missing: {missing}')
+
+              source_seed_global_rva = rip_targets(by_rva[source_seed_load_rva])[0]
+              source_base_global_rva = rip_targets(by_rva[source_base_add_rva])[0]
+              type_owner_global_rva = rip_targets(by_rva[type_owner_load_rva])[0]
+              print('builder_rip_targets=', {
+                  'source_seed_global_rva': hex(source_seed_global_rva),
+                  'source_base_global_rva': hex(source_base_global_rva),
+                  'type_owner_global_rva': hex(type_owner_global_rva),
+              })
+
+              source_evidence = {
+                  'source_seed_global_rva': hex(source_seed_global_rva),
+                  'source_base_global_rva': hex(source_base_global_rva),
+                  'type_owner_global_rva': hex(type_owner_global_rva),
+              }
+              pair = None
+              try:
+                  seed_owner_va = qword_rva(source_seed_global_rva)
+                  seed_word = dword_va(seed_owner_va + 0x1F8)
+                  source_delta = signed32(source_delta_bias + seed_word)
+                  source_base_va = qword_rva(source_base_global_rva)
+                  source_va = source_base_va + source_delta
+                  pair_va = source_va + handle * 8
+                  first, second = struct.unpack('<II', read_va(pair_va, 8))
+                  pair = {
+                      'handle': handle,
+                      'pair_va': hex(pair_va),
+                      'first_u32': first,
+                      'second_u32': second,
+                      'first_as_runtime_type': describe_runtime_type(first),
+                      'second_as_runtime_type': describe_runtime_type(second),
+                      'second_as_type_definition': type_names.get(second),
+                  }
+                  source_evidence.update({
+                      'seed_owner_va': hex(seed_owner_va),
+                      'seed_word_at_plus_0x1f8': hex(seed_word),
+                      'source_delta_signed': source_delta,
+                      'source_base_va': hex(source_base_va),
+                      'source_va': hex(source_va),
+                      'known_handle_pair': pair,
+                  })
+                  print('known_handle_source_pair=', json.dumps(pair, ensure_ascii=False, sort_keys=True))
+              except Exception as exc:
+                  source_evidence['static_source_recovery_error'] = f'{type(exc).__name__}: {exc}'
+                  print('static_source_recovery_error=', source_evidence['static_source_recovery_error'])
+
+              print('=== GENERIC TYPE CONSUMER ===')
+              consumer_insns = disassemble(consumer_rva, 0x60)
+              for insn in consumer_insns:
+                  print(line(insn))
+              consumer_slot_refs = [
+                  hex(target)
+                  for insn in consumer_insns
+                  for target in rip_targets(insn)
+                  if target == generic_table_slot_rva
+              ]
+              if not consumer_slot_refs:
+                  raise SystemExit('generic type consumer no longer references compact generic table slot')
+
+              stub = read_rva(resolver_stub_rva, 16)
+              resolver_target_rva = None
+              if stub[0] == 0xE9:
+                  rel = struct.unpack_from('<i', stub, 1)[0]
+                  resolver_target_rva = resolver_stub_rva + 5 + rel
+              if resolver_target_rva is None:
+                  raise SystemExit('type resolver is no longer an E9 trampoline')
+              print('resolver_stub=', {
+                  'rva': hex(resolver_stub_rva),
+                  'bytes': stub.hex(),
+                  'target_rva': hex(resolver_target_rva),
+              })
+
+              print(f'=== RESOLVER TARGET 0x{resolver_target_rva:X} ===')
+              resolver_insns = disassemble(resolver_target_rva, 0x400)
+              resolver_lines = []
+              for insn in resolver_insns:
+                  text = line(insn)
                   print(text)
                   resolver_lines.append(text)
+                  if insn.mnemonic == 'ret' and len(resolver_lines) >= 8:
+                      break
 
-              Path('quest-generic-owner-xrefs.json').write_text(
-                  json.dumps({
-                      'known_runtime_index': known_runtime_index,
-                      'known_generic_handle': handle,
-                      'slots': {
-                          'type_base': hex(type_base_slot_rva),
-                          'generic_owner': hex(generic_owner_slot_rva),
-                      },
-                      'xrefs': scan['matches'],
-                      'windows': windows,
-                      'resolver_rva': hex(resolver_rva),
-                      'resolver_lines': resolver_lines,
-                  }, indent=2) + '\n',
+              evidence = {
+                  'known_runtime_index': known_runtime_index,
+                  'known_generic_handle': handle,
+                  'generic_table_slot_rva': hex(generic_table_slot_rva),
+                  'builder_anchor_rva': hex(builder_anchor_rva),
+                  'builder_function_start_rva': hex(builder_start),
+                  'source': source_evidence,
+                  'consumer_rva': hex(consumer_rva),
+                  'resolver_stub_rva': hex(resolver_stub_rva),
+                  'resolver_target_rva': hex(resolver_target_rva),
+                  'resolver_lines': resolver_lines,
+              }
+              Path('quest-generic-source-probe.json').write_text(
+                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
                   encoding='utf-8',
               )
           PY
@@ -135,8 +295,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-generic-owner-xrefs
+          name: quest-generic-source-probe
           path: |
-            quest-generic-owner-xrefs.txt
-            quest-generic-owner-xrefs.json
+            quest-generic-source-probe.txt
+            quest-generic-source-probe.json
           if-no-files-found: warn
