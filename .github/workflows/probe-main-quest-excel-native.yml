@@ -7,7 +7,6 @@ on:
     paths:
       - ".github/workflows/probe-main-quest-excel-native.yml"
       - "genshinre/nativeprofile.py"
-      - "genshinre/typearray.py"
       - "genshinre/pe.py"
       - "genshinre/samplefetch.py"
       - "scripts/fetch-7.1-samples.sh"
@@ -29,207 +28,239 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install focused research dependencies
-        run: python -m pip install -e . zstandard
+        run: python -m pip install -e . capstone zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Resolve array element types and rank main Quest row
+      - name: Find main Quest row from child FromBinaryInner calls
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-array-signature.txt
-          import csv, json
-          from collections import Counter, defaultdict
+          python - <<'PY' | tee quest-child-caller-probe.txt
+          import bisect
+          import csv
+          import json
+          import struct
+          from collections import defaultdict
           from pathlib import Path
 
-          from genshinre.nativeprofile import PROFILE_71
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86 import X86_OP_IMM
+
           from genshinre.pe import PEImage
-          from genshinre.typearray import ENTRY_SIZE, TYPE_KIND_NAMES, decode_type_entry, is_valid_type_entry
 
           root = Path('versions/7.1.0-global/windows-x64/metadata')
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
 
-          def read(name):
+          def read_csv(name):
               with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
                   return list(csv.DictReader(f))
 
-          types_rows = read('types.csv')
-          field_rows = read('fields.csv')
-          method_rows = read('methods.csv')
-          types = {int(r['type_definition_index']): r for r in types_rows}
+          type_rows = read_csv('types.csv')
+          field_rows = read_csv('fields.csv')
+          method_rows = read_csv('methods.csv')
+          types = {int(r['type_definition_index']): r for r in type_rows}
           fields_by_type = defaultdict(list)
           methods_by_type = defaultdict(list)
+          methods_by_rva = defaultdict(list)
           for row in field_rows:
               fields_by_type[int(row['type_definition_index'])].append(row)
           for row in method_rows:
-              methods_by_type[int(row['type_definition_index'])].append(row)
+              tdi = int(row['type_definition_index'])
+              methods_by_type[tdi].append(row)
+              raw = row.get('rva') or ''
+              if raw:
+                  try:
+                      rva = int(raw, 0)
+                  except ValueError:
+                      continue
+                  if rva > 0:
+                      methods_by_rva[rva].append(row)
+
+          starts = sorted(methods_by_rva)
+
+          def compact_method(row):
+              return {
+                  'method_index': row.get('method_index', ''),
+                  'type_definition_index': row.get('type_definition_index', ''),
+                  'type_name': row.get('type_name', ''),
+                  'method_name': row.get('method_name', ''),
+                  'parameter_count': row.get('parameter_count', ''),
+                  'parameter_types': row.get('parameter_types', ''),
+                  'rva': row.get('rva', ''),
+              }
+
+          def owner_start_for(rva):
+              i = bisect.bisect_right(starts, rva) - 1
+              if i < 0:
+                  return None
+              start = starts[i]
+              end = starts[i + 1] if i + 1 < len(starts) else start + 0x10000
+              if start <= rva < end:
+                  return start
+              return None
+
+          child_types = {
+              'QuestCond': 54128,
+              'QuestContent': 21416,
+              'QuestExec': 71568,
+          }
+          target_family = {}
+          print('=== CHILD DESERIALIZERS ===')
+          for family, tdi in child_types.items():
+              rows = [
+                  row for row in methods_by_type[tdi]
+                  if row.get('method_name') == 'FromBinaryInner' and row.get('rva')
+              ]
+              print(family, 'tdi=', tdi, json.dumps([compact_method(r) for r in rows], ensure_ascii=False))
+              if not rows:
+                  raise SystemExit(f'no FromBinaryInner method for {family} TDI {tdi}')
+              for row in rows:
+                  target_family[int(row['rva'], 0)] = family
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def direct_call_target(image_base, insn):
+              if insn.mnemonic != 'call':
+                  return None
+              for operand in insn.operands:
+                  if operand.type == X86_OP_IMM:
+                      value = int(operand.imm)
+                      return value - image_base if value >= image_base else value
+              return None
 
           with PEImage(exe) as image:
-              pointer_blob = image.read_rva(PROFILE_71.type_array_pointer_rva, 8)
-              type_array_va = int.from_bytes(pointer_blob, 'little')
-              type_array_rva = type_array_va - image.image_base
-
-              def entry_for_runtime_index(index):
-                  if not (0 <= index < PROFILE_71.runtime_type_count):
-                      raise ValueError(f'runtime type index out of range: {index}')
-                  entry = image.read_rva(type_array_rva + index * ENTRY_SIZE, ENTRY_SIZE)
-                  if not is_valid_type_entry(entry):
-                      raise ValueError(f'invalid runtime Il2CppType entry {index}')
-                  return entry
-
-              def describe_entry(entry, depth=0):
-                  if depth > 4:
-                      return {'kind': 'recursive-limit'}
-                  decoded = decode_type_entry(entry)
-                  kind = int(decoded['kind'])
-                  data_u64 = int.from_bytes(entry[:8], 'little')
-                  result = {
-                      'kind': TYPE_KIND_NAMES.get(kind, f'kind_0x{kind:02X}'),
-                      'kind_value': kind,
-                      'data_u64': f'0x{data_u64:X}',
-                  }
-                  if kind in (0x11, 0x12):
-                      tdi = int(decoded['data_u32'])
-                      row = types.get(tdi, {})
-                      result['type_definition_index'] = tdi
-                      result['type_name'] = row.get('type_name', '')
-                      result['namespace'] = row.get('namespace', '')
-                  elif kind == 0x1D:
-                      target_rva = data_u64 - image.image_base
-                      target = image.read_rva(target_rva, ENTRY_SIZE)
-                      if len(target) != ENTRY_SIZE or not is_valid_type_entry(target):
-                          result['element_error'] = f'invalid Il2CppType* 0x{data_u64:X}'
-                      else:
-                          result['element_rva'] = f'0x{target_rva:X}'
-                          result['element'] = describe_entry(target, depth + 1)
-                  return result
-
-              cache = {}
-              def describe_runtime(index):
-                  if index not in cache:
-                      cache[index] = describe_entry(entry_for_runtime_index(index))
-                  return cache[index]
-
-              def semantic_key(index):
-                  desc = describe_runtime(index)
-                  kind = desc['kind']
-                  if kind == 'szarray':
-                      elem = desc.get('element') or {}
-                      if 'type_definition_index' in elem:
-                          return f"array:tdi:{elem['type_definition_index']}:{elem.get('type_name','')}"
-                      return f"array:{elem.get('kind','unknown')}"
-                  if 'type_definition_index' in desc:
-                      return f"tdi:{desc['type_definition_index']}:{desc.get('type_name','')}"
-                  return kind
-
-              random_tdi = 36711
-              print('=== RANDOM QUEST FIELD SEMANTICS ===')
-              random_signature = Counter()
-              for row in sorted(fields_by_type[random_tdi], key=lambda r: int(r['field_index'])):
-                  index = int(row['field_type_index'])
-                  key = semantic_key(index)
-                  random_signature[key] += 1
-                  print(row['field_name'], index, key)
-              print('=== RANDOM QUEST SEMANTIC SIGNATURE ===')
-              for key, count in random_signature.most_common():
-                  print(count, key)
-
-              quest_array_keys = {
-                  'array:tdi:71568:QuestExec',
-                  'array:tdi:54128:QuestCond',
-                  'array:tdi:21416:QuestContent',
-              }
-              print('=== RUNTIME FIELD-TYPE INDICES FOR QUEST ARRAYS ===')
-              quest_array_indices = defaultdict(set)
-              for row in field_rows:
-                  raw = row.get('field_type_index')
-                  if not raw:
+              raw_sites = defaultdict(list)
+              wanted = set(target_family)
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
                       continue
-                  index = int(raw)
-                  try:
-                      key = semantic_key(index)
-                  except (ValueError, OSError):
-                      continue
-                  if key in quest_array_keys:
-                      quest_array_indices[key].add(index)
-              for key in sorted(quest_array_keys):
-                  print(key, sorted(quest_array_indices.get(key, ())))
-                  if not quest_array_indices.get(key):
-                      raise SystemExit(f'no runtime field type found for {key}')
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  pos = 0
+                  while True:
+                      pos = blob.find(b'\xE8', pos)
+                      if pos < 0:
+                          break
+                      if pos + 5 <= len(blob):
+                          rel = struct.unpack_from('<i', blob, pos + 1)[0]
+                          site = sec.virtual_address + pos
+                          target = site + 5 + rel
+                          if target in wanted:
+                              raw_sites[target].append(site)
+                      pos += 1
 
-              weighted_targets = {
-                  'array:tdi:71568:QuestExec': (3, 22),
-                  'array:tdi:54128:QuestCond': (1, 28),
-                  'array:tdi:21416:QuestContent': (2, 26),
-                  semantic_key(495518): (3, 14),
-                  semantic_key(501812): (2, 12),
-                  semantic_key(548705): (1, 12),
-              }
-              ranked = []
-              for tdi, rows in fields_by_type.items():
-                  if tdi in {19426, 36711} or not (24 <= len(rows) <= 60):
-                      continue
-                  sig = Counter()
-                  for row in rows:
-                      raw = row.get('field_type_index')
-                      if raw:
-                          sig[semantic_key(int(raw))] += 1
-                  score = 0
-                  hits = []
-                  for key, (wanted, weight) in weighted_targets.items():
-                      found = sig.get(key, 0)
-                      overlap = min(found, wanted)
-                      if overlap:
-                          points = overlap * weight
-                          score += points
-                          hits.append((key, found, wanted, points))
-                  score += max(0, 12 - abs(len(rows) - 32))
-                  ranked.append((score, tdi, len(rows), types.get(tdi, {}), sig, hits))
+              owner_candidate_sites = defaultdict(set)
+              for target, sites in raw_sites.items():
+                  for site in sites:
+                      owner = owner_start_for(site)
+                      if owner is not None:
+                          owner_candidate_sites[owner].add(site)
 
-              ranked.sort(key=lambda item: (item[0], -abs(item[2] - 32)), reverse=True)
-              print('=== MAIN QUEST STRUCTURAL CANDIDATES ===')
-              for score, tdi, field_count, type_row, sig, hits in ranked[:30]:
-                  print('CANDIDATE', score, 'tdi=', tdi, 'fields=', field_count,
-                        json.dumps(type_row, ensure_ascii=False, sort_keys=True))
-                  print(' HITS', json.dumps(hits, ensure_ascii=False))
-                  print(' SIGNATURE', json.dumps(sig.most_common(), ensure_ascii=False))
-                  print(' BINARY_METHODS', json.dumps([
-                      r for r in methods_by_type.get(tdi, ())
-                      if 'Binary' in (r.get('method_name') or '')
-                  ], ensure_ascii=False, sort_keys=True))
-                  print(' FIELDS', json.dumps([
-                      [r.get('field_index'), r.get('field_name'), r.get('field_type'),
-                       r.get('field_type_index'), semantic_key(int(r['field_type_index']))]
-                      for r in sorted(fields_by_type[tdi], key=lambda x: int(x['field_index']))
-                      if r.get('field_type_index')
-                  ], ensure_ascii=False))
+              validated = []
+              for owner_start, candidate_sites in owner_candidate_sites.items():
+                  i = bisect.bisect_left(starts, owner_start)
+                  owner_end = starts[i + 1] if i + 1 < len(starts) else owner_start + 0x10000
+                  owner_end = min(owner_end, owner_start + 0x20000)
+                  body = image.read_rva(owner_start, owner_end - owner_start)
+                  for insn in md.disasm(body, image.image_base + owner_start):
+                      site = insn.address - image.image_base
+                      if site not in candidate_sites:
+                          continue
+                      target = direct_call_target(image.image_base, insn)
+                      if target in target_family:
+                          validated.append((owner_start, site, target, target_family[target]))
 
-              if not ranked or ranked[0][0] < 100:
-                  raise SystemExit(f'no strong main Quest structural candidate; top score={ranked[0][0] if ranked else None}')
+          hits_by_owner = defaultdict(list)
+          for owner_start, site, target, family in validated:
+              hits_by_owner[owner_start].append({
+                  'site_rva': f'0x{site:X}',
+                  'target_rva': f'0x{target:X}',
+                  'family': family,
+              })
 
-              score, tdi, field_count, type_row, sig, hits = ranked[0]
-              selected = {
+          ranked = []
+          for owner_start, hits in hits_by_owner.items():
+              owner_rows = methods_by_rva[owner_start]
+              families = sorted({h['family'] for h in hits})
+              binary_inner = any(r.get('method_name') == 'FromBinaryInner' for r in owner_rows)
+              config_owner = any((types.get(int(r['type_definition_index']), {}).get('namespace') or '') == 'MoleMole.Config' for r in owner_rows)
+              field_count = max((len(fields_by_type[int(r['type_definition_index'])]) for r in owner_rows), default=0)
+              score = 100 * len(families) + 20 * int(binary_inner) + 10 * int(config_owner) + min(field_count, 80) / 10
+              ranked.append((score, owner_start, families, hits, owner_rows, field_count))
+          ranked.sort(reverse=True, key=lambda item: item[0])
+
+          print('=== VALIDATED DIRECT CALLER CANDIDATES ===')
+          report_candidates = []
+          for score, owner_start, families, hits, owner_rows, field_count in ranked[:40]:
+              td_indices = sorted({int(r['type_definition_index']) for r in owner_rows})
+              entry = {
                   'score': score,
-                  'type_definition_index': tdi,
+                  'owner_rva': f'0x{owner_start:X}',
+                  'families': families,
                   'field_count': field_count,
-                  'type': type_row,
+                  'methods': [compact_method(r) for r in owner_rows],
+                  'types': [types.get(tdi, {}) for tdi in td_indices],
                   'hits': hits,
-                  'binary_methods': [
-                      r for r in methods_by_type.get(tdi, ())
-                      if 'Binary' in (r.get('method_name') or '')
-                  ],
               }
-              Path('selected-quest-row.json').write_text(
-                  json.dumps(selected, ensure_ascii=False, indent=2) + '\n',
+              report_candidates.append(entry)
+              print(json.dumps(entry, ensure_ascii=False, sort_keys=True))
+
+          all_three = [item for item in ranked if set(item[2]) == set(child_types)]
+          if not all_three:
+              Path('quest-child-callers.json').write_text(
+                  json.dumps({'child_types': child_types, 'candidates': report_candidates}, ensure_ascii=False, indent=2) + '\n',
                   encoding='utf-8',
               )
-              print('=== SELECTED MAIN QUEST ROW ===')
-              print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
+              raise SystemExit('no native method directly calls QuestCond, QuestContent, and QuestExec FromBinaryInner')
+
+          score, owner_start, families, hits, owner_rows, field_count = all_three[0]
+          owner_tdis = sorted({int(r['type_definition_index']) for r in owner_rows})
+          selected_tdi = None
+          for tdi in owner_tdis:
+              if any(r.get('method_name') == 'FromBinaryInner' for r in methods_by_type[tdi]):
+                  selected_tdi = tdi
+                  break
+          if selected_tdi is None:
+              selected_tdi = owner_tdis[0]
+
+          selected = {
+              'score': score,
+              'owner_rva': f'0x{owner_start:X}',
+              'type_definition_index': selected_tdi,
+              'type': types.get(selected_tdi, {}),
+              'field_count': len(fields_by_type[selected_tdi]),
+              'families': families,
+              'hits': hits,
+              'methods_at_rva': [compact_method(r) for r in owner_rows],
+              'binary_methods': [compact_method(r) for r in methods_by_type[selected_tdi] if 'Binary' in (r.get('method_name') or '')],
+              'fields': [
+                  {
+                      'field_index': r.get('field_index', ''),
+                      'field_name': r.get('field_name', ''),
+                      'field_type': r.get('field_type', ''),
+                      'field_type_index': r.get('field_type_index', ''),
+                  }
+                  for r in sorted(fields_by_type[selected_tdi], key=lambda r: int(r['field_index']))
+              ],
+          }
+          Path('quest-child-callers.json').write_text(
+              json.dumps({'child_types': child_types, 'candidates': report_candidates}, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          Path('selected-quest-row.json').write_text(
+              json.dumps(selected, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print('=== SELECTED MAIN QUEST ROW ===')
+          print(json.dumps(selected, ensure_ascii=False, sort_keys=True))
           PY
       - name: Upload focused evidence
+        if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-main-array-signature
+          name: quest-main-native-child-callers
           path: |
-            quest-array-signature.txt
+            quest-child-caller-probe.txt
+            quest-child-callers.json
             selected-quest-row.json
-          if-no-files-found: error
+          if-no-files-found: warn
