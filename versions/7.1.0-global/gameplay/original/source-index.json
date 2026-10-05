@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "game_version": "7.1.0-global",
+  "source_repository": "RinoPaw/AstaPS-Resource",
+  "source_commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+  "policy": {
+    "raw_snapshot": "byte-for-byte textual copy of the JSON content fetched from the pinned source commit",
+    "indexed_only": "source is pinned by repository commit, path and git blob SHA but has not yet been copied into this archive",
+    "restored_fields": "integration resource contains fields restored from historical evidence; these must not be described as exact native 7.1 fields without separate proof",
+    "empty_source": "file exists at the pinned resource commit but has no useful current rows"
+  },
+  "tables": [
+    {
+      "path": "ExcelBinOutput/AvatarLevelExcelConfigData.json",
+      "blob_sha": "42cb59ea6ea35aa5de15371cac45af202968235b",
+      "area": "character",
+      "status": "raw_snapshot",
+      "archive_path": "raw/AvatarLevelExcelConfigData.json"
+    },
+    {
+      "path": "ExcelBinOutput/AvatarCurveExcelConfigData.json",
+      "blob_sha": "e3586d6389e3db7c0565dde4b31d639abc37e903",
+      "area": "character",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/AvatarPromoteExcelConfigData.json",
+      "blob_sha": "e329398f7c5da38148e74d43f04f6acc68a30d8d",
+      "area": "character",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/WeaponLevelExcelConfigData.json",
+      "blob_sha": "fced13020c7339a224e6caf2d52e5335ae3980e4",
+      "area": "weapon",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/WeaponCurveExcelConfigData.json",
+      "blob_sha": "fe8785906838834a62cfedb9d9b9cbc6cebf3d93",
+      "area": "weapon",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/WeaponPromoteExcelConfigData.json",
+      "blob_sha": "cd259ca9516b07342af617ddc515c4676b3f5570",
+      "area": "weapon",
+      "status": "empty_source"
+    },
+    {
+      "path": "ExcelBinOutput/ProudSkillExcelConfigData.json",
+      "blob_sha": "9a386ae8c115ee7a78a578b03cc1a862fa3162e7",
+      "area": "talent",
+      "status": "empty_source"
+    },
+    {
+      "path": "ExcelBinOutput/PlayerLevelExcelConfigData.json",
+      "blob_sha": "05688da8a60c6ee7f02cf11de4d8940d27b1ae51",
+      "area": "account",
+      "status": "raw_snapshot",
+      "archive_path": "raw/PlayerLevelExcelConfigData.json"
+    },
+    {
+      "path": "ExcelBinOutput/WorldLevelExcelConfigData.json",
+      "blob_sha": "f316986f2d2e5081fb5d5adb7d8a671db0f1e11b",
+      "area": "world",
+      "status": "raw_snapshot",
+      "archive_path": "raw/WorldLevelExcelConfigData.json"
+    },
+    {
+      "path": "ExcelBinOutput/MonsterCurveExcelConfigData.json",
+      "blob_sha": "db678e53619a515fd03ad51a2afaaf0b212fe6fc",
+      "area": "world",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/ReliquaryLevelExcelConfigData.json",
+      "blob_sha": "f1ba31891e6207fc9c499369e05ecf211f230f0d",
+      "area": "artifact",
+      "status": "indexed_only"
+    },
+    {
+      "path": "ExcelBinOutput/ReliquaryMainPropExcelConfigData.json",
+      "blob_sha": "9b8a923064726f32afe37e927fc73bc712a36b14",
+      "area": "artifact",
+      "status": "indexed_only",
+      "provenance_note": "weight fields in the integration resource include restored historical fields"
+    },
+    {
+      "path": "ExcelBinOutput/ReliquaryAffixExcelConfigData.json",
+      "blob_sha": "f4f8ce04a903b463c505a09fbbd24299ad06b4ec",
+      "area": "artifact",
+      "status": "indexed_only",
+      "provenance_note": "weight and upgradeWeight fields in the integration resource include restored historical fields"
+    },
+    {
+      "path": "ExcelBinOutput/AvatarFettersLevelExcelConfigData.json",
+      "blob_sha": "32305bc4b7de8a5bfcb84c1b858e84bff283bae9",
+      "area": "friendship",
+      "status": "indexed_only"
+    }
+  ]
+}
