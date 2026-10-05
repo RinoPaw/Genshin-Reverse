@@ -6,7 +6,6 @@ on:
       - probe/quest-blb3-binoutput
     paths:
       - ".github/workflows/probe-main-quest-excel-native.yml"
-      - "tools/trace_native_call_edges.py"
       - "genshinre/nativeprofile.py"
       - "genshinre/samplefetch.py"
       - "scripts/fetch-7.1-samples.sh"
@@ -21,31 +20,42 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Install focused research dependencies
-        run: python -m pip install -e . capstone zstandard
+        run: python -m pip install -e . zstandard
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Rank QuestExcel row candidates by preserved field shape
+      - name: Map Quest field-type structure
         run: |
-          python - <<'PY' | tee quest-field-fingerprint.txt
-          import csv, json
-          from collections import defaultdict
+          python - <<'PY' | tee quest-field-type-map.txt
+          import csv, json, math
+          from collections import Counter, defaultdict
           from pathlib import Path
 
           root = Path('versions/7.1.0-global/windows-x64/metadata')
+
           def read(name):
-              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+              path = root / name
+              if not path.exists():
+                  return []
+              with path.open('r', encoding='utf-8-sig', newline='') as f:
                   return list(csv.DictReader(f))
 
-          types = {r['type_definition_index']: r for r in read('types.csv')}
-          fields = read('fields.csv')
-          methods = read('methods.csv')
+          tables = {}
+          for path in sorted(root.glob('*.csv')):
+              with path.open('r', encoding='utf-8-sig', newline='') as f:
+                  reader = csv.DictReader(f)
+                  tables[path.name] = list(reader)
+                  print('HEADER', path.name, json.dumps(reader.fieldnames, ensure_ascii=False))
+
+          types = {r['type_definition_index']: r for r in tables['types.csv']}
+          fields = tables['fields.csv']
+          methods = tables['methods.csv']
           fields_by_type = defaultdict(list)
           methods_by_type = defaultdict(list)
           for row in fields:
@@ -53,106 +63,98 @@ jobs:
           for row in methods:
               methods_by_type[row['type_definition_index']].append(row)
 
-          fingerprint = {
-              '_subId', '_mainId', '_order', '_subIdSet', '_isMpBlock',
-              '_descTextMapHash', '_stepDescTextMapHash', '_guideTipsTextMapHash',
-              '_showType', '_banType', '_acceptCondComb', '_acceptCond',
-              '_finishCondComb', '_finishCond', '_failCondComb', '_failCond',
-              '_guide', '_showGuide', '_finishParent', '_failParent',
-              '_failParentShow', '_isRewind', '_finishExec', '_failExec',
-              '_beginExec', '_exclusiveNpcPriority', '_forcePaimonGuidePriority',
+          semantic = {
+              'RandomMainQuestExcelConfig': '19426',
+              'QuestContent': '21416',
+              'RandomQuestExcelConfig': '36711',
+              'QuestCond': '54128',
+              'QuestExec': '71568',
+              'RandomQuestCond': '76090',
+          }
+          print('=== SEMANTIC TYPE ROWS / FIELDS ===')
+          seed_field_type_indices = set()
+          for label, tdi in semantic.items():
+              print('TYPE', label, tdi, json.dumps(types.get(tdi), ensure_ascii=False, sort_keys=True))
+              rows = sorted(fields_by_type.get(tdi, ()), key=lambda r: int(r['field_index']))
+              for row in rows:
+                  print(' FIELD', label, json.dumps(row, ensure_ascii=False, sort_keys=True))
+                  if row.get('field_type_index'):
+                      seed_field_type_indices.add(row['field_type_index'])
+              for row in methods_by_type.get(tdi, ()):
+                  if row.get('method_name') in {'FromBinary', 'FromBinaryInner'}:
+                      print(' METHOD', label, json.dumps(row, ensure_ascii=False, sort_keys=True))
+
+          type_frequency = Counter(row.get('field_type_index') or '' for row in fields)
+          random_indices = Counter(
+              row.get('field_type_index') or ''
+              for row in fields_by_type.get(semantic['RandomQuestExcelConfig'], ())
+              if row.get('field_type_index')
+          )
+          print('=== RANDOM QUEST FIELD-TYPE INDEX FREQUENCIES ===')
+          for index, count in random_indices.items():
+              print('INDEX', index, 'random_count=', count, 'global_field_count=', type_frequency[index])
+
+          print('=== CROSS-TABLE REFERENCES TO SEMANTIC TDIs / FIELD-TYPE INDICES ===')
+          needles = set(semantic.values()) | seed_field_type_indices
+          for filename, rows in tables.items():
+              hits = []
+              for row in rows:
+                  if any(str(value) in needles for value in row.values()):
+                      hits.append(row)
+              if hits:
+                  print('TABLE', filename, 'HITS', len(hits))
+                  for row in hits[:300]:
+                      print(' REF', filename, json.dumps(row, ensure_ascii=False, sort_keys=True))
+
+          # Compare large binary-deserialized row types to RandomQuestExcelConfig by
+          # exact field-type indices. Rare shared indices carry more information than
+          # primitive indices used by thousands of fields.
+          excluded = {
+              '19426', '36711', '35267', '48659', '28858', '48735',
           }
           ranked = []
           for tdi, rows in fields_by_type.items():
-              type_row = types.get(tdi) or {}
-              namespace = type_row.get('namespace') or ''
-              type_name = type_row.get('type_name') or ''
-              if namespace == 'XLua.CSObjectWrap' or 'RandomQuestExcelConfig' in type_name or 'RandomMainQuestExcelConfig' in type_name:
+              if tdi in excluded or not (15 <= len(rows) <= 90):
                   continue
-              field_names = {r.get('field_name') or '' for r in rows}
-              matches = sorted(fingerprint & field_names)
-              method_names = {r.get('method_name') or '' for r in methods_by_type.get(tdi, ())}
-              has_binary = 'FromBinaryInner' in method_names or 'FromBinary' in method_names
-              if matches:
-                  ranked.append((len(matches), has_binary, len(rows), tdi, matches))
+              method_rows = methods_by_type.get(tdi, ())
+              one_arg_inner = [
+                  r for r in method_rows
+                  if r.get('method_name') == 'FromBinaryInner'
+                  and r.get('parameter_count') == '1'
+                  and r.get('rva') not in ('', '0', '0x0', None)
+              ]
+              if len(one_arg_inner) != 1:
+                  continue
+              candidate_indices = Counter(
+                  row.get('field_type_index') or '' for row in rows if row.get('field_type_index')
+              )
+              common = random_indices.keys() & candidate_indices.keys()
+              score = 0.0
+              detail = []
+              for index in common:
+                  freq = max(1, type_frequency[index])
+                  overlap = min(random_indices[index], candidate_indices[index])
+                  weight = math.log2((len(fields) + 1) / freq)
+                  score += overlap * weight
+                  detail.append((index, overlap, freq, round(weight, 3)))
+              detail.sort(key=lambda x: (x[3], x[1]), reverse=True)
+              type_row = types.get(tdi) or {}
+              ranked.append((score, len(detail), len(rows), tdi, one_arg_inner[0]['rva'], detail, type_row))
 
           ranked.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
-          print('=== TOP FIELD-SHAPE CANDIDATES ===')
-          for score, has_binary, field_count, tdi, matches in ranked[:30]:
-              print('CANDIDATE', score, 'binary=', int(has_binary), 'fields=', field_count,
-                    json.dumps(types.get(tdi), ensure_ascii=False, sort_keys=True))
-              print(' MATCHES', json.dumps(matches, ensure_ascii=False))
-
-          binary_ranked = [item for item in ranked if item[1]]
-          if not binary_ranked:
-              raise SystemExit('no field-shape candidate with FromBinary/FromBinaryInner methods')
-          score, _, field_count, tdi, matches = binary_ranked[0]
-          print('=== SELECTED ===')
-          print('TDI', tdi)
-          print('SCORE', score)
-          print('FIELD_COUNT', field_count)
-          print('TYPE', json.dumps(types.get(tdi), ensure_ascii=False, sort_keys=True))
-          print('MATCHED_FIELDS', json.dumps(matches, ensure_ascii=False))
-          print('=== SELECTED FIELDS ===')
-          for row in sorted(fields_by_type[tdi], key=lambda r: int(r['field_index'])):
-              print(json.dumps(row, ensure_ascii=False, sort_keys=True))
-          print('=== SELECTED BINARY METHODS ===')
-          selected_methods = []
-          for row in methods_by_type[tdi]:
-              if row.get('method_name') in {'FromBinary', 'FromBinaryInner'}:
-                  print(json.dumps(row, ensure_ascii=False, sort_keys=True))
-                  selected_methods.append(row)
-          one_arg_inner = [r for r in selected_methods if r.get('method_name') == 'FromBinaryInner' and r.get('parameter_count') == '1' and r.get('rva')]
-          if len(one_arg_inner) != 1:
-              raise SystemExit(f'expected one one-argument FromBinaryInner for selected type, got {len(one_arg_inner)}')
-          Path('selected-quest-row.env').write_text(
-              f"QUEST_TDI={tdi}\nQUEST_ROW_RVA={one_arg_inner[0]['rva']}\n",
-              encoding='utf-8',
-          )
-          PY
-      - name: Trace selected row deserializer
-        shell: bash
-        run: |
-          set -euo pipefail
-          source selected-quest-row.env
-          echo "selected TDI=$QUEST_TDI RVA=$QUEST_ROW_RVA" | tee quest-selected-row.txt
-          python tools/trace_native_call_edges.py \
-            inputs/7.1.0-global/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-selected-row-edges.json \
-            --focus quest-row-inner:"$QUEST_ROW_RVA" \
-            --max-body 0x6000 | tee quest-selected-row-trace.txt
-      - name: Summarize selected row native shape
-        run: |
-          python - <<'PY' | tee quest-selected-row-summary.txt
-          import json, re
-          report = json.load(open('quest-selected-row-edges.json', encoding='utf-8'))
-          item = report['focus']['quest-row-inner']
-          print('OWNER', json.dumps(item['owner'], ensure_ascii=False, sort_keys=True))
-          print('CALLER_COUNT', item['validated_direct_caller_count'])
-          for caller in item['direct_callers'][:20]:
-              print('CALLER', json.dumps(caller, ensure_ascii=False, sort_keys=True))
-          print('=== PROLOGUE ===')
-          for row in item['disassembly'][:120]:
-              print(f"{row['rva']:>12} {row['mnemonic']:<7} {row['op_str']}")
-          print('=== OBJECT STORES / CALLS ===')
-          for i, row in enumerate(item['disassembly']):
-              op = row['op_str'].lower()
-              if row['mnemonic'] == 'call' or re.search(r'\[(?:rbx|rbp|rsi|rdi|r12|r13|r14|r15)\s*\+\s*0x[0-9a-f]+\]', op):
-                  lo, hi = max(0, i - 1), min(len(item['disassembly']), i + 2)
-                  print('--')
-                  for x in item['disassembly'][lo:hi]:
-                      print(f"{x['rva']:>12} {x['mnemonic']:<7} {x['op_str']}")
+          print('=== RARE FIELD-TYPE OVERLAP CANDIDATES ===')
+          for score, distinct, field_count, tdi, rva, detail, type_row in ranked[:50]:
+              print('CANDIDATE', f'{score:.3f}', 'shared=', distinct, 'fields=', field_count,
+                    'tdi=', tdi, 'rva=', rva, json.dumps(type_row, ensure_ascii=False, sort_keys=True))
+              print(' SHARED', json.dumps(detail, ensure_ascii=False))
+              print(' FIELD_TYPES', json.dumps([
+                  [row.get('field_index'), row.get('field_name'), row.get('field_type_index')]
+                  for row in sorted(fields_by_type[tdi], key=lambda r: int(r['field_index']))
+              ], ensure_ascii=False))
           PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
-          name: quest-main-field-fingerprint-probe
-          path: |
-            quest-field-fingerprint.txt
-            selected-quest-row.env
-            quest-selected-row.txt
-            quest-selected-row-edges.json
-            quest-selected-row-trace.txt
-            quest-selected-row-summary.txt
+          name: quest-main-field-type-map
+          path: quest-field-type-map.txt
           if-no-files-found: error
