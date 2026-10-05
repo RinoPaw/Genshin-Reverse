@@ -1,4 +1,4 @@
-name: Probe 7.1 QuestExcel serialized assets
+name: Probe 7.1 QuestExcel serialized asset
 
 on:
   push:
@@ -6,7 +6,12 @@ on:
       - probe/quest-blb3-binoutput
     paths:
       - ".github/workflows/probe-quest-table-assets.yml"
+      - "genshinre/assetindex.py"
       - "genshinre/samplefetch.py"
+
+concurrency:
+  group: probe-quest-table-assets-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,7 +19,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -22,29 +27,31 @@ jobs:
           python-version: '3.12'
       - name: Install focused dependencies
         run: python -m pip install -e . zstandard
-      - name: Reconstruct native 7.1 QuestExcel block
+      - name: Reconstruct exact 7.1 source blocks
         run: |
-          python - <<'PY' | tee probe-summary.txt
+          python - <<'PY' | tee reconstruct-summary.txt
           from pathlib import Path
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest, reconstruct
 
           rows = parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
-          matches = [r for r in rows if normalized_name(r).endswith('/assetbundles/blocks/00/25539185.blk')]
-          if len(matches) != 1:
-              raise SystemExit(f'expected one 00/25539185.blk row, got {len(matches)}')
-          row = matches[0]
-          target = Path('quest-native/25539185.blk')
-          reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=8)
-          data = target.read_bytes()
-          print('size=', len(data))
-          print('md5=', row.get('md5'))
-          print('head=', data[:64].hex())
+          wanted = {
+              'design-index/31049741.blk': '/assetbundles/blocks/00/31049741.blk',
+              'quest-native/25539185.blk': '/assetbundles/blocks/00/25539185.blk',
+          }
+          for target_name, suffix in wanted.items():
+              matches = [r for r in rows if normalized_name(r).endswith(suffix)]
+              if len(matches) != 1:
+                  raise SystemExit(f'{suffix}: expected one manifest row, got {len(matches)}')
+              row = matches[0]
+              target = Path(target_name)
+              reconstruct(PROFILE_71.sophon_chunk_prefix, row, target, workers=8)
+              print(target_name, 'size=', target.stat().st_size, 'md5=', row.get('md5'))
           PY
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Extract QuestExcel BLB3
+      - name: Install pinned AnimeStudio CLI
         shell: bash
         run: |
           set -euo pipefail
@@ -59,33 +66,103 @@ jobs:
           mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
           if ((${#apphosts[@]})); then
             chmod +x "${apphosts[0]}"
-            cli=("${apphosts[0]}")
+            printf '%s\n' "${apphosts[0]}" > /tmp/animestudio-entry
           elif ((${#dlls[@]})); then
-            cli=(dotnet "${dlls[0]}")
+            printf 'dotnet\n%s\n' "${dlls[0]}" > /tmp/animestudio-entry
           else
             echo 'AnimeStudio CLI entry point not found' >&2
             exit 2
           fi
-          rm -rf animestudio-output
-          mkdir -p animestudio-output
-          "${cli[@]}" quest-native/25539185.blk animestudio-output --game GI --export_type Raw --logger_flags Verbose 2>&1 | tee animestudio-probe.txt
-          {
-            find animestudio-output -type f -printf '%P\t%s bytes\n' | sort
-            while IFS= read -r -d '' f; do
-              echo "===== $f ====="
-              sha256sum "$f"
-              od -An -tx1 -N128 "$f" || true
-              strings -a -n 5 "$f" | grep -Ei 'Quest|acceptCond|finishCond|ExcelBinOutput|BinOutput' | head -n 200 || true
-            done < <(find animestudio-output -type f -print0 | sort -z)
-          } | tee output-summary.txt
-      - name: Upload focused probe
+      - name: Resolve QuestExcel hash to native block
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if ((${#entry[@]} == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+          rm -rf design-index-output
+          mkdir -p design-index-output
+          "${cli[@]}" design-index/31049741.blk design-index-output --game GI --export_type Raw --logger_flags Error 2>&1 | tee design-index-animestudio.txt
+          python - <<'PY' | tee asset-chain-summary.txt
+          from pathlib import Path
+          from genshinre.assetindex import mihoyo_name_hash, parse_asset_index
+
+          path = 'Data/_ExcelBinOutput/QuestExcelConfigData'
+          expected_hash = 0x3B87AE8396
+          value = mihoyo_name_hash(path)
+          if value != expected_hash:
+              raise SystemExit(f'QuestExcel hash mismatch: 0x{value:010X}')
+
+          export = Path('design-index-output/MiHoYoBinData/0000006f.dat')
+          if not export.is_file():
+              raise SystemExit(f'design index export missing: {export}')
+          index = parse_asset_index(export.read_bytes())
+          name = index.name_for_hash(value)
+          block_ref = index.block_ref_for_asset(name.sub_asset_id)
+          group_id = index.block_groups[block_ref.block_id]
+          print(f'name_hash=0x{value:010X}')
+          print(f'exported_name={name.exported_name}')
+          print(f'sub_asset_id={name.sub_asset_id}')
+          print(f'block_id={block_ref.block_id}')
+          print(f'group_id={group_id}')
+          print(f'unknown0={block_ref.unknown0}')
+          print(f'unknown1={block_ref.unknown1}')
+          if (name.sub_asset_id, block_ref.block_id, group_id) != (178, 25539185, 0):
+              raise SystemExit('unexpected 7.1 QuestExcel asset chain')
+          PY
+      - name: Extract and validate exact QuestExcel Raw object
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if ((${#entry[@]} == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+          rm -rf quest-output
+          mkdir -p quest-output
+          "${cli[@]}" quest-native/25539185.blk quest-output --game GI --export_type Raw --logger_flags Error 2>&1 | tee quest-animestudio.txt
+          python - <<'PY' | tee quest-payload-summary.txt
+          import hashlib
+          from pathlib import Path
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          target = Path('quest-output/MiHoYoBinData/3b87ae83.dat')
+          if not target.is_file():
+              raise SystemExit(f'QuestExcel Raw export missing: {target}')
+          raw = target.read_bytes()
+          payload = unwrap_mihoyo_bin_data(raw)
+
+          value = 0
+          shift = 0
+          consumed = 0
+          for byte in payload:
+              consumed += 1
+              value |= (byte & 0x7f) << shift
+              if not (byte & 0x80):
+                  break
+              shift += 7
+              if shift >= 64:
+                  raise SystemExit('leading varint is too wide')
+          else:
+              raise SystemExit('truncated leading varint')
+
+          print('raw_size=', len(raw))
+          print('payload_size=', len(payload))
+          print('sha256=', hashlib.sha256(raw).hexdigest())
+          print('head=', raw[:64].hex())
+          print('leading_uvarint=', value)
+          print('leading_uvarint_bytes=', consumed)
+          if len(raw) != 2_824_192 or len(payload) != 2_824_188:
+              raise SystemExit('unexpected 7.1 QuestExcel Raw export size')
+          if value != 7473:
+              raise SystemExit(f'unexpected leading uvarint: {value}')
+          PY
+      - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: quest-native-block-probe
+          name: quest-excel-asset-chain-probe
           path: |
-            probe-summary.txt
-            animestudio-probe.txt
-            output-summary.txt
-            animestudio-output
+            reconstruct-summary.txt
+            design-index-animestudio.txt
+            asset-chain-summary.txt
+            quest-animestudio.txt
+            quest-payload-summary.txt
           if-no-files-found: warn
