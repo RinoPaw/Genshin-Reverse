@@ -155,9 +155,46 @@ Named `QuestProxy` getter machine code confirms:
 - `LAIMPNDEFCL +0x74 = quest config id / subId`
 - `LAIMPNDEFCL +0xA8 = order`
 
+Focused runs on head `0e93a4a9d40c483a97cb7e8093d0facb68db57c5`
+(`CI #970`, focused run `37414435078`) also resolved the two previously unknown
+ordinary-row object-array element types:
+
+- runtime type index `495576 = KIMCPAKMJMH[]`;
+  `KIMCPAKMJMH` contains `QuestExecType` plus string parameters;
+- runtime type index `495577 = JPGNLOPMNHN[]`;
+  `JPGNLOPMNHN` contains the current `QUEST_CONTENT_*` enum family, including
+  `QUEST_CONTENT_TEAM_DEAD`.
+
+The unified facade `BEAEOMIOFDE` then provides exact cross-variant mappings against
+the named `RandomQuestExcelConfig` fields:
+
+- `FPNFFCCCGMO @ 0x8E9F6B0`:
+  ordinary `LAIMPNDEFCL +0x10` and random `_failExec +0x28` feed the same execution-content search path;
+- `EKGLIKLEEPG @ 0x8E9B300`:
+  ordinary `LAIMPNDEFCL +0x18` and random `_failCond +0x50` feed the same condition search path;
+- `LNFDDNGBBNG @ 0x8E9D890` and `PIEPOFGEGIK @ 0x8E9B7A0`:
+  ordinary `LAIMPNDEFCL +0x20` and random `_finishCond +0x30` feed the same condition path;
+- `GGPGGIOLACH @ 0x8E9F810`:
+  ordinary `LAIMPNDEFCL +0x58` and random `_finishExec +0x48` feed the same execution path.
+
+Therefore the ordinary 7.1 row mappings are now:
+
+```text
+LAIMPNDEFCL +0x10 = failExec
+LAIMPNDEFCL +0x18 = failCond
+LAIMPNDEFCL +0x20 = finishCond
+LAIMPNDEFCL +0x58 = finishExec
+```
+
+These are native cross-variant semantic mappings, not field-order guesses.
+
+The ordinary row exposes no equivalent direct `acceptCond` or `beginExec` object-array
+slot among these quest condition/execution fields. This materially strengthens the conclusion
+that legacy public QuestExcel schemas cannot be projected onto the 7.1 ordinary row.
+
 The remaining #8 proof step is to bind this ordinary-row deserializer to
-`Data/_ExcelBinOutput/QuestExcelConfigData`, recover the prerequisite fields, and decode
-the exact 2,824,188-byte payload with full consumption or an equally strong invariant.
+`Data/_ExcelBinOutput/QuestExcelConfigData` and decode the exact 2,824,188-byte payload
+with full consumption or an equally strong invariant.
 
 ## Classification
 
@@ -169,7 +206,8 @@ Current layer-by-layer classification:
 | AstaPS current QuestExcel provenance | HIGH_CONFIDENCE synthetic/mixed legacy resource |
 | AstaPS quest 351 prerequisite graph | HIGH_CONFIDENCE legacy contamination |
 | same-version Dimbreath QuestExcel public field labels | HIGH_CONFIDENCE schema/field-name misalignment |
-| exact native ordinary Quest prerequisite representation | UNRESOLVED |
+| exact native ordinary finish/fail condition+exec representation | CONFIRMED field families/offsets |
+| direct ordinary-row acceptCond / beginExec representation | no direct slot found; table-source relation still UNRESOLVED |
 | exact source-authority relation between QuestExcel and BinOutput/Quest | UNRESOLVED |
 
 Per issue #8's promotion gate, the overall native root-cause classification is **not
@@ -182,7 +220,7 @@ schema.
    `QuestCond[]` searches.
 2. Bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact QuestExcel asset loader/table
    registration path.
-3. Recover the native field slots for condition arrays and combiners from read sites.
+3. Bind the confirmed ordinary field layout to the table loader; do not reopen finish/fail slot discovery.
 4. Establish table and row framing against the recovered 2,824,188-byte payload.
 5. Require complete payload consumption or an equivalently strong structural invariant.
 6. Decode representative rows including 35104, 35100, 35102, 35103, 37504, 37603 and
