@@ -163,9 +163,12 @@ jobs:
           if len(rows)!=17814:
               raise SystemExit(f"unexpected Dimbreath row count {len(rows)}")
 
-          # Derive row boundaries only from independently recovered native
-          # subId transform and same-version row ordering. subId is the final
-          # four-byte scalar of each current row.
+          # Derive row boundaries only from the independently recovered native
+          # subId transform and same-version row ordering.  The encoded subId
+          # anchor is the first four-byte scalar of the current row.  This is
+          # independently checkable because the next 8 bytes behave as the row
+          # presence mask and the fixed +0x0C scalar matches the published
+          # same-version order field under one stable transform.
           encoded={}
           for ordinal,row in enumerate(rows):
               sid=row.get("subId")
@@ -187,28 +190,45 @@ jobs:
               anchors[ordinal]=(sid,hits[enc][0])
 
           spans=[]
-          for ordinal in range(1,len(rows)):
-              prev=anchors.get(ordinal-1)
+          header_order_hits=0
+          header_order_checked=0
+          ORDER_ADD=0x732ED834
+          for ordinal in range(0,len(rows)-1):
               cur=anchors.get(ordinal)
-              if not prev or not cur:
+              nxt=anchors.get(ordinal+1)
+              if not cur or not nxt:
                   continue
-              start=prev[1]+4
-              end=cur[1]+4
+              start=cur[1]
+              end=nxt[1]
               if end<=start:
                   continue
               size=end-start
-              if not 4 <= size <= 4096:
+              if not 16 <= size <= 4096:
                   continue
-              spans.append({
+              # The row must begin with its own encoded subId anchor.
+              if struct.unpack_from("<I",payload,start)[0] != ((cur[0]^SUBID_KEY)&0xffffffff):
+                  continue
+              span={
                   "ordinal":ordinal,
                   "subId":cur[0],
                   "start":start,
                   "end":end,
                   "size":size,
-              })
+              }
+              spans.append(span)
+
+              order=rows[ordinal].get("order")
+              if isinstance(order,int) and start+16<=end:
+                  header_order_checked+=1
+                  raw_order=struct.unpack_from("<I",payload,start+12)[0]
+                  decoded_order=(raw_order-ORDER_ADD)&0xffffffff
+                  if decoded_order == (order&0xffffffff):
+                      header_order_hits+=1
 
           if len(spans)<17000:
               raise SystemExit(f"too few exact row spans: {len(spans)}")
+          print("header_order_transform",f"raw-0x{ORDER_ADD:08X}")
+          print("header_order_hits",header_order_hits,"/",header_order_checked)
 
           # Deterministic distributed sample across the full table.
           def quantile_sample(items,n):
@@ -365,6 +385,10 @@ jobs:
               "subId_key":f"0x{SUBID_KEY:08X}",
               "unique_subid_anchors":len(anchors),
               "exact_row_spans":len(spans),
+              "row_framing":"current_subId_anchor_to_next_subId_anchor",
+              "header_order_transform":f"raw-0x{ORDER_ADD:08X}",
+              "header_order_hits":header_order_hits,
+              "header_order_checked":header_order_checked,
               "span_size":{
                   "min":min(x["size"] for x in spans),
                   "max":max(x["size"] for x in spans),
