@@ -1,0 +1,194 @@
+name: Probe 2.8 legacy QuestExcel presence
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-presence.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-presence-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact official 2.8.0 scattered files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          out='inputs/2.8.0-global'
+          mkdir -p "$out"
+
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" \
+            -o "$out/global-metadata.dat"
+
+          python - <<'PY' | tee quest-legacy-28-sample.txt
+          from pathlib import Path
+          import hashlib
+          root=Path("inputs/2.8.0-global")
+          for name in ("UserAssembly.dll","global-metadata.dat"):
+              raw=(root/name).read_bytes()
+              print(name,"size",len(raw),"sha256",hashlib.sha256(raw).hexdigest())
+              if len(raw)<1_000_000:
+                  raise SystemExit(f"{name}: unexpectedly small")
+          PY
+
+      - name: Build pinned Genshin-aware Il2CppDumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none \
+            https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git \
+            .probe-tools/Il2CppDumper-Genshin
+          git -C .probe-tools/Il2CppDumper-Genshin checkout --detach \
+            731c4022a15b126da993e54a9f7d7e2c8a06c1af
+
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+
+          dotnet build \
+            .probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
+            -c Release --nologo
+
+          app=.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          cfg=json.loads(p.read_text(encoding="utf-8-sig"))
+          cfg["RequireAnyKey"]=False
+          cfg["GenerateDummyDll"]=False
+          cfg["GenerateStruct"]=True
+          cfg["GenerateScript"]=True
+          cfg["DumpMethod"]=True
+          cfg["DumpField"]=True
+          cfg["DumpFieldOffset"]=True
+          cfg["DumpMethodOffset"]=True
+          p.write_text(json.dumps(cfg,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 2.8 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump-28"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-dumper.txt"
+
+          test -s "$out/dump.cs"
+          test -s "$out/stringliteral.json"
+
+      - name: Check exact 2.8 legacy QuestExcel identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-presence.txt
+          import json,re
+          from pathlib import Path
+
+          dump=Path("genshin-dump-28/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          )
+          strings=json.loads(Path("genshin-dump-28/stringliteral.json").read_text(
+              encoding="utf-8",errors="replace"
+          ))
+
+          needles=(
+              "QuestExcelConfigData",
+              "MainQuestExcelConfigData",
+              "Data/_ExcelBinOutput/Quest",
+          )
+          shits=[]
+          for x in strings:
+              v=str(x.get("value",""))
+              if any(n in v for n in needles):
+                  shits.append(x)
+
+          print("STRING_HITS",len(shits))
+          for x in shits:
+              print(x)
+
+          names={}
+          for needle in (
+              "QuestExcelConfig",
+              "QuestExcelConfigLoader",
+              "MainQuestExcelConfig",
+              "MainQuestExcelConfigLoader",
+          ):
+              hits=[m.start() for m in re.finditer(re.escape(needle),dump)]
+              names[needle]=len(hits)
+              print("DUMP_NAME",needle,"hits",len(hits))
+
+          # TypeDef range gives a quick cross-build identity check against WorldReverse.
+          typedefs=[int(x) for x in re.findall(r"TypeDefIndex:\s*(\d+)",dump)]
+          if typedefs:
+              print("TYPEDEF_MIN",min(typedefs),"TYPEDEF_MAX",max(typedefs),"COUNT",len(set(typedefs)))
+
+          legacy=[x for x in shits if
+                  "QuestExcelConfigData" in str(x.get("value",""))
+                  and "MainQuestExcelConfigData" not in str(x.get("value",""))]
+          print("LEGACY_LITERAL_COUNT",len(legacy))
+
+          Path("quest-legacy-28-presence.json").write_text(
+              json.dumps({
+                  "string_hits":shits,
+                  "name_hits":names,
+                  "typedef_min":min(typedefs) if typedefs else None,
+                  "typedef_max":max(typedefs) if typedefs else None,
+                  "typedef_count":len(set(typedefs)),
+                  "legacy_literal_count":len(legacy),
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-presence
+          path: |
+            quest-legacy-28-sample.txt
+            quest-legacy-28-dumper.txt
+            quest-legacy-28-presence.txt
+            quest-legacy-28-presence.json
+          if-no-files-found: warn
