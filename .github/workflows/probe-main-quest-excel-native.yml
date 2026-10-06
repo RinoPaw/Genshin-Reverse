@@ -1355,6 +1355,272 @@ jobs:
               encoding='utf-8',
           )
           PY
+      - name: Trace ordinary Quest row types and loader callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-ordinary-row-loader.txt
+          import bisect
+          import csv
+          import json
+          import struct
+          from collections import defaultdict
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
+
+          ORDINARY_TDI = 17589
+          FACADE_TDI = 40413
+          QUEST_COND_TDI = 54128
+          QUEST_EXEC_TDI = 71568
+          RANDOM_CONTENT_TDI = 23509
+
+          ORDINARY_ARRAY_RVA = 0x9C15C80
+          ORDINARY_ROW_RVA = 0x9C15DF0
+          ORDINARY_INIT_BY_ID_RVA = 0x9C174D0
+          TARGETS = {
+              ORDINARY_ARRAY_RVA: 'LAIMPNDEFCL.GMENPOPMKAA(reader, kind_0x1D)',
+              ORDINARY_ROW_RVA: 'LAIMPNDEFCL.GMENPOPMKAA(reader)',
+              ORDINARY_INIT_BY_ID_RVA: 'LAIMPNDEFCL.FOEOGNHBBMJ(uint32)',
+          }
+
+          def read_csv(name):
+              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv('types.csv')
+          fields = read_csv('fields.csv')
+          methods = read_csv('methods.csv')
+          type_by_tdi = {int(row['type_definition_index']): row for row in types}
+          fields_by_owner = defaultdict(list)
+          methods_by_owner = defaultdict(list)
+          for row in fields:
+              fields_by_owner[int(row['type_definition_index'])].append(row)
+          for row in methods:
+              methods_by_owner[int(row['type_definition_index'])].append(row)
+
+          if len(fields_by_owner[ORDINARY_TDI]) != 35:
+              raise SystemExit(
+                  f'ordinary row field count drift: {len(fields_by_owner[ORDINARY_TDI])} != 35'
+              )
+
+          method_rows = []
+          for row in methods:
+              text = row.get('rva', '').strip()
+              if not text:
+                  continue
+              try:
+                  method_rows.append((int(text, 16), row))
+              except ValueError:
+                  pass
+          method_rows.sort(key=lambda item: item[0])
+          method_rvas = [item[0] for item in method_rows]
+
+          def method_context(site_rva):
+              pos = bisect.bisect_right(method_rvas, site_rva)
+              prev = method_rows[pos - 1] if pos else None
+              nxt = method_rows[pos] if pos < len(method_rows) else None
+              containing = None
+              if prev is not None:
+                  start, row = prev
+                  end = nxt[0] if nxt else start + 0x10000
+                  if start <= site_rva < end:
+                      containing = {
+                          'rva': f'0x{start:X}',
+                          'distance': site_rva - start,
+                          'method': row,
+                          'owner_type': type_by_tdi.get(int(row['type_definition_index']), {}),
+                      }
+              return containing
+
+          with PEImage(exe) as image:
+              base = image.image_base
+
+              def read_rva(rva, size):
+                  data = image.read_rva(rva, size)
+                  if len(data) != size:
+                      raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
+                  return data
+
+              def read_va(va, size):
+                  if va < base:
+                      raise ValueError(f'not image VA: 0x{va:X}')
+                  return read_rva(va - base, size)
+
+              type_array_va = int.from_bytes(
+                  read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
+              )
+
+              def describe_entry(entry, depth=0):
+                  decoded = decode_type_entry(entry)
+                  kind = int(decoded['kind'])
+                  data_u64 = int.from_bytes(entry[:8], 'little')
+                  result = {
+                      'kind': decoded['kind_name'],
+                      'kind_value': kind,
+                      'data_u64': f'0x{data_u64:X}',
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(decoded['data_u32'])
+                      result['type_definition_index'] = tdi
+                      t = type_by_tdi.get(tdi)
+                      if t:
+                          result['type_name'] = t.get('type_name', '')
+                          result['namespace'] = t.get('namespace', '')
+                  elif kind in (0x0F, 0x10, 0x1D) and depth < 3 and data_u64 >= base:
+                      try:
+                          nested = read_va(data_u64, ENTRY_SIZE)
+                          if is_valid_type_entry(nested):
+                              result['element_or_target'] = describe_entry(nested, depth + 1)
+                      except Exception as exc:
+                          result['target_error'] = f'{type(exc).__name__}: {exc}'
+                  return result
+
+              ordinary_fields = sorted(
+                  fields_by_owner[ORDINARY_TDI], key=lambda row: int(row['field_index'])
+              )
+              runtime_types = {}
+              candidate_element_tdis = set()
+              print('=== ordinary row fields and exact runtime types ===')
+              for ordinal, field in enumerate(ordinary_fields, start=1):
+                  type_index = int(field['field_type_index'])
+                  entry = read_va(type_array_va + type_index * ENTRY_SIZE, ENTRY_SIZE)
+                  if not is_valid_type_entry(entry):
+                      info = {'index': type_index, 'status': 'invalid'}
+                  else:
+                      info = {'index': type_index, **describe_entry(entry)}
+                      nested = info.get('element_or_target')
+                      if isinstance(nested, dict) and 'type_definition_index' in nested:
+                          candidate_element_tdis.add(int(nested['type_definition_index']))
+                  runtime_types[str(type_index)] = info
+                  print(json.dumps({
+                      'ordinal': ordinal,
+                      'field': field,
+                      'runtime_type': info,
+                  }, ensure_ascii=False, sort_keys=True))
+
+              print('=== candidate array element structures ===')
+              control_tdis = {QUEST_COND_TDI, QUEST_EXEC_TDI, RANDOM_CONTENT_TDI}
+              structural_tdis = sorted(candidate_element_tdis | control_tdis)
+              structures = {}
+              for tdi in structural_tdis:
+                  structures[str(tdi)] = {
+                      'type': type_by_tdi.get(tdi, {'type_definition_index': tdi}),
+                      'fields': fields_by_owner.get(tdi, []),
+                      'methods': methods_by_owner.get(tdi, []),
+                  }
+                  print(json.dumps(structures[str(tdi)], ensure_ascii=False, sort_keys=True))
+
+              print('=== direct rel32 call xrefs to ordinary row methods ===')
+              xrefs = []
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  data = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for i in range(max(0, len(data) - 4)):
+                      if data[i] != 0xE8:
+                          continue
+                      disp = struct.unpack_from('<i', data, i + 1)[0]
+                      site_rva = sec.virtual_address + i
+                      target_rva = (site_rva + 5 + disp) & 0xFFFFFFFFFFFFFFFF
+                      if target_rva not in TARGETS:
+                          continue
+                      item = {
+                          'site_rva': f'0x{site_rva:X}',
+                          'target_rva': f'0x{target_rva:X}',
+                          'target_name': TARGETS[target_rva],
+                          'section': sec.name,
+                          'containing_method': method_context(site_rva),
+                      }
+                      xrefs.append(item)
+                      print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+              external_array_xrefs = [
+                  item for item in xrefs
+                  if item['target_rva'] == f'0x{ORDINARY_ARRAY_RVA:X}'
+                  and not (
+                      item.get('containing_method')
+                      and int(item['containing_method']['method']['type_definition_index']) == ORDINARY_TDI
+                  )
+              ]
+              print('external_array_xref_count=', len(external_array_xrefs))
+
+              print('=== metadata methods mentioning ordinary/facade types ===')
+              metadata_mentions = []
+              for row in methods:
+                  hay = ' '.join([
+                      str(row.get('return_type', '')),
+                      str(row.get('parameter_types', '')),
+                      str(row.get('type_name', '')),
+                      str(row.get('method_name', '')),
+                  ])
+                  if 'LAIMPNDEFCL' in hay or 'BEAEOMIOFDE' in hay:
+                      metadata_mentions.append(row)
+                      print(json.dumps(row, ensure_ascii=False, sort_keys=True))
+
+              print('=== executable path literal search ===')
+              literal_hits = {}
+              needles = [
+                  b'Data/_ExcelBinOutput/QuestExcelConfigData',
+                  b'QuestExcelConfigData',
+                  b'_ExcelBinOutput',
+              ]
+              for needle in needles:
+                  found = []
+                  for sec in image.sections:
+                      blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                      start = 0
+                      while True:
+                          pos = blob.find(needle, start)
+                          if pos < 0:
+                              break
+                          found.append({
+                              'section': sec.name,
+                              'rva': f'0x{sec.virtual_address + pos:X}',
+                              'encoding': 'ascii',
+                          })
+                          start = pos + 1
+                      wide = needle.decode('ascii').encode('utf-16le')
+                      start = 0
+                      while True:
+                          pos = blob.find(wide, start)
+                          if pos < 0:
+                              break
+                          found.append({
+                              'section': sec.name,
+                              'rva': f'0x{sec.virtual_address + pos:X}',
+                              'encoding': 'utf-16le',
+                          })
+                          start = pos + 2
+                  literal_hits[needle.decode('ascii')] = found
+                  print(needle.decode('ascii'), json.dumps(found, ensure_ascii=False))
+
+              evidence = {
+                  'sample': {
+                      'version': '7.1.0-global',
+                      'exe_sha256': PROFILE_71.exe_sha256,
+                  },
+                  'ordinary_type': type_by_tdi[ORDINARY_TDI],
+                  'facade_type': type_by_tdi[FACADE_TDI],
+                  'ordinary_fields': ordinary_fields,
+                  'runtime_types': runtime_types,
+                  'array_element_structures': structures,
+                  'targets': {f'0x{k:X}': v for k, v in TARGETS.items()},
+                  'xrefs': xrefs,
+                  'external_array_xrefs': external_array_xrefs,
+                  'metadata_mentions': metadata_mentions,
+                  'path_literal_hits': literal_hits,
+              }
+              Path('quest-ordinary-row-loader.json').write_text(
+                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+                  encoding='utf-8',
+              )
+          PY
       - name: Compare 7.1 QuestExcel rows across resource sources
         shell: bash
         run: |
@@ -1508,6 +1774,8 @@ jobs:
             quest-frombinary-framing.json
             quest-excel-row-schema.txt
             quest-excel-row-schema.json
+            quest-ordinary-row-loader.txt
+            quest-ordinary-row-loader.json
             quest-excel-source-compare.txt
             quest-excel-source-compare.json
             ordinary-quest-row-native.txt
