@@ -1,0 +1,113 @@
+name: Probe QuestExcel +0x74 loader candidates
+
+on:
+  push:
+    branches: [probe/quest-blb3-binoutput]
+    paths: [".github/workflows/probe-quest-excel-loader-74.yml"]
+
+concurrency:
+  group: probe-quest-excel-loader-74-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . capstone zstandard
+      - run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Inspect eight loaders
+        shell: bash
+        run: |
+          python - <<'PY' | tee quest-excel-loader-74.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          OBJECT_NEW=0x529A10
+          TARGETS=[
+            0x7EB2130,0x7F63F80,0x9080B70,0x90F1620,
+            0xADA2170,0x10174530,0x1132C4B0,0x1369F520,
+          ]
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def read(name):
+            with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+              return list(csv.DictReader(f))
+          methods=read("methods.csv");types=read("types.csv");fields=read("fields.csv")
+          type_by={int(x["type_definition_index"]):x for x in types}
+          fields_by={}
+          for x in fields: fields_by.setdefault(int(x["type_definition_index"]),[]).append(x)
+          rows=[]
+          for m in methods:
+            try:r=int(m.get("rva") or "0",0)
+            except:continue
+            if r: rows.append((r,m))
+          rows.sort(); starts=[x[0] for x in rows]; exact={}
+          for r,m in rows: exact.setdefault(r,[]).append(m)
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          out=[]
+          with PEImage(EXE) as image:
+            base=image.image_base
+            for rva in TARGETS:
+              meta=exact[rva][0];tdi=int(meta["type_definition_index"])
+              i=bisect.bisect_right(starts,rva)
+              end=starts[i] if i<len(starts) else rva+0x300
+              ins=list(md.disasm(image.read_rva(rva,min(end-rva,0x280)),base+rva))
+              interesting=[]; rip=[]; alloc=[]
+              for x in ins:
+                irva=x.address-base
+                if irva-rva>0x200: break
+                if x.mnemonic in ("call","jmp") and x.operands and x.operands[0].type==X86_OP_IMM:
+                  v=int(x.operands[0].imm);tr=v-base if v>=base else v
+                  if tr==OBJECT_NEW: alloc.append(irva)
+                for o in x.operands:
+                  if o.type==X86_OP_MEM:
+                    m=o.mem;bn=(x.reg_name(m.base) or "").lower() if m.base else ""
+                    if bn=="rip":
+                      rip.append({"site":f"0x{irva:X}","target":f"0x{x.address+x.size+m.disp-base:X}","op":x.op_str})
+                if x.mnemonic in {
+                  "call","jmp","mov","movzx","movsxd","lea","add","sub","xor","or","and","cmp","test","imul","inc","dec"
+                }:
+                  interesting.append({"rva":f"0x{irva:X}","mn":x.mnemonic,"op":x.op_str})
+              slots=[]
+              for a in alloc:
+                for rr in rip:
+                  s=int(rr["site"],16)
+                  if 0<a-s<=0x40: slots.append(rr)
+              item={
+                "rva":f"0x{rva:X}","meta":meta,"type":type_by.get(tdi,{}),
+                "fields":fields_by.get(tdi,[]),"alloc":[f"0x{x:X}" for x in alloc],
+                "slot_candidates":slots,"instructions":interesting,
+              }
+              out.append(item)
+              print("\\n===",item["rva"],meta["type_name"],"tdi",tdi,"===")
+              print("FIELDS",[(f["field_name"],f["field_type"],f["field_type_index"]) for f in item["fields"]])
+              print("ALLOC",item["alloc"])
+              print("SLOTS",json.dumps(slots,ensure_ascii=False))
+              for x in interesting: print(x["rva"],x["mn"],x["op"])
+          Path("quest-excel-loader-74.json").write_text(
+            json.dumps({"candidates":out},ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: quest-excel-loader-74
+          path: |
+            quest-excel-loader-74.txt
+            quest-excel-loader-74.json
+          if-no-files-found: error
