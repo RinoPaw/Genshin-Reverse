@@ -248,12 +248,150 @@ jobs:
               json.dumps(rows, ensure_ascii=False, indent=2) + "\n"
           )
           PY
+      - name: Disassemble GPC source-object methods and map shared fields
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-gpc-instance-methods.json \
+            --focus gpc-init:0xCAB9010 \
+            --focus gpc-postread:0xCABAC90 \
+            --focus gpc-set-a:0xCABAD70 \
+            --focus gpc-set-b:0xCABAE90 \
+            --max-body 0x4000 \
+            | tee quest-gpc-instance-methods.txt
+
+          python - <<'PY' | tee quest-gpc-fnj-field-map.txt
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          GPC_TDI = 82662
+          FNJ_TDI = 85802
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          fields = read_csv("fields.csv")
+          gpc = [x for x in fields if int(x["type_definition_index"]) == GPC_TDI]
+          fnj = [x for x in fields if int(x["type_definition_index"]) == FNJ_TDI]
+
+          def size_align(field_type):
+              if field_type in {"string", "kind_0x1D"}:
+                  return 8, 8
+              if field_type == "bool":
+                  return 1, 1
+              return 4, 4
+
+          offset = 0x10
+          gpc_layout = {}
+          for ordinal, field in enumerate(gpc):
+              size, align = size_align(field["field_type"])
+              offset = (offset + align - 1) & ~(align - 1)
+              gpc_layout[field["field_name"]] = {
+                  "ordinal": ordinal,
+                  "offset": offset,
+                  "offset_hex": f"0x{offset:X}",
+                  "field": field,
+              }
+              offset += size
+
+          gn = {x["field_name"]: x for x in gpc}
+          fn = {x["field_name"]: x for x in fnj}
+          common = []
+          for name in sorted(set(gn) & set(fn)):
+              common.append({
+                  "name": name,
+                  "gpc": gpc_layout[name],
+                  "fnj": fn[name],
+              })
+
+          methods = json.loads(Path("quest-gpc-instance-methods.json").read_text(encoding="utf-8"))
+          touched = {}
+          known_offsets = {v["offset"]: k for k, v in gpc_layout.items()}
+          for label, item in methods["focus"].items():
+              hits = []
+              for ins in item.get("disassembly", []):
+                  op = ins.get("op_str", "").lower()
+                  for off, name in known_offsets.items():
+                      # Match explicit object-relative field displacements. Keep
+                      # this as evidence only; register provenance is inspected in
+                      # the artifact before assigning semantics.
+                      forms = {
+                          f"+ 0x{off:x}]",
+                          f"+ {off}]",
+                      }
+                      if any(form in op for form in forms):
+                          hits.append({
+                              "field": name,
+                              "offset": f"0x{off:X}",
+                              "instruction": ins,
+                          })
+              touched[label] = hits
+
+          report = {
+              "gpc_field_count": len(gpc),
+              "fnj_field_count": len(fnj),
+              "common_field_count": len(common),
+              "common": common,
+              "gpc_only": sorted(set(gn) - set(fn)),
+              "fnj_only": sorted(set(fn) - set(gn)),
+              "gpc_layout": gpc_layout,
+              "method_field_hits": touched,
+          }
+
+          # Exact reader anchors prove the computed managed field layout before
+          # it is used to label instance-method offsets.
+          expected_anchors = {
+              "PHDIEJAPFJO": 0x64,
+              "KLMMPLDJAHJ": 0xA4,
+              "NMNCIHHMLFP": 0x98,
+              "GHHBGDKMJIC": 0x30,
+              "DJADGDCICCB": 0x48,
+          }
+          for name, expected in expected_anchors.items():
+              actual = gpc_layout[name]["offset"]
+              if actual != expected:
+                  raise AssertionError(
+                      f"GPC layout anchor {name}: 0x{actual:X} != 0x{expected:X}"
+                  )
+
+          print("GPC fields", len(gpc), "FNJ fields", len(fnj), "common", len(common))
+          for x in common:
+              print(
+                  "COMMON",
+                  x["name"],
+                  x["gpc"]["offset_hex"],
+                  x["gpc"]["field"]["field_type"],
+                  "FNJ",
+                  x["fnj"]["field_type"],
+              )
+          print("GPC_ONLY", report["gpc_only"])
+          print("FNJ_ONLY", report["fnj_only"])
+          for label, hits in touched.items():
+              print("METHOD", label)
+              for hit in hits:
+                  print(json.dumps(hit, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-gpc-fnj-field-map.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         run: |
           test -s quest-runtime-bridge.json
           test -s quest-gpc-runtime-types.json
           test -s quest-gpc-bridge-candidates.json
           test -s quest-gpc-bridge-disasm-plan.json
+          test -s quest-gpc-instance-methods.json
+          test -s quest-gpc-fnj-field-map.json
 
       - name: Upload focused evidence
         if: always()
@@ -269,4 +407,8 @@ jobs:
             quest-gpc-bridge-candidates.json
             quest-gpc-bridge-disasm-plan.txt
             quest-gpc-bridge-disasm-plan.json
+            quest-gpc-instance-methods.txt
+            quest-gpc-instance-methods.json
+            quest-gpc-fnj-field-map.txt
+            quest-gpc-fnj-field-map.json
           if-no-files-found: error
