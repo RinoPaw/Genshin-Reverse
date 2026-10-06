@@ -1,0 +1,156 @@
+name: Probe 6.7 legacy QuestExcel decoder
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-67.yml"
+      - "genshinre/samplefetch.py"
+
+concurrency:
+  group: probe-quest-legacy-67-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Reconstruct exact Global 6.7 executable and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-67-sample.txt
+          from pathlib import Path
+          from genshinre.samplefetch import (
+              download,decompress_zstd,parse_manifest,choose_executable,
+              choose_managed_metadata,reconstruct,
+          )
+          from genshinre.sampleidentity import sha256_file
+
+          manifest_url=(
+              "https://autopatchhk.yuanshen.com/client_app/sophon/manifests/"
+              "cxhpq4g4rgg0/E2zvp18oyzw6/"
+              "manifest_ccce2f7066358067_b659db7d40b8ac7311addf76f7edf5b5"
+          )
+          chunk_prefix=(
+              "https://autopatchhk.yuanshen.com/client_app/sophon/chunks/"
+              "cxhpq4g4rgg0/E2zvp18oyzw6"
+          )
+          raw=download(manifest_url)
+          manifest=parse_manifest(decompress_zstd(raw))
+          exe_row=choose_executable(manifest)
+          meta_row=choose_managed_metadata(manifest)
+          out=Path("inputs/6.7.0-global")
+          exe=out/"GenshinImpact.exe"
+          meta=out/"global-metadata.dat"
+          reconstruct(chunk_prefix,exe_row,exe,8)
+          reconstruct(chunk_prefix,meta_row,meta,8)
+          print("manifest_files",len(manifest))
+          print("exe_path",exe_row.get("filename"))
+          print("metadata_path",meta_row.get("filename"))
+          print("exe_size",exe.stat().st_size)
+          print("metadata_size",meta.stat().st_size)
+          print("exe_sha256",sha256_file(exe))
+          print("metadata_sha256",sha256_file(meta))
+          PY
+
+      - name: Scan legacy QuestExcel strings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-67-strings.txt
+          import json
+          from pathlib import Path
+
+          files=[
+              Path("inputs/6.7.0-global/GenshinImpact.exe"),
+              Path("inputs/6.7.0-global/global-metadata.dat"),
+          ]
+          needles=[
+              "Data/_ExcelBinOutput/QuestExcelConfigData",
+              "QuestExcelConfigData",
+              "QuestExcelConfig",
+              "acceptCond",
+              "acceptCondComb",
+              "beginExec",
+              "finishCond",
+              "failCond",
+              "finishExec",
+              "failExec",
+          ]
+
+          out={}
+          for p in files:
+              raw=p.read_bytes()
+              rows=[]
+              for s in needles:
+                  for enc,label in ((s.encode("utf-8"),"ascii"),(s.encode("utf-16le"),"utf16le")):
+                      pos=[]
+                      start=0
+                      while True:
+                          i=raw.find(enc,start)
+                          if i<0: break
+                          pos.append(i)
+                          start=i+1
+                          if len(pos)>=100: break
+                      if pos:
+                          rows.append({"needle":s,"encoding":label,"offsets":pos})
+              out[str(p)]=rows
+              print("\nFILE",p)
+              for row in rows:
+                  print(json.dumps(row,ensure_ascii=False))
+          Path("quest-legacy-67-strings.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Scan executable xrefs to direct QuestExcel path hits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-67-xrefs.txt
+          import json,struct
+          from pathlib import Path
+
+          exe=Path("inputs/6.7.0-global/GenshinImpact.exe").read_bytes()
+          target=b"Data/_ExcelBinOutput/QuestExcelConfigData"
+          hits=[]
+          start=0
+          while True:
+              i=exe.find(target,start)
+              if i<0: break
+              hits.append(i); start=i+1
+          print("raw_path_hits",hits)
+
+          # Also report nearby bytes/strings for any direct hit. PE RVA conversion
+          # is intentionally deferred until a hit exists.
+          rows=[]
+          for i in hits:
+              lo=max(0,i-0x100); hi=min(len(exe),i+len(target)+0x100)
+              rows.append({"file_offset":i,"context_hex":exe[lo:hi].hex()})
+          Path("quest-legacy-67-xrefs.json").write_text(
+              json.dumps({"path_hits":rows},indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-67
+          path: |
+            quest-legacy-67-sample.txt
+            quest-legacy-67-strings.txt
+            quest-legacy-67-strings.json
+            quest-legacy-67-xrefs.txt
+            quest-legacy-67-xrefs.json
+          if-no-files-found: error
