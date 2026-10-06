@@ -102,9 +102,16 @@ jobs:
           set -euo pipefail
           git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git /tmp/Il2CppDumper-Genshin
           git -C /tmp/Il2CppDumper-Genshin checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace("<TargetFrameworks>net472;net5.0</TargetFrameworks>","<TargetFramework>net6.0</TargetFramework>")
+          p.write_text(s,encoding="utf-8")
+          PY
           dotnet build /tmp/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
-            -c Release -f net5.0 --nologo
-          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net5.0
+            -c Release --nologo
+          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
           python - "$app/config.json" <<'PY'
           import json,sys
           p=sys.argv[1]
@@ -120,7 +127,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net5.0
+          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
           mkdir -p dumps
 
           success=0
