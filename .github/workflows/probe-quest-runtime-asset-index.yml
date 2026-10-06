@@ -578,15 +578,23 @@ jobs:
                   if not (sec.characteristics & 0x20000000):
                       continue
                   blob=image.read_rva(sec.virtual_address,sec.raw_size)
-                  for off in range(0,max(0,len(blob)-7)):
-                      if blob[off:off+3] not in prefixes:
-                          continue
-                      disp=struct.unpack_from('<i',blob,off+3)[0]
-                      rva=sec.virtual_address+off
-                      resolved=base+rva+7+disp
-                      if resolved!=target_va:
-                          continue
-                      hits.append({'rva':rva,'section':sec.name,'bytes':blob[off:off+7].hex(),'owner':owner(rva)})
+                  seen_offsets=set()
+                  for prefix in prefixes:
+                      start=0
+                      while True:
+                          off=blob.find(prefix,start)
+                          if off<0:
+                              break
+                          start=off+1
+                          if off in seen_offsets or off+7>len(blob):
+                              continue
+                          seen_offsets.add(off)
+                          disp=struct.unpack_from('<i',blob,off+3)[0]
+                          rva=sec.virtual_address+off
+                          resolved=base+rva+7+disp
+                          if resolved!=target_va:
+                              continue
+                          hits.append({'rva':rva,'section':sec.name,'bytes':blob[off:off+7].hex(),'owner':owner(rva)})
 
               md=Cs(CS_ARCH_X86,CS_MODE_64)
               report={'literal':'asset_index','literal_index':literal_index,'slot_rva':f'0x{slot_rva:X}','hits':hits,'owners':[]}
