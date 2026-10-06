@@ -50,10 +50,28 @@ jobs:
               f"{path}/{build}"
           )
           manifest=parse_manifest(decompress_zstd(download(manifest_url)))
-          code_row=choose_file(manifest,"GameAssembly.dll")
+          candidates=[
+              r for r in manifest
+              if (
+                  str(r.get("filename","")).lower().endswith(".dll")
+                  or "/native/" in str(r.get("filename","")).replace("\\","/").lower()
+              )
+              and int(r.get("size",0) or 0) >= 10_000_000
+          ]
+          candidates.sort(key=lambda r:int(r.get("size",0) or 0),reverse=True)
+          print("CODE_CANDIDATES")
+          for r in candidates[:40]:
+              print(r.get("filename"),r.get("size"))
+          preferred=[
+              r for r in candidates
+              if str(r.get("filename","")).replace("\\","/").lower().endswith("/native/userassembly.dll")
+          ]
+          if len(preferred)!=1:
+              raise AssertionError(f"expected one Native/UserAssembly.dll, got {[(r.get('filename'),r.get('size')) for r in preferred]}")
+          code_row=preferred[0]
           meta_row=choose_managed_metadata(manifest)
           out=Path("inputs/4.2.0-global")
-          code=out/"GameAssembly.dll"
+          code=out/"UserAssembly.dll"
           meta=out/"global-metadata.dat"
           reconstruct(chunk_prefix,code_row,code,8)
           reconstruct(chunk_prefix,meta_row,meta,8)
