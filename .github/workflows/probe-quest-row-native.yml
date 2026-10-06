@@ -1346,6 +1346,141 @@ jobs:
           for x in obj["instructions"][:120]:
               print(f'{x["rva"]:>12} {x["mnemonic"]:<8} {x["op_str"]}')
           PY
+      - name: Resolve named RandomMainQuest control against AFIO runtime container
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-random-main-control.txt
+          import bisect
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          RANDOM_MAIN_RUNTIME_INDEX = 646717
+          JEFO_TDI = 75872
+          AFIO_TDI = 69000
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+              entry_va = type_array_va + RANDOM_MAIN_RUNTIME_INDEX * ENTRY_SIZE
+              entry = image.read_rva(entry_va - base, ENTRY_SIZE)
+              if len(entry) != ENTRY_SIZE or not is_valid_type_entry(entry):
+                  raise AssertionError("RandomMainQuestExcelConfig runtime type entry invalid")
+              decoded = decode_type_entry(entry)
+              if int(decoded["kind"]) not in (0x11, 0x12):
+                  raise AssertionError(f"unexpected RandomMain runtime kind: {decoded}")
+              random_main_tdi = int(decoded["data_u32"])
+              random_main_type = type_by_tdi[random_main_tdi]
+              if random_main_type.get("type_name") != "RandomMainQuestExcelConfig":
+                  raise AssertionError(
+                      f"runtime index {RANDOM_MAIN_RUNTIME_INDEX} -> {random_main_type}"
+                  )
+
+              print("RANDOM_MAIN_TDI", random_main_tdi)
+              print("RANDOM_MAIN_TYPE", json.dumps(random_main_type, ensure_ascii=False, sort_keys=True))
+              for row in fields_by_tdi.get(random_main_tdi, []):
+                  print("RANDOM_MAIN_FIELD", json.dumps(row, ensure_ascii=False, sort_keys=True))
+              for row in methods_by_tdi.get(random_main_tdi, []):
+                  print("RANDOM_MAIN_METHOD", json.dumps(row, ensure_ascii=False, sort_keys=True))
+
+              # Bound metadata methods and disassemble every JEFO wrapper method.
+              all_starts = sorted({
+                  int(r["rva"], 0)
+                  for r in methods
+                  if (r.get("rva") or "").strip()
+              })
+              by_rva = {}
+              for row in methods:
+                  text = (row.get("rva") or "").strip()
+                  if not text:
+                      continue
+                  try:
+                      by_rva.setdefault(int(text, 0), []).append(row)
+                  except ValueError:
+                      pass
+
+              md = Cs(CS_ARCH_X86, CS_MODE_64)
+              report = {
+                  "runtime_type_index": RANDOM_MAIN_RUNTIME_INDEX,
+                  "random_main_tdi": random_main_tdi,
+                  "random_main_type": random_main_type,
+                  "random_main_fields": fields_by_tdi.get(random_main_tdi, []),
+                  "random_main_methods": methods_by_tdi.get(random_main_tdi, []),
+                  "jefo_type": type_by_tdi[JEFO_TDI],
+                  "afio_type": type_by_tdi[AFIO_TDI],
+                  "wrapper_methods": [],
+              }
+
+              for m in methods_by_tdi[JEFO_TDI]:
+                  text = (m.get("rva") or "").strip()
+                  if not text:
+                      continue
+                  start = int(text, 0)
+                  pos = bisect.bisect_right(all_starts, start)
+                  end = all_starts[pos] if pos < len(all_starts) else start + 0x800
+                  if end <= start or end - start > 0x2000:
+                      end = start + 0x800
+                  insns = [
+                      {
+                          "rva": f"0x{ins.address-base:X}",
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                      }
+                      for ins in md.disasm(image.read_rva(start, end-start), base+start)
+                  ]
+                  joined = "\n".join(x["op_str"].lower() for x in insns)
+                  # JEFO instance layout is expected to hold AFIO and RandomMain refs
+                  # adjacently. Keep methods that visibly touch either/both wrapper
+                  # slots, and especially those that later read nested +0xAC.
+                  wrapper_hits = []
+                  for x in insns:
+                      op = x["op_str"].lower()
+                      if re.search(r"\+ 0x(?:18|20)\]", op) or re.search(r"\+ 0xac\]", op):
+                          wrapper_hits.append(x)
+                  if not wrapper_hits:
+                      continue
+                  item = {
+                      "method": m,
+                      "hits": wrapper_hits,
+                      "instructions": insns,
+                  }
+                  report["wrapper_methods"].append(item)
+                  print("JEFO_METHOD", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-random-main-control.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1365,6 +1500,7 @@ jobs:
           test -s quest-becfl-object-projection.json
           test -s quest-becfl-summary.json
           test -s quest-main-id-cardinality.json
+          test -s quest-random-main-control.json
           test -s quest-fnj-reader.json
           test -s quest-fnj-side-reader.json
           test -s quest-fnj-reader-calls.json
@@ -1404,6 +1540,8 @@ jobs:
             quest-becfl-summary.json
             quest-main-id-cardinality.txt
             quest-main-id-cardinality.json
+            quest-random-main-control.txt
+            quest-random-main-control.json
             quest-fnj-reader.txt
             quest-fnj-reader.json
             quest-fnj-side-reader.txt
