@@ -324,7 +324,7 @@ The eight native rows are ordered `35100..35107`. Exact row starts are:
 35105  0x24F
 35106  0x2B2
 35107  0x327
-payload end 0x398
+row-array end 0x384
 ```
 
 The row `subId` anchors independently agree with the native transform
@@ -392,6 +392,39 @@ Quest JSON for the failure semantics.
 This directly confirms the 7.1 runtime behavior previously seen only as a
 same-version semantic control: subquest 35101 fails on team death and rolls
 the quest back to 35100.
+
+The ordinary-row array itself consumes exactly `0x3F..0x383`; row 35107 ends
+at `0x384`. The remaining 20 bytes are AFIO outer-container fields and decode
+exactly as:
+
+```text
+0x384 bit49 uint64[]:
+  encoded count = 0x740F8887
+  count = encoded + 0x8BF0777A = 1
+  element raw = 0xC8A1CA9556855C39
+  value = (raw XOR 0xA6AA5B5A) + 0x729DC4AB
+        = 14457059026087496718
+
+0x390 bit37:
+  0x321706FD XOR 0x32170514 = 1001
+
+0x394 bit40:
+  0x571F74B2 XOR 0x6B058DBD = 1008400655
+```
+
+These values correspond to the same-version materialized fields
+`JNHHOJAPDPP = [14457059026087496718]`, `resId = 1001`, and outer
+`NBOJMAHCCGM = 1008400655`.
+
+The full 920-byte `Data/_BinOutput/Quest/351` payload therefore reaches
+`0x398` with **zero unexplained trailing bytes**. This closes the native
+full-consumption invariant for the representative MainQuest 351 resource.
+
+All recovered ordinary-row finish/fail condition and execution arrays also
+match the same-version `BinOutput/Quest/351.json` values exactly. For these
+tested core runtime fields, the published same-version BinOutput is therefore
+a faithful materialization of the native per-ID binary. This does not restore
+or validate the legacy `acceptCond` chain in AstaPS QuestExcel.
 
 The remaining #8 proof step is to bind this ordinary-row deserializer to
 `Data/_ExcelBinOutput/QuestExcelConfigData` and decode the exact 2,824,188-byte payload
