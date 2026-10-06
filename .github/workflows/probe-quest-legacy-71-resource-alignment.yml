@@ -45,8 +45,8 @@ jobs:
           rm -rf /tmp/AstaPS-Resource
           git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/RinoPaw/AstaPS-Resource.git /tmp/AstaPS-Resource
-          git -C /tmp/AstaPS-Resource sparse-checkout set \
-            ExcelBinOutput/QuestExcelConfigData.json
+          git -C /tmp/AstaPS-Resource sparse-checkout set --no-cone \
+            'ExcelBinOutput/QuestExcelConfigData.json'
           test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
           sha256sum /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
 
