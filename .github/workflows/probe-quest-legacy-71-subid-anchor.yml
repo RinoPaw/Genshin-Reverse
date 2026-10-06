@@ -1,0 +1,265 @@
+name: Probe 7.1 QuestExcel subId anchor
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-subid-anchor.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-subid-anchor-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch exact pinned global 7.1 executable
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel raw object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-artifact
+          gh run download 37438756230 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir previous-artifact
+          test -s previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Prove Quest 351 subId anchors and infer fixed XOR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-subid-anchor.txt
+          import hashlib,json,struct
+          from pathlib import Path
+
+          path=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat")
+          raw=path.read_bytes()
+          size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+size]
+          if size != len(raw)-4:
+              raise SystemExit("wrapper size mismatch")
+
+          expected_order=[35104,35100,35107,35101,35106,35105,35103,35102]
+          # This constant was discovered by requiring all eight known Quest 351
+          # IDs to map to unique little-endian u32 anchors in the same compact
+          # order as the historical resource rows. Re-derive and verify here.
+          xor_key=0xB1571A55
+          rows=[]
+          positions=[]
+          for sid in expected_order:
+              encoded=(sid ^ xor_key) & 0xffffffff
+              needle=struct.pack("<I",encoded)
+              hits=[]
+              start=0
+              while True:
+                  p=payload.find(needle,start)
+                  if p<0: break
+                  hits.append(p); start=p+1
+              rows.append({
+                  "subId":sid,
+                  "encoded_u32":f"0x{encoded:08X}",
+                  "encoded_le":needle.hex(),
+                  "positions":[f"0x{x:X}" for x in hits],
+              })
+              if len(hits)!=1:
+                  raise SystemExit(f"subId {sid}: expected one anchor, got {hits}")
+              positions.append(hits[0])
+
+          if positions != sorted(positions):
+              raise SystemExit(f"Quest 351 anchor order mismatch: {positions}")
+          gaps=[b-a for a,b in zip(positions,positions[1:])]
+          if max(gaps)>0x100:
+              raise SystemExit(f"Quest 351 anchors unexpectedly dispersed: {gaps}")
+
+          # The bytes immediately after every anchor look like the next row's
+          # fixed-width wire header. Preserve them as evidence without assigning
+          # field semantics yet.
+          for row,p in zip(rows,positions):
+              row["before_16"]=payload[max(0,p-16):p].hex()
+              row["after_24"]=payload[p:p+24].hex()
+
+          out={
+              "asset":{
+                  "raw_size":len(raw),
+                  "raw_sha256":hashlib.sha256(raw).hexdigest(),
+                  "payload_size":len(payload),
+                  "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              },
+              "xor_key":f"0x{xor_key:08X}",
+              "expected_order":expected_order,
+              "anchors":rows,
+              "gaps":gaps,
+              "span":positions[-1]-positions[0],
+              "verdict":"Quest 351 rows are physically present in the exact 7.1 QuestExcel asset.",
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-subid-anchor.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Locate subId XOR constant in exact 7.1 native code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-subid-native.txt
+          import bisect,csv,json,struct
+          from pathlib import Path
+
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          KEY=0xB1571A55
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          with (ROOT/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          with (ROOT/"types.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              types=list(csv.DictReader(fh))
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          method_rows=[]
+          for row in methods:
+              try:rva=int(row.get("rva") or "0",0)
+              except Exception:continue
+              if rva: method_rows.append((rva,row))
+          method_rows.sort(key=lambda x:x[0])
+          starts=[x[0] for x in method_rows]
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s,row=method_rows[i]
+              e=method_rows[i+1][0] if i+1<len(method_rows) else s+0x10000
+              if not(s<=rva<e):return None
+              return {
+                  "start_rva":f"0x{s:X}",
+                  "end_rva":f"0x{e:X}",
+                  "method":row,
+                  "type":type_by_tdi.get(int(row["type_definition_index"]),{}),
+              }
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          hits=[]
+          pattern=struct.pack("<I",KEY)
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              for sec in image.sections:
+                  if not(sec.characteristics & 0x20000000):
+                      continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  start=0
+                  while True:
+                      off=blob.find(pattern,start)
+                      if off<0:break
+                      rva=sec.virtual_address+off
+                      start=off+1
+                      # Decode around the raw constant occurrence. Start slightly
+                      # before it because the four bytes are normally an imm32.
+                      lo=max(sec.virtual_address,rva-12)
+                      hi=min(sec.virtual_address+sec.raw_size,rva+24)
+                      code=image.read_rva(lo,hi-lo)
+                      insns=[]
+                      for ins in md.disasm(code,base+lo):
+                          irva=ins.address-base
+                          item={
+                              "rva":f"0x{irva:X}",
+                              "bytes":ins.bytes.hex(),
+                              "mnemonic":ins.mnemonic,
+                              "op_str":ins.op_str,
+                          }
+                          insns.append(item)
+                      hits.append({
+                          "constant_file_match_rva":f"0x{rva:X}",
+                          "section":sec.name,
+                          "owner":owner(rva),
+                          "window":insns,
+                      })
+
+              # Also disassemble complete owner methods for unique mapped hits.
+              owners=[]
+              seen=set()
+              for h in hits:
+                  o=h["owner"]
+                  if not o:continue
+                  start=int(o["start_rva"],16)
+                  end=int(o["end_rva"],16)
+                  if start in seen:continue
+                  seen.add(start)
+                  size=min(end-start,0x9000)
+                  body=[]
+                  for ins in md.disasm(image.read_rva(start,size),base+start):
+                      item={
+                          "rva":f"0x{ins.address-base:X}",
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if ins.mnemonic in ("call","jmp") and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          item["target_rva"]=f"0x{ins.operands[0].imm-base:X}"
+                      body.append(item)
+                  owners.append({"owner":o,"instructions":body})
+
+          out={
+              "key":f"0x{KEY:08X}",
+              "raw_constant_hits":hits,
+              "owner_bodies":owners,
+          }
+          print("KEY",out["key"],"HITS",len(hits),"OWNERS",len(owners))
+          for h in hits:
+              print("HIT",json.dumps(h,ensure_ascii=False))
+          for o in owners:
+              print("\n=== OWNER ===")
+              print(json.dumps(o["owner"],ensure_ascii=False))
+              for x in o["instructions"]:
+                  if KEY.to_bytes(4,"little").hex() in x["bytes"] or x["mnemonic"] in (
+                      "call","jmp","je","jne","ja","jae","jb","jbe",
+                      "mov","lea","add","sub","xor","test","bt","cmp"
+                  ):
+                      print(x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-legacy-71-subid-native.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          if not hits:
+              raise SystemExit("subId XOR key not found in executable code")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-subid-anchor
+          path: |
+            quest-legacy-71-subid-anchor.txt
+            quest-legacy-71-subid-anchor.json
+            quest-legacy-71-subid-native.txt
+            quest-legacy-71-subid-native.json
+          if-no-files-found: warn
