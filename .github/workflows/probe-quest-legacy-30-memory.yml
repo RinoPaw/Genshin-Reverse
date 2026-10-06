@@ -1,0 +1,231 @@
+name: Probe 3.0 QuestExcel loaded memory
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-memory.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-memory-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install analysis dependencies
+        shell: bash
+        run: python -m pip install pefile capstone
+
+      - name: Download exact 3.0.0 UserAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path("inputs/3.0.0-global/UserAssembly.dll")
+          raw=p.read_bytes()
+          print("size",len(raw),"sha256",hashlib.sha256(raw).hexdigest())
+          assert len(raw)==177601560
+          assert hashlib.sha256(raw).hexdigest()=="b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"
+          PY
+
+      - name: Inspect imports and fetch game-local dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          cd inputs/3.0.0-global
+
+          python - <<'PY' | tee ../../quest-legacy-30-memory-imports.txt
+          import pefile
+          pe=pefile.PE("UserAssembly.dll")
+          print("image_base",hex(pe.OPTIONAL_HEADER.ImageBase))
+          print("entrypoint",hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint))
+          names=[]
+          for entry in getattr(pe,"DIRECTORY_ENTRY_IMPORT",[]):
+              name=entry.dll.decode(errors="replace")
+              names.append(name)
+              print(name)
+          open("../../quest-legacy-30-memory-imports.json","w").write(
+              __import__("json").dumps(names,indent=2)+"\n"
+          )
+          PY
+
+          # UserAssembly commonly imports UnityPlayer. Fetch exact same-client copy
+          # only when the import table asks for it.
+          if grep -qi '^UnityPlayer\.dll$' ../../quest-legacy-30-memory-imports.txt; then
+            curl --fail --location --retry 5 --retry-all-errors \
+              --connect-timeout 30 --max-time 300 \
+              "$base/UnityPlayer.dll" -o UnityPlayer.dll || true
+          fi
+          ls -lh
+
+      - name: Load exact UserAssembly and compare protected RVAs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $env:PATH = "$(Resolve-Path 'inputs/3.0.0-global');$env:PATH"
+          python - <<'PY'
+          import ctypes
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+
+          dll=Path("inputs/3.0.0-global/UserAssembly.dll").resolve()
+          pe=pefile.PE(str(dll),fast_load=True)
+          preferred=int(pe.OPTIONAL_HEADER.ImageBase)
+
+          targets={
+              0x10FD580:("QuestExcelConfigLoader.FromBinary(ByteArray)",0x350),
+              0x3AF9E10:("QuestExcelConfig.FromBinary(ByteArray)",0x15E0),
+          }
+
+          report={
+              "dll":str(dll),
+              "preferred_base":preferred,
+              "load_ok":False,
+              "targets":{},
+          }
+
+          print("loading",dll)
+          try:
+              mod=ctypes.WinDLL(str(dll))
+          except BaseException as e:
+              err={
+                  "type":type(e).__name__,
+                  "repr":repr(e),
+                  "winerror":getattr(e,"winerror",None),
+              }
+              report["load_error"]=err
+              print("LOAD_ERROR",json.dumps(err))
+              Path("quest-legacy-30-loaded-memory.json").write_text(
+                  json.dumps(report,indent=2)+"\n",encoding="utf-8"
+              )
+              raise SystemExit(0)
+
+          base=int(mod._handle)
+          report["load_ok"]=True
+          report["loaded_base"]=base
+          print("loaded_base",hex(base),"preferred_base",hex(preferred))
+
+          outdir=Path("quest-legacy-30-loaded-memory")
+          outdir.mkdir(exist_ok=True)
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          for rva,(label,size) in targets.items():
+              raw=pe.get_data(rva,size)
+              mem=ctypes.string_at(base+rva,size)
+              diff_positions=[i for i,(a,b) in enumerate(zip(raw,mem)) if a!=b]
+              item={
+                  "label":label,
+                  "rva":rva,
+                  "size":size,
+                  "raw_sha256":hashlib.sha256(raw).hexdigest(),
+                  "memory_sha256":hashlib.sha256(mem).hexdigest(),
+                  "different_bytes":len(diff_positions),
+                  "first_differences":diff_positions[:128],
+              }
+              print(
+                  f"\n=== {label} RVA 0x{rva:X} size 0x{size:X} ==="
+              )
+              print("raw_sha256",item["raw_sha256"])
+              print("memory_sha256",item["memory_sha256"])
+              print("different_bytes",item["different_bytes"])
+              print("first_differences",item["first_differences"][:32])
+
+              (outdir/f"{rva:X}-raw.bin").write_bytes(raw)
+              (outdir/f"{rva:X}-memory.bin").write_bytes(mem)
+
+              instructions=[]
+              calls=[]
+              field_refs=[]
+              for n,ins in enumerate(md.disasm(mem,base+rva)):
+                  irva=ins.address-base
+                  row={
+                      "rva":irva,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic=="call"
+                      and ins.operands
+                      and ins.operands[0].type==X86_OP_IMM
+                  ):
+                      dst=ins.operands[0].imm-base
+                      row["call_target_rva"]=dst
+                      calls.append({"rva":irva,"target_rva":dst})
+                  for op in ins.operands:
+                      if op.type!=X86_OP_MEM:
+                          continue
+                      disp=op.mem.disp
+                      if disp in {
+                          0x10,0x14,0x18,0x1C,0x20,0x24,0x28,0x2C,
+                          0x30,0x34,0x38,0x40,0x48,0x50,0x58,0x60,
+                          0x68,0x70,0x74,0x75,0x78,0x7C,0x80,0x88,
+                          0x90,0x98,0xA0,0xA8,0xB0,0xB8,
+                      }:
+                          field_refs.append({
+                              "rva":irva,
+                              "disp":disp,
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "mnemonic":ins.mnemonic,
+                              "op_str":ins.op_str,
+                          })
+                  instructions.append(row)
+                  if n<1200:
+                      print(f"0x{irva:X} {ins.mnemonic:<8} {ins.op_str}")
+
+              item["instruction_count"]=len(instructions)
+              item["calls"]=calls
+              item["field_refs"]=field_refs
+              item["instructions"]=instructions
+              report["targets"][hex(rva)]=item
+
+          Path("quest-legacy-30-loaded-memory.json").write_text(
+              json.dumps(report,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+          exit 0
+
+      - name: Upload loaded-memory evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-loaded-memory
+          path: |
+            quest-legacy-30-memory-imports.txt
+            quest-legacy-30-memory-imports.json
+            quest-legacy-30-loaded-memory.json
+            quest-legacy-30-loaded-memory/*.bin
+          if-no-files-found: warn
