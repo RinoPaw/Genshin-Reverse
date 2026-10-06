@@ -1151,6 +1151,102 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Resolve FNJ to AFIO projection and main-quest cardinality
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x9F89380 0x180 \
+            --expected-sha256 "$(python - <<'PY'
+from genshinre.nativeprofile import PROFILE_71
+print(PROFILE_71.exe_sha256)
+PY
+)" \
+            --label "ODJJEFFIPFA.BECFLOFNBMM(object,uint64)" \
+            --output quest-becfl-object-projection.json \
+            > quest-becfl-object-projection.txt
+
+          python - <<'PY' | tee quest-becfl-summary.txt
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          obj = json.loads(Path("quest-becfl-object-projection.json").read_text(encoding="utf-8"))
+          ins = obj["instructions"]
+
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          by_rva = {}
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  by_rva.setdefault(int(text, 0), []).append(row)
+              except ValueError:
+                  pass
+
+          base = int(obj["image_base"], 16)
+          report = []
+          for x in ins:
+              if x["mnemonic"] != "call":
+                  continue
+              m = re.fullmatch(r"0x([0-9a-fA-F]+)", x["op_str"])
+              if not m:
+                  continue
+              trva = int(m.group(1), 16) - base
+              item = {
+                  "site_rva": x["rva"],
+                  "target_rva": f"0x{trva:X}",
+                  "metadata": by_rva.get(trva, []),
+              }
+              report.append(item)
+              print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-becfl-summary.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/DimbreathBot/AnimeGameData/792978e5503ecfba73dcb3562ed44a0d35a2abe2/ExcelBinOutput/QuestExcelConfigData.json" \
+            -o dimbreath-questexcel-7.1.json
+
+          python - <<'PY' | tee quest-main-id-cardinality.txt
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          rows = json.loads(Path("dimbreath-questexcel-7.1.json").read_text(encoding="utf-8"))
+          main_ids = [row.get("mainId") for row in rows if isinstance(row, dict) and isinstance(row.get("mainId"), int)]
+          counts = Counter(main_ids)
+          print("top_level_rows=", len(rows))
+          print("rows_with_int_mainId=", len(main_ids))
+          print("unique_mainId=", len(counts))
+          print("min_mainId=", min(counts) if counts else None)
+          print("max_mainId=", max(counts) if counts else None)
+          print("singleton_mainIds=", sum(v == 1 for v in counts.values()))
+          print("max_subquests_per_main=", max(counts.values()) if counts else None)
+
+          out = {
+              "top_level_rows": len(rows),
+              "rows_with_int_mainId": len(main_ids),
+              "unique_mainId": len(counts),
+              "min_mainId": min(counts) if counts else None,
+              "max_mainId": max(counts) if counts else None,
+              "singleton_mainIds": sum(v == 1 for v in counts.values()),
+              "max_subquests_per_main": max(counts.values()) if counts else None,
+          }
+          Path("quest-main-id-cardinality.json").write_text(
+              json.dumps(out, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1167,6 +1263,9 @@ jobs:
           test -s quest-container-projection-callers.json
           test -s quest-container-owner-types.json
           test -s quest-container-projection-native.json
+          test -s quest-becfl-object-projection.json
+          test -s quest-becfl-summary.json
+          test -s quest-main-id-cardinality.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -1196,4 +1295,10 @@ jobs:
             quest-container-owner-types.json
             quest-container-projection-native.txt
             quest-container-projection-native.json
+            quest-becfl-object-projection.txt
+            quest-becfl-object-projection.json
+            quest-becfl-summary.txt
+            quest-becfl-summary.json
+            quest-main-id-cardinality.txt
+            quest-main-id-cardinality.json
           if-no-files-found: error
