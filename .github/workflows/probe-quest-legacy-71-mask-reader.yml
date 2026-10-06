@@ -1,0 +1,130 @@
+name: Rank 7.1 QuestExcel readers by recovered mask bits
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-mask-reader.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-mask-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Checkout pinned analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none https://github.com/owomocha/genshin-7.0-local-re-devkit.git /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+      - name: Rank 64-bit-mask reader nodes
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-mask-reader.txt
+          import csv,json
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          READER="FNIAHJGHFAK"
+          TARGET={13,16,22,45,52,63}
+
+          def load(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          methods=load("methods.csv");types=load("types.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          deser={};one={};candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0);tdi=int(m["type_definition_index"])
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception: continue
+              if not rva or not params or params[0]!=READER: continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)!=1: continue
+              ret=(m.get("return_type") or "").lower()
+              pr=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+              if cls not in one or pr<one[cls][0]: one[cls]=(pr,rva)
+              candidates.append((rva,m,type_by_tdi.get(tdi,{})))
+
+          row_deser={k:v[1] for k,v in one.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          def nodes(node,path="root",seen=None):
+              seen=set() if seen is None else seen
+              ident=id(node)
+              if ident in seen:return
+              seen.add(ident)
+              yield path,node
+              for i,st in enumerate(node.get("steps",[])):
+                  sub=st.get("sub")
+                  if isinstance(sub,dict):
+                      yield from nodes(sub,f"{path}/{i}:{st.get('kind')}",seen)
+
+          ranked=[];built=0
+          for rva,m,t in candidates:
+              try:schema=BC.build(exe,rva,deser,cache={})
+              except Exception:continue
+              built+=1
+              for path,node in nodes(schema):
+                  mask=node.get("mask")
+                  if not mask or mask.get("width")!=8:continue
+                  fs=[st for st in node.get("steps",[]) if st.get("kind")!="base" and st.get("bit") is not None]
+                  bits={int(st["bit"]) for st in fs}
+                  hit=sorted(bits&TARGET)
+                  if not hit:continue
+                  target_fields=[
+                      {"bit":st.get("bit"),"kind":st.get("kind"),"width":st.get("width"),"dest":st.get("dest"),
+                       "lw":st.get("lw"),"sig":st.get("sig"),"neg":st.get("neg"),"mops":st.get("mops")}
+                      for st in fs if st.get("bit") in TARGET
+                  ]
+                  score=len(hit)*100 + (50 if 63 in bits else 0) + min(len(bits),64)
+                  ranked.append({
+                      "score":score,"rva":f"0x{rva:X}","type_name":m.get("type_name"),
+                      "method_name":m.get("method_name"),"path":path,
+                      "metadata_field_count":t.get("field_count"),"mask":mask,
+                      "bits":sorted(bits),"target_hits":hit,"target_fields":target_fields,
+                  })
+          ranked.sort(key=lambda x:(-x["score"],x["rva"],x["path"]))
+          print("one_arg_readers",len(candidates),"built",built,"ranked_nodes",len(ranked))
+          for x in ranked[:120]:print(json.dumps(x,ensure_ascii=False))
+          Path("quest-legacy-71-mask-reader.json").write_text(
+              json.dumps({"target_bits":sorted(TARGET),"one_arg_readers":len(candidates),"built":built,"ranked":ranked[:500]},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-mask-reader
+          path: |
+            quest-legacy-71-mask-reader.txt
+            quest-legacy-71-mask-reader.json
+          if-no-files-found: error
