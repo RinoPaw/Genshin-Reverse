@@ -1,0 +1,336 @@
+name: Probe 2.8 QuestExcel wire fingerprint
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 2.8.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          out='inputs/2.8.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(172337920,"48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394"),
+              "global-metadata.dat":(48012356,"8bc2cee2a2c55a2a0fc224e414c2c139e06a116860b4e758cc5a00226bc4de85"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/2.8.0-global")/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name,len(raw),got)
+              assert len(raw)==size and got==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 2.8 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump-28"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-wire-dumper.txt"
+          test -s "$out/dump.cs"
+          test -s "$out/script.json"
+
+      - name: Disassemble exact ordinary Quest row reader and annotate calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-wire.txt
+          import bisect,json,re
+          from collections import defaultdict
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          exe=Path("inputs/2.8.0-global/UserAssembly.dll")
+          pe=pefile.PE(str(exe),fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in runtime]
+          def containing(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0 and runtime[i][0]<=rva<runtime[i][1]:
+                  return runtime[i]
+              return None
+
+          # Exact 2.8 ordinary QuestExcel row established independently by full
+          # 30-field layout match:
+          # LHMHKEAMFBG TypeDefIndex 31502.
+          row_rva=0x2DEB2B0
+          bounds=containing(row_rva)
+          if not bounds:
+              raise SystemExit("reader RVA is outside PE runtime functions")
+          a,b=bounds
+          print(f"ROW LHMHKEAMFBG TypeDefIndex=31502")
+          print(f"READER metadata_rva=0x{row_rva:X} bounds=0x{a:X}-0x{b:X} size=0x{b-a:X}")
+
+          field_names={
+              0x10:"subId",0x14:"mainId",0x18:"order",0x1C:"subIdSet",
+              0x20:"isMpBlock",0x24:"descTextMapHash",
+              0x28:"stepDescTextMapHash",0x2C:"guideTipsTextMapHash",
+              0x30:"showType",0x34:"banType",
+              0x38:"acceptCondComb",0x40:"acceptCond",
+              0x48:"finishCondComb",0x50:"finishCond",
+              0x58:"failCondComb",0x60:"failCond",
+              0x68:"guide",0x70:"showGuide",
+              0x74:"finishParent",0x75:"failParent",
+              0x78:"failParentShow",0x7C:"isRewind",
+              0x80:"finishExec",0x88:"failExec",0x90:"beginExec",
+              0x98:"exclusiveNpcList",0xA0:"sharedNpcList",
+              0xA8:"exclusiveNpcPriority",
+              0xB0:"trialAvatarList",0xB8:"exclusivePlaceList",
+          }
+
+          script=json.loads(Path("genshin-dump-28/script.json").read_text(
+              encoding="utf-8",errors="replace"
+          ))
+          addr_methods=defaultdict(list)
+          def parse_addr(v):
+              if isinstance(v,int):
+                  return v
+              if isinstance(v,str):
+                  try:
+                      return int(v,0)
+                  except Exception:
+                      try:
+                          return int(v,16)
+                      except Exception:
+                          return None
+              return None
+          for m in script.get("ScriptMethod",[]):
+              addr=parse_addr(m.get("Address"))
+              if addr is not None:
+                  # Il2CppDumper script addresses are RVAs in this build.
+                  addr_methods[addr].append({
+                      "name":m.get("Name"),
+                      "signature":m.get("Signature"),
+                      "type":m.get("Type"),
+                  })
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          insns=[]
+          for ins in md.disasm(pe.get_data(a,b-a),base+a):
+              row={
+                  "rva":ins.address-base,
+                  "bytes":ins.bytes.hex(),
+                  "mnemonic":ins.mnemonic,
+                  "op_str":ins.op_str,
+              }
+              if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                  target=ins.operands[0].imm-base
+                  row["call_target_rva"]=target
+                  row["call_symbols"]=addr_methods.get(target,[])
+              mem=[]
+              for op in ins.operands:
+                  if op.type==X86_OP_MEM:
+                      mem.append({
+                          "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                          "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                          "scale":op.mem.scale,
+                          "disp":op.mem.disp,
+                      })
+              if mem:
+                  row["mem"]=mem
+              insns.append(row)
+
+          # Identify the object base register by the largest number of exact
+          # Quest field displacements within this reader.
+          counts=defaultdict(set)
+          for x in insns:
+              for m in x.get("mem",[]):
+                  if m["disp"] in field_names and m["base"] not in (None,"rsp","rbp","rip"):
+                      counts[m["base"]].add(m["disp"])
+          ranked=sorted(counts.items(),key=lambda kv:(-len(kv[1]),kv[0]))
+          print("FIELD_BASE_CANDIDATES",[(r,len(v),[hex(x) for x in sorted(v)]) for r,v in ranked])
+          if not ranked:
+              raise SystemExit("no object-base field accesses")
+          objreg=ranked[0][0]
+          print("OBJECT_BASE",objreg)
+
+          interesting=[]
+          for i,x in enumerate(insns):
+              fields=[]
+              for m in x.get("mem",[]):
+                  if m["base"]==objreg and m["disp"] in field_names:
+                      fields.append({
+                          "offset":m["disp"],
+                          "name":field_names[m["disp"]],
+                      })
+              if not fields and "call_target_rva" not in x:
+                  continue
+              item={
+                  "index":i,
+                  "rva":x["rva"],
+                  "fields":fields,
+                  "call_target_rva":x.get("call_target_rva"),
+                  "call_symbols":x.get("call_symbols",[]),
+                  "context":insns[max(0,i-6):min(len(insns),i+7)],
+              }
+              interesting.append(item)
+
+              tags=[]
+              tags.extend(f"{f['name']}@0x{f['offset']:X}" for f in fields)
+              if "call_target_rva" in x:
+                  tags.append(f"CALL->0x{x['call_target_rva']:X}")
+              print(f"\n-- 0x{x['rva']:X} {' '.join(tags)}")
+              for sym in x.get("call_symbols",[]):
+                  print("   SYMBOL",sym)
+              for y in item["context"]:
+                  print(f"   0x{y['rva']:X} {y['mnemonic']:<8} {y['op_str']}")
+
+          # Compact field-centric sequence: nearest preceding calls for each
+          # first write/access to a Quest field.
+          first={}
+          for i,x in enumerate(insns):
+              for m in x.get("mem",[]):
+                  if m["base"]!=objreg or m["disp"] not in field_names:
+                      continue
+                  off=m["disp"]
+                  if off in first:
+                      continue
+                  prev_calls=[]
+                  for y in insns[max(0,i-20):i]:
+                      if "call_target_rva" in y:
+                          prev_calls.append({
+                              "rva":y["rva"],
+                              "target":y["call_target_rva"],
+                              "symbols":y.get("call_symbols",[]),
+                          })
+                  first[off]={
+                      "instruction_index":i,
+                      "instruction":x,
+                      "preceding_calls":prev_calls[-6:],
+                  }
+
+          print("\n===== FIELD SEQUENCE =====")
+          for off in sorted(first,key=lambda o:first[o]["instruction_index"]):
+              x=first[off]
+              ins=x["instruction"]
+              print(
+                  f"{field_names[off]} +0x{off:X} "
+                  f"at 0x{ins['rva']:X}: {ins['mnemonic']} {ins['op_str']}"
+              )
+              for call in x["preceding_calls"]:
+                  syms=" | ".join(
+                      (s.get("signature") or s.get("name") or "")
+                      for s in call["symbols"]
+                  )
+                  print(f"  prev call 0x{call['rva']:X}->0x{call['target']:X} {syms}")
+
+          Path("quest-legacy-28-wire.json").write_text(
+              json.dumps({
+                  "sample":{
+                      "userassembly_size":172337920,
+                      "userassembly_sha256":"48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394",
+                  },
+                  "row_type":"LHMHKEAMFBG",
+                  "typedef_index":31502,
+                  "reader_rva":row_rva,
+                  "function_bounds":[a,b],
+                  "object_base":objreg,
+                  "field_base_candidates":{
+                      r:sorted(v) for r,v in counts.items()
+                  },
+                  "instructions":insns,
+                  "interesting":interesting,
+                  "first_field_access":{hex(k):v for k,v in first.items()},
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload wire evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-wire
+          path: |
+            quest-legacy-28-wire-dumper.txt
+            quest-legacy-28-wire.txt
+            quest-legacy-28-wire.json
+          if-no-files-found: warn
