@@ -96,41 +96,60 @@ jobs:
             fi
           done
 
-      - name: Dump every structurally valid converted metadata
+      - name: Build pinned Genshin-aware Il2CppDumper
         shell: bash
         run: |
           set -euo pipefail
-          root=/tmp/il2cppdumper
-          mkdir -p "$root"
-          curl --fail --location --retry 5 --retry-all-errors \
-            'https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip' \
-            -o "$root/dumper.zip"
-          unzip -q "$root/dumper.zip" -d "$root/app"
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git /tmp/Il2CppDumper-Genshin
+          git -C /tmp/Il2CppDumper-Genshin checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          dotnet build /tmp/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
+            -c Release -f net5.0 --nologo
+          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net5.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          p=sys.argv[1]
+          x=json.load(open(p,encoding='utf-8-sig'))
+          x['RequireAnyKey']=False
+          x['GenerateDummyDll']=False
+          x['GenerateStruct']=False
+          json.dump(x,open(p,'w',encoding='utf-8'),indent=2)
+          PY
+          ls -la "$app"
+
+      - name: Dump exact 3.0 metadata with Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net5.0
+          mkdir -p dumps
 
           success=0
-          for kind in GI GIPack GICB1 GICBX GIV2; do
-            meta="$GITHUB_WORKSPACE/converted/$kind.dat"
-            [ -f "$meta.valid" ] || continue
-            [ "$(cat "$meta.valid")" = 1 ] || continue
+          for spec in "native:inputs/3.0.0-global/global-metadata.dat" "GI:converted/GI.dat"; do
+            kind="${spec%%:*}"
+            meta="${spec#*:}"
+            [ -f "$meta" ] || continue
             out="$GITHUB_WORKSPACE/dumps/$kind"
             mkdir -p "$out"
-            echo "=== DUMP $kind ==="
+            echo "=== GenshinDumper $kind ==="
             set +e
-            timeout 120s bash -c \
-              'cd "$1" && dotnet Il2CppDumper.dll "$2" "$3" "$4" </dev/null' \
-              _ "$root/app" \
-              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
-              "$meta" "$out" \
-              >"$GITHUB_WORKSPACE/converted/$kind-dumper.log" 2>&1
+            (
+              cd "$app"
+              timeout 180s dotnet Il2CppDumper.dll \
+                "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+                "$GITHUB_WORKSPACE/$meta" \
+                "$out"
+            ) </dev/null >"$GITHUB_WORKSPACE/converted/$kind-genshin-dumper.log" 2>&1
             rc=$?
             set -e
-            cat "$GITHUB_WORKSPACE/converted/$kind-dumper.log"
-            if [ -f "$out/dump.cs" ]; then
+            cat "$GITHUB_WORKSPACE/converted/$kind-genshin-dumper.log"
+            if [ -s "$out/dump.cs" ]; then
+              echo "SUCCESS_VARIANT=$kind"
               success=$((success+1))
             else
               echo "$kind dumper rc=$rc no dump.cs"
             fi
           done
+
           echo "successful dumps=$success"
           if [ "$success" -eq 0 ]; then
             exit 1
