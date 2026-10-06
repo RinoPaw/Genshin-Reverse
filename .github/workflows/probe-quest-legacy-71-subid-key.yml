@@ -145,10 +145,10 @@ jobs:
                   })
                   pos+=1
 
-          # Semantic scan all executable sections for immediate KEY. This catches
-          # the exact transform even if the byte string occurs at instruction
-          # boundaries we did not predict.
+          # Semantic scan executable sections for either immediate KEY or a
+          # RIP-relative load/store that points at a data-section KEY literal.
           semantic=[]
+          data_xrefs=[]
           for sec in pe.sections:
               if not (sec.Characteristics & 0x20000000):
                   continue
@@ -165,10 +165,20 @@ jobs:
                               matched=True
                       elif op.type==X86_OP_MEM and op.mem.base==X86_REG_RIP:
                           target=ins.address+ins.size+op.mem.disp
+                          target_rva=target-image_base
                           operands.append({
                               "type":"rip_mem",
-                              "target_rva":f"0x{target-image_base:X}",
+                              "target_rva":f"0x{target_rva:X}",
                           })
+                          if target_rva in key_rvas:
+                              data_xrefs.append({
+                                  "rva":ins.address-image_base,
+                                  "mnemonic":ins.mnemonic,
+                                  "op_str":ins.op_str,
+                                  "bytes":ins.bytes.hex(),
+                                  "target_rva":target_rva,
+                                  "owner":owner(ins.address-image_base),
+                              })
                   if matched:
                       rva=ins.address-image_base
                       semantic.append({
@@ -187,6 +197,10 @@ jobs:
           } | {
               x["owner"]["start"]
               for x in byte_hits
+              if x.get("owner")
+          } | {
+              x["owner"]["start"]
+              for x in data_xrefs
               if x.get("owner")
           })
 
@@ -232,19 +246,31 @@ jobs:
                   print("  OWNER",f"0x{x['owner']['start']:X}",x["owner"]["method_rows"])
                   print("  TYPES",x["owner"]["types"])
 
+          print("data_xrefs",len(data_xrefs))
+          for x in data_xrefs:
+              print(
+                  "XREF",f"0x{x['rva']:X}",
+                  x["mnemonic"],x["op_str"],
+                  "->",f"0x{x['target_rva']:X}",
+              )
+              if x["owner"]:
+                  print("  OWNER",f"0x{x['owner']['start']:X}",x["owner"]["method_rows"])
+                  print("  TYPES",x["owner"]["types"])
+
           report={
               "key":f"0x{KEY:08X}",
               "executable_sections":executable,
               "byte_hits":byte_hits,
               "semantic_hits":semantic,
+              "data_xrefs":data_xrefs,
               "owners":disassembled,
           }
           Path("quest-legacy-71-subid-key.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",
               encoding="utf-8",
           )
-          if not semantic:
-              raise SystemExit("no executable semantic use of legacy subId key")
+          if not semantic and not data_xrefs:
+              print("No direct immediate or RIP-relative key xref; preserve negative evidence.")
           PY
 
       - name: Summarize field writes and stream reads near key owners
