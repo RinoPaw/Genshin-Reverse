@@ -1,0 +1,112 @@
+name: Probe 4.2 legacy QuestExcel decoder
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-42.yml"
+
+concurrency:
+  group: probe-quest-legacy-42-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . zstandard capstone
+
+      - name: Reconstruct exact 4.2 GameAssembly and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-42-sample.txt
+          from pathlib import Path
+          from genshinre.samplefetch import (
+              download,decompress_zstd,parse_manifest,choose_file,
+              choose_managed_metadata,reconstruct,
+          )
+          from genshinre.sampleidentity import sha256_file
+
+          build="A7MXB8KyIJQg"
+          manifest_id="b142c9f962d5da2c_41726ac4de910b1bb494cb01646c330f"
+          path="cxhpq4g4rgg0"
+          manifest_url=(
+              f"https://autopatchhk.yuanshen.com/client_app/sophon/manifests/"
+              f"{path}/{build}/manifest_{manifest_id}"
+          )
+          chunk_prefix=(
+              f"https://autopatchhk.yuanshen.com/client_app/sophon/chunks/"
+              f"{path}/{build}"
+          )
+          manifest=parse_manifest(decompress_zstd(download(manifest_url)))
+          code_row=choose_file(manifest,"GameAssembly.dll")
+          meta_row=choose_managed_metadata(manifest)
+          out=Path("inputs/4.2.0-global")
+          code=out/"GameAssembly.dll"
+          meta=out/"global-metadata.dat"
+          reconstruct(chunk_prefix,code_row,code,8)
+          reconstruct(chunk_prefix,meta_row,meta,8)
+          print("manifest_files",len(manifest))
+          print("code_path",code_row.get("filename"))
+          print("metadata_path",meta_row.get("filename"))
+          print("code_size",code.stat().st_size)
+          print("metadata_size",meta.stat().st_size)
+          print("code_sha256",sha256_file(code))
+          print("metadata_sha256",sha256_file(meta))
+          PY
+
+      - name: Recover protected 4.2 literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/gi-stringliteral
+          commit=1008fd7db28dcbc55729d5bb6b3a585dab86cf8b
+          mkdir -p "$root"
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$commit/recover_string_literals.py"             -o "$root/recover_string_literals.py"
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$commit/extract_constants.py"             -o "$root/extract_constants.py"
+          (
+            cd "$root"
+            python recover_string_literals.py               "$GITHUB_WORKSPACE/inputs/4.2.0-global/global-metadata.dat"               "$GITHUB_WORKSPACE/inputs/4.2.0-global/GameAssembly.dll"               -o "$GITHUB_WORKSPACE/quest-legacy-42-literals-all.json"
+          ) 2>&1 | tee quest-legacy-42-recovery.txt
+
+          python - <<'PY' | tee quest-legacy-42-summary.txt
+          import json
+          from pathlib import Path
+          rows=json.loads(Path("quest-legacy-42-literals-all.json").read_text(encoding="utf-8"))
+          names={
+              "ordinary_path":"Data/_ExcelBinOutput/QuestExcelConfigData",
+              "main_path":"Data/_ExcelBinOutput/MainQuestExcelConfigData",
+              "random_path":"Data/_ExcelBinOutput/RandomQuestExcelConfigData",
+              "acceptCond":"acceptCond",
+              "acceptCondComb":"acceptCondComb",
+              "beginExec":"beginExec",
+          }
+          hits={k:[r for r in rows if r.get("value")==v] for k,v in names.items()}
+          quest=[r for r in rows if "QuestExcelConfig" in r.get("value","")]
+          out={"version":"4.2","total_literals":len(rows),"exact_hits":hits,"quest_excel_literals":quest}
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-42-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-42
+          path: |
+            quest-legacy-42-sample.txt
+            quest-legacy-42-recovery.txt
+            quest-legacy-42-summary.txt
+            quest-legacy-42-summary.json
+          if-no-files-found: error
