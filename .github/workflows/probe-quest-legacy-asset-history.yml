@@ -1,0 +1,235 @@
+name: Compare historical QuestExcel legacy asset
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-asset-history.yml"
+
+concurrency:
+  group: probe-quest-legacy-asset-history-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "4.2"
+            build: "A7MXB8KyIJQg"
+            manifest: "b142c9f962d5da2c_41726ac4de910b1bb494cb01646c330f"
+          - version: "5.0"
+            build: "Xjsq5P6brXRg"
+            manifest: "a840226e3d67bc2e_8553accd71b3242c98b3cbc0589825cc"
+          - version: "6.0"
+            build: "R6VKQTMPUUBa"
+            manifest: "e64ca10c417ae850_028ff30ff105d093df1df15a46fed16a"
+          - version: "6.7"
+            build: "E2zvp18oyzw6"
+            manifest: "ccce2f7066358067_b659db7d40b8ac7311addf76f7edf5b5"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . zstandard
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install pinned AnimeStudio CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
+          archive=/tmp/animestudio.tar.gz
+          root=/tmp/animestudio
+          curl --fail --location --retry 3 "$url" --output "$archive"
+          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
+          mkdir -p "$root"
+          tar -xzf "$archive" -C "$root"
+          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
+          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
+          if (("${#apphosts[@]}")); then
+            chmod +x "${apphosts[0]}"
+            printf '%s\n' "${apphosts[0]}" > /tmp/animestudio-entry
+          elif (("${#dlls[@]}")); then
+            printf 'dotnet\n%s\n' "${dlls[0]}" > /tmp/animestudio-entry
+          else
+            exit 2
+          fi
+
+      - name: Reconstruct historical design AssetIndex
+        shell: bash
+        env:
+          VERSION: ${{ matrix.version }}
+          BUILD: ${{ matrix.build }}
+          MANIFEST: ${{ matrix.manifest }}
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee historical-index-reconstruct.txt
+          import os
+          from pathlib import Path
+          from genshinre.samplefetch import download,decompress_zstd,parse_manifest,normalized_name,reconstruct
+
+          version=os.environ["VERSION"]
+          build=os.environ["BUILD"]
+          manifest_id=os.environ["MANIFEST"]
+          base="cxhpq4g4rgg0"
+          manifest_url=(
+              f"https://autopatchhk.yuanshen.com/client_app/sophon/manifests/"
+              f"{base}/{build}/manifest_{manifest_id}"
+          )
+          chunk_prefix=(
+              f"https://autopatchhk.yuanshen.com/client_app/sophon/chunks/"
+              f"{base}/{build}"
+          )
+          rows=parse_manifest(decompress_zstd(download(manifest_url)))
+          suffix="/assetbundles/blocks/00/31049741.blk"
+          hits=[r for r in rows if normalized_name(r).endswith(suffix)]
+          if len(hits)!=1:
+              alt=[r for r in rows if normalized_name(r).endswith("/31049741.blk")]
+              print("exact_hits",len(hits),"basename_hits",[(x.get("filename"),x.get("size")) for x in alt[:20]])
+              raise SystemExit(f"{version}: design index block missing/ambiguous")
+          target=Path("design-index/31049741.blk")
+          reconstruct(chunk_prefix,hits[0],target,workers=8)
+          print("version",version)
+          print("manifest_files",len(rows))
+          print("design_index",hits[0].get("filename"),"size",target.stat().st_size,"md5",hits[0].get("md5"))
+          Path("/tmp/chunk-prefix").write_text(chunk_prefix)
+          Path("/tmp/manifest-url").write_text(manifest_url)
+          PY
+
+      - name: Resolve QuestExcel resource through historical AssetIndex
+        shell: bash
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+          rm -rf design-index-output
+          mkdir -p design-index-output
+          "${cli[@]}" design-index/31049741.blk design-index-output --game GI --export_type Raw --logger_flags Error 2>&1 | tee historical-index-animestudio.txt
+
+          python - <<'PY' | tee historical-quest-asset-location.txt
+          import json,os
+          from pathlib import Path
+          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
+          from genshinre.samplefetch import download,decompress_zstd,parse_manifest,normalized_name,reconstruct
+
+          version=os.environ["VERSION"]
+          path="Data/_ExcelBinOutput/QuestExcelConfigData"
+          h=mihoyo_name_hash(path)
+          idx_file=Path("design-index-output/MiHoYoBinData/0000006f.dat")
+          if not idx_file.is_file():
+              c=list(Path("design-index-output").rglob("*.dat"))
+              raise SystemExit(f"{version}: index export missing; candidates={c[:20]}")
+          index=parse_asset_index(idx_file.read_bytes())
+          name=index.name_for_hash(h)
+          ref=index.block_ref_for_asset(name.sub_asset_id)
+          group=index.block_groups[ref.block_id]
+          item={
+              "version":version,
+              "path":path,
+              "hash":f"0x{h:010X}",
+              "exported_name":name.exported_name,
+              "sub_asset_id":name.sub_asset_id,
+              "block_id":ref.block_id,
+              "group_id":group,
+              "unknown0":ref.unknown0,
+              "unknown1":ref.unknown1,
+          }
+          print(json.dumps(item,ensure_ascii=False,indent=2))
+          Path("historical-quest-asset-location.json").write_text(
+              json.dumps(item,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          rows=parse_manifest(decompress_zstd(download(Path("/tmp/manifest-url").read_text())))
+          suffixes=[
+              f"/assetbundles/blocks/{group:02x}/{ref.block_id}.blk",
+              f"/assetbundles/blocks/{group:02d}/{ref.block_id}.blk",
+          ]
+          hits=[]
+          for suffix in suffixes:
+              hits=[r for r in rows if normalized_name(r).endswith(suffix)]
+              if len(hits)==1:
+                  break
+          if len(hits)!=1:
+              alt=[r for r in rows if normalized_name(r).endswith(f"/{ref.block_id}.blk")]
+              raise SystemExit(f"{version}: target block missing/ambiguous {suffixes}; alt={[(x.get('filename'),x.get('size')) for x in alt[:20]]}")
+          target=Path("quest-block")/str(group)/f"{ref.block_id}.blk"
+          reconstruct(Path("/tmp/chunk-prefix").read_text(),hits[0],target,workers=8)
+          print("target_block",hits[0].get("filename"),"size",target.stat().st_size,"md5",hits[0].get("md5"))
+          PY
+
+      - name: Export and fingerprint historical QuestExcel raw object
+        shell: bash
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+          block=$(python - <<'PY'
+          import json
+          x=json.load(open("historical-quest-asset-location.json"))
+          print(f"quest-block/{x['group_id']}/{x['block_id']}.blk")
+          PY
+          )
+          rm -rf quest-output
+          mkdir -p quest-output
+          "${cli[@]}" "$block" quest-output --game GI --export_type Raw --logger_flags Error 2>&1 | tee historical-quest-animestudio.txt
+
+          python - <<'PY' | tee historical-quest-fingerprint.txt
+          import hashlib,json,os,struct
+          from pathlib import Path
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          version=os.environ["VERSION"]
+          loc=json.load(open("historical-quest-asset-location.json"))
+          root=Path("quest-output/MiHoYoBinData")
+          expected=root/(loc["exported_name"]+".dat")
+          if not expected.is_file():
+              candidates=list(root.glob("*.dat")) if root.is_dir() else []
+              raise SystemExit(f"{version}: raw export missing: {expected}; candidates={candidates[:30]}")
+          raw=expected.read_bytes()
+          payload=unwrap_mihoyo_bin_data(raw)
+          result={
+              **loc,
+              "raw_size":len(raw),
+              "raw_sha256":hashlib.sha256(raw).hexdigest(),
+              "payload_size":len(payload),
+              "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              "head64":payload[:64].hex(),
+              "same_as_7_1_raw_sha256":hashlib.sha256(raw).hexdigest()=="f068fc7f5dc0a0560ef0b145cdca14ee12910d0a3bc25a6332e2546f37650c87",
+          }
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          Path("historical-quest-fingerprint.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-asset-history-${{ matrix.version }}
+          path: |
+            historical-index-reconstruct.txt
+            historical-index-animestudio.txt
+            historical-quest-asset-location.txt
+            historical-quest-asset-location.json
+            historical-quest-animestudio.txt
+            historical-quest-fingerprint.txt
+            historical-quest-fingerprint.json
+          if-no-files-found: warn
