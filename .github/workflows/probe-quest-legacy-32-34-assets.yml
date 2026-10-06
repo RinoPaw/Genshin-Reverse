@@ -92,7 +92,7 @@ jobs:
           for line in Path("inputs/pkg_version").read_text(encoding="utf-8-sig",errors="strict").splitlines():
               line=line.strip()
               if line: rows.append(json.loads(line))
-          suffix="/StreamingAssets/AssetBundles/blocks/00/31049741.blk"
+          suffix="/StreamingAssets/AssetBundles/blocks/00/31049740.blk"
           hits=[x for x in rows if str(x.get("remoteName","")).replace("\\","/").endswith(suffix)]
           print("version",os.environ["VERSION"],"rows",len(rows),"design_hits",len(hits))
           for x in hits: print(json.dumps(x,sort_keys=True))
@@ -101,13 +101,13 @@ jobs:
           PY
 
           rel=$(python -c 'import json; print(json.load(open("/tmp/design-entry.json"))["remoteName"])')
-          fetch "$rel" inputs/31049741.blk
+          fetch "$rel" inputs/31049740.blk
 
           python - <<'PY'
           import hashlib,json
           from pathlib import Path
           x=json.load(open("/tmp/design-entry.json"))
-          p=Path("inputs/31049741.blk")
+          p=Path("inputs/31049740.blk")
           got=hashlib.md5(p.read_bytes()).hexdigest()
           print("design_size",p.stat().st_size,"md5",got)
           if p.stat().st_size != int(x["fileSize"]): raise SystemExit("design size mismatch")
@@ -122,7 +122,7 @@ jobs:
           if (("${#entry[@]}"==1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
           rm -rf design-output
           mkdir -p design-output
-          "${cli[@]}" inputs/31049741.blk design-output --game GI --export_type Raw --logger_flags Error
+          "${cli[@]}" inputs/31049740.blk design-output --game GI --export_type Raw --logger_flags Error
 
           python - <<'PY' | tee quest-asset-location.txt
           import json
