@@ -149,9 +149,9 @@ def _read_u_array(data: bytes, pos: int) -> tuple[list[int], int]:
 
 
 def _read_s_array(data: bytes, pos: int) -> tuple[list[int], int]:
-    count, pos = read_svar(data, pos)
-    if not 0 <= count <= 100_000:
-        raise LegacyQuestParseError(f"implausible signed-array count {count}")
+    count, pos = read_uvar(data, pos)
+    if count > 100_000:
+        raise LegacyQuestParseError(f"implausible signed-value array count {count}")
     values: list[int] = []
     for _ in range(count):
         value, pos = read_svar(data, pos)
