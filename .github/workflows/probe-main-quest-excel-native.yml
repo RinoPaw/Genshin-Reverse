@@ -1205,6 +1205,12 @@ jobs:
           PY
 
           rm -f dimbreath-quest-excel.json astaps-quest-excel.json
+      - name: Assert source comparison evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s quest-excel-source-compare.txt
+          test -s quest-excel-source-compare.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
