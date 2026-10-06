@@ -1,0 +1,248 @@
+name: Infer 7.1 legacy QuestExcel presence mask
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-mask.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-mask-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-artifact
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir previous-artifact
+          test -s previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch initial AstaPS QuestExcel resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout \
+            8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Infer mask location and transform from field presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-mask.txt
+          import collections
+          import hashlib
+          import json
+          import struct
+          from pathlib import Path
+
+          RAW=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY=0xB1571A55
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          rows=json.loads(RES.read_text(encoding="utf-8"))
+          if len(rows)!=25261:
+              raise SystemExit(f"unexpected resource row count {len(rows)}")
+
+          # Historical QuestExcel field order from the 2.2 DataParser schema.
+          fields=[
+              "subId","mainId","order","subIdSet","isMpBlock",
+              "descTextMapHash","stepDescTextMapHash","guideTipsTextMapHash",
+              "showType","banType","acceptCondComb","acceptCond",
+              "finishCondComb","finishCond","failCondComb","failCond",
+              "guide","showGuide","finishParent","failParent",
+              "failParentShow","isRewind","finishExec","failExec",
+              "beginExec","exclusiveNpcList","sharedNpcList",
+              "exclusiveNpcPriority","trialAvatarList","exclusivePlaceList",
+          ]
+
+          # Exact one-pass subId anchors.
+          encoded={}
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  encoded.setdefault((sid^SUBID_KEY)&0xffffffff,[]).append((ordinal,sid))
+
+          hits={k:[] for k in encoded}
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in hits:
+                  hits[u].append(pos)
+
+          anchors={}
+          for enc,items in encoded.items():
+              if len(items)!=1 or len(hits[enc])!=1:
+                  continue
+              ordinal,sid=items[0]
+              anchors[ordinal]=(sid,hits[enc][0])
+
+          print("unique anchors",len(anchors))
+
+          # Expected old-schema presence mask directly from JSON key presence.
+          expected={}
+          for ordinal,row in enumerate(rows):
+              mask=0
+              for bit,name in enumerate(fields):
+                  if name in row:
+                      mask |= 1<<bit
+              expected[ordinal]=mask
+
+          # At each relative offset around the exact subId raw word, test whether
+          # a fixed XOR/ADD/SUB transform converts a 4- or 8-byte raw word to the
+          # expected presence mask. A real mask location should dominate across
+          # thousands of rows.
+          tests=[]
+          for width in (4,8):
+              mod=1<<(8*width)
+              for rel in range(-16,33):
+                  counters={
+                      "xor":collections.Counter(),
+                      "add":collections.Counter(), # expected = raw + key
+                      "sub":collections.Counter(), # expected = raw - key
+                  }
+                  eligible=0
+                  for ordinal,(sid,pos) in anchors.items():
+                      at=pos+rel
+                      if at<0 or at+width>len(payload):
+                          continue
+                      rawv=int.from_bytes(payload[at:at+width],"little")
+                      exp=expected[ordinal] & (mod-1)
+                      eligible+=1
+                      counters["xor"][rawv^exp]+=1
+                      counters["add"][(exp-rawv)&(mod-1)]+=1
+                      counters["sub"][(rawv-exp)&(mod-1)]+=1
+                  for kind,c in counters.items():
+                      key,count=c.most_common(1)[0]
+                      tests.append({
+                          "width":width,
+                          "rel":rel,
+                          "kind":kind,
+                          "key":f"0x{key:0{width*2}X}",
+                          "support":count,
+                          "eligible":eligible,
+                          "ratio":count/eligible if eligible else 0,
+                      })
+
+          tests.sort(key=lambda x:(-x["support"],-x["ratio"],x["width"],x["rel"]))
+          print("\n=== best mask transform candidates ===")
+          for x in tests[:80]:
+              print(json.dumps(x,sort_keys=True))
+
+          # Bitwise correlation is transform-agnostic for XOR masks. It also
+          # exposes a raw/untransformed mask even if only a subset of fields
+          # still maps to the historical schema.
+          correlations=[]
+          for rel in range(-16,33):
+              for raw_bit in range(8):
+                  ones=[0]*len(fields)
+                  zeros=[0]*len(fields)
+                  matches=[0]*len(fields)
+                  inverse=[0]*len(fields)
+                  eligible=0
+                  for ordinal,(sid,pos) in anchors.items():
+                      at=pos+rel
+                      if at<0 or at>=len(payload):continue
+                      rv=(payload[at]>>raw_bit)&1
+                      exp=expected[ordinal]
+                      eligible+=1
+                      for bit in range(len(fields)):
+                          ev=(exp>>bit)&1
+                          matches[bit]+=rv==ev
+                          inverse[bit]+=rv!=(ev)
+                  for field_bit,name in enumerate(fields):
+                      best=max(matches[field_bit],inverse[field_bit])
+                      correlations.append({
+                          "rel":rel,
+                          "raw_bit":raw_bit,
+                          "field_bit":field_bit,
+                          "field":name,
+                          "polarity":"same" if matches[field_bit]>=inverse[field_bit] else "inverse",
+                          "support":best,
+                          "eligible":eligible,
+                          "ratio":best/eligible if eligible else 0,
+                      })
+          correlations.sort(key=lambda x:(-x["ratio"],-x["support"]))
+          print("\n=== best bit correlations ===")
+          for x in correlations[:120]:
+              print(json.dumps(x,sort_keys=True))
+
+          q351=[]
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if not isinstance(sid,int) or not 35100<=sid<=35107:
+                  continue
+              anchor=anchors.get(ordinal)
+              if not anchor:continue
+              _,pos=anchor
+              mask=expected[ordinal]
+              q351.append({
+                  "ordinal":ordinal,
+                  "subId":sid,
+                  "position":pos,
+                  "expected_old_schema_mask":f"0x{mask:08X}",
+                  "present_fields":[name for bit,name in enumerate(fields) if mask&(1<<bit)],
+                  "acceptCond_present_in_resource":"acceptCond" in row,
+                  "acceptCond":row.get("acceptCond"),
+                  "acceptCondComb":row.get("acceptCondComb"),
+                  "window_start":max(0,pos-16),
+                  "window_hex":payload[max(0,pos-16):min(len(payload),pos+96)].hex(),
+              })
+          q351.sort(key=lambda x:x["position"])
+          print("\n=== Quest 351 ===")
+          print(json.dumps(q351,ensure_ascii=False,indent=2))
+
+          report={
+              "asset_sha256":hashlib.sha256(raw).hexdigest(),
+              "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              "resource_sha256":hashlib.sha256(RES.read_bytes()).hexdigest(),
+              "unique_anchors":len(anchors),
+              "historical_fields":fields,
+              "best_transform_candidates":tests[:400],
+              "best_bit_correlations":correlations[:500],
+              "quest351":q351,
+          }
+          Path("quest-legacy-71-mask.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-mask
+          path: |
+            quest-legacy-71-mask.txt
+            quest-legacy-71-mask.json
+          if-no-files-found: error
