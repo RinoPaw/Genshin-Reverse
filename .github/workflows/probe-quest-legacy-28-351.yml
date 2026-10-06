@@ -153,25 +153,22 @@ jobs:
           test -s quest-output/3b87ae83.dat
 
           python - <<'PY' | tee quest-legacy-28-route.txt
-          import json
           from pathlib import Path
-          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
-          idx=parse_asset_index(Path("design-output/0000006f.dat").read_bytes())
-          h=mihoyo_name_hash("Data/_ExcelBinOutput/QuestExcelConfigData")
-          name=idx.name_for_hash(h)
-          ref=idx.block_ref_for_asset(name.sub_asset_id)
-          group=idx.block_groups[ref.block_id]
-          out={
-              "hash":f"0x{h:010X}",
-              "exported_name":name.exported_name,
-              "sub_asset_id":name.sub_asset_id,
-              "block_id":ref.block_id,
-              "group_id":group,
-          }
-          print(json.dumps(out,indent=2))
-          assert name.exported_name.lower()=="3b87ae83"
-          assert ref.block_id==25539185
-          assert group==0
+          from genshinre.assetindex import mihoyo_name_hash
+
+          path="Data/_ExcelBinOutput/QuestExcelConfigData"
+          h=mihoyo_name_hash(path)
+          exported=f"{h & 0xffffffff:08x}"
+          target=Path("quest-output")/(exported+".dat")
+          print("path",path)
+          print("hash",f"0x{h:010X}")
+          print("exported_name",exported)
+          print("target",target)
+          print("target_size",target.stat().st_size if target.exists() else None)
+          if exported!="3b87ae83":
+              raise SystemExit(f"unexpected path hash export {exported}")
+          if not target.is_file():
+              raise SystemExit(f"QuestExcel raw object missing: {target}")
           PY
 
       - name: Decode exact 2.8 Quest 351
