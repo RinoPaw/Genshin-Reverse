@@ -473,13 +473,11 @@ jobs:
                   if k in (0x0E, 0x0F, 0x10, 0x12, 0x14, 0x15, 0x1C, 0x1D):
                       return 8, 8
                   if k == 0x11:
-                      tdi = int(d["data_u32"])
-                      nested = fields_by_tdi.get(tdi, [])
-                      # All value types used by the named RandomQuest row here are enum-like.
-                      # Keep this conservative and prove it against exact native offset anchors below.
-                      if len(nested) <= 1:
-                          return 4, 4
-                      return 8, 8
+                      # RandomQuestExcelConfig uses enum-valued fields here. Metadata
+                      # also lists enum literals as fields, so field-count is not a
+                      # valid enum/struct discriminator. The six exact-native layout
+                      # anchors below reject any wrong size assumption.
+                      return 4, 4
                   raise ValueError(f"unsupported runtime kind 0x{k:02X} for field type {type_index}")
 
               def align_up(v, a):
