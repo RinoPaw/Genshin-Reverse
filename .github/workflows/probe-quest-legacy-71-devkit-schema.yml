@@ -69,20 +69,20 @@ jobs:
           git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
             fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
 
-      - name: Analyze candidate 7.1 row readers against exact Quest 351 windows
+      - name: Analyze candidate 7.1 row readers against exact Quest 351 chain
         shell: bash
         env:
-          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
         run: |
           set -euo pipefail
           python - <<'PY' | tee quest-legacy-71-devkit-schema.txt
           import csv
           import json
           import struct
-          import sys
           from pathlib import Path
 
           from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
 
           EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
           META=Path("versions/7.1.0-global/windows-x64/metadata")
@@ -92,18 +92,21 @@ jobs:
           SUBID_KEY=0xB1571A55
           TARGETS=[35104,35100,35107,35101,35106,35105,35103,35102]
 
-          def rows(name):
+          def read_csv(name):
               with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
                   return list(csv.DictReader(fh))
 
-          methods=rows("methods.csv")
-          types=rows("types.csv")
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
           type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try:fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception:pass
 
-          # Give the 7.0 analyzer every 7.1 method whose first argument is the
-          # binary reader. Recursive calls can then be recognized as record
-          # deserializers even when class/method names are obfuscated.
           deser={}
+          one_by_class={}
           candidates=[]
           for m in methods:
               try:
@@ -119,19 +122,34 @@ jobs:
                   continue
               if not params or params[0] != READER:
                   continue
-              deser[rva]=(m.get("type_name") or "?",m.get("method_name") or "?",str(params))
 
-              # Focus on plausible source-row objects. Keep named controls even
-              # outside the count range so the analyzer can self-check.
-              t=type_by_tdi.get(tdi,{})
-              try:fc=int(t.get("field_count") or "0")
-              except ValueError:fc=0
-              exact_one=len(params)==1
-              named=m.get("type_name") in {
-                  "RandomQuestExcelConfig","GPCFGOEJFJK","LAIMPNDEFCL","AFIOOHMJHDM"
-              }
-              if exact_one and (20 <= fc <= 48 or named):
-                  candidates.append((rva,m,t,fc))
+              cls=m.get("type_name") or "?"
+              sig=str(params)
+              deser[rva]=(cls,m.get("method_name") or "?",sig)
+
+              if len(params)==1:
+                  # Prefer void / FromBinaryInner-like readers when a class has
+                  # multiple wrappers.
+                  ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+                  pr=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or pr < prev[0]:
+                      one_by_class[cls]=(pr,rva)
+
+                  t=type_by_tdi.get(tdi,{})
+                  try:fc=int(t.get("field_count") or "0")
+                  except ValueError:fc=0
+                  named=cls in {
+                      "RandomQuestExcelConfig","GPCFGOEJFJK",
+                      "LAIMPNDEFCL","AFIOOHMJHDM"
+                  }
+                  if 18 <= fc <= 48 or named:
+                      candidates.append((rva,m,t,fc,tdi))
+
+          row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
 
           raw=RAW.read_bytes()
           n=struct.unpack_from("<I",raw,0)[0]
@@ -140,16 +158,21 @@ jobs:
               raise SystemExit("MiHoYoBinData wrapper mismatch")
 
           resource=json.loads(RES.read_text(encoding="utf-8"))
-          ord_by_sid={
-              row.get("subId"):i
-              for i,row in enumerate(resource)
-              if isinstance(row.get("subId"),int)
-          }
+          ord_by_sid={}
+          for i,row in enumerate(resource):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  ord_by_sid.setdefault(sid,[]).append(i)
+          target_ord=[ord_by_sid[s][0] for s in TARGETS]
+          if target_ord != list(range(target_ord[0],target_ord[0]+len(TARGETS))):
+              raise SystemExit(f"Quest 351 resource order is not consecutive: {target_ord}")
+          first_ord=target_ord[0]
+          prev_sid=resource[first_ord-1].get("subId")
+          next_sid=resource[first_ord+len(TARGETS)].get("subId")
+          if not isinstance(prev_sid,int) or not isinstance(next_sid,int):
+              raise SystemExit("neighbor subIds missing")
 
-          # Exact raw subId anchors. The content of acceptCond is deliberately
-          # not used anywhere in this probe.
-          pos={}
-          for sid in TARGETS:
+          def unique_anchor(sid):
               needle=struct.pack("<I",(sid ^ SUBID_KEY)&0xffffffff)
               hits=[]
               at=0
@@ -158,153 +181,188 @@ jobs:
                   if x<0:break
                   hits.append(x);at=x+1
               if len(hits)!=1:
-                  raise SystemExit(f"subId {sid}: native anchor ambiguity {hits}")
-              pos[sid]=hits[0]
+                  raise ValueError(f"subId {sid}: anchors={hits}")
+              return hits[0]
 
-          ordered=sorted((p,sid) for sid,p in pos.items())
-          windows=[]
-          for i,(start,sid) in enumerate(ordered):
-              if i+1 < len(ordered):
-                  end=ordered[i+1][0]
-              else:
-                  ordinal=ord_by_sid[sid]
-                  next_sid=resource[ordinal+1].get("subId")
-                  needle=struct.pack("<I",(next_sid ^ SUBID_KEY)&0xffffffff)
-                  hits=[]
-                  at=0
-                  while True:
-                      x=payload.find(needle,at)
-                      if x<0:break
-                      hits.append(x);at=x+1
-                  end=min((x for x in hits if x>start),default=-1)
-                  if end<0:
-                      raise SystemExit("could not bind final Quest 351 row end")
-              windows.append((sid,start,end))
+          anchors={sid:unique_anchor(sid) for sid in [prev_sid,*TARGETS,next_sid]}
+          target_pos=[anchors[s] for s in TARGETS]
+          if target_pos != sorted(target_pos):
+              raise SystemExit(f"Quest 351 anchors out of order: {anchors}")
 
+          search_lo=anchors[prev_sid]+4
+          search_hi=anchors[TARGETS[0]]
+          final_limit=anchors[next_sid]
           print("reader_methods",len(deser))
           print("candidate_methods",len(candidates))
-          print("windows",windows)
+          print("neighbor_sids",prev_sid,next_sid)
+          print("anchors",anchors)
+          print("start_search",search_lo,search_hi,"width",search_hi-search_lo)
 
-          exe=BC.Exe(str(EXE))
-          dset=set(deser)
+          def find_scalar_columns(decoded_rows, expected):
+              if not decoded_rows:
+                  return []
+              widths=[len(x) if isinstance(x,list) else 0 for x in decoded_rows]
+              if len(set(widths))!=1 or not widths[0]:
+                  return []
+              out=[]
+              for col in range(widths[0]):
+                  vals=[row[col] for row in decoded_rows]
+                  if vals==expected:
+                      out.append(col)
+              return out
+
+          def contains_value(x,target):
+              if isinstance(x,bool):
+                  return False
+              if isinstance(x,int):
+                  return x==target
+              if isinstance(x,str):
+                  return x==str(target)
+              if isinstance(x,list):
+                  return any(contains_value(v,target) for v in x)
+              if isinstance(x,dict):
+                  return any(contains_value(v,target) for v in x.values())
+              return False
+
           results=[]
-          schema_cache={}
-
-          for idx,(rva,m,t,fc) in enumerate(candidates,1):
+          for idx,(rva,m,t,fc,tdi) in enumerate(candidates,1):
               try:
                   schema=BC.build(exe,rva,deser,cache={})
-              except Exception as exc:
+              except Exception:
                   continue
 
-              fields=[
+              fields_schema=[
                   st for st in schema.get("steps",[])
-                  if st.get("kind") != "base"
+                  if st.get("kind")!="base"
               ]
-              bits=[st.get("bit") for st in fields if st.get("bit") is not None]
               kinds={}
-              for st in fields:
+              for st in fields_schema:
                   kinds[st.get("kind","?")]=kinds.get(st.get("kind","?"),0)+1
 
-              exact=0
-              decoded=[]
-              errors=[]
-              for sid,start,end in windows:
+              best=None
+              # The true row start is after the previous row's subId anchor and
+              # at/before this row's subId anchor. Search byte-by-byte.
+              for start in range(search_lo,search_hi+1):
                   reader=BC.Reader(payload)
                   reader.p=start
-                  try:
-                      vals=reader.record(schema)
-                      stop=reader.p
-                      ok=(stop==end)
-                      exact += int(ok)
-                      decoded.append({
-                          "subId":sid,
-                          "start":start,
-                          "expected_end":end,
-                          "actual_end":stop,
-                          "exact":ok,
-                          "values":vals,
-                      })
-                  except Exception as exc:
-                      errors.append({"subId":sid,"error":repr(exc)})
-                      decoded.append({
-                          "subId":sid,
-                          "start":start,
-                          "expected_end":end,
-                          "actual_end":None,
-                          "exact":False,
-                      })
+                  decoded=[]
+                  spans=[]
+                  ok=True
+                  for i,sid in enumerate(TARGETS):
+                      rs=reader.p
+                      try:
+                          vals=reader.record(schema)
+                      except Exception:
+                          ok=False
+                          break
+                      re=reader.p
+                      anchor=anchors[sid]
+                      upper=anchors[TARGETS[i+1]] if i+1<len(TARGETS) else final_limit
+                      # Each known subId word must be inside its own decoded row,
+                      # and the row must end before the next row's subId word.
+                      if not (rs <= anchor < re <= upper):
+                          ok=False
+                          break
+                      spans.append((sid,rs,re,anchor))
+                      decoded.append(vals)
+                  if not ok:
+                      continue
 
-              score=exact*1000
-              if schema.get("mask"):
-                  score += 100
-              if len(fields)==30:
-                  score += 300
-              elif 24 <= len(fields) <= 40:
-                  score += 100
-              if bits and min(bits)>=0 and max(bits)<=63:
-                  score += len(set(bits))
-              if m.get("type_name") in ("RandomQuestExcelConfig","GPCFGOEJFJK"):
-                  score += 10
+                  sub_cols=find_scalar_columns(decoded,TARGETS)
+                  main_cols=find_scalar_columns(decoded,[351]*len(TARGETS))
 
-              item={
-                  "score":score,
-                  "exact_windows":exact,
-                  "rva":f"0x{rva:X}",
-                  "method":m,
-                  "type":t,
-                  "field_count_metadata":fc,
-                  "schema_mask":schema.get("mask"),
-                  "schema_field_count":len(fields),
-                  "schema_bits":bits,
-                  "schema_kinds":kinds,
-                  "schema":schema,
-                  "decoded":decoded,
-                  "errors":errors,
-              }
-              results.append(item)
+                  # AstaPS predecessor IDs are used only as a diagnostic after
+                  # native decoding, never to select the schema.
+                  predecessor={
+                      35104:None,
+                      35100:35104,
+                      35107:35100,
+                      35101:35107,
+                      35106:35101,
+                      35105:35106,
+                      35103:35105,
+                      35102:35103,
+                  }
+                  pred_hits={
+                      str(sid):(
+                          False if predecessor[sid] is None
+                          else contains_value(decoded[i],predecessor[sid])
+                      )
+                      for i,sid in enumerate(TARGETS)
+                  }
 
-          results.sort(key=lambda x:(-x["score"],-x["exact_windows"],x["rva"]))
-          print("\n=== TOP CANDIDATES ===")
+                  score=8000
+                  score += 2000*bool(sub_cols)
+                  score += 1000*bool(main_cols)
+                  score += 300 if len(fields_schema)==30 else 0
+                  score += min(100,len(fields_schema))
+                  item={
+                      "score":score,
+                      "start":start,
+                      "rva":f"0x{rva:X}",
+                      "method":m,
+                      "type":t,
+                      "type_fields":fields_by_tdi.get(tdi,[]),
+                      "field_count_metadata":fc,
+                      "schema":schema,
+                      "schema_field_count":len(fields_schema),
+                      "schema_kinds":kinds,
+                      "spans":[
+                          {"subId":sid,"start":rs,"end":re,"anchor":anchor}
+                          for sid,rs,re,anchor in spans
+                      ],
+                      "subId_columns":sub_cols,
+                      "mainId_columns":main_cols,
+                      "predecessor_value_hits":pred_hits,
+                      "decoded":decoded,
+                  }
+                  if best is None or item["score"]>best["score"]:
+                      best=item
+
+              if best is not None:
+                  results.append(best)
+
+          results.sort(key=lambda x:(-x["score"],x["start"],x["rva"]))
+          print("\n=== CHAIN MATCHES ===")
           for x in results[:80]:
               print(json.dumps({
                   "score":x["score"],
-                  "exact_windows":x["exact_windows"],
+                  "start":x["start"],
                   "rva":x["rva"],
                   "type":x["method"].get("type_name"),
                   "method":x["method"].get("method_name"),
                   "metadata_fields":x["field_count_metadata"],
                   "schema_fields":x["schema_field_count"],
-                  "mask":x["schema_mask"],
-                  "bits":x["schema_bits"],
                   "kinds":x["schema_kinds"],
-                  "ends":[
-                      [d["subId"],d["expected_end"],d["actual_end"],d["exact"]]
-                      for d in x["decoded"]
-                  ],
-                  "errors":x["errors"][:3],
+                  "subId_columns":x["subId_columns"],
+                  "mainId_columns":x["mainId_columns"],
+                  "spans":x["spans"],
+                  "predecessor_value_hits":x["predecessor_value_hits"],
               },ensure_ascii=False))
 
+          report={
+              "analyzer_repo":"owomocha/genshin-7.0-local-re-devkit",
+              "analyzer_commit":"fb91dfad1f6047e30dea2f98727e5af45d9bd6e0",
+              "reader_methods":len(deser),
+              "candidate_methods":len(candidates),
+              "neighbor_sids":{"previous":prev_sid,"next":next_sid},
+              "anchors":{str(k):v for k,v in anchors.items()},
+              "start_search":{"lo":search_lo,"hi":search_hi},
+              "results":results[:250],
+          }
           Path("quest-legacy-71-devkit-schema.json").write_text(
-              json.dumps({
-                  "analyzer_repo":"owomocha/genshin-7.0-local-re-devkit",
-                  "analyzer_commit":"fb91dfad1f6047e30dea2f98727e5af45d9bd6e0",
-                  "reader_methods":len(deser),
-                  "candidate_methods":len(candidates),
-                  "windows":[
-                      {"subId":sid,"start":start,"end":end,"size":end-start}
-                      for sid,start,end in windows
-                  ],
-                  "results":results[:250],
-              },ensure_ascii=False,indent=2)+"\n",
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
               encoding="utf-8",
           )
 
-          if results and results[0]["exact_windows"] == len(windows):
-              print("\nEXACT_SCHEMA_MATCH",results[0]["rva"],results[0]["method"])
+          if not results:
+              print("\nNo candidate reader produced an 8-row anchor-consistent chain.")
           else:
-              print("\nNo schema consumed all Quest 351 windows exactly.")
-              if results:
-                  print("best exact_windows",results[0]["exact_windows"])
+              top=results[0]
+              print("\nBEST_CHAIN",top["rva"],top["method"],"start",top["start"])
+              print("SUBID_COLUMNS",top["subId_columns"])
+              print("MAINID_COLUMNS",top["mainId_columns"])
+              print("PREDECESSOR_HITS",top["predecessor_value_hits"])
           PY
 
       - name: Upload evidence
