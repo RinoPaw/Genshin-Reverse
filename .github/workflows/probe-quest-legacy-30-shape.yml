@@ -242,24 +242,25 @@ jobs:
                       )
               reasons.append(f"primitive={prim_hits}/{len(primitive)}")
 
-              def rel_eq(offsets,label,weight):
-                  nonlocal score
+              def rel_eq(offsets,label):
                   vals=[types.get(x) for x in offsets]
                   ok=all(v is not None for v in vals) and len(set(vals))==1
                   if ok:
-                      score+=weight
                       reasons.append(label+"=yes:"+str(vals[0]))
                   else:
                       failures.append(label+"="+repr(vals))
                   return ok
 
-              eq_logic=rel_eq([0x38,0x48,0x58],"logic_type_triplet",180)
-              eq_show=rel_eq([0x30,0x78],"show_type_pair",120)
-              eq_content=rel_eq([0x50,0x60],"content_array_pair",160)
-              eq_exec=rel_eq([0x80,0x88,0x90],"exec_array_triplet",220)
-              eq_uintarrays=rel_eq(
-                  [0x98,0xA0,0xB0,0xB8],"uint_array_quad",220
-              )
+              eq_logic=rel_eq([0x38,0x48,0x58],"logic_type_triplet")
+              if eq_logic: score+=180
+              eq_show=rel_eq([0x30,0x78],"show_type_pair")
+              if eq_show: score+=120
+              eq_content=rel_eq([0x50,0x60],"content_array_pair")
+              if eq_content: score+=160
+              eq_exec=rel_eq([0x80,0x88,0x90],"exec_array_triplet")
+              if eq_exec: score+=220
+              eq_uintarrays=rel_eq([0x98,0xA0,0xB0,0xB8],"uint_array_quad")
+              if eq_uintarrays: score+=220
 
               if eq_uintarrays and types.get(0x98)=="uint[]":
                   score+=180
