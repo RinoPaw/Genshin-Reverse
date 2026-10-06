@@ -342,6 +342,127 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace Quest BinData zip reader and FNJ refill path
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-bin-zip-path.json \
+            --focus common-load-bin-zip:0x6D8CF60 \
+            --focus provider-load-bin-zip-resource-id:0x7012E30 \
+            --focus fnia-refill:0x1269BFC0 \
+            --max-body 0x10000 \
+            | tee quest-bin-zip-path.txt
+
+          python - <<'PY' | tee quest-bin-zip-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          wanted_names={
+              "CompressionType",
+              "FNIAHJGHFAK",
+              "MemZipFile",
+              "MemZipEntry",
+              "ZipFile",
+              "ZipEntry",
+          }
+          tdis=set()
+          for t in types:
+              name=str(t.get("type_name",""))
+              if name in wanted_names or "Zip" in name or "Compress" in name:
+                  tdis.add(int(t["type_definition_index"]))
+
+          report={}
+          for tdi in sorted(tdis):
+              typ=type_by_tdi[tdi]
+              item={
+                  "type":typ,
+                  "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                  "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              }
+              report[str(tdi)]=item
+              print("\nTYPE",tdi,typ.get("namespace"),typ.get("type_name"))
+              print(json.dumps(item,ensure_ascii=False,indent=2))
+
+          # Preserve every method signature that explicitly mentions CompressionType
+          # or a zip-shaped type, so direct-call targets can be resolved by semantics.
+          refs=[]
+          for m in methods:
+              sig=" ".join([
+                  str(m.get("return_type","")),
+                  str(m.get("parameter_types","")),
+                  str(m.get("type_name","")),
+              ])
+              if "CompressionType" in sig or "Zip" in sig or "Compress" in sig:
+                  refs.append({
+                      "method":m,
+                      "owner":type_by_tdi.get(int(m["type_definition_index"]),{}),
+                  })
+          print("\nSIGNATURE_REFS",len(refs))
+          for x in refs[:1000]:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-bin-zip-types.json").write_text(
+              json.dumps({"types":report,"signature_refs":refs},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-bin-zip-summary.txt
+          import json
+          from pathlib import Path
+
+          data=json.loads(Path("quest-bin-zip-path.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in data["focus"].items():
+              keep=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {
+                          "call","jmp","mov","movzx","movsxd","lea","cmp","test",
+                          "and","or","xor","add","sub","imul","mul","div","idiv",
+                          "shr","shl","sar","rol","ror"
+                      }
+                      and (
+                          m in {"call","jmp"}
+                          or any(r in op for r in (
+                              "rcx","rdx","r8","r9","rax","rbx","rsi","rdi",
+                              "r10","r11","r12","r13","r14","r15"
+                          ))
+                      )
+                  ):
+                      keep.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":keep,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          Path("quest-bin-zip-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Assert evidence
         run: |
           test -s quest-resource-index-handle.json
@@ -350,6 +471,9 @@ jobs:
           test -s quest-resource-index-construction.json
           test -s quest-bundle-content-schema.json
           test -s quest-resource-index-construction-summary.json
+          test -s quest-bin-zip-path.json
+          test -s quest-bin-zip-types.json
+          test -s quest-bin-zip-summary.json
           test -s quest-resource-index-writer.json
           test -s quest-bundle-content-types.json
           test -s quest-resource-index-writer-summary.json
@@ -371,6 +495,12 @@ jobs:
             quest-bundle-content-schema.json
             quest-resource-index-construction-summary.txt
             quest-resource-index-construction-summary.json
+            quest-bin-zip-path.txt
+            quest-bin-zip-path.json
+            quest-bin-zip-types.txt
+            quest-bin-zip-types.json
+            quest-bin-zip-summary.txt
+            quest-bin-zip-summary.json
             quest-resource-index-writer.txt
             quest-resource-index-writer.json
             quest-bundle-content-types.txt
