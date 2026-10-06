@@ -26,9 +26,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "6.0.x"
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "6.0.x"
 
       - name: Install focused dependencies
         run: python -m pip install capstone pefile
@@ -180,268 +177,168 @@ jobs:
           )
           PY
 
-      - name: Resolve exact 3.0 QuestExcel symbols with pinned Il2CppDumper
+      - name: Native-scan official 3.0 QuestExcel field-layout fingerprint
         shell: bash
         run: |
           set -euo pipefail
-          root=/tmp/il2cppdumper
-          mkdir -p "$root"
-          curl --fail --location --retry 5             'https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip'             -o /tmp/il2cppdumper.zip
-          unzip -q /tmp/il2cppdumper.zip -d "$root"
-          mkdir -p quest-legacy-30-dump
-          dll="$(find "$root" -type f -name 'Il2CppDumper.dll' | head -n1)"
-          if [[ -z "$dll" ]]; then
-            echo 'Il2CppDumper.dll missing' >&2
-            exit 2
-          fi
-          dotnet "$dll"             inputs/3.0.0-global/UserAssembly.dll             inputs/3.0.0-global/global-metadata.dat             quest-legacy-30-dump             | tee quest-legacy-30-il2cppdumper.txt
-
-          python - <<'PY' | tee quest-legacy-30-symbols.txt
-          import json,re
-          from pathlib import Path
-
-          dump=Path("quest-legacy-30-dump/dump.cs").read_text(
-              encoding="utf-8",errors="replace"
-          )
-
-          def class_block(name):
-              pat=re.compile(
-                  rf"(?m)^public (?:static )?class {re.escape(name)}\b"
-              )
-              m=pat.search(dump)
-              if not m:
-                  raise SystemExit(f"class not found: {name}")
-              start=m.start()
-              nxt=dump.find("\n// Namespace:",m.end())
-              return dump[start:] if nxt<0 else dump[start:nxt]
-
-          def method_rva(block, signature_re):
-              lines=block.splitlines()
-              rx=re.compile(signature_re)
-              for i,line in enumerate(lines):
-                  if not rx.search(line):
-                      continue
-                  for j in range(i-1,max(-1,i-8),-1):
-                      m=re.search(r"RVA:\s*0x([0-9A-Fa-f]+)",lines[j])
-                      if m:
-                          return int(m.group(1),16), line.strip()
-              raise SystemExit(f"method not found: {signature_re}")
-
-          row=class_block("QuestExcelConfig")
-          loader=class_block("QuestExcelConfigLoader")
-
-          row_rva,row_sig=method_rva(
-              row,
-              r"\bFromBinary\(ByteArray byteArray, int threadFlag = 0, bool useObjectPool = false\)"
-          )
-          loader_rva,loader_sig=method_rva(
-              loader,
-              r"\bFromBinary\(ByteArray byteArray, int threadFlag = 0, bool useObjectPool = false\)"
-          )
-
-          # Method size: next RVA in the same class block.
-          def next_rva(block,rva):
-              vals=sorted({
-                  int(x,16)
-                  for x in re.findall(r"RVA:\s*0x([0-9A-Fa-f]+)",block)
-              })
-              return next((x for x in vals if x>rva),rva+0x2000)
-
-          fields={}
-          wanted={
-              "subId","mainId","order","subIdSet",
-              "acceptCondComb","acceptCond",
-              "finishCondComb","finishCond",
-              "failCondComb","failCond",
-              "finishExec","failExec","beginExec",
-          }
-          for line in row.splitlines():
-              m=re.search(
-                  r"\b(?:protected|private|public)\s+[^;]+?\s+_?([A-Za-z0-9_]+);"
-                  r"\s*//\s*0x([0-9A-Fa-f]+)",
-                  line,
-              )
-              if m and m.group(1) in wanted:
-                  fields[m.group(1)]=int(m.group(2),16)
-
-          expected={
-              "subId":0x10,"mainId":0x14,"order":0x18,"subIdSet":0x1C,
-              "acceptCondComb":0x38,"acceptCond":0x40,
-              "finishCondComb":0x48,"finishCond":0x50,
-              "failCondComb":0x58,"failCond":0x60,
-              "finishExec":0x80,"failExec":0x88,"beginExec":0x90,
-          }
-          print("ROW_RVA",hex(row_rva),row_sig)
-          print("ROW_END",hex(next_rva(row,row_rva)))
-          print("LOADER_RVA",hex(loader_rva),loader_sig)
-          print("LOADER_END",hex(next_rva(loader,loader_rva)))
-          print("FIELDS",json.dumps(fields,sort_keys=True))
-          print("EXPECTED",json.dumps(expected,sort_keys=True))
-          if fields != expected:
-              raise SystemExit(f"official 3.0 field layout mismatch: {fields}")
-
-          out={
-              "row_rva":row_rva,
-              "row_end_rva":next_rva(row,row_rva),
-              "loader_rva":loader_rva,
-              "loader_end_rva":next_rva(loader,loader_rva),
-              "fields":fields,
-              "row_signature":row_sig,
-              "loader_signature":loader_sig,
-          }
-          Path("quest-legacy-30-symbols.json").write_text(
-              json.dumps(out,indent=2)+"\n",encoding="utf-8"
-          )
-          PY
-
-      - name: Disassemble legacy QuestExcel loader and row reader
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY' | tee quest-legacy-30-reader.txt
+          python - <<'PY' | tee quest-legacy-30-layout-scan.txt
           import json
+          from collections import Counter
           from pathlib import Path
+
           import pefile
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
-
-          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
-          pe = pefile.PE(str(exe), fast_load=True)
-          base = pe.OPTIONAL_HEADER.ImageBase
-          print("image_base", hex(base))
-          if base != 0x180000000:
-              raise SystemExit(f"unexpected image base {base:#x}")
-
-          def rva_bytes(rva, size):
-              return pe.get_data(rva, size)
-
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = True
-
-          symbols=json.loads(Path("quest-legacy-30-symbols.json").read_text(encoding="utf-8"))
-          funcs = {
-              "QuestExcelConfigLoader.FromBinary(ByteArray)": (
-                  symbols["loader_rva"],
-                  symbols["loader_end_rva"]-symbols["loader_rva"],
-              ),
-              "QuestExcelConfig.FromBinary(ByteArray)": (
-                  symbols["row_rva"],
-                  symbols["row_end_rva"]-symbols["row_rva"],
-              ),
-          }
-
-          report = {}
-          for label, (rva, size) in funcs.items():
-              insns = list(md.disasm(rva_bytes(rva, size), base + rva))
-              rows = []
-              for ins in insns:
-                  row = {
-                      "rva": f"0x{ins.address-base:X}",
-                      "bytes": ins.bytes.hex(),
-                      "mnemonic": ins.mnemonic,
-                      "op_str": ins.op_str,
-                  }
-                  if ins.mnemonic == "call" and ins.operands and ins.operands[0].type == X86_OP_IMM:
-                      row["call_target_rva"] = f"0x{ins.operands[0].imm-base:X}"
-                  rows.append(row)
-              report[label] = {"rva": f"0x{rva:X}", "size": size, "instructions": rows}
-              print("\n###", label, f"RVA 0x{rva:X}")
-              for x in rows:
-                  print(x["rva"], x["mnemonic"], x["op_str"])
-
-          Path("quest-legacy-30-reader.json").write_text(
-              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
-
-      - name: Locate named legacy QuestExcel field accesses
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY' | tee quest-legacy-30-fields.txt
-          import json
-          from pathlib import Path
-          import pefile
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
           from capstone.x86 import X86_OP_MEM
 
-          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
-          pe = pefile.PE(str(exe), fast_load=True)
-          base = pe.OPTIONAL_HEADER.ImageBase
-          md = Cs(CS_ARCH_X86, CS_MODE_64)
-          md.detail = True
+          exe=Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe=pefile.PE(str(exe),fast_load=True)
+          base=pe.OPTIONAL_HEADER.ImageBase
 
-          symbols=json.loads(Path("quest-legacy-30-symbols.json").read_text(encoding="utf-8"))
-          row_rva = symbols["row_rva"]
-          row_size = symbols["row_end_rva"] - row_rva
-          insns = list(md.disasm(pe.get_data(row_rva, row_size), base + row_rva))
-
-          fields = {
-              0x10: "subId",
-              0x14: "mainId",
-              0x18: "order",
-              0x1C: "subIdSet",
-              0x20: "isMpBlock",
-              0x24: "descTextMapHash",
-              0x28: "stepDescTextMapHash",
-              0x2C: "guideTipsTextMapHash",
-              0x30: "showType",
-              0x34: "banType",
-              0x38: "acceptCondComb",
-              0x40: "acceptCond",
-              0x48: "finishCondComb",
-              0x50: "finishCond",
-              0x58: "failCondComb",
-              0x60: "failCond",
-              0x68: "guide",
-              0x70: "showGuide",
-              0x74: "finishParent",
-              0x75: "failParent",
-              0x78: "failParentShow",
-              0x7C: "isRewind",
-              0x80: "finishExec",
-              0x88: "failExec",
-              0x90: "beginExec",
-              0x98: "exclusiveNpcList",
-              0xA0: "sharedNpcList",
-              0xA8: "exclusiveNpcPriority",
-              0xB0: "trialAvatarList",
-              0xB8: "exclusivePlaceList",
+          targets={
+              0x10:"subId",0x14:"mainId",0x18:"order",0x1C:"subIdSet",
+              0x20:"isMpBlock",0x24:"descTextMapHash",
+              0x28:"stepDescTextMapHash",0x2C:"guideTipsTextMapHash",
+              0x30:"showType",0x34:"banType",
+              0x38:"acceptCondComb",0x40:"acceptCond",
+              0x48:"finishCondComb",0x50:"finishCond",
+              0x58:"failCondComb",0x60:"failCond",
+              0x68:"guide",0x70:"showGuide",
+              0x74:"finishParent",0x75:"failParent",
+              0x78:"failParentShow",0x7C:"isRewind",
+              0x80:"finishExec",0x88:"failExec",0x90:"beginExec",
+              0x98:"exclusiveNpcList",0xA0:"sharedNpcList",
+              0xA8:"exclusiveNpcPriority",0xB0:"trialAvatarList",
+              0xB8:"exclusivePlaceList",
           }
+          critical={0x10,0x14,0x38,0x40,0x90}
+          allowed={"rbx","rsi","rdi","r12","r13","r14","r15"}
 
-          hits = {name: [] for name in fields.values()}
-          for i, ins in enumerate(insns):
-              found = set()
-              for op in ins.operands:
-                  if op.type == X86_OP_MEM and op.mem.disp in fields:
-                      found.add(op.mem.disp)
-              for off in sorted(found):
-                  lo = max(0, i - 10)
-                  hi = min(len(insns), i + 11)
-                  hit = {
-                      "instruction_rva": f"0x{ins.address-base:X}",
-                      "instruction": f"{ins.mnemonic} {ins.op_str}",
-                      "window": [
-                          {
-                              "rva": f"0x{x.address-base:X}",
-                              "mnemonic": x.mnemonic,
-                              "op_str": x.op_str,
-                          }
-                          for x in insns[lo:hi]
-                      ],
-                  }
-                  hits[fields[off]].append(hit)
+          def canon(ins,reg):
+              n=(ins.reg_name(reg) or "").lower()
+              aliases={
+                  "ebx":"rbx","bx":"rbx","bl":"rbx",
+                  "esi":"rsi","si":"rsi","sil":"rsi",
+                  "edi":"rdi","di":"rdi","dil":"rdi",
+                  "r12d":"r12","r12w":"r12","r12b":"r12",
+                  "r13d":"r13","r13w":"r13","r13b":"r13",
+                  "r14d":"r14","r14w":"r14","r14b":"r14",
+                  "r15d":"r15","r15w":"r15","r15b":"r15",
+              }
+              return aliases.get(n,n)
 
-          for name in fields.values():
-              print("\n===", name, "hits", len(hits[name]), "===")
-              for h in hits[name]:
-                  print("HIT", h["instruction_rva"], h["instruction"])
-                  for x in h["window"]:
-                      print(" ", x["rva"], x["mnemonic"], x["op_str"])
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          md.skipdata=True
+          events={r:[] for r in allowed}
 
-          Path("quest-legacy-30-fields.json").write_text(
-              json.dumps({"fields": hits}, ensure_ascii=False, indent=2) + "\n",
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              va=base+sec.VirtualAddress
+              for ins in md.disasm(blob,va):
+                  seen=set()
+                  for op in ins.operands:
+                      if op.type!=X86_OP_MEM:
+                          continue
+                      m=op.mem
+                      if m.index!=0 or m.base==0 or m.disp not in targets:
+                          continue
+                      reg=canon(ins,m.base)
+                      if reg not in allowed:
+                          continue
+                      key=(reg,m.disp)
+                      if key in seen:
+                          continue
+                      seen.add(key)
+                      events[reg].append({
+                          "rva":ins.address-base,
+                          "disp":m.disp,
+                          "field":targets[m.disp],
+                          "size":op.size,
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      })
+
+          WINDOW=0x2400
+          candidates=[]
+          for reg,arr in events.items():
+              arr.sort(key=lambda x:x["rva"])
+              cnt=Counter()
+              j=0
+              for i,e in enumerate(arr):
+                  if j<i:
+                      j=i
+                  while j<len(arr) and arr[j]["rva"] < e["rva"]+WINDOW:
+                      cnt[arr[j]["disp"]]+=1
+                      j+=1
+                  ds=set(cnt)
+                  if len(ds)>=14:
+                      score=len(ds)*10 + len(ds & critical)*35
+                      candidates.append({
+                          "score":score,
+                          "base_reg":reg,
+                          "start_rva":e["rva"],
+                          "end_rva":arr[j-1]["rva"] if j>i else e["rva"],
+                          "fields":[targets[x] for x in sorted(ds)],
+                          "offsets":[f"0x{x:X}" for x in sorted(ds)],
+                          "critical_complete":critical <= ds,
+                      })
+                  cnt[e["disp"]]-=1
+                  if cnt[e["disp"]]<=0:
+                      del cnt[e["disp"]]
+
+          # Deduplicate overlapping windows for the same base register.
+          candidates.sort(key=lambda x:(-x["score"],x["start_rva"]))
+          kept=[]
+          for x in candidates:
+              if any(
+                  y["base_reg"]==x["base_reg"]
+                  and abs(y["start_rva"]-x["start_rva"])<0x800
+                  for y in kept
+              ):
+                  continue
+              kept.append(x)
+              if len(kept)>=30:
+                  break
+
+          # Re-disassemble compact neighborhoods around top candidates.
+          for x in kept[:12]:
+              start=max(0,x["start_rva"]-0x180)
+              end=x["end_rva"]+0x180
+              code=pe.get_data(start,end-start)
+              rows=[]
+              for ins in md.disasm(code,base+start):
+                  rva=ins.address-base
+                  if rva<start or rva>=end:
+                      continue
+                  rows.append({
+                      "rva":f"0x{rva:X}",
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  })
+              x["instructions"]=rows
+
+          report={
+              "sample_sha256":"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b",
+              "target_field_count":len(targets),
+              "critical_offsets":[f"0x{x:X}" for x in sorted(critical)],
+              "event_counts":{k:len(v) for k,v in events.items()},
+              "candidates":kept,
+          }
+          print("CANDIDATES",len(kept))
+          for n,x in enumerate(kept[:20]):
+              print(
+                  n,
+                  "score=",x["score"],
+                  "base=",x["base_reg"],
+                  "range=",f"0x{x['start_rva']:X}-0x{x['end_rva']:X}",
+                  "critical=",x["critical_complete"],
+                  "offsets=",",".join(x["offsets"]),
+              )
+          Path("quest-legacy-30-layout-scan.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
               encoding="utf-8",
           )
           PY
@@ -454,17 +351,13 @@ jobs:
           path: |
             quest-legacy-30-sample.txt
             quest-legacy-30-il2cppdumper.txt
-            quest-legacy-30-symbols.txt
-            quest-legacy-30-symbols.json
             quest-legacy-30-il2cppdumper.txt
             quest-legacy-30-exact-symbols.txt
             quest-legacy-30-exact-symbols.json
             quest-legacy-30-exact-reader.txt
             quest-legacy-30-exact-reader.json
+            quest-legacy-30-layout-scan.txt
+            quest-legacy-30-layout-scan.json
             quest-legacy-30-il2cpp/dump.cs
             quest-legacy-30-il2cpp/script.json
-            quest-legacy-30-reader.txt
-            quest-legacy-30-reader.json
-            quest-legacy-30-fields.txt
-            quest-legacy-30-fields.json
           if-no-files-found: warn
