@@ -23,6 +23,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 executable sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
 
       - name: Resolve metadata references to GPC Quest-shaped row type
         shell: bash
@@ -83,6 +87,61 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Bind GPC holder to MonoInLevelQuestPreCondRow
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py             inputs/7.1.0-global/GenshinImpact.exe             versions/7.1.0-global/windows-x64/metadata/methods.csv             quest-gpc-precond-holder-trace.json             --focus holder-map:0xA957E20             --max-body 0x1400             | tee quest-gpc-precond-holder-trace.txt
+
+          python - <<'PY' | tee quest-gpc-precond-holder-summary.txt
+          import csv,json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          NAMES={"MonoInLevelQuestPreCondRow","GPCFGOEJFJK","JAJJIOOBGKA"}
+
+          def read(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          selected=[]
+          for t in types:
+              if t.get("type_name") in NAMES:
+                  tdi=int(t["type_definition_index"])
+                  selected.append({
+                      "type":t,
+                      "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                      "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+                  })
+
+          # Include any metadata method whose signature explicitly mentions
+          # MonoInLevelQuestPreCondRow so we can distinguish conversion/UI paths.
+          sig_refs=[]
+          for m in methods:
+              hay=" ".join([m.get("return_type") or "",m.get("parameter_types") or ""])
+              if "MonoInLevelQuestPreCondRow" in hay:
+                  sig_refs.append({
+                      "method":m,
+                      "owner":by_tdi.get(int(m["type_definition_index"]),{}),
+                  })
+
+          trace=json.loads(Path("quest-gpc-precond-holder-trace.json").read_text(encoding="utf-8"))
+          out={
+              "selected_types":selected,
+              "signature_refs":sig_refs,
+              "holder_trace":trace["focus"]["holder-map"],
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-gpc-precond-holder-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -90,4 +149,8 @@ jobs:
           path: |
             quest-gpc-metadata-refs.txt
             quest-gpc-metadata-refs.json
+            quest-gpc-precond-holder-trace.txt
+            quest-gpc-precond-holder-trace.json
+            quest-gpc-precond-holder-summary.txt
+            quest-gpc-precond-holder-summary.json
           if-no-files-found: error
