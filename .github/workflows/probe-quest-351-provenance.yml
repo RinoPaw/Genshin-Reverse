@@ -1,0 +1,281 @@
+name: Compare native and AstaPS Quest 351 provenance
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-351-provenance.yml"
+
+concurrency:
+  group: probe-quest-351-provenance-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 3.2 and 7.1 QuestExcel objects
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q32 evidence/q71
+
+          gh run download 37474008162 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-legacy-native-3.2 \
+            --dir evidence/q32
+
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+
+          test -s evidence/q32/quest-output/3b87ae83.dat
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch initial AstaPS QuestExcel resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout \
+            8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Decode exact 3.2 Quest 351 and compare resource rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-351-provenance.txt
+          import hashlib
+          import json
+          from pathlib import Path
+
+          from genshinre.questlegacy import (
+              detect_legacy_quest_xor_key,
+              find_quest_rows,
+              parse_legacy_quest_prefix,
+          )
+
+          q32_path=Path("evidence/q32/quest-output/3b87ae83.dat")
+          q71_path=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          resource_path=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+
+          q32=q32_path.read_bytes()
+          key,row_count=detect_legacy_quest_xor_key(
+              q32,
+              probe_rows=100,
+              min_row_count=1_000,
+              max_row_count=100_000,
+          )
+          prefix=parse_legacy_quest_prefix(q32,xor_key=key,max_rows=100)
+          q351=find_quest_rows(prefix,main_id=351)
+
+          resource=json.loads(resource_path.read_text(encoding="utf-8"))
+          r351=[row for row in resource if row.get("mainId")==351]
+          r351_by_sid={row.get("subId"):row for row in r351}
+
+          native=[]
+          for row in q351:
+              f=row.fields
+              native.append({
+                  "index":row.index,
+                  "start":row.start,
+                  "end":row.end,
+                  "subId":f.get("sub_id"),
+                  "mainId":f.get("main_id"),
+                  "order":f.get("order"),
+                  "bitfield":f.get("bitfield"),
+                  "acceptCondComb":f.get("accept_cond_comb"),
+                  "acceptCond":f.get("accept_cond"),
+                  "finishCondComb":f.get("finish_cond_comb"),
+                  "finishCond":f.get("finish_cond"),
+                  "failCondComb":f.get("fail_cond_comb"),
+                  "failCond":f.get("fail_cond"),
+                  "finishExec":f.get("finish_exec"),
+                  "failExec":f.get("fail_exec"),
+                  "beginExec":f.get("begin_exec"),
+              })
+
+          comparison=[]
+          for n in native:
+              sid=n["subId"]
+              rr=r351_by_sid.get(sid,{})
+              comparison.append({
+                  "subId":sid,
+                  "native_index":n["index"],
+                  "native_bitfield":n["bitfield"],
+                  "native_acceptCond_present":"acceptCond" in n and n["acceptCond"] is not None,
+                  "native_acceptCond":n["acceptCond"],
+                  "resource_acceptCond_present":"acceptCond" in rr,
+                  "resource_acceptCondComb":rr.get("acceptCondComb"),
+                  "resource_acceptCond":rr.get("acceptCond"),
+                  "resource_order":rr.get("order"),
+              })
+
+          report={
+              "q32":{
+                  "raw_size":len(q32),
+                  "sha256":hashlib.sha256(q32).hexdigest(),
+                  "xor_key":f"0x{key:02X}",
+                  "loader_capacity":row_count,
+                  "parsed_prefix_rows":len(prefix.rows),
+                  "quest351":native,
+              },
+              "q71":{
+                  "raw_size":q71_path.stat().st_size,
+                  "sha256":hashlib.sha256(q71_path.read_bytes()).hexdigest(),
+              },
+              "astaps_initial":{
+                  "commit":"8c85a82f37341a422002a0352c89a142c4017e53",
+                  "row_count":len(resource),
+                  "sha256":hashlib.sha256(resource_path.read_bytes()).hexdigest(),
+                  "quest351_rows":r351,
+              },
+              "comparison":comparison,
+          }
+
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("quest-351-provenance.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          expected_sids={35100,35101,35102,35103,35104,35105,35106,35107}
+          got={x["subId"] for x in native}
+          if got != expected_sids:
+              raise SystemExit(f"3.2 native Quest 351 incomplete: {sorted(got)}")
+          if any(x["native_acceptCond"] is not None for x in native):
+              raise SystemExit("unexpected native 3.2 acceptCond on Quest 351")
+          if not all(
+              x["resource_acceptCond_present"]
+              for x in comparison
+              if x["subId"] != 35104
+          ):
+              raise SystemExit("AstaPS initial prerequisite chain not present as expected")
+          PY
+
+      - name: Extract exact 7.1 Quest 351 native row windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-351-71-row-windows.txt
+          import json
+          import struct
+          from pathlib import Path
+
+          raw=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat").read_bytes()
+          size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+size]
+          resource=json.loads(
+              Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+              .read_text(encoding="utf-8")
+          )
+          key=0xB1571A55
+          targets=[35104,35100,35107,35101,35106,35105,35103,35102]
+
+          positions={}
+          for sid in targets:
+              needle=struct.pack("<I",(sid^key)&0xffffffff)
+              hits=[]
+              start=0
+              while True:
+                  i=payload.find(needle,start)
+                  if i<0:break
+                  hits.append(i);start=i+1
+              if len(hits)!=1:
+                  raise SystemExit(f"subId {sid}: expected one native anchor, got {hits}")
+              positions[sid]=hits[0]
+
+          ordered=sorted(((p,sid) for sid,p in positions.items()))
+          all_resource={}
+          for row in resource:
+              sid=row.get("subId")
+              if sid in targets:
+                  all_resource[sid]=row
+
+          rows=[]
+          for i,(start,sid) in enumerate(ordered):
+              if i+1<len(ordered):
+                  end=ordered[i+1][0]
+              else:
+                  # Quest 351 is an 8-row consecutive resource run. The next
+                  # initial-resource subId provides an objective end anchor.
+                  ordinal=next(j for j,x in enumerate(resource) if x.get("subId")==sid)
+                  next_sid=resource[ordinal+1].get("subId")
+                  needle=struct.pack("<I",(next_sid^key)&0xffffffff)
+                  hits=[]
+                  p=0
+                  while True:
+                      x=payload.find(needle,p)
+                      if x<0:break
+                      hits.append(x);p=x+1
+                  end=min((x for x in hits if x>start),default=start+512)
+
+              rr=all_resource[sid]
+              rows.append({
+                  "subId":sid,
+                  "start":start,
+                  "end":end,
+                  "size":end-start,
+                  "hex":payload[start:end].hex(),
+                  "resource":{
+                      "order":rr.get("order"),
+                      "acceptCondComb":rr.get("acceptCondComb"),
+                      "acceptCond":rr.get("acceptCond"),
+                      "finishCondComb":rr.get("finishCondComb"),
+                      "finishCond":rr.get("finishCond"),
+                      "failCondComb":rr.get("failCondComb"),
+                      "failCond":rr.get("failCond"),
+                      "finishExec":rr.get("finishExec"),
+                      "failExec":rr.get("failExec"),
+                      "beginExec":rr.get("beginExec"),
+                      "showType":rr.get("showType"),
+                      "showGuide":rr.get("showGuide"),
+                      "finishParent":rr.get("finishParent"),
+                      "failParent":rr.get("failParent"),
+                      "isRewind":rr.get("isRewind"),
+                      "exclusiveNpcPriority":rr.get("exclusiveNpcPriority"),
+                  },
+              })
+
+          out={
+              "subId_xor_key":f"0x{key:08X}",
+              "rows":rows,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-351-71-row-windows.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-351-provenance
+          path: |
+            quest-351-provenance.txt
+            quest-351-provenance.json
+            quest-351-71-row-windows.txt
+            quest-351-71-row-windows.json
+          if-no-files-found: warn
