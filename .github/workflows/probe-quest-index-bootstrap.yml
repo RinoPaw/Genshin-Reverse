@@ -269,87 +269,121 @@ jobs:
               encoding="utf-8",
           )
           PY
-      - name: Decode IL2CPP metadata string literals
+      - name: Trace IL2CPP string usage slot registration
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-index-metadata-literals.txt
+          python - <<'PY' | tee quest-index-string-usage-registration.txt
           import json
-          import re
-          import struct
           from pathlib import Path
 
-          path = Path("inputs/7.1.0-global/global-metadata.dat")
-          data = path.read_bytes()
-          if len(data) < 32:
-              raise SystemExit("metadata too small")
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
 
-          sanity, version, lit_off, lit_size, lit_data_off, lit_data_size, str_off, str_size = struct.unpack_from("<8I", data, 0)
-          print(f"sanity=0x{sanity:08X} version={version}")
-          print(f"stringLiteralOffset=0x{lit_off:X} size={lit_size}")
-          print(f"stringLiteralDataOffset=0x{lit_data_off:X} size={lit_data_size}")
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
 
-          if sanity != 0xFAB11BAF:
-              raise SystemExit("unexpected IL2CPP metadata sanity")
-          if lit_size % 8:
-              raise SystemExit("string literal table is not 8-byte aligned")
-
-          count = lit_size // 8
-          matches = []
-          literals = []
-          for index in range(count):
-              length, data_index = struct.unpack_from("<II", data, lit_off + index * 8)
-              start = lit_data_off + data_index
-              end = start + length
-              if end > len(data):
-                  raise SystemExit(f"literal {index} out of bounds")
-              raw = data[start:end]
-              try:
-                  text = raw.decode("utf-8")
-              except UnicodeDecodeError:
-                  text = raw.decode("utf-8", errors="replace")
-              literals.append(text)
-
-              low = text.lower()
-              if (
-                  "quest" in low
-                  or "binoutput" in low
-                  or "mainquest" in low
-                  or ("bin" in low and ("data" in low or "config" in low or "index" in low))
-              ):
-                  item = {
-                      "index": index,
-                      "length": length,
-                      "data_index": data_index,
-                      "text": text,
-                  }
-                  matches.append(item)
-                  print(json.dumps(item, ensure_ascii=False))
-
-          # Preserve a small neighborhood around strong path/name candidates. This
-          # is useful because generated code often references nearby related literals.
-          strong = [
-              x for x in matches
-              if any(k in x["text"].lower() for k in ("binoutput", "quest", "mainquest"))
-          ]
-          neighborhoods = []
-          seen = set()
-          for item in strong:
-              i = item["index"]
-              for j in range(max(0, i - 3), min(count, i + 4)):
-                  if j in seen:
-                      continue
-                  seen.add(j)
-                  neighborhoods.append({"index": j, "text": literals[j]})
-          out = {
-              "version": version,
-              "count": count,
-              "matches": matches,
-              "neighborhoods": neighborhoods,
+          slot_rvas = {
+              "fnj_index_resource_name": 0x5A57BA8,
+              "peer_index_resource_name": 0x5A57BC8,
           }
-          Path("quest-index-metadata-literals.json").write_text(
-              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+
+          report = {}
+          with PEImage(exe) as image:
+              base = image.image_base
+              # Read the full file-backed image section-by-section. Search for
+              # absolute pointers to the BSS usage slots; IL2CPP metadata-usage
+              # registration tables commonly contain these destination addresses.
+              sections = []
+              for sec in image.sections:
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  sections.append((sec, blob))
+
+              for label, slot_rva in slot_rvas.items():
+                  slot_va = base + slot_rva
+                  pat64 = slot_va.to_bytes(8, "little")
+                  pat32 = slot_rva.to_bytes(4, "little")
+                  hits = []
+
+                  for sec, blob in sections:
+                      for width, pat in ((8, pat64), (4, pat32)):
+                          pos = 0
+                          while True:
+                              pos = blob.find(pat, pos)
+                              if pos < 0:
+                                  break
+                              hit_rva = sec.virtual_address + pos
+                              lo = max(0, pos - 0x80)
+                              hi = min(len(blob), pos + 0x88)
+                              around = blob[lo:hi]
+                              qwords = []
+                              qbase = (lo // 8) * 8
+                              for off in range(qbase, min(len(blob), hi), 8):
+                                  chunk = blob[off:off+8]
+                                  if len(chunk) < 8:
+                                      break
+                                  qwords.append({
+                                      "rva": f"0x{sec.virtual_address + off:X}",
+                                      "value": f"0x{int.from_bytes(chunk, 'little'):X}",
+                                  })
+                              hits.append({
+                                  "width": width,
+                                  "section": sec.name,
+                                  "hit_rva": f"0x{hit_rva:X}",
+                                  "window_start_rva": f"0x{sec.virtual_address + lo:X}",
+                                  "window_hex": around.hex(),
+                                  "qwords": qwords,
+                              })
+                              pos += 1
+
+                  item = {
+                      "slot_rva": f"0x{slot_rva:X}",
+                      "slot_va": f"0x{slot_va:X}",
+                      "hits": hits,
+                  }
+                  report[label] = item
+                  print(label, json.dumps(item, ensure_ascii=False, indent=2))
+
+          Path("quest-index-string-usage-registration.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
               encoding="utf-8",
+          )
+          PY
+
+          # The exact 7.1 metadata is MHY-protected. Preserve the decoded layout
+          # supplied by the repository's native decoder instead of treating the
+          # file as a stock FAB11BAF header.
+          python - <<'PY' | tee quest-index-mhy-metadata-layout.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.mhy71 import BODY_SKIP, decode_metadata_header_71
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          metadata = Path("inputs/7.1.0-global/global-metadata.dat")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
+
+          raw = metadata.read_bytes()
+          if raw[:4] != b"MHY\0":
+              raise SystemExit("expected protected MHY metadata")
+
+          with PEImage(exe) as image:
+              header = image.read_rva(PROFILE_71.embedded_header_rva, PROFILE_71.embedded_header_size)
+          layout = decode_metadata_header_71(header)
+          out = {
+              "metadata_magic": raw[:4].decode("ascii", errors="replace"),
+              "body_skip": f"0x{BODY_SKIP:X}",
+              "embedded_header_rva": f"0x{PROFILE_71.embedded_header_rva:X}",
+              "embedded_header_size": PROFILE_71.embedded_header_size,
+              "decoded_layout": layout,
+          }
+          print(json.dumps(out, indent=2))
+          Path("quest-index-mhy-metadata-layout.json").write_text(
+              json.dumps(out, indent=2) + "\n", encoding="utf-8"
           )
           PY
 
@@ -371,6 +405,8 @@ jobs:
             quest-index-string-slots.txt
             quest-index-string-slots.json
             quest-index-resource-string-candidates.txt
-            quest-index-metadata-literals.txt
-            quest-index-metadata-literals.json
+            quest-index-string-usage-registration.txt
+            quest-index-string-usage-registration.json
+            quest-index-mhy-metadata-layout.txt
+            quest-index-mhy-metadata-layout.json
           if-no-files-found: error
