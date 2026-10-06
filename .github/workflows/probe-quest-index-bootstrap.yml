@@ -793,6 +793,89 @@ jobs:
                       print(" ",sec,f"0x{rva:X}")
           PY
 
+      - name: Resolve ResourceIndex handle to ResourceIdentifier mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-resource-identifier-resolution.json \
+            --focus get-resource-identifier:0x7109EE0 \
+            --focus check-asset-path:0x71068E0 \
+            --focus load-bin-resource-id:0x701B590 \
+            --focus load-bin-zip-resource-id:0x7012E30 \
+            --max-body 0x10000 \
+            | tee quest-resource-identifier-resolution.txt
+
+          python - <<'PY' | tee quest-resource-identifier-schema.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          type_hits=[x for x in types if x.get("type_name")=="ResourceIdentifier"]
+          if not type_hits:
+              raise AssertionError("ResourceIdentifier type missing")
+          report={"types":[]}
+          for typ in type_hits:
+              tdi=int(typ["type_definition_index"])
+              item={
+                  "type":typ,
+                  "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                  "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              }
+              report["types"].append(item)
+              print(json.dumps(item,ensure_ascii=False,indent=2))
+
+          Path("quest-resource-identifier-schema.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-resource-identifier-summary.txt
+          import json
+          from pathlib import Path
+
+          data=json.loads(Path("quest-resource-identifier-resolution.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in data["focus"].items():
+              interesting=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","jmp","mov","movzx","movsxd","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror"}
+                      and (
+                          m in {"call","jmp"}
+                          or any(reg in op for reg in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi","r10","r11","r12","r13","r14","r15"))
+                      )
+                  ):
+                      interesting.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":interesting,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          Path("quest-resource-identifier-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -825,4 +908,10 @@ jobs:
             quest-handle-resolution-summary.txt
             quest-handle-resolution-summary.json
             quest-handle-static-scan.txt
+            quest-resource-identifier-resolution.txt
+            quest-resource-identifier-resolution.json
+            quest-resource-identifier-schema.txt
+            quest-resource-identifier-schema.json
+            quest-resource-identifier-summary.txt
+            quest-resource-identifier-summary.json
           if-no-files-found: error
