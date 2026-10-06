@@ -1,0 +1,278 @@
+name: Probe 3.0 legacy Quest string xrefs
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-string-xref.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-string-xref-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download and verify exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" \
+            -o "$out/global-metadata.dat"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+              "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          root=Path("inputs/3.0.0-global")
+          for name,(size,sha) in expected.items():
+              raw=(root/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name,len(raw),got)
+              assert len(raw)==size and got==sha
+          PY
+
+      - name: Build pinned Genshin-aware Il2CppDumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .probe-tools/Il2CppDumper-Genshin
+          mkdir -p .probe-tools
+          git clone --filter=blob:none \
+            https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git \
+            .probe-tools/Il2CppDumper-Genshin
+          git -C .probe-tools/Il2CppDumper-Genshin checkout --detach \
+            731c4022a15b126da993e54a9f7d7e2c8a06c1af
+
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+
+          dotnet build \
+            .probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
+            -c Release --nologo
+
+          app=.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          cfg=json.loads(p.read_text(encoding="utf-8-sig"))
+          cfg["RequireAnyKey"]=False
+          cfg["GenerateDummyDll"]=False
+          cfg["GenerateStruct"]=True
+          cfg["GenerateScript"]=True
+          cfg["DumpMethod"]=True
+          cfg["DumpField"]=True
+          cfg["DumpFieldOffset"]=True
+          cfg["DumpMethodOffset"]=True
+          p.write_text(json.dumps(cfg,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 3.0 metadata plus string usages
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-string-xref-dumper.txt"
+
+          test -s "$out/dump.cs"
+          test -s "$out/script.json"
+          test -s "$out/stringliteral.json"
+
+      - name: Resolve QuestExcel resource literals and native xrefs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+
+          python - <<'PY' | tee quest-legacy-30-string-xref.txt
+          import bisect
+          import json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_MEM, X86_REG_RIP
+
+          exe=Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe=pefile.PE(str(exe),fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in runtime]
+
+          def containing(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0:
+                  a,b=runtime[i]
+                  if a<=rva<b:
+                      return (a,b)
+              return None
+
+          strings=json.loads(Path("genshin-dump/stringliteral.json").read_text(
+              encoding="utf-8",errors="replace"
+          ))
+          script=json.loads(Path("genshin-dump/script.json").read_text(
+              encoding="utf-8",errors="replace"
+          ))
+          methods=script.get("ScriptMethod",[])
+          by_addr={}
+          for m in methods:
+              try:
+                  by_addr.setdefault(int(m["Address"]),[]).append(m)
+              except Exception:
+                  pass
+
+          needles=(
+              "QuestExcelConfigData",
+              "MainQuestExcelConfigData",
+              "_ExcelBinOutput/Quest",
+              "_ExcelBinOutput/MainQuest",
+          )
+          matches=[]
+          for x in strings:
+              value=str(x.get("value",""))
+              if any(n in value for n in needles):
+                  addr=int(str(x["address"]),16)
+                  matches.append({"value":value,"slot_rva":addr})
+
+          print("STRING MATCHES",len(matches))
+          for x in matches:
+              print(f"  slot=0x{x['slot_rva']:X} value={x['value']}")
+
+          targets={base+x["slot_rva"]:x for x in matches}
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          refs=[]
+
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              va=base+sec.VirtualAddress
+              for ins in md.disasm(blob,va):
+                  for op in ins.operands:
+                      if op.type!=X86_OP_MEM or op.mem.base!=X86_REG_RIP:
+                          continue
+                      target=ins.address+ins.size+op.mem.disp
+                      info=targets.get(target)
+                      if not info:
+                          continue
+                      irva=ins.address-base
+                      bounds=containing(irva)
+                      row={
+                          "string":info["value"],
+                          "slot_rva":info["slot_rva"],
+                          "instruction_rva":irva,
+                          "instruction":f"{ins.mnemonic} {ins.op_str}",
+                          "function_bounds":bounds,
+                          "methods":[],
+                      }
+                      if bounds:
+                          a,b=bounds
+                          # Exact method start first; fall back to any metadata method pointer inside the PE function.
+                          for addr in (a,):
+                              row["methods"].extend(by_addr.get(addr,[]))
+                          if not row["methods"]:
+                              for addr,ms in by_addr.items():
+                                  if a<=addr<b:
+                                      row["methods"].extend(ms)
+                      refs.append(row)
+
+          print("\nXREFS",len(refs))
+          for r in refs:
+              b=r["function_bounds"]
+              btxt="none" if not b else f"0x{b[0]:X}-0x{b[1]:X}"
+              print(
+                  f"\nstring={r['string']} slot=0x{r['slot_rva']:X} "
+                  f"xref=0x{r['instruction_rva']:X} fn={btxt}"
+              )
+              print("  ",r["instruction"])
+              for m in r["methods"][:20]:
+                  print(
+                      f"  METHOD 0x{int(m['Address']):X} "
+                      f"{m.get('Name')} :: {m.get('Signature')}"
+                  )
+
+          Path("quest-legacy-30-string-xref.json").write_text(
+              json.dumps({
+                  "matches":matches,
+                  "xrefs":refs,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          legacy=[x for x in matches if "QuestExcelConfigData" in x["value"] and
+                  "MainQuestExcelConfigData" not in x["value"]]
+          print("\nLEGACY_LITERAL_COUNT",len(legacy))
+          if not legacy:
+              print("VERDICT exact 3.0 metadata has no standalone QuestExcelConfigData literal")
+          else:
+              legacy_refs=[r for r in refs if r["string"] in {x["value"] for x in legacy}]
+              print("LEGACY_XREF_COUNT",len(legacy_refs))
+              if not legacy_refs:
+                  print("VERDICT legacy literal exists but no native RIP-relative xref was found")
+              else:
+                  print("VERDICT legacy literal and native xref(s) recovered")
+          PY
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-string-xref
+          path: |
+            quest-legacy-30-string-xref-dumper.txt
+            quest-legacy-30-string-xref.txt
+            quest-legacy-30-string-xref.json
+          if-no-files-found: warn
