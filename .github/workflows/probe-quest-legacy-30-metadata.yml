@@ -238,8 +238,81 @@ jobs:
               encoding="utf-8",
           )
           missing=[hex(x) for x in targets if not found.get(x)]
-          if missing:
-              raise SystemExit("known RVA(s) missing from exact dump: "+",".join(missing))
+          print("missing known WorldReverse RVAs",missing)
+          PY
+
+      - name: Resolve WorldReverse TypeDefIndex anchors in exact Global dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-typedef.txt
+          import json
+          import re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          targets={
+              14890:"QuestExcelConfigLoader",
+              15968:"MainQuestExcelConfigLoader",
+              15969:"QuestExcelConfig",
+          }
+          typedef_rx=re.compile(r"TypeDefIndex:\s*(\d+)")
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+
+          hits={}
+          for i,line in enumerate(lines):
+              m=typedef_rx.search(line)
+              if not m:
+                  continue
+              idx=int(m.group(1))
+              if idx not in targets:
+                  continue
+
+              a=max(0,i-3)
+              b=len(lines)
+              for j in range(i+1,min(len(lines),i+1800)):
+                  if lines[j].startswith("// Namespace:"):
+                      b=j
+                      break
+              block=lines[a:b]
+              methods=[]
+              fields=[]
+              for rel,x in enumerate(block):
+                  rm=rva_rx.search(x)
+                  if rm:
+                      rva=int(rm.group(1),16)
+                      sig=None
+                      for k in range(rel+1,min(len(block),rel+8)):
+                          y=block[k].strip()
+                          if y and not y.startswith("//") and "(" in y and ")" in y:
+                              sig=y
+                              break
+                      methods.append({"rva":rva,"signature":sig})
+                  if "// 0x" in x and ";" in x:
+                      fields.append(x.strip())
+
+              hits[str(idx)]={
+                  "expected":targets[idx],
+                  "line":i+1,
+                  "declaration":line.strip(),
+                  "block":block,
+                  "fields":fields,
+                  "methods":methods,
+              }
+
+              print(f"\n===== TypeDefIndex {idx} expected {targets[idx]} =====")
+              for x in block:
+                  print(x)
+
+          Path("quest-legacy-30-typedef.json").write_text(
+              json.dumps(hits,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          missing=[idx for idx in targets if str(idx) not in hits]
+          print("missing typedef anchors",missing)
           PY
 
       - name: Compare raw PE with loaded-memory QuestExcel code
@@ -348,6 +421,14 @@ jobs:
             quest-legacy-30-genshin-dumper.log
             quest-legacy-30-metadata.txt
             quest-legacy-30-metadata.json
+            quest-legacy-30-known-rvas.txt
+            quest-legacy-30-known-rvas.json
+            quest-legacy-30-typedef.txt
+            quest-legacy-30-typedef.json
+            quest-legacy-30-pe-imports.txt
+            quest-legacy-30-memory.txt
+            quest-legacy-30-memory.json
+            quest-legacy-30-memory/*.bin
             quest-legacy-30-exact-functions.txt
             quest-legacy-30-exact-functions.json
           if-no-files-found: warn
