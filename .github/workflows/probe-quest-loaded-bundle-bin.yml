@@ -1,0 +1,163 @@
+name: Probe 7.1 Quest LoadedBundle BinData source
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-loaded-bundle-bin.yml"
+
+concurrency:
+  group: probe-quest-loaded-bundle-bin-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Disassemble ordinary and zip LoadedBundle BinData methods
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6C1CA90 0x900             --expected-sha256 "$sha"             --label "LoadedBundle.LoadBinData(int32,int32,int32)"             --output quest-loaded-bundle-bin.json             > quest-loaded-bundle-bin.txt
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6C1C8E0 0x300             --expected-sha256 "$sha"             --label "LoadedBundle.LoadBinDataZipFile(int32,int32,int32,CompressionType,int32)"             --output quest-loaded-bundle-bin-zip-sibling.json             > quest-loaded-bundle-bin-zip-sibling.txt
+
+      - name: Annotate direct calls and dump source-shaped types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-loaded-bundle-bin-summary.txt
+          import csv, json, re
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods=rows("methods.csv")
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          by_rva={}
+          for m in methods:
+              r=(m.get("rva") or "").strip()
+              if r:
+                  try:
+                      by_rva.setdefault(int(r,0),[]).append(m)
+                  except ValueError:
+                      pass
+          type_by_tdi={int(t["type_definition_index"]):t for t in types}
+
+          report={"methods":{},"loaded_bundle":None,"candidate_types":[]}
+          for fn in ("quest-loaded-bundle-bin.json","quest-loaded-bundle-bin-zip-sibling.json"):
+              d=json.loads(Path(fn).read_text())
+              base=int(d["image_base"],16)
+              calls=[]
+              for x in d["instructions"]:
+                  if x.get("mnemonic") not in {"call","jmp"}:
+                      continue
+                  mm=re.fullmatch(r"0x([0-9a-fA-F]+)",x.get("op_str",""))
+                  if not mm:
+                      continue
+                  v=int(mm.group(1),16)
+                  rva=v-base if v>=base else v
+                  meta=by_rva.get(rva,[])
+                  item={
+                      "site_rva":x["rva"],
+                      "target_rva":f"0x{rva:X}",
+                      "metadata":meta,
+                      "owners":[type_by_tdi.get(int(m["type_definition_index"]),{}) for m in meta],
+                  }
+                  calls.append(item)
+                  print(fn, json.dumps(item,ensure_ascii=False,sort_keys=True))
+              report["methods"][fn]={
+                  "label":d.get("label"),
+                  "instructions":d["instructions"],
+                  "calls":calls,
+              }
+
+          lb=next(t for t in types if t.get("type_name")=="LoadedBundle")
+          lb_tdi=int(lb["type_definition_index"])
+          report["loaded_bundle"]={
+              "type":lb,
+              "fields":[f for f in fields if int(f["type_definition_index"])==lb_tdi],
+              "methods":[m for m in methods if int(m["type_definition_index"])==lb_tdi],
+          }
+          print("\nLOADED_BUNDLE")
+          print(json.dumps(report["loaded_bundle"],ensure_ascii=False,indent=2))
+
+          # Preserve types whose methods look like the Read/Length/Dispose shape
+          # consumed by FNIAHJGHFAK's +0x20 source object.
+          candidates=[]
+          for t in types:
+              tdi=int(t["type_definition_index"])
+              ms=[m for m in methods if int(m["type_definition_index"])==tdi]
+              names={m.get("method_name","") for m in ms}
+              sig=" ".join(
+                  str(m.get("parameter_types",""))+" "+str(m.get("return_type",""))
+                  for m in ms
+              )
+              name=str(t.get("type_name",""))
+              ns=str(t.get("namespace",""))
+              score=0
+              if any(k.lower() in name.lower() for k in ("stream","reader","bin","memory","byte","file","resource","bundle")):
+                  score+=1
+              if "int32" in sig and ("kind_0x1D" in sig or "uint8" in sig or "byte" in sig.lower()):
+                  score+=1
+              if any(n in names for n in ("Read","get_Length","Dispose","Close","Seek")):
+                  score+=2
+              if score>=2:
+                  candidates.append({
+                      "score":score,
+                      "type":t,
+                      "fields":[f for f in fields if int(f["type_definition_index"])==tdi],
+                      "methods":ms,
+                  })
+          candidates.sort(key=lambda x:(-x["score"],int(x["type"]["type_definition_index"])))
+          report["candidate_types"]=candidates[:120]
+          print("\nSOURCE_CANDIDATES",len(candidates))
+          for x in candidates[:120]:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-loaded-bundle-bin-summary.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Trace exact ordinary LoadBinData call edges
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py             inputs/7.1.0-global/GenshinImpact.exe             versions/7.1.0-global/windows-x64/metadata/methods.csv             quest-loaded-bundle-bin-edges.json             --focus loaded-bundle-bin:0x6C1CA90             --max-body 0x3000             | tee quest-loaded-bundle-bin-edges.txt
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-loaded-bundle-bin
+          path: |
+            quest-loaded-bundle-bin.txt
+            quest-loaded-bundle-bin.json
+            quest-loaded-bundle-bin-zip-sibling.txt
+            quest-loaded-bundle-bin-zip-sibling.json
+            quest-loaded-bundle-bin-summary.txt
+            quest-loaded-bundle-bin-summary.json
+            quest-loaded-bundle-bin-edges.txt
+            quest-loaded-bundle-bin-edges.json
+          if-no-files-found: error
