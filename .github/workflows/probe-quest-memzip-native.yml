@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
-          for spec in             "zip_ctor:0x1112930:0x500"             "zip_source_query:0x1111C50:0x300"             "zip_state_a:0x145AAA0:0x180"             "zip_state_b:0x145ABB0:0x180"             "memzip_wrappers:0x19C40630:0x240"
+          for spec in             "zip_ctor:0x1112930:0x500"             "zip_source_query:0x1111C50:0x300"             "zip_state_a:0x145AAA0:0x180"             "zip_state_b:0x145ABB0:0x180"             "memzip_wrappers:0x19C40630:0x240"             "memzip_init:0x1126FA0:0x900"             "memzip_read_core:0x1127D60:0x900"             "memzip_size_core:0x1128080:0x260"
           do
             IFS=: read -r label rva size <<<"$spec"
             python tools/disassemble_rva.py               inputs/7.1.0-global/GenshinImpact.exe "$rva" "$size"               --expected-sha256 "$sha"               --label "$label"               --output "quest-${label}.json"               > "quest-${label}.txt"
@@ -61,7 +61,7 @@ jobs:
               except ValueError: pass
           type_by_tdi={int(t["type_definition_index"]):t for t in types}
 
-          labels=("zip_ctor","zip_source_query","zip_state_a","zip_state_b","memzip_wrappers")
+          labels=("zip_ctor","zip_source_query","zip_state_a","zip_state_b","memzip_wrappers","memzip_init","memzip_read_core","memzip_size_core")
           report={}
           for label in labels:
               d=json.loads(Path(f"quest-{label}.json").read_text(encoding="utf-8"))
@@ -119,4 +119,10 @@ jobs:
             quest-memzip_wrappers.json
             quest-memzip-native-summary.txt
             quest-memzip-native-summary.json
+            quest-memzip_init.txt
+            quest-memzip_init.json
+            quest-memzip_read_core.txt
+            quest-memzip_read_core.json
+            quest-memzip_size_core.txt
+            quest-memzip_size_core.json
           if-no-files-found: error
