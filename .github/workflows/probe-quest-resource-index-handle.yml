@@ -148,11 +148,121 @@ jobs:
           )
           PY
 
+      - name: Trace asset-location map writer and block lookup
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-resource-index-writer.json \
+            --focus add-asset-location:0x71071B0 \
+            --focus get-block-id:0x710A0C0 \
+            --focus post-process:0x710AE00 \
+            --max-body 0x10000 \
+            | tee quest-resource-index-writer.txt
+
+          python - <<'PY' | tee quest-bundle-content-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          def read(name):
+              with (root/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          methods_by_tdi={}
+          for x in fields:
+              fields_by_tdi.setdefault(int(x["type_definition_index"]),[]).append(x)
+          for x in methods:
+              methods_by_tdi.setdefault(int(x["type_definition_index"]),[]).append(x)
+
+          wanted={"BundleContent","BlockInfo","BlockFile"}
+          out={}
+          for typ in types:
+              if typ.get("type_name") not in wanted:
+                  continue
+              tdi=int(typ["type_definition_index"])
+              item={
+                  "type":typ,
+                  "fields":fields_by_tdi.get(tdi,[]),
+                  "methods":methods_by_tdi.get(tdi,[]),
+              }
+              out[str(tdi)]=item
+              print("\nTYPE",tdi,typ.get("type_name"))
+              print(json.dumps(item,ensure_ascii=False,indent=2))
+
+          refs=[]
+          for m in methods:
+              sig=" ".join([str(m.get("return_type","")),str(m.get("parameter_types",""))])
+              if any(name in sig for name in wanted):
+                  refs.append({
+                      "method":m,
+                      "owner":type_by_tdi.get(int(m["type_definition_index"]),{}),
+                  })
+          print("\nSIGNATURE_REFS",len(refs))
+          for x in refs:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-bundle-content-types.json").write_text(
+              json.dumps({"types":out,"signature_refs":refs},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-resource-index-writer-summary.txt
+          import json
+          from pathlib import Path
+
+          d=json.loads(Path("quest-resource-index-writer.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in d["focus"].items():
+              keep=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","jmp","mov","movzx","movsxd","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror"}
+                      and (
+                          m in {"call","jmp"}
+                          or any(r in op for r in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi","r10","r11","r12","r13","r14","r15"))
+                      )
+                  ):
+                      keep.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":keep,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          out["anchor_351"]={
+              "handle":"0x14B93FDA285D0829",
+              "assetPathHash":"0xDA285D08",
+          }
+          Path("quest-resource-index-writer-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Assert evidence
         run: |
           test -s quest-resource-index-handle.json
           test -s quest-resource-index-types.json
           test -s quest-resource-index-summary.json
+          test -s quest-resource-index-writer.json
+          test -s quest-bundle-content-types.json
+          test -s quest-resource-index-writer-summary.json
 
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
@@ -165,4 +275,10 @@ jobs:
             quest-resource-index-types.json
             quest-resource-index-summary.txt
             quest-resource-index-summary.json
+            quest-resource-index-writer.txt
+            quest-resource-index-writer.json
+            quest-bundle-content-types.txt
+            quest-bundle-content-types.json
+            quest-resource-index-writer-summary.txt
+            quest-resource-index-writer-summary.json
           if-no-files-found: error
