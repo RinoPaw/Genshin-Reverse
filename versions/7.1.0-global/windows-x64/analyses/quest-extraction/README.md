@@ -282,6 +282,117 @@ QuestContent[]:
 Each array then allocates exactly `count` elements and calls the corresponding
 scalar `GMENPOPMKAA(FNIAHJGHFAK)` reader for every element.
 
+### Quest 351 — direct native full-resource decode
+
+The exact 7.1 full MainQuest resource is now directly extracted and decoded:
+
+```text
+Data/_BinOutput/Quest/351
+MainQuestIndex handle  = 0x14B93FDA285D0829
+design AssetIndex row  = 48670
+bundle_hash            = 1
+block_id               = 24230448
+group_id               = 0
+full payload size      = 920 bytes
+```
+
+The full payload starts directly with the `AFIOOHMJHDM` binary object.
+Its 64-bit presence mask is:
+
+```text
+raw  = 0x28063327CE673865
+mask = raw + 0xB19CC79B
+     = 0x2806332880040000
+```
+
+The ordinary subquest array begins at file offset `0x3B`:
+
+```text
+encoded count = 0xA74F0AC3
+count = encoded XOR 0xA74F0ACB = 8
+first LAIMPNDEFCL row = 0x3F
+```
+
+The eight native rows are ordered `35100..35107`. Exact row starts are:
+
+```text
+35100  0x03F
+35101  0x0A9
+35102  0x136
+35103  0x196
+35104  0x1F8
+35105  0x24F
+35106  0x2B2
+35107  0x327
+payload end 0x398
+```
+
+The row `subId` anchors independently agree with the native transform
+`subId = raw_u32 XOR 0xAB3097F8`.
+
+Core condition/exec arrays decoded directly from this payload are:
+
+```text
+35100 finishCond:
+  QUEST_CONTENT_FINISH_PLOT   [35100, 0]
+  QUEST_CONTENT_TRIGGER_FIRE  [1053, 0]
+
+35101 failCond:
+  QUEST_CONTENT_TEAM_DEAD     [0, 0]
+
+35101 failExec:
+  QUEST_EXEC_ROLLBACK_QUEST   ["35100"]
+
+35101 finishCond:
+  QUEST_CONTENT_TRIGGER_FIRE  [1100, 0]
+
+35102 finishCond:
+  QUEST_CONTENT_TRIGGER_FIRE  [1017, 0]
+
+35103 finishCond:
+  QUEST_CONTENT_TRIGGER_FIRE  [1016, 0]
+
+35104 finishCond:
+  QUEST_CONTENT_FINISH_PLOT   [35104, 0]
+
+35105 finishCond:
+  QUEST_CONTENT_TRIGGER_FIRE  [1016, 0]
+
+35106 finishExec:
+  QUEST_EXEC_LOCK_POINT       ["3", "1720"]
+
+35106 finishCond:
+  QUEST_CONTENT_UNLOCK_TRANS_POINT [3, 6]
+
+35107 finishExec:
+  QUEST_EXEC_REFRESH_GROUP_SUITE ["3", "133003429,1"]
+
+35107 finishCond:
+  QUEST_CONTENT_TRIGGER_FIRE  [1101, 0]
+```
+
+For the decisive 35101 failure path, the bytes independently recover:
+
+```text
+failCond element @ 0x0E7:
+  QuestContentType = 21 = QUEST_CONTENT_TEAM_DEAD
+  params = [0, 0]
+
+failExec element @ 0x106:
+  element mask = 0x24
+  string[] count = 1
+  decoded string = "35100"
+  QuestExecType = 14 = QUEST_EXEC_ROLLBACK_QUEST
+```
+
+The numeric enum mapping is cross-checked against the current native enum names
+and a pinned peer enum definition; it no longer depends on the published
+Quest JSON for the failure semantics.
+
+This directly confirms the 7.1 runtime behavior previously seen only as a
+same-version semantic control: subquest 35101 fails on team death and rolls
+the quest back to 35100.
+
 The remaining #8 proof step is to bind this ordinary-row deserializer to
 `Data/_ExcelBinOutput/QuestExcelConfigData` and decode the exact 2,824,188-byte payload
 with full consumption or an equally strong invariant.
