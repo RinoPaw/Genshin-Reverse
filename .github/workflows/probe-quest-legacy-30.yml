@@ -26,6 +26,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "6.0.x"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
 
       - name: Install focused dependencies
         run: python -m pip install capstone pefile
@@ -177,6 +180,120 @@ jobs:
           )
           PY
 
+      - name: Resolve exact 3.0 QuestExcel symbols with pinned Il2CppDumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/il2cppdumper
+          mkdir -p "$root"
+          curl --fail --location --retry 5             'https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip'             -o /tmp/il2cppdumper.zip
+          unzip -q /tmp/il2cppdumper.zip -d "$root"
+          mkdir -p quest-legacy-30-dump
+          dll="$(find "$root" -type f -name 'Il2CppDumper.dll' | head -n1)"
+          if [[ -z "$dll" ]]; then
+            echo 'Il2CppDumper.dll missing' >&2
+            exit 2
+          fi
+          dotnet "$dll"             inputs/3.0.0-global/UserAssembly.dll             inputs/3.0.0-global/global-metadata.dat             quest-legacy-30-dump             | tee quest-legacy-30-il2cppdumper.txt
+
+          python - <<'PY' | tee quest-legacy-30-symbols.txt
+          import json,re
+          from pathlib import Path
+
+          dump=Path("quest-legacy-30-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          )
+
+          def class_block(name):
+              pat=re.compile(
+                  rf"(?m)^public (?:static )?class {re.escape(name)}\b"
+              )
+              m=pat.search(dump)
+              if not m:
+                  raise SystemExit(f"class not found: {name}")
+              start=m.start()
+              nxt=dump.find("\n// Namespace:",m.end())
+              return dump[start:] if nxt<0 else dump[start:nxt]
+
+          def method_rva(block, signature_re):
+              lines=block.splitlines()
+              rx=re.compile(signature_re)
+              for i,line in enumerate(lines):
+                  if not rx.search(line):
+                      continue
+                  for j in range(i-1,max(-1,i-8),-1):
+                      m=re.search(r"RVA:\s*0x([0-9A-Fa-f]+)",lines[j])
+                      if m:
+                          return int(m.group(1),16), line.strip()
+              raise SystemExit(f"method not found: {signature_re}")
+
+          row=class_block("QuestExcelConfig")
+          loader=class_block("QuestExcelConfigLoader")
+
+          row_rva,row_sig=method_rva(
+              row,
+              r"\bFromBinary\(ByteArray byteArray, int threadFlag = 0, bool useObjectPool = false\)"
+          )
+          loader_rva,loader_sig=method_rva(
+              loader,
+              r"\bFromBinary\(ByteArray byteArray, int threadFlag = 0, bool useObjectPool = false\)"
+          )
+
+          # Method size: next RVA in the same class block.
+          def next_rva(block,rva):
+              vals=sorted({
+                  int(x,16)
+                  for x in re.findall(r"RVA:\s*0x([0-9A-Fa-f]+)",block)
+              })
+              return next((x for x in vals if x>rva),rva+0x2000)
+
+          fields={}
+          wanted={
+              "subId","mainId","order","subIdSet",
+              "acceptCondComb","acceptCond",
+              "finishCondComb","finishCond",
+              "failCondComb","failCond",
+              "finishExec","failExec","beginExec",
+          }
+          for line in row.splitlines():
+              m=re.search(
+                  r"\b(?:protected|private|public)\s+[^;]+?\s+_?([A-Za-z0-9_]+);"
+                  r"\s*//\s*0x([0-9A-Fa-f]+)",
+                  line,
+              )
+              if m and m.group(1) in wanted:
+                  fields[m.group(1)]=int(m.group(2),16)
+
+          expected={
+              "subId":0x10,"mainId":0x14,"order":0x18,"subIdSet":0x1C,
+              "acceptCondComb":0x38,"acceptCond":0x40,
+              "finishCondComb":0x48,"finishCond":0x50,
+              "failCondComb":0x58,"failCond":0x60,
+              "finishExec":0x80,"failExec":0x88,"beginExec":0x90,
+          }
+          print("ROW_RVA",hex(row_rva),row_sig)
+          print("ROW_END",hex(next_rva(row,row_rva)))
+          print("LOADER_RVA",hex(loader_rva),loader_sig)
+          print("LOADER_END",hex(next_rva(loader,loader_rva)))
+          print("FIELDS",json.dumps(fields,sort_keys=True))
+          print("EXPECTED",json.dumps(expected,sort_keys=True))
+          if fields != expected:
+              raise SystemExit(f"official 3.0 field layout mismatch: {fields}")
+
+          out={
+              "row_rva":row_rva,
+              "row_end_rva":next_rva(row,row_rva),
+              "loader_rva":loader_rva,
+              "loader_end_rva":next_rva(loader,loader_rva),
+              "fields":fields,
+              "row_signature":row_sig,
+              "loader_signature":loader_sig,
+          }
+          Path("quest-legacy-30-symbols.json").write_text(
+              json.dumps(out,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
       - name: Disassemble legacy QuestExcel loader and row reader
         shell: bash
         run: |
@@ -201,10 +318,16 @@ jobs:
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
 
+          symbols=json.loads(Path("quest-legacy-30-symbols.json").read_text(encoding="utf-8"))
           funcs = {
-              "QuestExcelConfigLoader.FILE_LOCATION": (0x10FC970, 0xA0),
-              "QuestExcelConfigLoader.FromBinary(ByteArray)": (0x10FD580, 0x350),
-              "QuestExcelConfig.FromBinary(ByteArray)": (0x3AF9E10, 0x15E0),
+              "QuestExcelConfigLoader.FromBinary(ByteArray)": (
+                  symbols["loader_rva"],
+                  symbols["loader_end_rva"]-symbols["loader_rva"],
+              ),
+              "QuestExcelConfig.FromBinary(ByteArray)": (
+                  symbols["row_rva"],
+                  symbols["row_end_rva"]-symbols["row_rva"],
+              ),
           }
 
           report = {}
@@ -249,8 +372,9 @@ jobs:
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
 
-          row_rva = 0x3AF9E10
-          row_size = 0x15E0
+          symbols=json.loads(Path("quest-legacy-30-symbols.json").read_text(encoding="utf-8"))
+          row_rva = symbols["row_rva"]
+          row_size = symbols["row_end_rva"] - row_rva
           insns = list(md.disasm(pe.get_data(row_rva, row_size), base + row_rva))
 
           fields = {
@@ -329,6 +453,9 @@ jobs:
           name: quest-legacy-30
           path: |
             quest-legacy-30-sample.txt
+            quest-legacy-30-il2cppdumper.txt
+            quest-legacy-30-symbols.txt
+            quest-legacy-30-symbols.json
             quest-legacy-30-il2cppdumper.txt
             quest-legacy-30-exact-symbols.txt
             quest-legacy-30-exact-symbols.json
