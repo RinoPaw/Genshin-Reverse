@@ -1,0 +1,130 @@
+name: Compare community QuestExcel lineage
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-community-quest-lineage.yml"
+
+concurrency:
+  group: probe-community-quest-lineage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch materialized community and AstaPS QuestExcel files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/gcr /tmp/astaps
+
+          git clone --filter=blob:none --no-checkout             https://github.com/233-Jerry/Grasscutter-Resources.git /tmp/gcr
+          git -C /tmp/gcr sparse-checkout init --no-cone
+          git -C /tmp/gcr sparse-checkout set             'Resources/ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/gcr checkout             46d2b65b40f2897edc0c0b3ef235e733e6dde6c4
+          test -s /tmp/gcr/Resources/ExcelBinOutput/QuestExcelConfigData.json
+
+          git clone --filter=blob:none --no-checkout             https://github.com/MeChen618/AstaPS-Resource.git /tmp/astaps
+          git -C /tmp/astaps sparse-checkout init --no-cone
+          git -C /tmp/astaps sparse-checkout set             'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/astaps checkout             8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/astaps/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Compare lineage fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee community-quest-lineage.txt
+          import hashlib
+          import json
+          from pathlib import Path
+
+          old_path=Path("/tmp/gcr/Resources/ExcelBinOutput/QuestExcelConfigData.json")
+          asta_path=Path("/tmp/astaps/ExcelBinOutput/QuestExcelConfigData.json")
+          old=json.loads(old_path.read_text(encoding="utf-8"))
+          asta=json.loads(asta_path.read_text(encoding="utf-8"))
+
+          def sidmap(rows):
+              return {
+                  x["subId"]:x
+                  for x in rows
+                  if isinstance(x,dict) and isinstance(x.get("subId"),int)
+              }
+
+          def q351(rows):
+              q=[x for x in rows if x.get("mainId")==351]
+              q.sort(key=lambda x:(x.get("order",1<<30),x.get("subId",1<<30)))
+              return q
+
+          a=sidmap(old); b=sidmap(asta)
+          common=set(a)&set(b)
+
+          fields=[
+              "mainId","order","subIdSet","isMpBlock","descTextMapHash",
+              "stepDescTextMapHash","guideTipsTextMapHash","showType","banType",
+              "acceptCondComb","acceptCond","finishCondComb","finishCond",
+              "failCondComb","failCond","guide","showGuide","finishParent",
+              "failParent","failParentShow","isRewind","finishExec","failExec",
+              "beginExec","exclusiveNpcList","sharedNpcList",
+              "exclusiveNpcPriority","trialAvatarList","exclusivePlaceList",
+          ]
+          equality={}
+          for f in fields:
+              n=sum(a[s].get(f)==b[s].get(f) for s in common)
+              equality[f]={
+                  "equal":n,
+                  "eligible":len(common),
+                  "ratio":n/len(common) if common else 0,
+              }
+
+          q_old=q351(old)
+          q_asta=q351(asta)
+          report={
+              "community":{
+                  "repo":"233-Jerry/Grasscutter-Resources",
+                  "commit":"46d2b65b40f2897edc0c0b3ef235e733e6dde6c4",
+                  "row_count":len(old),
+                  "sha256":hashlib.sha256(old_path.read_bytes()).hexdigest(),
+                  "quest351":q_old,
+              },
+              "astaps":{
+                  "commit":"8c85a82f37341a422002a0352c89a142c4017e53",
+                  "row_count":len(asta),
+                  "sha256":hashlib.sha256(asta_path.read_bytes()).hexdigest(),
+                  "quest351":q_asta,
+              },
+              "byte_identical":old_path.read_bytes()==asta_path.read_bytes(),
+              "common_subIds":len(common),
+              "only_community":len(set(a)-set(b)),
+              "only_astaps":len(set(b)-set(a)),
+              "field_equality":equality,
+              "quest351_equal":q_old==q_asta,
+          }
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("community-quest-lineage.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: community-quest-lineage
+          path: |
+            community-quest-lineage.txt
+            community-quest-lineage.json
+          if-no-files-found: error
