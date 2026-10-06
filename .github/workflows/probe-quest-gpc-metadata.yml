@@ -1,0 +1,93 @@
+name: Probe 7.1 Quest-shaped source row metadata
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-gpc-metadata.yml"
+
+concurrency:
+  group: probe-quest-gpc-metadata-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Resolve metadata references to GPC Quest-shaped row type
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-gpc-metadata-refs.txt
+          import csv,json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET="GPCFGOEJFJK"
+
+          def read(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          field_refs=[]
+          for f in fields:
+              if TARGET in (f.get("field_type") or ""):
+                  tdi=int(f["type_definition_index"])
+                  field_refs.append({"field":f,"owner_type":type_by_tdi.get(tdi,{})})
+
+          method_refs=[]
+          for m in methods:
+              hay=" ".join([m.get("return_type") or "",m.get("parameter_types") or ""])
+              if TARGET in hay:
+                  tdi=int(m["type_definition_index"])
+                  method_refs.append({"method":m,"owner_type":type_by_tdi.get(tdi,{})})
+
+          owner_tdis=sorted({
+              int(x["field"]["type_definition_index"]) for x in field_refs
+          } | {
+              int(x["method"]["type_definition_index"]) for x in method_refs
+          })
+          owner_details=[]
+          for tdi in owner_tdis:
+              owner_details.append({
+                  "type":type_by_tdi.get(tdi,{}),
+                  "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                  "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              })
+
+          out={
+              "target":TARGET,
+              "field_ref_count":len(field_refs),
+              "method_ref_count":len(method_refs),
+              "field_refs":field_refs,
+              "method_refs":method_refs,
+              "owner_details":owner_details,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-gpc-metadata-refs.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-gpc-metadata
+          path: |
+            quest-gpc-metadata-refs.txt
+            quest-gpc-metadata-refs.json
+          if-no-files-found: error
