@@ -1159,11 +1159,7 @@ jobs:
           python tools/disassemble_rva.py \
             inputs/7.1.0-global/GenshinImpact.exe \
             0x9F89380 0x180 \
-            --expected-sha256 "$(python - <<'PY'
-from genshinre.nativeprofile import PROFILE_71
-print(PROFILE_71.exe_sha256)
-PY
-)" \
+            --expected-sha256 "$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')" \
             --label "ODJJEFFIPFA.BECFLOFNBMM(object,uint64)" \
             --output quest-becfl-object-projection.json \
             > quest-becfl-object-projection.txt
