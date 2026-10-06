@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install focused dependencies
-        run: python -m pip install -e . capstone pefile zstandard zstandard
+        run: python -m pip install -e . capstone pefile zstandard zstandard zstandard
 
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
