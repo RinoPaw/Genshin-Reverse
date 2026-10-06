@@ -1,0 +1,388 @@
+name: Map 7.1 legacy QuestExcel rows to initial resource
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-row-map.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-row-map-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-artifact
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir previous-artifact
+          test -s previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch initial AstaPS QuestExcel resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout \
+            8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Map resource subIds to native anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-row-map.txt
+          import collections
+          import hashlib
+          import json
+          import struct
+          from pathlib import Path
+
+          RAW=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          KEY=0xB1571A55
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n != len(raw)-4:
+              raise SystemExit("wrapper mismatch")
+          rows=json.loads(RES.read_text(encoding="utf-8"))
+          if len(rows) != 25261:
+              raise SystemExit(f"unexpected initial resource rows {len(rows)}")
+
+          wanted={}
+          valid_rows=[]
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if not isinstance(sid,int):
+                  continue
+              enc=(sid ^ KEY) & 0xffffffff
+              wanted.setdefault(enc,[]).append((ordinal,sid))
+              valid_rows.append((ordinal,sid,enc))
+
+          # One pass over all byte-aligned u32 windows.
+          hits={enc:[] for enc in wanted}
+          for pos in range(0,len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in hits:
+                  hits[u].append(pos)
+
+          mapped=[]
+          unique=[]
+          for ordinal,sid,enc in valid_rows:
+              ps=hits[enc]
+              item={
+                  "ordinal":ordinal,
+                  "subId":sid,
+                  "encoded":f"0x{enc:08X}",
+                  "hit_count":len(ps),
+                  "positions":ps[:12],
+              }
+              mapped.append(item)
+              if len(ps)==1:
+                  unique.append((ordinal,sid,ps[0]))
+
+          unique.sort()
+          monotonic_pairs=0
+          adjacent_pairs=0
+          gap_values=[]
+          for a,b in zip(unique,unique[1:]):
+              if b[2] > a[2]:
+                  monotonic_pairs += 1
+              if b[0] == a[0]+1 and b[2] > a[2]:
+                  adjacent_pairs += 1
+                  gap_values.append(b[2]-a[2])
+
+          # Longest run of consecutive JSON ordinals whose unique native anchors
+          # are strictly increasing.
+          runs=[]
+          cur=[]
+          for item in unique:
+              if (
+                  cur
+                  and item[0] == cur[-1][0]+1
+                  and item[2] > cur[-1][2]
+              ):
+                  cur.append(item)
+              else:
+                  if cur:runs.append(cur)
+                  cur=[item]
+          if cur:runs.append(cur)
+          runs.sort(key=len,reverse=True)
+
+          q351=[x for x in unique if 35100 <= x[1] <= 35107]
+          out={
+              "asset":{
+                  "raw_size":len(raw),
+                  "raw_sha256":hashlib.sha256(raw).hexdigest(),
+                  "payload_size":len(payload),
+                  "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              },
+              "resource":{
+                  "row_count":len(rows),
+                  "sha256":hashlib.sha256(RES.read_bytes()).hexdigest(),
+              },
+              "subId_xor_key":f"0x{KEY:08X}",
+              "rows_with_integer_subId":len(valid_rows),
+              "encoded_value_count":len(wanted),
+              "unique_anchor_rows":len(unique),
+              "zero_hit_rows":sum(1 for x in mapped if x["hit_count"]==0),
+              "multi_hit_rows":sum(1 for x in mapped if x["hit_count"]>1),
+              "monotonic_unique_pairs":monotonic_pairs,
+              "adjacent_monotonic_pairs":adjacent_pairs,
+              "gap_stats":{
+                  "count":len(gap_values),
+                  "min":min(gap_values) if gap_values else None,
+                  "max":max(gap_values) if gap_values else None,
+                  "mean":sum(gap_values)/len(gap_values) if gap_values else None,
+              },
+              "longest_runs":[
+                  {
+                      "length":len(run),
+                      "first_ordinal":run[0][0],
+                      "last_ordinal":run[-1][0],
+                      "first_subId":run[0][1],
+                      "last_subId":run[-1][1],
+                      "first_pos":run[0][2],
+                      "last_pos":run[-1][2],
+                  }
+                  for run in runs[:20]
+              ],
+              "quest351":[
+                  {"ordinal":o,"subId":sid,"position":pos}
+                  for o,sid,pos in q351
+              ],
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-row-map.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          # Preserve only ambiguous/missing rows, not 25k verbose hits.
+          exceptions=[x for x in mapped if x["hit_count"]!=1]
+          Path("quest-legacy-71-row-map-exceptions.json").write_text(
+              json.dumps(exceptions,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          # Unique anchors are needed by the field inference step.
+          Path("quest-legacy-71-row-anchors.json").write_text(
+              json.dumps(
+                  [{"ordinal":o,"subId":sid,"position":pos} for o,sid,pos in unique],
+                  ensure_ascii=False,indent=2
+              )+"\n",encoding="utf-8"
+          )
+
+          if len(q351)!=8:
+              raise SystemExit(f"Quest 351 unique anchors incomplete: {q351}")
+          PY
+
+      - name: Infer scalar and acceptCond wire transforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-field-inference.txt
+          import collections
+          import json
+          import struct
+          from pathlib import Path
+
+          raw=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat").read_bytes()
+          size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+size]
+          rows=json.loads(
+              Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+              .read_text(encoding="utf-8")
+          )
+          anchors=json.loads(Path("quest-legacy-71-row-anchors.json").read_text())
+          by_ord={x["ordinal"]:x for x in anchors}
+
+          # Use only consecutive unique anchors, so each [subId anchor, next
+          # subId anchor) is guaranteed to stay inside the current row after
+          # the subId field.
+          spans=[]
+          for ordinal,row in enumerate(rows[:-1]):
+              a=by_ord.get(ordinal)
+              b=by_ord.get(ordinal+1)
+              if not a or not b or b["position"] <= a["position"]:
+                  continue
+              gap=b["position"]-a["position"]
+              if not (8 <= gap <= 2048):
+                  continue
+              spans.append((ordinal,row,a["position"],b["position"]))
+
+          def top_transform(field, width=4, limit=12):
+              xor_counts=collections.Counter()
+              sub_counts=collections.Counter()
+              add_counts=collections.Counter()
+              support=0
+              mask=(1<<(width*8))-1
+              for ordinal,row,a,b in spans:
+                  v=row.get(field)
+                  if not isinstance(v,int):
+                      continue
+                  v &= mask
+                  support += 1
+                  # Deduplicate a key within a row, otherwise repeated byte
+                  # patterns would overweight a single row.
+                  kxor=set(); ksub=set(); kadd=set()
+                  data=payload[a:b]
+                  for off in range(0,max(0,len(data)-width+1)):
+                      u=int.from_bytes(data[off:off+width],"little")
+                      kxor.add(u^v)
+                      ksub.add((u-v)&mask)
+                      kadd.add((u+v)&mask)
+                  xor_counts.update(kxor)
+                  sub_counts.update(ksub)
+                  add_counts.update(kadd)
+              def fmt(counter):
+                  return [
+                      {"key":f"0x{k:0{width*2}X}","row_support":n}
+                      for k,n in counter.most_common(limit)
+                  ]
+              return {
+                  "field":field,
+                  "width":width,
+                  "eligible_rows":support,
+                  "xor":fmt(xor_counts),
+                  "raw_minus_value":fmt(sub_counts),
+                  "raw_plus_value":fmt(add_counts),
+              }
+
+          scalars=[]
+          for field in (
+              "mainId","order","subIdSet","descTextMapHash",
+              "stepDescTextMapHash","guideTipsTextMapHash",
+              "exclusiveNpcPriority",
+          ):
+              scalars.append(top_transform(field,4))
+              scalars.append(top_transform(field,2))
+              scalars.append(top_transform(field,1))
+
+          # AcceptCond target: select rows whose first condition is exactly a
+          # state-equal with an integer first parameter. Search the whole
+          # post-subId row span, allowing nested arrays to move around.
+          cond_rows=[]
+          for ordinal,row,a,b in spans:
+              cond=row.get("acceptCond")
+              if not isinstance(cond,list) or not cond:
+                  continue
+              first=cond[0]
+              if not isinstance(first,dict):
+                  continue
+              if first.get("type")!="QUEST_COND_STATE_EQUAL":
+                  continue
+              param=first.get("param")
+              if not isinstance(param,list) or not param or not isinstance(param[0],int):
+                  continue
+              cond_rows.append((ordinal,row,a,b,param[0]))
+
+          def rank_cond(width):
+              mask=(1<<(width*8))-1
+              counters={
+                  "xor":collections.Counter(),
+                  "raw_minus_value":collections.Counter(),
+                  "raw_plus_value":collections.Counter(),
+              }
+              for ordinal,row,a,b,v in cond_rows:
+                  v &= mask
+                  sets={k:set() for k in counters}
+                  data=payload[a:b]
+                  for off in range(0,max(0,len(data)-width+1)):
+                      u=int.from_bytes(data[off:off+width],"little")
+                      sets["xor"].add(u^v)
+                      sets["raw_minus_value"].add((u-v)&mask)
+                      sets["raw_plus_value"].add((u+v)&mask)
+                  for k in counters:
+                      counters[k].update(sets[k])
+              return {
+                  "width":width,
+                  "eligible_rows":len(cond_rows),
+                  **{
+                      kind:[
+                          {"key":f"0x{k:0{width*2}X}","row_support":n}
+                          for k,n in counter.most_common(40)
+                      ]
+                      for kind,counter in counters.items()
+                  },
+              }
+
+          # Also test literal LEB128 and ZigZag-LEB128 occurrence in each row.
+          def uleb(v):
+              v &= 0xffffffff
+              out=bytearray()
+              while True:
+                  b=v&0x7f; v >>= 7
+                  if v:b|=0x80
+                  out.append(b)
+                  if not v:return bytes(out)
+          literal=0
+          zigzag=0
+          samples=[]
+          for ordinal,row,a,b,v in cond_rows:
+              data=payload[a:b]
+              u=uleb(v)
+              z=uleb((v<<1)&0xffffffff)
+              hu=data.find(u)
+              hz=data.find(z)
+              literal += hu>=0
+              zigzag += hz>=0
+              if len(samples)<40 and (hu>=0 or hz>=0):
+                  samples.append({
+                      "ordinal":ordinal,"subId":row.get("subId"),
+                      "target":v,"literal_off":hu,"zigzag_off":hz,
+                  })
+
+          out={
+              "consecutive_unique_spans":len(spans),
+              "scalar_transforms":scalars,
+              "acceptCond_target":{
+                  "eligible_rows":len(cond_rows),
+                  "fixed_width":[rank_cond(4),rank_cond(2),rank_cond(1)],
+                  "uleb_exact_row_support":literal,
+                  "zigzag_uleb_exact_row_support":zigzag,
+                  "varint_samples":samples,
+              },
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-field-inference.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-row-map
+          path: |
+            quest-legacy-71-row-map.txt
+            quest-legacy-71-row-map.json
+            quest-legacy-71-row-map-exceptions.json
+            quest-legacy-71-row-anchors.json
+            quest-legacy-71-field-inference.txt
+            quest-legacy-71-field-inference.json
+          if-no-files-found: warn
