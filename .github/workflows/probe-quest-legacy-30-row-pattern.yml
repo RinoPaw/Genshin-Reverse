@@ -126,14 +126,17 @@ jobs:
           rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
 
           # Stable 3.0 QuestExcel semantic layout from WorldReverse.
+          # Exact Global aliases recovered from named RandomQuestExcelConfig:
+          # EIGBLIIIDOO=BanGroupType, NEFIKHJPMCB=LogicType,
+          # AIPNHENEMIB=QuestGuide.
           # Array element class names may be obfuscated between builds, so score
           # primitive/enumeration slots exactly and array-ness separately.
           exact={
               0x10:"uint",0x14:"uint",0x18:"int",0x1C:"uint",
               0x20:"bool",0x24:"uint",0x28:"uint",0x2C:"uint",
-              0x30:"QuestShowType",0x34:"BanGroupType",0x38:"LogicType",
-              0x48:"LogicType",0x58:"LogicType",
-              0x70:"ShowQuestGuideType",
+              0x30:"QuestShowType",0x34:"EIGBLIIIDOO",0x38:"NEFIKHJPMCB",
+              0x48:"NEFIKHJPMCB",0x58:"NEFIKHJPMCB",
+              0x68:"AIPNHENEMIB",0x70:"ShowQuestGuideType",
               0x74:"bool",0x75:"bool",0x78:"QuestShowType",0x7C:"bool",
               0xA8:"uint",
           }
@@ -208,9 +211,9 @@ jobs:
               enum_core=all(
                   fields.get(off,{}).get("type")==typ
                   for off,typ in {
-                      0x30:"QuestShowType",0x34:"BanGroupType",
-                      0x38:"LogicType",0x48:"LogicType",0x58:"LogicType",
-                      0x70:"ShowQuestGuideType",0x78:"QuestShowType",
+                      0x30:"QuestShowType",0x34:"EIGBLIIIDOO",
+                      0x38:"NEFIKHJPMCB",0x48:"NEFIKHJPMCB",0x58:"NEFIKHJPMCB",
+                      0x68:"AIPNHENEMIB",0x70:"ShowQuestGuideType",0x78:"QuestShowType",
                   }.items()
               )
               if enum_core:
