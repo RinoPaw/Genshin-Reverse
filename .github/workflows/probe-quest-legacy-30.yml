@@ -1,0 +1,222 @@
+name: Probe 3.0 legacy QuestExcel binary reader
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install remotezip requests capstone pefile
+
+      - name: Range-extract exact 3.0.0 executable and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-sample.txt
+          import hashlib
+          import shutil
+          from pathlib import Path
+          from remotezip import RemoteZip
+
+          url = (
+              "https://autopatchhk.yuanshen.com/client_app/download/pc_zip/"
+              "20220815143807_dyIghvy1b5fjfzHU/GenshinImpact_3.0.0.zip"
+          )
+          out = Path("inputs/3.0.0-global")
+          out.mkdir(parents=True, exist_ok=True)
+
+          with RemoteZip(url) as rz:
+              names = rz.namelist()
+              exe = [n for n in names if n.lower().endswith("/genshinimpact.exe") or n.lower()=="genshinimpact.exe"]
+              meta = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
+              print("zip_entries", len(names))
+              print("exe_matches", exe)
+              print("metadata_matches", meta)
+              if len(exe) != 1:
+                  raise SystemExit(f"expected one GenshinImpact.exe, got {exe}")
+              if len(meta) != 1:
+                  raise SystemExit(f"expected one global-metadata.dat, got {meta}")
+
+              for src_name, dst_name in ((exe[0], "GenshinImpact.exe"), (meta[0], "global-metadata.dat")):
+                  dst = out / dst_name
+                  with rz.open(src_name) as src, dst.open("wb") as fp:
+                      shutil.copyfileobj(src, fp, length=8 << 20)
+                  h = hashlib.sha256(dst.read_bytes()).hexdigest()
+                  print(dst_name, "size=", dst.stat().st_size, "sha256=", h)
+          PY
+
+      - name: Disassemble legacy QuestExcel loader and row reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-reader.txt
+          import json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+
+          exe = Path("inputs/3.0.0-global/GenshinImpact.exe")
+          pe = pefile.PE(str(exe), fast_load=True)
+          base = pe.OPTIONAL_HEADER.ImageBase
+          print("image_base", hex(base))
+          if base != 0x180000000:
+              raise SystemExit(f"unexpected image base {base:#x}")
+
+          def rva_bytes(rva, size):
+              return pe.get_data(rva, size)
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          funcs = {
+              "QuestExcelConfigLoader.FILE_LOCATION": (0x10FC970, 0xA0),
+              "QuestExcelConfigLoader.FromBinary(ByteArray)": (0x10FD580, 0x350),
+              "QuestExcelConfig.FromBinary(ByteArray)": (0x3AF9E10, 0x15E0),
+          }
+
+          report = {}
+          for label, (rva, size) in funcs.items():
+              insns = list(md.disasm(rva_bytes(rva, size), base + rva))
+              rows = []
+              for ins in insns:
+                  row = {
+                      "rva": f"0x{ins.address-base:X}",
+                      "bytes": ins.bytes.hex(),
+                      "mnemonic": ins.mnemonic,
+                      "op_str": ins.op_str,
+                  }
+                  if ins.mnemonic == "call" and ins.operands and ins.operands[0].type == X86_OP_IMM:
+                      row["call_target_rva"] = f"0x{ins.operands[0].imm-base:X}"
+                  rows.append(row)
+              report[label] = {"rva": f"0x{rva:X}", "size": size, "instructions": rows}
+              print("\n###", label, f"RVA 0x{rva:X}")
+              for x in rows:
+                  print(x["rva"], x["mnemonic"], x["op_str"])
+
+          Path("quest-legacy-30-reader.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Locate named legacy QuestExcel field accesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-fields.txt
+          import json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_MEM
+
+          exe = Path("inputs/3.0.0-global/GenshinImpact.exe")
+          pe = pefile.PE(str(exe), fast_load=True)
+          base = pe.OPTIONAL_HEADER.ImageBase
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          row_rva = 0x3AF9E10
+          row_size = 0x15E0
+          insns = list(md.disasm(pe.get_data(row_rva, row_size), base + row_rva))
+
+          fields = {
+              0x10: "subId",
+              0x14: "mainId",
+              0x18: "order",
+              0x1C: "subIdSet",
+              0x20: "isMpBlock",
+              0x24: "descTextMapHash",
+              0x28: "stepDescTextMapHash",
+              0x2C: "guideTipsTextMapHash",
+              0x30: "showType",
+              0x34: "banType",
+              0x38: "acceptCondComb",
+              0x40: "acceptCond",
+              0x48: "finishCondComb",
+              0x50: "finishCond",
+              0x58: "failCondComb",
+              0x60: "failCond",
+              0x68: "guide",
+              0x70: "showGuide",
+              0x74: "finishParent",
+              0x75: "failParent",
+              0x78: "failParentShow",
+              0x7C: "isRewind",
+              0x80: "finishExec",
+              0x88: "failExec",
+              0x90: "beginExec",
+              0x98: "exclusiveNpcList",
+              0xA0: "sharedNpcList",
+              0xA8: "exclusiveNpcPriority",
+              0xB0: "trialAvatarList",
+              0xB8: "exclusivePlaceList",
+          }
+
+          hits = {name: [] for name in fields.values()}
+          for i, ins in enumerate(insns):
+              found = set()
+              for op in ins.operands:
+                  if op.type == X86_OP_MEM and op.mem.disp in fields:
+                      found.add(op.mem.disp)
+              for off in sorted(found):
+                  lo = max(0, i - 10)
+                  hi = min(len(insns), i + 11)
+                  hit = {
+                      "instruction_rva": f"0x{ins.address-base:X}",
+                      "instruction": f"{ins.mnemonic} {ins.op_str}",
+                      "window": [
+                          {
+                              "rva": f"0x{x.address-base:X}",
+                              "mnemonic": x.mnemonic,
+                              "op_str": x.op_str,
+                          }
+                          for x in insns[lo:hi]
+                      ],
+                  }
+                  hits[fields[off]].append(hit)
+
+          for name in fields.values():
+              print("\n===", name, "hits", len(hits[name]), "===")
+              for h in hits[name]:
+                  print("HIT", h["instruction_rva"], h["instruction"])
+                  for x in h["window"]:
+                      print(" ", x["rva"], x["mnemonic"], x["op_str"])
+
+          Path("quest-legacy-30-fields.json").write_text(
+              json.dumps({"fields": hits}, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30
+          path: |
+            quest-legacy-30-sample.txt
+            quest-legacy-30-reader.txt
+            quest-legacy-30-reader.json
+            quest-legacy-30-fields.txt
+            quest-legacy-30-fields.json
+          if-no-files-found: error
