@@ -1,0 +1,254 @@
+name: Verify 3.0 native Quest 351 prerequisites
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-asset.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-asset-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e .
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Build pinned 2022 GenshinStudio extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/GenshinStudio
+          git clone --filter=blob:none https://github.com/game-maker-ly/GenshinStudio.git "$root"
+          git -C "$root" checkout --detach 46c5aca5c6c7d5124e54a5693264bb61165846c3
+
+          mkdir -p "$root/ProbeExtract"
+          cat > "$root/ProbeExtract/ProbeExtract.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net6.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>disable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../AssetStudio/AssetStudio.csproj" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > "$root/ProbeExtract/Program.cs" <<'EOF'
+          using AssetStudio;
+          using System.Buffers.Binary;
+
+          if (args.Length != 2) return 2;
+          var manager = new AssetsManager();
+          manager.LoadFiles(Path.GetFullPath(args[0]));
+          var output = Path.GetFullPath(args[1]);
+          Directory.CreateDirectory(output);
+
+          int bins = 0;
+          foreach (var assetsFile in manager.assetsFileList)
+          {
+              IndexObject? index = null;
+              if (assetsFile.ObjectsDic.TryGetValue(2, out var obj) && obj is IndexObject io)
+                  index = io;
+
+              foreach (var asset in assetsFile.Objects)
+              {
+                  if (asset is not MiHoYoBinData bin) continue;
+                  string name = $"pathid-{bin.m_PathID}";
+                  if (index != null && index.Names.TryGetValue(bin.m_PathID, out var recovered))
+                      name = recovered;
+                  name = Path.GetFileNameWithoutExtension(name);
+                  var raw = new byte[4 + bin.RawData.Length];
+                  BinaryPrimitives.WriteInt32LittleEndian(raw.AsSpan(0, 4), bin.RawData.Length);
+                  bin.RawData.CopyTo(raw, 4);
+                  File.WriteAllBytes(Path.Combine(output, name + ".dat"), raw);
+                  bins++;
+              }
+          }
+          Console.WriteLine($"mihoyo_bin_data={bins}");
+          return bins > 0 ? 0 : 3;
+          EOF
+          dotnet build "$root/ProbeExtract/ProbeExtract.csproj" -c Release --nologo
+          echo "$root/ProbeExtract/bin/Release/net6.0/ProbeExtract.dll" > /tmp/extractor
+
+      - name: Fetch exact 3.0 package blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          mkdir -p inputs
+          curl --fail --location --retry 5 --retry-all-errors "$base/pkg_version" -o inputs/pkg_version
+
+          python - <<'PY' | tee quest-legacy-30-package.txt
+          import json
+          from pathlib import Path
+
+          rows=[
+              json.loads(line)
+              for line in Path("inputs/pkg_version").read_text(
+                  encoding="utf-8-sig",errors="strict"
+              ).splitlines()
+              if line.strip()
+          ]
+          names={
+              "design":"31049740.blk",
+              "quest":"25539185.blk",
+          }
+          out={}
+          for label,base in names.items():
+              hits=[
+                  x for x in rows
+                  if str(x.get("remoteName","")).replace("\\","/").endswith(
+                      "/StreamingAssets/AssetBundles/blocks/00/"+base
+                  )
+              ]
+              print(label,"hits",len(hits))
+              for x in hits: print(json.dumps(x,sort_keys=True))
+              if len(hits)!=1:
+                  raise SystemExit(f"{label}: expected exactly one package entry")
+              out[label]=hits[0]
+          Path("/tmp/blocks.json").write_text(json.dumps(out))
+          PY
+
+          for label in design quest; do
+            rel=$(python - "$label" <<'PY'
+          import json,sys
+          print(json.load(open("/tmp/blocks.json"))[sys.argv[1]]["remoteName"])
+          PY
+            )
+            curl --fail --location --retry 5 --retry-all-errors               "$base/$rel" -o "inputs/$label.blk"
+          done
+
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          rows=json.load(open("/tmp/blocks.json"))
+          for label in ("design","quest"):
+              p=Path("inputs")/(label+".blk")
+              row=rows[label]
+              got=hashlib.md5(p.read_bytes()).hexdigest()
+              print(label,"size",p.stat().st_size,"md5",got)
+              assert p.stat().st_size==int(row["fileSize"])
+              assert got.lower()==row["md5"].lower()
+          PY
+
+      - name: Export exact 3.0 QuestExcel object
+        shell: bash
+        run: |
+          set -euo pipefail
+          extractor=$(cat /tmp/extractor)
+          mkdir -p design-output quest-output
+          dotnet "$extractor" inputs/design.blk design-output | tee quest-legacy-30-design-export.txt
+          dotnet "$extractor" inputs/quest.blk quest-output | tee quest-legacy-30-quest-export.txt
+          test -s design-output/0000006f.dat
+          test -s quest-output/3b87ae83.dat
+
+      - name: Verify route and decode exact Quest 351
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-351.txt
+          import hashlib,json
+          from pathlib import Path
+
+          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
+          from genshinre.questlegacy import (
+              detect_legacy_quest_xor_key,
+              find_quest_rows,
+              parse_legacy_quest_prefix,
+          )
+
+          path="Data/_ExcelBinOutput/QuestExcelConfigData"
+          idx=parse_asset_index(Path("design-output/0000006f.dat").read_bytes())
+          h=mihoyo_name_hash(path)
+          name=idx.name_for_hash(h)
+          ref=idx.block_ref_for_asset(name.sub_asset_id)
+          group=idx.block_groups[ref.block_id]
+
+          raw=Path("quest-output/3b87ae83.dat").read_bytes()
+          key,count=detect_legacy_quest_xor_key(
+              raw,probe_rows=160,min_row_count=1_000,max_row_count=100_000
+          )
+          prefix=parse_legacy_quest_prefix(raw,xor_key=key,max_rows=300)
+          rows=find_quest_rows(prefix,main_id=351)
+
+          out={
+              "asset":{
+                  "path":path,
+                  "hash":f"0x{h:010X}",
+                  "exported_name":name.exported_name,
+                  "sub_asset_id":name.sub_asset_id,
+                  "block_id":ref.block_id,
+                  "group_id":group,
+                  "raw_size":len(raw),
+                  "sha256":hashlib.sha256(raw).hexdigest(),
+              },
+              "wire":{
+                  "xor_key":f"0x{key:02X}",
+                  "row_count":count,
+                  "parsed_prefix_rows":len(prefix.rows),
+                  "consumed":prefix.consumed,
+              },
+              "quest351":[
+                  {
+                      "index":r.index,
+                      "start":r.start,
+                      "end":r.end,
+                      "subId":r.fields.get("sub_id"),
+                      "mainId":r.fields.get("main_id"),
+                      "order":r.fields.get("order"),
+                      "bitfield":r.fields.get("bitfield"),
+                      "acceptCondComb":r.fields.get("accept_cond_comb"),
+                      "acceptCond":r.fields.get("accept_cond"),
+                      "finishCondComb":r.fields.get("finish_cond_comb"),
+                      "finishCond":r.fields.get("finish_cond"),
+                      "failCondComb":r.fields.get("fail_cond_comb"),
+                      "failCond":r.fields.get("fail_cond"),
+                      "finishExec":r.fields.get("finish_exec"),
+                      "failExec":r.fields.get("fail_exec"),
+                      "beginExec":r.fields.get("begin_exec"),
+                  }
+                  for r in rows
+              ],
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-30-351.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          expected={35100,35101,35102,35103,35104,35105,35106,35107}
+          got={r.fields.get("sub_id") for r in rows}
+          if got != expected:
+              raise SystemExit(f"Quest 351 incomplete: {sorted(x for x in got if x)}")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-asset
+          path: |
+            quest-legacy-30-package.txt
+            quest-legacy-30-design-export.txt
+            quest-legacy-30-quest-export.txt
+            quest-legacy-30-351.txt
+            quest-legacy-30-351.json
+            quest-output/3b87ae83.dat
+          if-no-files-found: warn
