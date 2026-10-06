@@ -1,0 +1,318 @@
+name: Match 7.1 legacy QuestExcel row schema
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-devkit-schema.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-devkit-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch initial resource for subId ordering only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout \
+            8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Checkout pinned 7.0 binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none \
+            https://github.com/owomocha/genshin-7.0-local-re-devkit.git \
+            /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
+            fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Analyze candidate 7.1 row readers against exact Quest 351 windows
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-devkit-schema.txt
+          import csv
+          import json
+          import struct
+          import sys
+          from pathlib import Path
+
+          from genshin_re import binconfig as BC
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+          TARGETS=[35104,35100,35107,35101,35106,35105,35103,35102]
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=rows("methods.csv")
+          types=rows("types.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          # Give the 7.0 analyzer every 7.1 method whose first argument is the
+          # binary reader. Recursive calls can then be recognized as record
+          # deserializers even when class/method names are obfuscated.
+          deser={}
+          candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+              except Exception:
+                  continue
+              if not rva:
+                  continue
+              try:
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not params or params[0] != READER:
+                  continue
+              deser[rva]=(m.get("type_name") or "?",m.get("method_name") or "?",str(params))
+
+              # Focus on plausible source-row objects. Keep named controls even
+              # outside the count range so the analyzer can self-check.
+              t=type_by_tdi.get(tdi,{})
+              try:fc=int(t.get("field_count") or "0")
+              except ValueError:fc=0
+              exact_one=len(params)==1
+              named=m.get("type_name") in {
+                  "RandomQuestExcelConfig","GPCFGOEJFJK","LAIMPNDEFCL","AFIOOHMJHDM"
+              }
+              if exact_one and (20 <= fc <= 48 or named):
+                  candidates.append((rva,m,t,fc))
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n != len(raw)-4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          resource=json.loads(RES.read_text(encoding="utf-8"))
+          ord_by_sid={
+              row.get("subId"):i
+              for i,row in enumerate(resource)
+              if isinstance(row.get("subId"),int)
+          }
+
+          # Exact raw subId anchors. The content of acceptCond is deliberately
+          # not used anywhere in this probe.
+          pos={}
+          for sid in TARGETS:
+              needle=struct.pack("<I",(sid ^ SUBID_KEY)&0xffffffff)
+              hits=[]
+              at=0
+              while True:
+                  x=payload.find(needle,at)
+                  if x<0:break
+                  hits.append(x);at=x+1
+              if len(hits)!=1:
+                  raise SystemExit(f"subId {sid}: native anchor ambiguity {hits}")
+              pos[sid]=hits[0]
+
+          ordered=sorted((p,sid) for sid,p in pos.items())
+          windows=[]
+          for i,(start,sid) in enumerate(ordered):
+              if i+1 < len(ordered):
+                  end=ordered[i+1][0]
+              else:
+                  ordinal=ord_by_sid[sid]
+                  next_sid=resource[ordinal+1].get("subId")
+                  needle=struct.pack("<I",(next_sid ^ SUBID_KEY)&0xffffffff)
+                  hits=[]
+                  at=0
+                  while True:
+                      x=payload.find(needle,at)
+                      if x<0:break
+                      hits.append(x);at=x+1
+                  end=min((x for x in hits if x>start),default=-1)
+                  if end<0:
+                      raise SystemExit("could not bind final Quest 351 row end")
+              windows.append((sid,start,end))
+
+          print("reader_methods",len(deser))
+          print("candidate_methods",len(candidates))
+          print("windows",windows)
+
+          exe=BC.Exe(str(EXE))
+          dset=set(deser)
+          results=[]
+          schema_cache={}
+
+          for idx,(rva,m,t,fc) in enumerate(candidates,1):
+              try:
+                  schema=BC.build(exe,rva,deser,cache={})
+              except Exception as exc:
+                  continue
+
+              fields=[
+                  st for st in schema.get("steps",[])
+                  if st.get("kind") != "base"
+              ]
+              bits=[st.get("bit") for st in fields if st.get("bit") is not None]
+              kinds={}
+              for st in fields:
+                  kinds[st.get("kind","?")]=kinds.get(st.get("kind","?"),0)+1
+
+              exact=0
+              decoded=[]
+              errors=[]
+              for sid,start,end in windows:
+                  reader=BC.Reader(payload)
+                  reader.p=start
+                  try:
+                      vals=reader.record(schema)
+                      stop=reader.p
+                      ok=(stop==end)
+                      exact += int(ok)
+                      decoded.append({
+                          "subId":sid,
+                          "start":start,
+                          "expected_end":end,
+                          "actual_end":stop,
+                          "exact":ok,
+                          "values":vals,
+                      })
+                  except Exception as exc:
+                      errors.append({"subId":sid,"error":repr(exc)})
+                      decoded.append({
+                          "subId":sid,
+                          "start":start,
+                          "expected_end":end,
+                          "actual_end":None,
+                          "exact":False,
+                      })
+
+              score=exact*1000
+              if schema.get("mask"):
+                  score += 100
+              if len(fields)==30:
+                  score += 300
+              elif 24 <= len(fields) <= 40:
+                  score += 100
+              if bits and min(bits)>=0 and max(bits)<=63:
+                  score += len(set(bits))
+              if m.get("type_name") in ("RandomQuestExcelConfig","GPCFGOEJFJK"):
+                  score += 10
+
+              item={
+                  "score":score,
+                  "exact_windows":exact,
+                  "rva":f"0x{rva:X}",
+                  "method":m,
+                  "type":t,
+                  "field_count_metadata":fc,
+                  "schema_mask":schema.get("mask"),
+                  "schema_field_count":len(fields),
+                  "schema_bits":bits,
+                  "schema_kinds":kinds,
+                  "schema":schema,
+                  "decoded":decoded,
+                  "errors":errors,
+              }
+              results.append(item)
+
+          results.sort(key=lambda x:(-x["score"],-x["exact_windows"],x["rva"]))
+          print("\n=== TOP CANDIDATES ===")
+          for x in results[:80]:
+              print(json.dumps({
+                  "score":x["score"],
+                  "exact_windows":x["exact_windows"],
+                  "rva":x["rva"],
+                  "type":x["method"].get("type_name"),
+                  "method":x["method"].get("method_name"),
+                  "metadata_fields":x["field_count_metadata"],
+                  "schema_fields":x["schema_field_count"],
+                  "mask":x["schema_mask"],
+                  "bits":x["schema_bits"],
+                  "kinds":x["schema_kinds"],
+                  "ends":[
+                      [d["subId"],d["expected_end"],d["actual_end"],d["exact"]]
+                      for d in x["decoded"]
+                  ],
+                  "errors":x["errors"][:3],
+              },ensure_ascii=False))
+
+          Path("quest-legacy-71-devkit-schema.json").write_text(
+              json.dumps({
+                  "analyzer_repo":"owomocha/genshin-7.0-local-re-devkit",
+                  "analyzer_commit":"fb91dfad1f6047e30dea2f98727e5af45d9bd6e0",
+                  "reader_methods":len(deser),
+                  "candidate_methods":len(candidates),
+                  "windows":[
+                      {"subId":sid,"start":start,"end":end,"size":end-start}
+                      for sid,start,end in windows
+                  ],
+                  "results":results[:250],
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          if results and results[0]["exact_windows"] == len(windows):
+              print("\nEXACT_SCHEMA_MATCH",results[0]["rva"],results[0]["method"])
+          else:
+              print("\nNo schema consumed all Quest 351 windows exactly.")
+              if results:
+                  print("best exact_windows",results[0]["exact_windows"])
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-devkit-schema
+          path: |
+            quest-legacy-71-devkit-schema.txt
+            quest-legacy-71-devkit-schema.json
+          if-no-files-found: error
