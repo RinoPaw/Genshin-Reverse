@@ -23,6 +23,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
 
       - name: Install focused dependencies
         run: python -m pip install capstone pefile
@@ -56,6 +59,122 @@ jobs:
               print(name,"size=",len(raw),"sha256=",hashlib.sha256(raw).hexdigest())
               if len(raw)<1_000_000:
                   raise SystemExit(f"{name}: unexpectedly small")
+          PY
+
+      - name: Resolve exact 3.0 QuestExcel symbols with pinned Il2CppDumper
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/il2cppdumper
+          out="$GITHUB_WORKSPACE/quest-legacy-30-il2cpp"
+          mkdir -p "$root" "$out"
+          url='https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip'
+          curl --fail --location --retry 5 --retry-all-errors "$url" -o "$root/dumper.zip"
+          unzip -q "$root/dumper.zip" -d "$root/app"
+          (
+            cd "$root/app"
+            dotnet Il2CppDumper.dll               "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll"               "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"               "$out"
+          ) 2>&1 | tee quest-legacy-30-il2cppdumper.txt
+
+          python - <<'PY' | tee quest-legacy-30-exact-symbols.txt
+          import json,re
+          from pathlib import Path
+
+          out=Path("quest-legacy-30-il2cpp")
+          report={"dump_exists":False,"script_exists":False,"class_snippet":None,"script_matches":[]}
+
+          dump=out/"dump.cs"
+          if dump.is_file():
+              report["dump_exists"]=True
+              s=dump.read_text(encoding="utf-8",errors="replace")
+              m=re.search(r"public class QuestExcelConfig\b",s)
+              if m:
+                  start=max(0,s.rfind("// Namespace:",0,m.start()))
+                  next_ns=s.find("// Namespace:",m.end())
+                  end=next_ns if next_ns>=0 else min(len(s),m.start()+30000)
+                  block=s[start:end]
+                  report["class_snippet"]=block
+                  print("=== QuestExcelConfig dump.cs ===")
+                  print(block)
+
+          script=out/"script.json"
+          if script.is_file():
+              report["script_exists"]=True
+              data=json.loads(script.read_text(encoding="utf-8"))
+              def walk(x):
+                  if isinstance(x,dict):
+                      name=str(x.get("Name",""))
+                      if "QuestExcelConfig" in name and ("FromBinary" in name or "FILE_LOCATION" in name):
+                          report["script_matches"].append(x)
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(data)
+              print("=== script matches ===")
+              for x in report["script_matches"]:
+                  print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-legacy-30-exact-symbols.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Disassemble exact 3.0 QuestExcel symbols discovered by metadata
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-exact-reader.txt
+          import json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+
+          symbols=Path("quest-legacy-30-exact-symbols.json")
+          if not symbols.is_file():
+              print("exact symbol report missing")
+              raise SystemExit(0)
+          d=json.loads(symbols.read_text(encoding="utf-8"))
+          matches=d.get("script_matches",[])
+          rows=[]
+          for x in matches:
+              name=str(x.get("Name",""))
+              if "FromBinary" not in name:
+                  continue
+              try:
+                  addr=int(x.get("Address"))
+              except Exception:
+                  continue
+              rows.append((name,addr))
+          if not rows:
+              print("no exact FromBinary script matches")
+              raise SystemExit(0)
+
+          exe=Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe=pefile.PE(str(exe),fast_load=True)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+
+          report=[]
+          for name,rva in rows[:8]:
+              blob=pe.get_data(rva,0x3000)
+              ins=[]
+              for i in md.disasm(blob,base+rva):
+                  irva=i.address-base
+                  ins.append({"rva":f"0x{irva:X}","mnemonic":i.mnemonic,"op_str":i.op_str})
+                  if i.mnemonic=="ret" and irva>rva+0x80:
+                      break
+              report.append({"name":name,"rva":f"0x{rva:X}","instructions":ins})
+              print("\n###",name,f"RVA 0x{rva:X}")
+              for x in ins:
+                  print(x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-legacy-30-exact-reader.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
           PY
 
       - name: Disassemble legacy QuestExcel loader and row reader
@@ -204,13 +323,21 @@ jobs:
           PY
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: quest-legacy-30
           path: |
             quest-legacy-30-sample.txt
+            quest-legacy-30-il2cppdumper.txt
+            quest-legacy-30-exact-symbols.txt
+            quest-legacy-30-exact-symbols.json
+            quest-legacy-30-exact-reader.txt
+            quest-legacy-30-exact-reader.json
+            quest-legacy-30-il2cpp/dump.cs
+            quest-legacy-30-il2cpp/script.json
             quest-legacy-30-reader.txt
             quest-legacy-30-reader.json
             quest-legacy-30-fields.txt
             quest-legacy-30-fields.json
-          if-no-files-found: error
+          if-no-files-found: warn
