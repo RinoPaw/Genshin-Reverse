@@ -800,10 +800,11 @@ jobs:
           python - <<'PY' | tee quest-excel-row-schema.txt
           import csv
           import json
+          from collections import defaultdict
           from pathlib import Path
 
           from capstone import CS_ARCH_X86, CS_MODE_64, Cs
-          from capstone.x86_const import X86_OP_IMM, X86_OP_MEM, X86_REG_RAX
+          from capstone.x86_const import X86_OP_IMM
 
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
@@ -811,6 +812,7 @@ jobs:
 
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
           root = Path('versions/7.1.0-global/windows-x64/metadata')
+          QUEST_COND_TDI = 54128
 
           def read_csv(name):
               with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
@@ -819,82 +821,14 @@ jobs:
           types = read_csv('types.csv')
           fields = read_csv('fields.csv')
           methods = read_csv('methods.csv')
+
           type_by_tdi = {int(row['type_definition_index']): row for row in types}
-
-          fields_by_owner = {}
+          fields_by_owner = defaultdict(list)
+          methods_by_owner = defaultdict(list)
           for row in fields:
-              owner = int(row['type_definition_index'])
-              fields_by_owner.setdefault(owner, []).append(row)
-
-          # 7.1 no longer exposes the normal row type as literal
-          # "QuestExcelConfig". Recover it from the preserved field signature.
-          required = {'_subId', '_mainId', '_order', '_acceptCond', '_acceptCondComb'}
-          normal_hints = {
-              '_stepDescTextMapHash',
-              '_guideTipsTextMapHash',
-              '_exclusiveNpcList',
-              '_sharedNpcList',
-              '_trialAvatarList',
-              '_exclusivePlaceList',
-              '_isMpBlock',
-          }
-          candidates = []
-          for owner, owner_fields in fields_by_owner.items():
-              names = {row['field_name'] for row in owner_fields}
-              if not required.issubset(names):
-                  continue
-              type_row = type_by_tdi.get(owner, {})
-              if type_row.get('type_name') == 'RandomQuestExcelConfig':
-                  continue
-              score = len(names & normal_hints)
-              candidates.append({
-                  'owner': owner,
-                  'score': score,
-                  'type': type_row,
-                  'field_names': sorted(names),
-              })
-
-          print('=== QuestExcelConfig field-signature candidates ===')
-          for item in sorted(candidates, key=lambda x: (-x['score'], x['owner'])):
-              print(json.dumps(item, ensure_ascii=False))
-
-          if not candidates:
-              raise SystemExit('QuestExcelConfig field-signature candidate missing')
-          best_score = max(item['score'] for item in candidates)
-          best = [item for item in candidates if item['score'] == best_score]
-          if len(best) != 1:
-              raise SystemExit(
-                  'QuestExcelConfig field-signature candidate is ambiguous: '
-                  + json.dumps(best, ensure_ascii=False)
-              )
-
-          quest_tdi = best[0]['owner']
-          quest_type = type_by_tdi[quest_tdi]
-          quest_fields = fields_by_owner[quest_tdi]
-          quest_methods = [
-              row for row in methods
-              if int(row['type_definition_index']) == quest_tdi
-          ]
-
-          print('=== QuestExcelConfig type ===')
-          print(json.dumps(quest_type, ensure_ascii=False))
-          print('=== QuestExcelConfig fields ===')
-          for row in quest_fields:
-              print(json.dumps(row, ensure_ascii=False))
-          print('=== QuestExcelConfig methods ===')
-          for row in quest_methods:
-              print(json.dumps(row, ensure_ascii=False))
-
-          inner_rows = [
-              row for row in quest_methods
-              if row['method_name'] == 'FromBinaryInner'
-          ]
-          outer_rows = [
-              row for row in quest_methods
-              if row['method_name'] == 'FromBinary'
-          ]
-          if len(inner_rows) < 1:
-              raise SystemExit('QuestExcelConfig FromBinaryInner methods missing')
+              fields_by_owner[int(row['type_definition_index'])].append(row)
+          for row in methods:
+              methods_by_owner[int(row['type_definition_index'])].append(row)
 
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
@@ -917,7 +851,7 @@ jobs:
                   read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
               )
 
-              def describe_entry(index, depth=0):
+              def describe_type_index(index):
                   entry = read_va(type_array_va + index * ENTRY_SIZE, ENTRY_SIZE)
                   if not is_valid_type_entry(entry):
                       return {'index': index, 'status': 'invalid'}
@@ -933,8 +867,8 @@ jobs:
                   if kind in (0x11, 0x12):
                       tdi = int(decoded['data_u32'])
                       out['type_definition_index'] = tdi
-                      out['type'] = type_by_tdi.get(tdi, {})
-                  elif kind == 0x1D and depth < 2 and data_u64 >= base:
+                      out['type_name'] = type_by_tdi.get(tdi, {}).get('type_name', '')
+                  elif kind == 0x1D and data_u64 >= base:
                       nested = read_va(data_u64, ENTRY_SIZE)
                       if is_valid_type_entry(nested):
                           nd = decode_type_entry(nested)
@@ -947,45 +881,114 @@ jobs:
                           if nkind in (0x11, 0x12):
                               tdi = int(nd['data_u32'])
                               elem['type_definition_index'] = tdi
-                              elem['type'] = type_by_tdi.get(tdi, {})
+                              elem['type_name'] = type_by_tdi.get(tdi, {}).get('type_name', '')
                           out['element'] = elem
                   return out
 
-              print('=== QuestExcelConfig runtime field types ===')
-              runtime_fields = {}
-              for row in quest_fields:
+              print('=== fields whose runtime type is QuestCond[] ===')
+              hits = []
+              type_cache = {}
+              for row in fields:
                   idx_text = str(row.get('field_type_index', '')).strip()
                   if not idx_text.isdigit():
                       continue
                   idx = int(idx_text)
-                  info = describe_entry(idx)
-                  runtime_fields[row['field_name']] = info
-                  print(row['field_name'], json.dumps(info, ensure_ascii=False))
+                  info = type_cache.get(idx)
+                  if info is None:
+                      try:
+                          info = describe_type_index(idx)
+                      except Exception as exc:
+                          info = {'index': idx, 'error': f'{type(exc).__name__}: {exc}'}
+                      type_cache[idx] = info
+                  elem = info.get('element', {})
+                  if (
+                      info.get('kind') == 'szarray'
+                      and elem.get('type_definition_index') == QUEST_COND_TDI
+                  ):
+                      item = {
+                          'field': row,
+                          'runtime_type': info,
+                          'owner_type': type_by_tdi.get(
+                              int(row['type_definition_index']), {}
+                          ),
+                      }
+                      hits.append(item)
+                      print(json.dumps(item, ensure_ascii=False))
 
-              accept_info = runtime_fields.get('_acceptCond', {})
-              accept_elem = accept_info.get('element', {})
-              accept_elem_type = accept_elem.get('type', {})
-              if (
-                  accept_info.get('kind') != 'szarray'
-                  or accept_elem_type.get('type_name') != 'QuestCond'
-              ):
-                  raise SystemExit(
-                      'selected QuestExcelConfig candidate does not have QuestCond[] '
-                      'acceptCond: ' + json.dumps(accept_info, ensure_ascii=False)
+              if not hits:
+                  raise SystemExit('no field with runtime type QuestCond[] found')
+
+              owners = sorted({int(item['field']['type_definition_index']) for item in hits})
+              candidates = []
+              print('=== QuestCond[] owner candidates ===')
+              for owner in owners:
+                  owner_type = type_by_tdi.get(owner, {})
+                  owner_fields = fields_by_owner[owner]
+                  owner_methods = methods_by_owner[owner]
+                  method_names = [row['method_name'] for row in owner_methods]
+                  frombinary = [name for name in method_names if name == 'FromBinary']
+                  inner = [name for name in method_names if name == 'FromBinaryInner']
+                  score = (
+                      len(frombinary) * 10
+                      + len(inner) * 12
+                      + min(len(owner_fields), 40)
+                      + (20 if len(owner_fields) >= 20 else 0)
+                      + (10 if any(row['field_type'] == 'uint32' for row in owner_fields) else 0)
                   )
-              print(
-                  'CONFIRMED _acceptCond = QuestCond[] for owner',
-                  quest_tdi,
-                  quest_type.get('type_name'),
-              )
-
-              def line(insn):
-                  return {
-                      'rva': f'0x{insn.address-base:X}',
-                      'bytes': insn.bytes.hex(),
-                      'mnemonic': insn.mnemonic,
-                      'op_str': insn.op_str,
+                  item = {
+                      'owner': owner,
+                      'score': score,
+                      'type': owner_type,
+                      'field_count_actual': len(owner_fields),
+                      'method_count_actual': len(owner_methods),
+                      'frombinary_count': len(frombinary),
+                      'inner_count': len(inner),
                   }
+                  candidates.append(item)
+                  print(json.dumps(item, ensure_ascii=False))
+                  print('--- fields ---')
+                  for row in owner_fields:
+                      idx_text = str(row.get('field_type_index', '')).strip()
+                      runtime = type_cache.get(int(idx_text)) if idx_text.isdigit() else None
+                      print(json.dumps({
+                          'field': row,
+                          'runtime_type': runtime,
+                      }, ensure_ascii=False))
+                  print('--- methods ---')
+                  for row in owner_methods:
+                      if row['method_name'] in (
+                          'FromBinary',
+                          'FromBinaryInner',
+                          '.ctor',
+                          'ParseFromLine',
+                      ):
+                          print(json.dumps(row, ensure_ascii=False))
+
+              candidates.sort(key=lambda x: (-x['score'], x['owner']))
+              best = candidates[0]
+              if len(candidates) > 1 and candidates[1]['score'] == best['score']:
+                  raise SystemExit(
+                      'QuestCond[] owner ranking ambiguous: '
+                      + json.dumps(candidates[:5], ensure_ascii=False)
+                  )
+
+              quest_tdi = best['owner']
+              quest_type = type_by_tdi[quest_tdi]
+              quest_fields = fields_by_owner[quest_tdi]
+              quest_methods = methods_by_owner[quest_tdi]
+              print('=== SELECTED NORMAL QUEST ROW OWNER ===')
+              print(json.dumps(best, ensure_ascii=False))
+
+              inner_rows = [
+                  row for row in quest_methods
+                  if row['method_name'] == 'FromBinaryInner' and row.get('rva')
+              ]
+              outer_rows = [
+                  row for row in quest_methods
+                  if row['method_name'] == 'FromBinary' and row.get('rva')
+              ]
+              if not inner_rows:
+                  raise SystemExit('selected QuestCond[] owner has no FromBinaryInner')
 
               def dump_method(row, size):
                   rva = int(row['rva'], 16)
@@ -993,7 +996,12 @@ jobs:
                   rows = []
                   calls = []
                   for insn in body:
-                      item = line(insn)
+                      item = {
+                          'rva': f'0x{insn.address-base:X}',
+                          'bytes': insn.bytes.hex(),
+                          'mnemonic': insn.mnemonic,
+                          'op_str': insn.op_str,
+                      }
                       rows.append(item)
                       if insn.mnemonic == 'call' and insn.operands:
                           op = insn.operands[0]
@@ -1005,7 +1013,8 @@ jobs:
                       if insn.mnemonic == 'ret' and insn.address > base + rva + 0x20:
                           break
                   print(
-                      f'=== {row["method_name"]}/{row["parameter_count"]} '
+                      f'=== {quest_type.get("type_name")} '
+                      f'{row["method_name"]}/{row["parameter_count"]} '
                       f'@ 0x{rva:X} ==='
                   )
                   for item in rows:
@@ -1019,79 +1028,24 @@ jobs:
                       'calls': calls,
                   }
 
-              method_dumps = []
-              # Array overloads are short; element decoder may be much larger.
+              dumps = []
               for row in inner_rows:
-                  parameter_count = int(row['parameter_count'])
-                  size = 0x1400 if parameter_count <= 1 else 0x240
-                  method_dumps.append(dump_method(row, size))
+                  pc = int(row['parameter_count'])
+                  dumps.append(dump_method(row, 0x1800 if pc <= 1 else 0x300))
               for row in outer_rows:
-                  method_dumps.append(dump_method(row, 0x240))
+                  dumps.append(dump_method(row, 0x300))
 
-              wrapper_candidates = [
-                  row for row in types
-                  if 'QuestExcelConfigWrap' in row.get('type_name', '')
-                  and 'RandomQuestExcelConfigWrap' not in row.get('type_name', '')
-              ]
-              print('=== QuestExcelConfig wrapper candidates ===')
-              wrapper_getters = {}
-              for wrap in wrapper_candidates:
-                  print(json.dumps(wrap, ensure_ascii=False))
-                  tdi = int(wrap['type_definition_index'])
-                  wrap_methods = [
-                      row for row in methods
-                      if int(row['type_definition_index']) == tdi
-                      and row['method_name'] in (
-                          '_g_get_subId',
-                          '_g_get_mainId',
-                          '_g_get_acceptCond',
-                          '_g_get_acceptCondComb',
-                          '_g_get_order',
-                      )
-                  ]
-                  for row in wrap_methods:
-                      print('WRAP_METHOD', json.dumps(row, ensure_ascii=False))
-                      if not row.get('rva'):
-                          continue
-                      rva = int(row['rva'], 16)
-                      body = list(md.disasm(read_rva(rva, 0x180), base + rva))
-                      offsets = []
-                      for insn in body:
-                          for op in insn.operands:
-                              if (
-                                  op.type == X86_OP_MEM
-                                  and op.mem.base == X86_REG_RAX
-                                  and 0x10 <= op.mem.disp <= 0x200
-                              ):
-                                  offsets.append(op.mem.disp)
-                          if insn.mnemonic == 'ret':
-                              break
-                      key = row['method_name'].removeprefix('_g_get_')
-                      wrapper_getters[key] = {
-                          'rva': f'0x{rva:X}',
-                          'candidate_offsets': sorted(set(offsets)),
-                      }
-                      print(
-                          'WRAP_OFFSET',
-                          key,
-                          json.dumps(wrapper_getters[key], ensure_ascii=False),
-                      )
-
+              evidence = {
+                  'quest_cond_array_hits': hits,
+                  'candidates': candidates,
+                  'selected': best,
+                  'quest_type': quest_type,
+                  'fields': quest_fields,
+                  'methods': quest_methods,
+                  'method_dumps': dumps,
+              }
               Path('quest-excel-row-schema.json').write_text(
-                  json.dumps(
-                      {
-                          'quest_type': quest_type,
-                          'fields': quest_fields,
-                          'runtime_fields': runtime_fields,
-                          'inner_methods': inner_rows,
-                          'outer_methods': outer_rows,
-                          'method_dumps': method_dumps,
-                          'wrapper_candidates': wrapper_candidates,
-                          'wrapper_getters': wrapper_getters,
-                      },
-                      ensure_ascii=False,
-                      indent=2,
-                  ) + '\n',
+                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
                   encoding='utf-8',
               )
           PY
