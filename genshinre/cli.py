@@ -415,7 +415,12 @@ def main() -> None:
         from .questbin import decode_main_quest
 
         result = decode_main_quest(args.payload.read_bytes())
-        rendered = json.dumps(result.to_dict(include_debug=args.debug), indent=2, ensure_ascii=False) + "\n"
+        rendered = json.dumps(
+            result.to_dict(include_debug=args.debug),
+            indent=2,
+            ensure_ascii=False,
+            sort_keys=True,
+        ) + "\n"
         if args.output:
             args.output.write_text(rendered, encoding="utf-8")
         else:
