@@ -1,0 +1,150 @@
+name: Probe 7.1 Quest runtime bridge
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-runtime-bridge.yml"
+
+concurrency:
+  group: probe-quest-runtime-bridge-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Trace LAIMPNDEFCL manager consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-runtime-bridge.json \
+            --focus consume-a:0x9F8C1B0 \
+            --focus consume-b:0x9F92E10 \
+            --focus consume-c:0x9F92F60 \
+            --focus gpc-reader:0xCAB9080 \
+            --max-body 0x10000 \
+            | tee quest-runtime-bridge.txt
+
+      - name: Resolve suspicious GPC runtime field types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-gpc-runtime-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          GPC_TDI = 82662
+          FOCUS = {662656, 662657, 662658}
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          gpc_fields = [r for r in fields if int(r["type_definition_index"]) == GPC_TDI]
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def raw_by_index(index):
+                  raw = image.read_rva(type_array_va + index * ENTRY_SIZE - base, ENTRY_SIZE)
+                  if len(raw) != ENTRY_SIZE or not is_valid_type_entry(raw):
+                      raise ValueError(f"bad runtime type index {index}")
+                  return raw
+
+              def raw_by_va(va):
+                  raw = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(raw) != ENTRY_SIZE or not is_valid_type_entry(raw):
+                      raise ValueError(f"bad runtime type VA 0x{va:X}")
+                  return raw
+
+              def describe(raw, depth=0):
+                  d = decode_type_entry(raw)
+                  kind = int(d["kind"])
+                  data_u64 = int.from_bytes(raw[:8], "little")
+                  out = {
+                      "kind": d["kind_name"],
+                      "kind_value": kind,
+                      "data_u32": int(d["data_u32"]),
+                      "data_u64": f"0x{data_u64:X}",
+                      "raw": raw.hex(),
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(d["data_u32"])
+                      out["type_definition_index"] = tdi
+                      out["type"] = type_by_tdi.get(tdi, {})
+                  elif kind in (0x0F, 0x10, 0x1D) and depth < 4:
+                      nested = raw_by_va(data_u64)
+                      out["target"] = describe(nested, depth + 1)
+                  return out
+
+              report = {"gpc_fields": [], "focus": {}}
+              for ordinal, field in enumerate(gpc_fields):
+                  idx = int(field["field_type_index"])
+                  item = {
+                      "ordinal": ordinal,
+                      "field": field,
+                      "runtime_type_index": idx,
+                  }
+                  if idx in FOCUS:
+                      item["runtime_type"] = describe(raw_by_index(idx))
+                  report["gpc_fields"].append(item)
+
+              for idx in sorted(FOCUS):
+                  report["focus"][str(idx)] = describe(raw_by_index(idx))
+
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          Path("quest-gpc-runtime-types.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Assert evidence
+        run: |
+          test -s quest-runtime-bridge.json
+          test -s quest-gpc-runtime-types.json
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-runtime-bridge
+          path: |
+            quest-runtime-bridge.txt
+            quest-runtime-bridge.json
+            quest-gpc-runtime-types.txt
+            quest-gpc-runtime-types.json
+          if-no-files-found: error
