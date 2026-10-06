@@ -1,0 +1,125 @@
+name: Probe 7.1 Quest BinData zip decode
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-bin-zip.yml"
+
+concurrency:
+  group: probe-quest-bin-zip-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Disassemble BinData zip path directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6D8CF60 0x600 \
+            --expected-sha256 "$sha" --label "CommonMiscs.LoadBinDataZipFile" \
+            --output quest-common-load-bin-zip.json > quest-common-load-bin-zip.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x7012E30 0x900 \
+            --expected-sha256 "$sha" --label "AssetBundleExternalResourceProvider.LoadBinDataZipFile(ResourceIdentifier,...)" \
+            --output quest-provider-load-bin-zip.json > quest-provider-load-bin-zip.txt
+
+      - name: Annotate direct call targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-bin-zip-direct-calls.txt
+          import csv,json,re
+          from pathlib import Path
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              methods=list(csv.DictReader(f))
+          with (root/"types.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              types=list(csv.DictReader(f))
+          by_rva={}
+          for m in methods:
+              r=(m.get("rva") or "").strip()
+              if r:
+                  try: by_rva.setdefault(int(r,0),[]).append(m)
+                  except: pass
+          type_by_tdi={int(t["type_definition_index"]):t for t in types}
+          out={}
+          for fn in ["quest-common-load-bin-zip.json","quest-provider-load-bin-zip.json"]:
+              d=json.loads(Path(fn).read_text())
+              base=int(d["image_base"],16)
+              rows=[]
+              for x in d["instructions"]:
+                  if x.get("mnemonic") not in {"call","jmp"}: continue
+                  mm=re.fullmatch(r"0x([0-9a-fA-F]+)",x.get("op_str",""))
+                  if not mm: continue
+                  v=int(mm.group(1),16); rva=v-base if v>=base else v
+                  meta=by_rva.get(rva,[])
+                  rows.append({
+                    "site_rva":x["rva"],"target_rva":f"0x{rva:X}",
+                    "metadata":meta,
+                    "owners":[type_by_tdi.get(int(m["type_definition_index"]),{}) for m in meta]
+                  })
+              out[fn]=rows
+              print("\n###",fn)
+              for row in rows: print(json.dumps(row,ensure_ascii=False,sort_keys=True))
+          Path("quest-bin-zip-direct-calls.json").write_text(
+            json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump compression and zip-shaped types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-bin-zip-types.txt
+          import csv,json
+          from pathlib import Path
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(n):
+            with (root/n).open("r",encoding="utf-8-sig",newline="") as f: return list(csv.DictReader(f))
+          types,fields,methods=rows("types.csv"),rows("fields.csv"),rows("methods.csv")
+          type_by_tdi={int(t["type_definition_index"]):t for t in types}
+          out={}
+          for t in types:
+            name=str(t.get("type_name",""))
+            if any(k.lower() in name.lower() for k in ("zip","compress","zstd","lz4","inflate","deflate")):
+              tdi=int(t["type_definition_index"])
+              out[str(tdi)]={
+                "type":t,
+                "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-bin-zip-types.json").write_text(
+            json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-bin-zip
+          path: |
+            quest-common-load-bin-zip.txt
+            quest-common-load-bin-zip.json
+            quest-provider-load-bin-zip.txt
+            quest-provider-load-bin-zip.json
+            quest-bin-zip-direct-calls.txt
+            quest-bin-zip-direct-calls.json
+            quest-bin-zip-types.txt
+            quest-bin-zip-types.json
+          if-no-files-found: error
