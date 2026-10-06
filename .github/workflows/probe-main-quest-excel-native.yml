@@ -601,6 +601,198 @@ jobs:
                   encoding='utf-8',
               )
           PY
+      - name: Recover FromBinary outer framing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-frombinary-framing.txt
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
+
+          def read_csv(name):
+              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          methods = read_csv('methods.csv')
+          methods_by_rva = defaultdict(list)
+          for row in methods:
+              rva = row.get('rva', '').strip()
+              if rva:
+                  methods_by_rva[int(rva, 16)].append(row)
+
+          def exact_method(tdi, name, parameter_count):
+              rows = [
+                  row for row in methods
+                  if int(row['type_definition_index']) == tdi
+                  and row['method_name'] == name
+                  and int(row['parameter_count']) == parameter_count
+              ]
+              if len(rows) != 1:
+                  raise SystemExit(
+                      f'{tdi} {name}/{parameter_count}: expected one row, got {len(rows)}'
+                  )
+              return rows[0]
+
+          TYPES = {
+              'RandomQuestExcelConfig': {
+                  'tdi': 36711,
+                  'inner': exact_method(36711, 'FromBinaryInner', 1),
+                  'outer': exact_method(36711, 'FromBinary', 1),
+                  'outer_kind': exact_method(36711, 'FromBinary', 2),
+              },
+              'RandomQuestCond': {
+                  'tdi': 76090,
+                  'inner': exact_method(76090, 'FromBinaryInner', 1),
+                  'outer': exact_method(76090, 'FromBinary', 1),
+                  'outer_kind': exact_method(76090, 'FromBinary', 2),
+              },
+              'QuestCond': {
+                  'tdi': 54128,
+                  'inner': exact_method(54128, 'FromBinaryInner', 1),
+                  'outer': exact_method(54128, 'FromBinary', 1),
+                  'outer_kind': exact_method(54128, 'FromBinary', 2),
+              },
+          }
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          with PEImage(exe) as image:
+              base = image.image_base
+
+              def read_rva(rva, size):
+                  data = image.read_rva(rva, size)
+                  if len(data) != size:
+                      raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
+                  return data
+
+              def line(insn):
+                  return {
+                      'rva': f'0x{insn.address-base:X}',
+                      'bytes': insn.bytes.hex(),
+                      'mnemonic': insn.mnemonic,
+                      'op_str': insn.op_str,
+                  }
+
+              def dump_function(label, start, max_size=0x280):
+                  body = list(md.disasm(read_rva(start, max_size), base + start))
+                  rows = []
+                  calls = []
+                  for insn in body:
+                      rows.append(line(insn))
+                      if insn.mnemonic == 'call' and insn.operands:
+                          op = insn.operands[0]
+                          if op.type == X86_OP_IMM:
+                              target = op.imm - base
+                              calls.append({
+                                  'site_rva': f'0x{insn.address-base:X}',
+                                  'target_rva': f'0x{target:X}',
+                                  'metadata': methods_by_rva.get(target, []),
+                              })
+                      if insn.mnemonic == 'ret' and insn.address > base + start + 0x10:
+                          break
+                  print(f'=== {label} @ 0x{start:X} ===')
+                  for row in rows:
+                      print(
+                          f'{row["rva"]:>11}: {row["bytes"]:<24} '
+                          f'{row["mnemonic"]:<8} {row["op_str"]}'
+                      )
+                  print('--- calls ---')
+                  for call in calls:
+                      print(json.dumps(call, ensure_ascii=False))
+                  return {'start_rva': f'0x{start:X}', 'instructions': rows, 'calls': calls}
+
+              evidence = {}
+              shared_targets = defaultdict(list)
+              for label, spec in TYPES.items():
+                  print(f'##### {label} #####')
+                  inner_rva = int(spec['inner']['rva'], 16)
+                  one_rva = int(spec['outer']['rva'], 16)
+                  two_rva = int(spec['outer_kind']['rva'], 16)
+
+                  one = dump_function(f'{label}.FromBinary(reader)', one_rva)
+                  two = dump_function(f'{label}.FromBinary(reader, kind)', two_rva)
+
+                  for variant, block in (('outer', one), ('outer_kind', two)):
+                      direct_targets = {
+                          int(call['target_rva'], 16)
+                          for call in block['calls']
+                      }
+                      if inner_rva not in direct_targets:
+                          print(
+                              f'NOTE {label} {variant}: inner 0x{inner_rva:X} '
+                              'is not a direct call target'
+                          )
+                      for target in direct_targets:
+                          if target != inner_rva:
+                              shared_targets[target].append(f'{label}.{variant}')
+
+                  evidence[label] = {
+                      'inner': spec['inner'],
+                      'outer': spec['outer'],
+                      'outer_kind': spec['outer_kind'],
+                      'outer_dump': one,
+                      'outer_kind_dump': two,
+                  }
+
+              print('=== shared outer call targets ===')
+              common = []
+              for target, owners in sorted(
+                  shared_targets.items(),
+                  key=lambda item: (-len(item[1]), item[0]),
+              ):
+                  item = {
+                      'target_rva': f'0x{target:X}',
+                      'owners': owners,
+                      'metadata': methods_by_rva.get(target, []),
+                  }
+                  common.append(item)
+                  print(json.dumps(item, ensure_ascii=False))
+
+              # Dump small common helpers used by at least two wrappers. This often
+              # exposes the generic framing/read-length operation immediately.
+              helper_dumps = {}
+              for item in common:
+                  if len(item['owners']) < 2:
+                      continue
+                  target = int(item['target_rva'], 16)
+                  if target <= 0:
+                      continue
+                  try:
+                      helper_dumps[item['target_rva']] = dump_function(
+                          f'common helper {item["target_rva"]}',
+                          target,
+                          max_size=0x180,
+                      )
+                  except Exception as exc:
+                      helper_dumps[item['target_rva']] = {
+                          'error': f'{type(exc).__name__}: {exc}'
+                      }
+
+              Path('quest-frombinary-framing.json').write_text(
+                  json.dumps(
+                      {
+                          'types': evidence,
+                          'shared_targets': common,
+                          'helper_dumps': helper_dumps,
+                      },
+                      ensure_ascii=False,
+                      indent=2,
+                  ) + '\n',
+                  encoding='utf-8',
+              )
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -611,4 +803,6 @@ jobs:
             quest-row-prereq-schema.json
             quest-cond-binary-reader.txt
             quest-cond-binary-reader.json
+            quest-frombinary-framing.txt
+            quest-frombinary-framing.json
           if-no-files-found: warn
