@@ -116,8 +116,11 @@ encoded_u32 = subId XOR 0xB1571A55
 ```
 
 A current devkit-wide schema scan tested 13,411 reader methods / 262 plausible candidates.
-No candidate consumed all eight Quest 351 windows exactly. Treat this as evidence of a
-different 7.1 wire generation, not as proof of any particular field absence.
+No candidate consumed all eight Quest 351 windows exactly. A second pass built 342 plausible
+7.1 reader schemas and tested their 32-bit field transforms against all eight observed
+`subId` anchors; it found zero 8/8 decoder matches. Treat these results as evidence that
+the current model still misses the 7.1 field framing/transform family, not as proof of any
+particular field absence.
 
 A JSON-presence correlation probe also exists, but it is not decisive because many
 AstaPS fields are always materialized as empty/default values and therefore correlate
@@ -272,6 +275,20 @@ It differs from exact native 2.8:
 - native 2.8 preserves branch logic for 35103 and 35102.
 
 Therefore AstaPS's chain cannot be classified as an unmodified 2.8 carry-forward.
+
+A full-table audit of the initial 25,261 rows confirms this is systemic:
+
+```text
+mainId groups                         3,099
+rows with STATE_EQUAL acceptCond     25,261 / 25,261
+first rows exactly [0,3]              3,099 / 3,099
+non-first exact previous-row [*,3]   21,489 / 22,162
+all rows matching linear rule        24,588 / 25,261 = 97.34%
+groups fully matching rule            2,759 / 3,099
+```
+
+The initial resource is therefore overwhelmingly shaped by a synthetic previous-row
+prerequisite convention, with a minority of exceptions/overrides.
 
 The 351 rows are already present in the initial AstaPS resource and remain unchanged
 through PR #9.
