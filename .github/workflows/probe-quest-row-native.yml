@@ -963,6 +963,194 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace source-to-runtime Quest container projection and loader owners
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-container-projection-callers.json \
+            --focus afio-to-fnj:0x1269C4A0 \
+            --focus odj-read-afio:0x9F90210 \
+            --focus odj-load-afio:0x9F9A130 \
+            --focus odj-read-fnj:0x9F892D0 \
+            --focus odj-load-fnj:0x9F88D40 \
+            --focus odj-consume-afio:0x9F8C280 \
+            --focus oim-consume-afio-a:0xC630D20 \
+            --focus oim-consume-afio-b:0xC6310E0 \
+            --max-body 0x10000 \
+            | tee quest-container-projection-callers.txt
+
+          python - <<'PY' | tee quest-container-owner-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET_TDIS = {
+              14351: "ODJJEFFIPFA",
+              61791: "HBBDJPCGCAH",
+              75872: "JEFOILFNKPJ",
+              80704: "OIMAEJFJABB",
+              69000: "AFIOOHMJHDM",
+              85802: "FNJLMNMEKLN",
+          }
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          report = {}
+          for tdi, expected in TARGET_TDIS.items():
+              t = type_by_tdi.get(tdi)
+              if not t or t.get("type_name") != expected:
+                  raise AssertionError(f"typeDefinition {tdi} drift: {t}")
+              item = {
+                  "type": t,
+                  "fields": fields_by_tdi.get(tdi, []),
+                  "methods": methods_by_tdi.get(tdi, []),
+              }
+              report[str(tdi)] = item
+              print("TYPE", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-container-owner-types.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-container-projection-native.txt
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM, X86_OP_MEM, X86_REG_RIP
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          FOCUS = {
+              "afio_to_fnj": 0x1269C4A0,
+              "odj_read_afio": 0x9F90210,
+              "odj_load_afio": 0x9F9A130,
+              "odj_read_fnj": 0x9F892D0,
+              "odj_load_fnj": 0x9F88D40,
+              "odj_consume_afio": 0x9F8C280,
+          }
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          by_rva = {}
+          starts = []
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 16)
+              except ValueError:
+                  continue
+              by_rva.setdefault(rva, []).append(row)
+              starts.append(rva)
+          starts = sorted(set(starts))
+
+          def owner(rva):
+              pos = bisect.bisect_right(starts, rva) - 1
+              if pos < 0:
+                  return None
+              start = starts[pos]
+              end = starts[pos + 1] if pos + 1 < len(starts) else start + 0x10000
+              if not (start <= rva < end):
+                  return None
+              rows = by_rva[start]
+              return {
+                  "start_rva": f"0x{start:X}",
+                  "end_rva": f"0x{end:X}",
+                  "methods": rows,
+                  "owners": [
+                      type_by_tdi.get(int(r["type_definition_index"]), {})
+                      for r in rows
+                  ],
+              }
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+          report = {}
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              for label, start in FOCUS.items():
+                  pos = bisect.bisect_right(starts, start)
+                  end = starts[pos] if pos < len(starts) else start + 0x2000
+                  if end <= start or end - start > 0x10000:
+                      end = start + 0x4000
+                  blob = image.read_rva(start, end - start)
+                  rows = []
+                  for ins in md.disasm(blob, base + start):
+                      item = {
+                          "rva": f"0x{ins.address - base:X}",
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                      }
+                      for op in ins.operands:
+                          if op.type == X86_OP_IMM and ins.mnemonic in {"call", "jmp"}:
+                              target = int(op.imm)
+                              trva = target - base if target >= base else target
+                              item["direct_target_rva"] = f"0x{trva:X}"
+                              item["direct_target_owner"] = owner(trva)
+                              break
+                      for op in ins.operands:
+                          if op.type == X86_OP_MEM and op.mem.base == X86_REG_RIP:
+                              target = (ins.address - base) + ins.size + op.mem.disp
+                              item["rip_target_rva"] = f"0x{target:X}"
+                              break
+                      rows.append(item)
+                  report[label] = {
+                      "start_rva": f"0x{start:X}",
+                      "owner": owner(start),
+                      "instructions": rows,
+                  }
+                  print("METHOD", label, json.dumps(report[label]["owner"], ensure_ascii=False))
+                  for item in rows:
+                      if (
+                          "direct_target_rva" in item
+                          or "rip_target_rva" in item
+                          or ("[" in item["op_str"] and any(
+                              reg in item["op_str"].lower()
+                              for reg in ("rcx", "rdx", "r8", "r9", "rsi", "rdi")
+                          ))
+                      ):
+                          print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-container-projection-native.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -976,6 +1164,9 @@ jobs:
           test -s quest-row-array-wrapper.json
           test -s quest-row-container-callers.json
           test -s quest-row-container-types.json
+          test -s quest-container-projection-callers.json
+          test -s quest-container-owner-types.json
+          test -s quest-container-projection-native.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -999,4 +1190,10 @@ jobs:
             quest-row-container-callers.json
             quest-row-container-types.txt
             quest-row-container-types.json
+            quest-container-projection-callers.txt
+            quest-container-projection-callers.json
+            quest-container-owner-types.txt
+            quest-container-owner-types.json
+            quest-container-projection-native.txt
+            quest-container-projection-native.json
           if-no-files-found: error
