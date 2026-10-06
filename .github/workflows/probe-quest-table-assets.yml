@@ -1226,6 +1226,174 @@ jobs:
           Path('quest-gpc-reader-head.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+      - name: Find QuestExcel table loader from exact row-count transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-loader-count-scan.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM,X86_OP_REG
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          META=Path('versions/7.1.0-global/windows-x64/metadata')
+          require_sha256(EXE,PROFILE_71.exe_sha256,label='executable')
+          RAW=0x40233AB1
+          EXPECT=17814
+          MASK=0xffffffff
+
+          with (META/'methods.csv').open('r',encoding='utf-8-sig',newline='') as fh:
+              methods=list(csv.DictReader(fh))
+          rows=[]
+          for m in methods:
+              s=(m.get('rva') or '').strip()
+              if not s: continue
+              try: r=int(s,0)
+              except ValueError: continue
+              rows.append((r,m))
+          rows.sort(key=lambda x:x[0])
+          starts=[r for r,_ in rows]
+          by_rva={}
+          for r,m in rows: by_rva.setdefault(r,[]).append(m)
+
+          def canon(n):
+              n=n.lower()
+              aliases={'rax':'a','eax':'a','ax':'a','al':'a','rbx':'b','ebx':'b','bx':'b','bl':'b',
+                       'rcx':'c','ecx':'c','cx':'c','cl':'c','rdx':'d','edx':'d','dx':'d','dl':'d',
+                       'rsi':'si','esi':'si','sil':'si','rdi':'di','edi':'di','dil':'di',
+                       'rbp':'bp','ebp':'bp','bpl':'bp','rsp':'sp','esp':'sp','spl':'sp'}
+              if n in aliases:return aliases[n]
+              if n.startswith('r') and len(n)>1:
+                  z=n[1:].rstrip('dwb')
+                  if z.isdigit(): return 'r'+z
+              return n
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s,m=rows[i]
+              e=rows[i+1][0] if i+1<len(rows) else s+0x2000
+              if not (s<=rva<e):return None
+              return {'rva':f'0x{s:X}','end_rva':f'0x{e:X}','metadata':by_rva.get(s,[])}
+
+          def regname(ins,op): return canon(ins.reg_name(op.reg) or '')
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+          candidates=[]
+          reader_methods=[]
+          for r,m in rows:
+              if 'FNIAHJGHFAK' not in (m.get('parameter_types') or ''):
+                  continue
+              reader_methods.append((r,m))
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              for idx,(r,m) in enumerate(reader_methods):
+                  # Stay within the method where possible, but cap work.
+                  j=bisect.bisect_right(starts,r)
+                  end=starts[j] if j<len(starts) else r+0x1000
+                  size=max(0x80,min(end-r,0x1200))
+                  blob=image.read_rva(r,size)
+                  insns=list(md.disasm(blob,base+r))
+                  vals={}   # canonical reg -> (value, expr, depends_on_raw)
+                  hits=[]
+                  calls=[]
+                  backward=[]
+                  stream_reads=[]
+                  for ins in insns:
+                      ops=ins.operands
+                      # Track direct calls/loops for ranking.
+                      if ins.mnemonic=='call' and ops and ops[0].type==X86_OP_IMM:
+                          tr=ops[0].imm-base if ops[0].imm>=base else ops[0].imm
+                          calls.append({'site_rva':f'0x{ins.address-base:X}','target_rva':f'0x{tr:X}','owner':owner(tr)})
+                      if ins.mnemonic.startswith('j') and ops and ops[0].type==X86_OP_IMM:
+                          tr=ops[0].imm-base if ops[0].imm>=base else ops[0].imm
+                          if tr < ins.address-base:
+                              backward.append({'site_rva':f'0x{ins.address-base:X}','target_rva':f'0x{tr:X}','mnemonic':ins.mnemonic})
+
+                      # Constants / register copies.
+                      if ins.mnemonic in ('mov','movabs') and len(ops)==2 and ops[0].type==X86_OP_REG:
+                          dst=regname(ins,ops[0])
+                          if ops[1].type==X86_OP_IMM:
+                              vals[dst]=(ops[1].imm & MASK,hex(ops[1].imm & MASK),False)
+                              continue
+                          if ops[1].type==X86_OP_REG:
+                              src=regname(ins,ops[1])
+                              if src in vals: vals[dst]=vals[src]
+                              else: vals.pop(dst,None)
+                              continue
+
+                      # A 32-bit stream source has [base + index + 0x20].
+                      is_stream=False
+                      if len(ops)==2 and ops[1].type==X86_OP_MEM and ops[1].size==4:
+                          mm=ops[1].mem
+                          is_stream=(mm.disp==0x20 and mm.base!=0 and mm.index!=0 and mm.scale==1)
+                      if is_stream and ops[0].type==X86_OP_REG:
+                          dst=regname(ins,ops[0])
+                          before=vals.get(dst)
+                          if ins.mnemonic=='mov':
+                              vals[dst]=(RAW,'raw_u32',True)
+                          elif ins.mnemonic in ('xor','add','sub') and before is not None:
+                              a,expr,dep=before
+                              if ins.mnemonic=='xor': v=(a^RAW)&MASK
+                              elif ins.mnemonic=='add': v=(a+RAW)&MASK
+                              else: v=(a-RAW)&MASK
+                              vals[dst]=(v,f'({expr} {ins.mnemonic} raw_u32)',True)
+                          else:
+                              vals.pop(dst,None)
+                          stream_reads.append({'rva':f'0x{ins.address-base:X}','mnemonic':ins.mnemonic,'op_str':ins.op_str})
+
+                      # Immediate/register arithmetic on tracked values.
+                      if ins.mnemonic in ('xor','add','sub') and len(ops)==2 and ops[0].type==X86_OP_REG:
+                          dst=regname(ins,ops[0])
+                          if dst not in vals: continue
+                          a,expr,dep=vals[dst]
+                          b=None; bexpr=None; bdep=False
+                          if ops[1].type==X86_OP_IMM:
+                              b=ops[1].imm & MASK; bexpr=hex(b)
+                          elif ops[1].type==X86_OP_REG:
+                              src=regname(ins,ops[1])
+                              if src in vals:
+                                  b,bexpr,bdep=vals[src]
+                          if b is None: continue
+                          if ins.mnemonic=='xor': v=(a^b)&MASK
+                          elif ins.mnemonic=='add': v=(a+b)&MASK
+                          else: v=(a-b)&MASK
+                          vals[dst]=(v,f'({expr} {ins.mnemonic} {bexpr})',dep or bdep)
+
+                      if ins.mnemonic=='lea' and len(ops)==2 and ops[0].type==X86_OP_REG and ops[1].type==X86_OP_MEM:
+                          dst=regname(ins,ops[0]); mm=ops[1].mem
+                          if mm.index==0 and mm.base!=0:
+                              src=canon(ins.reg_name(mm.base) or '')
+                              if src in vals:
+                                  a,expr,dep=vals[src]; v=(a+mm.disp)&MASK
+                                  vals[dst]=(v,f'({expr} add {hex(mm.disp & MASK)})',dep)
+
+                      for reg,(v,expr,dep) in list(vals.items()):
+                          if dep and v==EXPECT:
+                              h={'rva':f'0x{ins.address-base:X}','reg':reg,'expr':expr}
+                              if h not in hits:hits.append(h)
+
+                  if hits:
+                      item={'method':m,'rva':f'0x{r:X}','hits':hits,'stream_reads':stream_reads[:12],
+                            'backward_branches':backward[:20],'calls':calls[:80],
+                            'score':100 + 10*bool(backward) + min(len(calls),20)}
+                      candidates.append(item)
+
+          candidates.sort(key=lambda x:(-x['score'],int(x['rva'],16)))
+          report={'raw_count_u32':f'0x{RAW:08X}','expected_rows':EXPECT,
+                  'reader_method_count':len(reader_methods),'candidate_count':len(candidates),
+                  'candidates':candidates}
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path('quest-excel-loader-count-scan.json').write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          if not candidates:
+              raise SystemExit('no FNIAHJGHFAK method transforms QuestExcel first u32 to 17814')
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -1248,6 +1416,8 @@ jobs:
             quest-gpc-reader.json
             quest-gpc-reader-head.txt
             quest-gpc-reader-head.json
+            quest-excel-loader-count-scan.txt
+            quest-excel-loader-count-scan.json
             mainquest-index-asset-summary.txt
             mainquest-index-assets.json
             mainquest-index-reconstruct.txt
