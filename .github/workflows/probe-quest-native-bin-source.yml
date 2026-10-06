@@ -39,6 +39,12 @@ jobs:
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x1112930 0x1000 \
             --expected-sha256 "$sha" --label "native LoadBinDataZip source" \
             --output quest-native-bin-zip-source.json > quest-native-bin-zip-source.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x11260D0 0x80 \
+            --expected-sha256 "$sha" --label "native BinData source length query core" \
+            --output quest-native-bin-source-length-core.json > quest-native-bin-source-length-core.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x1126100 0x500 \
+            --expected-sha256 "$sha" --label "native BinData source read core" \
+            --output quest-native-bin-source-read-core.json > quest-native-bin-source-read-core.txt
 
       - name: Summarize native BinData source
         shell: bash
@@ -49,7 +55,12 @@ jobs:
           from pathlib import Path
 
           out={}
-          for fn in ("quest-native-bin-length.json","quest-native-bin-zip-source.json"):
+          for fn in (
+              "quest-native-bin-length.json",
+              "quest-native-bin-zip-source.json",
+              "quest-native-bin-source-length-core.json",
+              "quest-native-bin-source-read-core.json",
+          ):
               d=json.loads(Path(fn).read_text())
               rows=[]
               for x in d["instructions"]:
@@ -87,6 +98,10 @@ jobs:
             quest-native-bin-length.json
             quest-native-bin-zip-source.txt
             quest-native-bin-zip-source.json
+            quest-native-bin-source-length-core.txt
+            quest-native-bin-source-length-core.json
+            quest-native-bin-source-read-core.txt
+            quest-native-bin-source-read-core.json
             quest-native-bin-source-summary.txt
             quest-native-bin-source-summary.json
           if-no-files-found: error
