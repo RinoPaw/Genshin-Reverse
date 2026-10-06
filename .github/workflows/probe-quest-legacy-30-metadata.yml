@@ -144,7 +144,7 @@ jobs:
           echo "dumper rc=$rc"
           test -s "$out/dump.cs"
 
-      - name: Extract exact QuestExcel symbols and class layout
+      - name: Locate 3.0 Quest-like type by field names and layout
         shell: bash
         run: |
           set -euo pipefail
@@ -155,91 +155,154 @@ jobs:
 
           dump_path = Path("genshin-dump/dump.cs")
           lines = dump_path.read_text(encoding="utf-8", errors="replace").splitlines()
-          report = {}
-
-          for cls in ("QuestExcelConfigLoader", "QuestExcelConfig"):
-              starts = [
-                  i for i, line in enumerate(lines)
-                  if re.search(rf"\bclass\s+{re.escape(cls)}\b", line)
-              ]
-              entries = []
-              for start in starts:
-                  end = min(len(lines), start + 700)
-                  for j in range(start + 1, end):
-                      if lines[j].startswith("// Namespace:"):
-                          end = j
-                          break
-
-                  fields = []
-                  methods = []
-                  for i in range(start, end):
-                      line = lines[i]
-                      fm = re.search(
-                          r"^\s*(?:public|private|protected|internal).*?\s+"
-                          r"([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)",
-                          line,
-                      )
-                      if fm:
-                          fields.append({
-                              "name": fm.group(1),
-                              "offset": int(fm.group(2), 16),
-                              "line": i + 1,
-                              "text": line.strip(),
-                          })
-
-                      if "FromBinary" in line and "(" in line:
-                          preceding = []
-                          for k in range(max(start, i - 6), i + 1):
-                              m = re.search(r"RVA:\s*0x([0-9A-Fa-f]+)", lines[k])
-                              if m:
-                                  preceding.append({
-                                      "line": k + 1,
-                                      "rva": int(m.group(1), 16),
-                                      "text": lines[k].strip(),
-                                  })
-                          methods.append({
-                              "line": i + 1,
-                              "signature": line.strip(),
-                              "preceding_rvas": preceding,
-                          })
-
-                  entries.append({
-                      "class_line": start + 1,
-                      "declaration": lines[start].strip(),
-                      "fields": fields,
-                      "from_binary": methods,
-                  })
-              report[cls] = entries
-
           print("dump.cs lines", len(lines))
-          for cls, entries in report.items():
-              print(f"\n=== {cls}: {len(entries)} class match(es) ===")
-              for entry in entries:
-                  print("CLASS", entry["class_line"], entry["declaration"])
-                  for f in entry["fields"]:
-                      if cls == "QuestExcelConfig":
-                          print(
-                              f"FIELD {f['name']} +0x{f['offset']:X} "
-                              f"L{f['line']} {f['text']}"
-                          )
-                  for m in entry["from_binary"]:
-                      print("FROM_BINARY", m["line"], m["signature"])
+
+          name_needles = (
+              "QuestExcel", "acceptCond", "acceptCondComb", "beginExec",
+              "finishCondComb", "failCondComb", "exclusiveNpcList",
+              "exclusivePlaceList", "trialAvatarList",
+          )
+          print("\n=== literal name hits ===")
+          name_hits = []
+          for i, line in enumerate(lines):
+              if any(n in line for n in name_needles):
+                  name_hits.append(i)
+                  if len(name_hits) <= 300:
+                      print(f"{i+1}: {line}")
+          print("literal hit count", len(name_hits))
+
+          # Split dump.cs into type blocks using the Namespace marker that precedes
+          # each top-level type. Score blocks by the known 3.0 Quest row field-offset
+          # signature, without assuming the type name survived.
+          starts = [i for i,l in enumerate(lines) if l.startswith("// Namespace:")]
+          starts.append(len(lines))
+          target_offsets = {
+              0x10:"subId", 0x14:"mainId", 0x18:"order",
+              0x38:"acceptCondComb", 0x40:"acceptCond",
+              0x48:"finishCondComb", 0x50:"finishCond",
+              0x58:"failCondComb", 0x60:"failCond",
+              0x68:"guide", 0x70:"showGuide", 0x74:"finishParent",
+              0x75:"failParent", 0x78:"failParentShow", 0x7C:"isRewind",
+              0x80:"finishExec", 0x88:"failExec", 0x90:"beginExec",
+              0x98:"exclusiveNpcList", 0xA0:"sharedNpcList",
+              0xA8:"exclusiveNpcPriority", 0xB0:"trialAvatarList",
+              0xB8:"exclusivePlaceList",
+          }
+          target_set=set(target_offsets)
+          candidates=[]
+
+          field_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal).*?\s+"
+              r"([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
+          )
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          type_rx=re.compile(r"^\s*(?:public|private|protected|internal)?\s*(?:sealed\s+|abstract\s+|static\s+)*"
+                             r"(?:class|struct)\s+([^\s:{]+)")
+
+          for a,b in zip(starts,starts[1:]):
+              # Cap pathological blocks, but ordinary metadata types are much smaller.
+              block=lines[a:b]
+              fields=[]
+              offsets=set()
+              names=set()
+              decl=None
+              for rel,line in enumerate(block):
+                  if decl is None:
+                      m=type_rx.search(line)
+                      if m:
+                          decl=(a+rel+1,line.strip(),m.group(1))
+                  fm=field_rx.search(line)
+                  if fm:
+                      off=int(fm.group(2),16)
+                      fields.append({
+                          "line":a+rel+1,
+                          "name":fm.group(1),
+                          "offset":off,
+                          "text":line.strip(),
+                      })
+                      offsets.add(off)
+                      names.add(fm.group(1))
+
+              overlap=sorted(target_set & offsets)
+              named=sum(1 for n in (
+                  "subId","mainId","order","acceptCondComb","acceptCond",
+                  "finishCondComb","finishCond","failCondComb","failCond",
+                  "beginExec","finishExec","failExec","exclusiveNpcList",
+                  "sharedNpcList","exclusiveNpcPriority","trialAvatarList",
+                  "exclusivePlaceList"
+              ) if n in names)
+              if len(overlap) >= 12 or named >= 4:
+                  methods=[]
+                  for rel,line in enumerate(block):
+                      if "(" not in line or ")" not in line:
+                          continue
+                      rvas=[]
+                      for k in range(max(0,rel-5),rel+1):
+                          m=rva_rx.search(block[k])
+                          if m:
+                              rvas.append(int(m.group(1),16))
+                      if rvas:
+                          methods.append({
+                              "line":a+rel+1,
+                              "text":line.strip(),
+                              "rvas":rvas,
+                          })
+                  score=len(overlap)*10 + named*25
+                  candidates.append({
+                      "score":score,
+                      "namespace_line":a+1,
+                      "namespace":lines[a],
+                      "declaration":decl,
+                      "overlap":overlap,
+                      "named_count":named,
+                      "fields":fields,
+                      "methods":methods,
+                  })
+
+          candidates.sort(key=lambda x:(-x["score"], x["namespace_line"]))
+          print("\n=== top Quest-layout candidates ===")
+          for rank,x in enumerate(candidates[:40],1):
+              print(
+                  f"\n--- rank {rank} score={x['score']} "
+                  f"named={x['named_count']} overlap={len(x['overlap'])} "
+                  f"line={x['namespace_line']} ---"
+              )
+              print(x["namespace"])
+              print("DECL", x["declaration"])
+              print("OFFSETS", [hex(v) for v in x["overlap"]])
+              for fld in x["fields"]:
+                  if fld["offset"] in target_set or fld["name"] in {
+                      "subId","mainId","order","acceptCondComb","acceptCond",
+                      "beginExec","finishExec","failExec"
+                  }:
                       print(
-                          "RVAS",
-                          [(x["line"], hex(x["rva"])) for x in m["preceding_rvas"]],
+                          f"FIELD L{fld['line']} +0x{fld['offset']:X} "
+                          f"{fld['name']} :: {fld['text']}"
+                      )
+              print("METHODS")
+              for m in x["methods"]:
+                  if "Binary" in m["text"] or "binary" in m["text"].lower() or len(x["methods"]) <= 30:
+                      print(
+                          f"  L{m['line']} RVAS={[hex(r) for r in m['rvas']]} "
+                          f"{m['text']}"
                       )
 
           Path("quest-legacy-30-metadata.json").write_text(
-              json.dumps(report, indent=2) + "\n",
+              json.dumps({
+                  "literal_hits":[
+                      {"line":i+1,"text":lines[i]} for i in name_hits[:1000]
+                  ],
+                  "candidates":candidates[:100],
+              }, indent=2) + "\n",
               encoding="utf-8",
           )
 
-          rows = report.get("QuestExcelConfig", [])
-          if not rows or not any(x["from_binary"] for x in rows):
-              raise SystemExit("QuestExcelConfig.FromBinary not recovered")
+          if not candidates:
+              raise SystemExit("no Quest-layout candidate recovered")
           PY
 
       - name: Recover exact PE function bounds and field-base accesses
+        if: ${{ false }}
         shell: bash
         run: |
           set -euo pipefail
