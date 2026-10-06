@@ -1,6 +1,6 @@
 # Quest native-resource research handoff
 
-Checkpoint: 2026-10-06 11:39 +08:00
+Checkpoint: 2026-10-06 12:10 +08:00
 
 This file is the resumable handoff for the current Quest native-resource investigation. Continue from the branch and evidence below; do not restart the earlier manifest/XMF/ctable guessing work.
 
@@ -8,12 +8,15 @@ This file is the resumable handoff for the current Quest native-resource investi
 
 - Repository: `RinoPaw/Genshin-Reverse`
 - Branch: `probe/quest-blb3-binoutput`
-- Head before this handoff update: `cfb6c09bfbf904e9e9ea7002e91c71033a501435`
-- Head message: `ci: trace QuestCond array wrapper callers`
-- Full CI at that head passed:
-  - validate / tests: run `37408327233`
-  - focused probe: run `37408327268`, job `112090821271`
-- Focused probe artifact: `quest-row-prereq-schema`, artifact id `11387867054`, zip SHA256 `6431d78f1b42357f19c89ee7478bb5f97be1e38707445c4b81551f74288b881d`.
+- Latest focused comparison head: `324f916b0d6caabb1b23e87d632bf01cd0278e81`
+- Head message: `ci: require QuestExcel source comparison evidence`
+- CI passed:
+  - validate / tests: run `37411379239`
+  - focused probe: run `37411379300`, job `112100344621`
+- Focused probe artifact: `quest-row-prereq-schema`, artifact id `11389790544`, zip SHA256 `cb220b0a6def6c20f13daa37e7cf4c5ef61db40d02d59aff283c8181006231a3`.
+- Durable #8 analysis:
+  - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/README.md`
+  - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/representative-comparison.json`
 
 ## #8 QuestExcel extraction / prerequisite corruption
 
@@ -131,17 +134,37 @@ This directly means historical 3.x-era quest 351 prerequisite rows are not valid
 
 So the 7.1 BinOutput layer is internally consistent across both repositories.
 
-#### AstaPS ExcelBin is still unresolved
+#### AstaPS ExcelBin provenance — HIGH_CONFIDENCE downstream root cause
 
-`RinoPaw/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json` has blob SHA:
+Focused run `37411379300` directly downloaded the current AstaPS file and confirmed:
 
-`e52a8271f6da55b7250a05c3af33e5cd56872b0b`
+- file size in the run: **51,009,089 bytes**;
+- top-level rows: **33,217**;
+- `35100..35107` all still contain legacy linear `QUEST_COND_STATE_EQUAL` prerequisites;
+- `35104.acceptCond = [0,3]`.
 
-The GitHub connector returns empty inline content for this file because it is very large. Direct blob fetch reports about **115,147,166 bytes**, exceeding the connector message limit.
+Repository history then identified the assembly mechanism.
 
-Therefore the old reported `[0,3]` prerequisite shape has **not yet been re-confirmed in the current AstaPS 7.1 ExcelBin file** during this session.
+Upstream commit:
 
-Do not classify `[0,3]` as a native 7.1 decode result until that large file is queried through a range-capable path, repository-side script, artifact probe, or another exact extraction route.
+`MeChen618/AstaPS-Resource@7465e29b2d58058ab9973187c112abf2717ada03`
+
+is `Update QuestExcelConfigData from BinOutput/Quest (#9)`.
+
+Its PR body explicitly states:
+
+- the old QuestExcel table lacked **7,956** subquests present in `BinOutput/Quest`, including the 7.x quest population;
+- those rows were appended to reach 33,217 rows;
+- because BinOutput had no `acceptCond` / `beginExec`, newly appended rows synthesized:
+  - first step -> `QUEST_COND_STATE_EQUAL [0,3]`;
+  - later step -> `QUEST_COND_STATE_EQUAL [previous step,3]`;
+- existing rows kept their order/format and did not have `acceptCond` rewritten.
+
+Therefore current AstaPS QuestExcel is a **mixed synthetic resource**: a legacy pre-7.x baseline plus later BinOutput-derived augmentation.
+
+The current quest-351 rows sit at indices 9019..9026. Since PR #9 appended 7,956 rows to a pre-existing 25,261-row table, those 351 rows predate the augmentation. Their prerequisite graph is legacy-baseline contamination, not an exact 7.1 native decode.
+
+This classifies the AstaPS-side prerequisite corruption mechanism as **HIGH_CONFIDENCE legacy resource/materialization drift**. It does not yet prove the exact client's native prerequisite representation.
 
 #### Native class/type assumptions corrected
 
@@ -181,54 +204,62 @@ However, it is **not evidence that the normal `QuestExcelConfigData` table uses 
 
 #### Current issue #8 interpretation
 
-The strongest current interpretation is:
+Two public/downstream corruption classes are now separated:
 
-- 7.1 native asset extraction is correct;
-- 7.1 BinOutput quest 351 has no prerequisite edges;
-- the historical prerequisite graph is stale for 7.1;
-- the reported ExcelBin `[0,3]` value may be:
-  - stale/legacy resource contamination,
-  - extractor/schema corruption,
-  - or a field with different current semantics.
+1. **AstaPS QuestExcel:** HIGH_CONFIDENCE legacy/synthetic resource contamination, proven by repository history and direct current-row comparison.
+2. **Dimbreath same-version QuestExcel:** HIGH_CONFIDENCE field-name/schema misalignment. Representative evidence:
+   - public `35104.acceptCondComb` contains a guide-shaped object;
+   - public `35100.failParent = 573649119`, matching AstaPS `descTextMapHash = 573649119`;
+   - public `35104.failCondComb = QUEST_HIDDEN`, matching the show-type family.
 
-The next decisive step is to inspect the exact current AstaPS `QuestExcelConfigData.json` rows for `35100..35107`, then compare them against the exact client payload and same-version BinOutput.
+The guide-shaped `acceptCondComb` is incompatible with the exact native named-control constraint that accept/finish/fail combiners share type `PCBNKHFKLHI`.
+
+The native client verdict remains UNRESOLVED because #8's promotion gate requires direct decode of the exact QuestExcel payload with the ordinary-row schema.
 
 ### Current native reverse direction
 
-The active workflow is `.github/workflows/probe-main-quest-excel-native.yml`.
+Do not continue treating `RandomQuestExcelConfig` as the ordinary/story Quest row.
 
-Latest proven anchors used there:
+Issue #19 / branch `research/quest-config-ownership-7.1` has a better exact-sample anchor:
 
 ```text
-generic owner slot RVA  0x5AD4E98
-type base slot RVA      0x5AD4E90
-type resolver RVA       0x51CD50
-known runtime type idx  476756
-known generic handle    0x12F8
-known generic type      List<uint>
+ordinary-row candidate       LAIMPNDEFCL
+typeDefinition               17589
+binary deserializer          GMENPOPMKAA(FNIAHJGHFAK)
+deserializer RVA             0x9C15DF0
+unified runtime facade       BEAEOMIOFDE
+runtime consumer             MoleMole.QuestProxy
+confirmed mainId offset      +0x70
+confirmed subId offset       +0x74
+confirmed order offset       +0xA8
 ```
 
-The latest branch commits moved from the recovered QuestExcel payload into the current client's compact generic table/type registration path. The immediate task is to use these slots and their xrefs to recover the concrete generic owner/type pair for the QuestExcel table and then follow its initialization/read path into the row decoder.
+The named `QuestProxy` getters and the ordinary-row deserializer provide exact native evidence for these mappings.
 
-Do not infer current field order from historical class layouts alone. Require native reads plus full-payload/full-row structural validation before assigning semantic names.
+The next decisive #8 step is to bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact
+`Data/_ExcelBinOutput/QuestExcelConfigData` loader/table path, recover the condition/combiner fields, and decode the 2,824,188-byte payload with full consumption or an equally strong invariant.
+
+Do not infer current field order from public JSON or historical class layouts.
 
 ### Resume here
 
-1. Start from branch `probe/quest-blb3-binoutput` and read this file plus:
-   - `genshinre/assetindex.py`
-   - `.github/workflows/probe-quest-table-assets.yml`
-   - `.github/workflows/probe-main-quest-excel-native.yml`
-2. Treat `DimbreathBot/AnimeGameData@792978e...` as the same-version 7.1 CNRELWin semantic control.
-3. First inspect the exact current AstaPS `ExcelBinOutput/QuestExcelConfigData.json` rows for `35100..35107`. The file is ~115 MB, so use a range-capable/repository-side path instead of fetching the whole blob through the connector.
-4. Determine whether the reported `[0,3]` values actually exist in that current file.
-5. If they exist, classify whether they are stale data, extraction/schema corruption, or a current field with different semantics by comparing against:
-   - exact 7.1 client payload;
-   - exact 7.1 Dimbreath BinOutput;
-   - AstaPS BinOutput.
-6. Do not use the historical 351 prerequisite graph as a 7.1 control.
-7. For native row decoding, pivot away from literal-name / preserved-field / direct-QuestCond-xref assumptions. Prefer table registration, indirect-call targets, concrete object construction, or another exact same-version schema anchor.
-8. Decode enough rows to prove framing and full consumption before assigning prerequisite semantics.
-9. Only then classify and patch issue #8.
+1. Start from `probe/quest-blb3-binoutput` and read:
+   - this handoff;
+   - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/README.md`;
+   - #19 / `research/quest-config-ownership-7.1` evidence for `LAIMPNDEFCL`.
+2. Treat AstaPS current QuestExcel as a mixed legacy/synthetic resource, not a 7.1 native dump.
+3. Treat Dimbreath same-version Excel public field names as schema-drifted until native mappings validate them.
+4. Reuse `LAIMPNDEFCL` typeDefinition 17589 and deserializer `0x9C15DF0`.
+5. Bind that deserializer to the exact QuestExcel asset/table loader.
+6. Recover native accept/finish/fail condition fields and combiner fields from exact read/access sites.
+7. Decode representative rows from the exact 2,824,188-byte payload and require complete consumption.
+8. Compare direct decode against:
+   - current same-version BinOutput;
+   - Dimbreath public Excel;
+   - AstaPS mixed QuestExcel;
+   - historical controls only where version-valid.
+9. Promote #8 to CONFIRMED only after that direct-decode gate.
+10. Do not mutate AstaPS-Resource prerequisites from public JSON alone.
 
 ### Known dead ends / do not repeat
 
