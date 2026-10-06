@@ -162,6 +162,96 @@ jobs:
           )
           PY
 
+      - name: Trace current Quest Excel parser bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-current-excel-parsers.json \
+            --focus main-quest-excel:0xF955AF0 \
+            --focus random-quest-excel:0x9623050 \
+            --focus random-main-quest-excel:0x7B73030 \
+            --max-body 0x14000 \
+            | tee quest-current-excel-parsers.txt
+
+          python - <<'PY' | tee quest-current-excel-parser-summary.txt
+          import csv,json,re
+          from pathlib import Path
+
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          with (root/"types.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              types=list(csv.DictReader(fh))
+          with (root/"fields.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              fields=list(csv.DictReader(fh))
+
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          methods_by_rva={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except ValueError:continue
+              if r:methods_by_rva.setdefault(r,[]).append(m)
+
+          data=json.loads(Path("quest-current-excel-parsers.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in data["focus"].items():
+              owner=item["owner"]
+              tdis=sorted({
+                  int(x["type_definition_index"])
+                  for x in owner.get("metadata_rows",[])
+                  if x.get("type_definition_index")
+              })
+              type_meta=[]
+              for tdi in tdis:
+                  type_meta.append({
+                      "type":type_by_tdi.get(tdi,{}),
+                      "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                      "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+                  })
+
+              interesting=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if m in {
+                      "call","jmp","je","jne","ja","jae","jb","jbe","jl","jle","jg","jge",
+                      "mov","movzx","movsxd","lea","add","sub","xor","or","and","cmp","test",
+                      "imul","shl","shr","sar","inc","dec"
+                  }:
+                      row=dict(x)
+                      interesting.append(row)
+
+              calls=[]
+              for edge in item.get("direct_edges",[]):
+                  if edge.get("kind")=="call":
+                      calls.append(edge)
+
+              out[label]={
+                  "owner":owner,
+                  "type_metadata":type_meta,
+                  "direct_callers":item.get("direct_callers",[]),
+                  "calls":calls,
+                  "interesting":interesting,
+              }
+              print("\n===",label,"===")
+              print("OWNER",json.dumps(owner,ensure_ascii=False))
+              print("TYPE_META",json.dumps(type_meta,ensure_ascii=False))
+              print("CALLS")
+              for x in calls:
+                  print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+              print("BODY")
+              for x in interesting:
+                  print(x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-current-excel-parser-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -169,4 +259,8 @@ jobs:
           path: |
             quest-current-excel-xrefs.txt
             quest-current-excel-xrefs.json
+            quest-current-excel-parsers.txt
+            quest-current-excel-parsers.json
+            quest-current-excel-parser-summary.txt
+            quest-current-excel-parser-summary.json
           if-no-files-found: error
