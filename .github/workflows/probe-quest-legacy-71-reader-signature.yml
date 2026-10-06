@@ -1,0 +1,124 @@
+name: Locate 7.1 QuestExcel row reader by recovered scalar signatures
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-reader-signature.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-reader-signature-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Scan recovered QuestExcel scalar constants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-reader-signature.txt
+          import bisect,csv,json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+          SIGS={
+              0x732ED834:"order_sub_bias",
+              0x8CD127CC:"order_add_equivalent",
+              0x3223AF7D:"mainid_xor",
+              0x0001D716:"mainid_add",
+              0xFFFE28EA:"mainid_sub_equivalent",
+              0xB1571A55:"subid_xor_observed",
+          }
+
+          with (META/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          starts=[]; by={}
+          for row in methods:
+              try:r=int(row.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  starts.append(r);by.setdefault(r,[]).append(row)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i];e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not s<=rva<e:return None
+              return {"start":s,"end":e,"methods":by[s]}
+
+          pe=pefile.PE(str(EXE),fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          hits=[]
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              for ins in md.disasm(blob,base+sec.VirtualAddress):
+                  for op in ins.operands:
+                      if op.type != X86_OP_IMM:
+                          continue
+                      v=op.imm & 0xffffffff
+                      if v not in SIGS:
+                          continue
+                      rva=ins.address-base
+                      hits.append({
+                          "signature":SIGS[v],
+                          "value":f"0x{v:08X}",
+                          "rva":rva,
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                          "bytes":ins.bytes.hex(),
+                          "owner":owner(rva),
+                      })
+
+          grouped={}
+          for h in hits:
+              o=h.get("owner")
+              key=o["start"] if o else -1
+              g=grouped.setdefault(key,{"owner":o,"signatures":set(),"hits":[]})
+              g["signatures"].add(h["signature"]);g["hits"].append(h)
+          ranked=sorted(grouped.values(),key=lambda g:(-len(g["signatures"]),g["owner"]["start"] if g["owner"] else 1<<60))
+          out=[]
+          for g in ranked:
+              item={"owner":g["owner"],"signatures":sorted(g["signatures"]),"hits":g["hits"]}
+              out.append(item)
+              print("\nOWNER",f"0x{g['owner']['start']:X}" if g["owner"] else "NONE","SIGS",sorted(g["signatures"]))
+              if g["owner"]: print("METHODS",json.dumps(g["owner"]["methods"],ensure_ascii=False))
+              for h in g["hits"]: print(" ",h["value"],h["rva"],h["mnemonic"],h["op_str"])
+          Path("quest-legacy-71-reader-signature.json").write_text(
+              json.dumps({"signatures":{f"0x{k:08X}":v for k,v in SIGS.items()},"groups":out},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-reader-signature
+          path: |
+            quest-legacy-71-reader-signature.txt
+            quest-legacy-71-reader-signature.json
+          if-no-files-found: error
