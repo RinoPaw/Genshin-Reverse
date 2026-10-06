@@ -1737,6 +1737,59 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Prove AFIO main-quest id slot
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x1040BEE0 0x180 \
+            --expected-sha256 "$expected_sha" \
+            --label "AFIOOHMJHDM.FOEOGNHBBMJ(uint32)" \
+            --output quest-afio-init-by-id.json \
+            > quest-afio-init-by-id.txt
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x11258750 0x20 \
+            --expected-sha256 "$expected_sha" \
+            --label "JEFOILFNKPJ.ctor(uint32,uint32)" \
+            --output quest-main-wrapper-ctor.json \
+            > quest-main-wrapper-ctor.txt
+
+          python - <<'PY' | tee quest-afio-id-summary.txt
+          import json
+          import re
+          from pathlib import Path
+
+          afio = json.loads(Path("quest-afio-init-by-id.json").read_text(encoding="utf-8"))
+          ctor = json.loads(Path("quest-main-wrapper-ctor.json").read_text(encoding="utf-8"))
+
+          def select(obj):
+              out = []
+              for x in obj["instructions"]:
+                  op = x["op_str"].lower()
+                  if (
+                      "0xac" in op
+                      or "0x50" in op
+                      or re.search(r"\b(edx|rdx)\b", op)
+                      or x["mnemonic"] in {"call", "ret"}
+                  ):
+                      out.append(x)
+              return out
+
+          result = {
+              "afio_init_by_id": select(afio),
+              "wrapper_ctor": ctor["instructions"],
+          }
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          Path("quest-afio-id-summary.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1762,6 +1815,8 @@ jobs:
           test -s quest-random-main-control.json
           test -s quest-main-wrapper-field-map.json
           test -s quest-random-main-reader.json
+          test -s quest-afio-init-by-id.json
+          test -s quest-afio-id-summary.json
           test -s quest-fnj-reader.json
           test -s quest-fnj-side-reader.json
           test -s quest-fnj-reader-calls.json
@@ -1813,6 +1868,12 @@ jobs:
             quest-main-wrapper-field-map.json
             quest-random-main-reader.txt
             quest-random-main-reader.json
+            quest-afio-init-by-id.txt
+            quest-afio-init-by-id.json
+            quest-main-wrapper-ctor.txt
+            quest-main-wrapper-ctor.json
+            quest-afio-id-summary.txt
+            quest-afio-id-summary.json
             quest-fnj-reader.txt
             quest-fnj-reader.json
             quest-fnj-side-reader.txt
