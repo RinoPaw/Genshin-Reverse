@@ -543,7 +543,68 @@ jobs:
               if generic_type["kind"] != 0x15:
                   raise AssertionError(f"parameter type {generic_index} is not genericinst")
 
-              generic_class_va = int.from_bytes(generic_raw[:8], "little")
+              # In this 7.1 runtime type table GENERICINST stores a
+              # generic-class INDEX, not a direct pointer.
+              generic_class_index = int(generic_type["data_u32"])
+
+              # Locate Il2CppMetadataRegistration by its exact typesCount/types
+              # pair. Modern metadata registration layout:
+              #   +0x00 genericClassesCount
+              #   +0x08 genericClasses
+              #   +0x10 genericInstsCount
+              #   +0x18 genericInsts
+              #   ...
+              #   +0x30 typesCount
+              #   +0x38 types
+              candidates = []
+              type_pat = type_array_va.to_bytes(8, "little")
+              for sec in image.sections:
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  pos = 0
+                  while True:
+                      pos = blob.find(type_pat, pos)
+                      if pos < 0:
+                          break
+                      hit_rva = sec.virtual_address + pos
+                      if hit_rva >= 8:
+                          try:
+                              count = int.from_bytes(
+                                  image.read_rva(hit_rva - 8, 8), "little"
+                              )
+                          except Exception:
+                              count = -1
+                          if count == PROFILE_71.runtime_type_count and hit_rva >= 0x38:
+                              reg_rva = hit_rva - 0x38
+                              candidates.append(reg_rva)
+                      pos += 1
+
+              candidates = sorted(set(candidates))
+              print("METADATA_REGISTRATION_CANDIDATES", [f"0x{x:X}" for x in candidates])
+              if len(candidates) != 1:
+                  raise AssertionError(
+                      f"expected one metadata registration, got {candidates}"
+                  )
+
+              reg_rva = candidates[0]
+              reg = image.read_rva(reg_rva, 0x80)
+              if len(reg) != 0x80:
+                  raise AssertionError("truncated metadata registration")
+              qword = lambda off: int.from_bytes(reg[off:off+8], "little")
+              generic_classes_count = qword(0x00)
+              generic_classes_va = qword(0x08)
+              types_count = qword(0x30)
+              types_va = qword(0x38)
+              if types_count != PROFILE_71.runtime_type_count or types_va != type_array_va:
+                  raise AssertionError("metadata registration anchor mismatch")
+              if generic_class_index >= generic_classes_count:
+                  raise AssertionError(
+                      f"generic class index {generic_class_index} >= {generic_classes_count}"
+                  )
+
+              generic_class_va = int.from_bytes(
+                  read_va(generic_classes_va + generic_class_index * 8, 8),
+                  "little",
+              )
               # Unity/IL2CPP v27+ Il2CppGenericClass:
               #   +0x00 Il2CppType* generic type definition
               #   +0x08 class_inst
@@ -556,7 +617,15 @@ jobs:
               cached_class_va = int.from_bytes(gc[0x18:0x20], "little")
 
               base_type = describe(read_va(base_type_va, ENTRY_SIZE), type_by_tdi)
+              print("METADATA_REGISTRATION", json.dumps({
+                  "rva": f"0x{reg_rva:X}",
+                  "generic_classes_count": generic_classes_count,
+                  "generic_classes_va": f"0x{generic_classes_va:X}",
+                  "types_count": types_count,
+                  "types_va": f"0x{types_va:X}",
+              }, sort_keys=True))
               print("GENERIC_CLASS", json.dumps({
+                  "index": generic_class_index,
                   "va": f"0x{generic_class_va:X}",
                   "raw": gc.hex(),
                   "base_type_va": f"0x{base_type_va:X}",
@@ -566,7 +635,7 @@ jobs:
                   "base_type": base_type,
               }, ensure_ascii=False, sort_keys=True))
 
-              # Il2CppGenericInst is two native-width words: argc, argv**.
+              # Il2CppGenericInst = native-word argc + Il2CppType** argv.
               inst = read_va(class_inst_va, 0x10)
               argc = int.from_bytes(inst[0x00:0x08], "little")
               argv_va = int.from_bytes(inst[0x08:0x10], "little")
@@ -586,23 +655,32 @@ jobs:
                       f"expected <uint32,uint64>, got {[x['kind_name'] for x in args]}"
                   )
 
+              base_tdi = base_type.get("type_definition_index")
+              if base_tdi != 1225:
+                  raise AssertionError(
+                      f"expected System.Collections.Generic.Dictionary`2 typeDef 1225, got {base_type}"
+                  )
+              base_name = str(base_type["type_definition"].get("type_name", ""))
+              base_ns = str(base_type["type_definition"].get("namespace", ""))
+              if base_name != "Dictionary`2" or base_ns != "System.Collections.Generic":
+                  raise AssertionError(f"unexpected generic definition: {base_type}")
+
               result = {
                   "method_index": METHOD_INDEX,
                   "method": row,
                   "runtime_type_index": generic_index,
                   "generic_type": generic_type,
+                  "metadata_registration_rva": f"0x{reg_rva:X}",
+                  "generic_classes_count": generic_classes_count,
+                  "generic_class_index": generic_class_index,
                   "generic_class_va": f"0x{generic_class_va:X}",
                   "base_type": base_type,
                   "class_inst_va": f"0x{class_inst_va:X}",
                   "argc": argc,
                   "args": args,
-                  "classification": "generic collection<uint32,uint64>",
+                  "generic_definition_name": "System.Collections.Generic.Dictionary`2",
+                  "classification": "Dictionary<uint32,uint64>",
               }
-
-              base_name = str(base_type.get("type_definition", {}).get("type_name", ""))
-              if base_name:
-                  result["generic_definition_name"] = base_name
-                  result["classification"] = f"{base_name}<uint32,uint64>"
               print("RESULT", json.dumps(result, ensure_ascii=False, sort_keys=True))
               Path("quest-index-genericinst.json").write_text(
                   json.dumps(result, ensure_ascii=False, indent=2) + "\n",
