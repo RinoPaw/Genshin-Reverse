@@ -688,6 +688,94 @@ jobs:
               )
           PY
 
+      - name: Trace MainQuest handle resolution into external resources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-handle-resolution.json \
+            --focus pmo-load-handle:0x10175A00 \
+            --focus common-load-bin:0x6D873C0 \
+            --focus provider-load-bin:0x70186B0 \
+            --focus provider-load-bin-zip:0x7012D40 \
+            --max-body 0x10000 \
+            | tee quest-handle-resolution.txt
+
+          python - <<'PY' | tee quest-handle-resolution-summary.txt
+          import json
+          from pathlib import Path
+
+          data=json.loads(Path("quest-handle-resolution.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in data["focus"].items():
+              keep=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","jmp","mov","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror"}
+                      and (
+                          m in {"call","jmp"}
+                          or any(reg in op for reg in ("rdx","r8","r9","rcx","rax","rbx","rsi","rdi"))
+                      )
+                  ):
+                      keep.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":keep,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          # Preserve the exact 351 full-config handle as a hard anchor.
+          out["known_handle_351"]={
+              "main_id":351,
+              "handle_dec":1493294957662636073,
+              "handle_hex":f"0x{1493294957662636073:016X}",
+          }
+          print("\n### known_handle_351")
+          print(json.dumps(out["known_handle_351"],indent=2))
+          Path("quest-handle-resolution-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-handle-static-scan.txt
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          exe=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          require_sha256(exe,PROFILE_71.exe_sha256,label="executable")
+          handle=1493294957662636073
+          pats={
+              "u64_le":handle.to_bytes(8,"little"),
+              "u32_low_le":(handle & 0xffffffff).to_bytes(4,"little"),
+              "u32_high_le":((handle >> 32) & 0xffffffff).to_bytes(4,"little"),
+          }
+          with PEImage(exe) as image:
+              for label,pat in pats.items():
+                  hits=[]
+                  for sec in image.sections:
+                      blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                      pos=0
+                      while True:
+                          pos=blob.find(pat,pos)
+                          if pos<0: break
+                          hits.append((sec.name,sec.virtual_address+pos))
+                          pos+=1
+                  print(label,"count=",len(hits))
+                  for sec,rva in hits[:100]:
+                      print(" ",sec,f"0x{rva:X}")
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -715,4 +803,9 @@ jobs:
             quest-index-string-literals-filtered.json
             quest-index-genericinst.txt
             quest-index-genericinst.json
+            quest-handle-resolution.txt
+            quest-handle-resolution.json
+            quest-handle-resolution-summary.txt
+            quest-handle-resolution-summary.json
+            quest-handle-static-scan.txt
           if-no-files-found: error
