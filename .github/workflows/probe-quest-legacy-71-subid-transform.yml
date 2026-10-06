@@ -120,7 +120,7 @@ jobs:
                       "RandomQuestExcelConfig","GPCFGOEJFJK",
                       "LAIMPNDEFCL","AFIOOHMJHDM"
                   }
-                  if 18 <= fc <= 48 or named:
+                  if 8 <= fc <= 48 or named:
                       candidates.append((rva,m,t,fc,tdi))
 
           row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
