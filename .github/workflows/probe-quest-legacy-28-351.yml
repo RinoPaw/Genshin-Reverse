@@ -1,0 +1,267 @@
+name: Verify 2.8 Quest 351 legacy prerequisites
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-351.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-351-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Build pinned legacy GenshinStudio extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/GenshinStudio
+          git clone --filter=blob:none https://github.com/game-maker-ly/GenshinStudio.git "$root"
+          git -C "$root" checkout --detach 46c5aca5c6c7d5124e54a5693264bb61165846c3
+
+          mkdir -p "$root/ProbeExtract"
+          cat > "$root/ProbeExtract/ProbeExtract.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net6.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>disable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../AssetStudio/AssetStudio.csproj" />
+            </ItemGroup>
+          </Project>
+          EOF
+
+          cat > "$root/ProbeExtract/Program.cs" <<'EOF'
+          using AssetStudio;
+          using System.Buffers.Binary;
+
+          if (args.Length != 2) return 2;
+          var input = Path.GetFullPath(args[0]);
+          var output = Path.GetFullPath(args[1]);
+          Directory.CreateDirectory(output);
+
+          var manager = new AssetsManager();
+          manager.LoadFiles(input);
+
+          int bins = 0;
+          foreach (var assetsFile in manager.assetsFileList)
+          {
+              IndexObject? index = null;
+              if (assetsFile.ObjectsDic.TryGetValue(2, out var obj) && obj is IndexObject io)
+                  index = io;
+
+              foreach (var asset in assetsFile.Objects)
+              {
+                  if (asset is not MiHoYoBinData bin) continue;
+                  string name = $"pathid-{bin.m_PathID}";
+                  if (index != null && index.Names.TryGetValue(bin.m_PathID, out var recovered))
+                      name = recovered;
+                  name = Path.GetFileNameWithoutExtension(name);
+
+                  var raw = new byte[4 + bin.RawData.Length];
+                  BinaryPrimitives.WriteInt32LittleEndian(raw.AsSpan(0, 4), bin.RawData.Length);
+                  bin.RawData.CopyTo(raw, 4);
+                  File.WriteAllBytes(Path.Combine(output, name + ".dat"), raw);
+                  bins++;
+              }
+          }
+          Console.WriteLine($"mihoyo_bin_data={bins}");
+          return bins > 0 ? 0 : 3;
+          EOF
+
+          dotnet build "$root/ProbeExtract/ProbeExtract.csproj" -c Release --nologo
+          echo "$root/ProbeExtract/bin/Release/net6.0/ProbeExtract.dll" > /tmp/extractor
+
+      - name: Fetch exact 2.8 package blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp='20220625012443_r2qBGYstD0u3Q9xK'
+          base="https://autopatchhk.yuanshen.com/client_app/download/pc_zip/$stamp/ScatteredFiles"
+          mkdir -p inputs
+          curl --fail --location --retry 5 "$base/pkg_version" -o inputs/pkg_version
+
+          python - <<'PY' | tee quest-legacy-28-asset-index.txt
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path("inputs/pkg_version").read_text(encoding="utf-8-sig").splitlines() if x.strip()]
+          wanted={"design":"31049740.blk","quest":"25539185.blk"}
+          out={}
+          for label,base in wanted.items():
+              hits=[r for r in rows if str(r.get("remoteName","")).replace("\\","/").endswith("/"+base)]
+              print(label,"hits",len(hits))
+              for h in hits: print(json.dumps(h,sort_keys=True))
+              if len(hits)!=1:
+                  raise SystemExit(f"{label}: expected one {base}, got {len(hits)}")
+              out[label]=hits[0]
+          Path("/tmp/blocks.json").write_text(json.dumps(out))
+          PY
+
+          for label in design quest; do
+            rel=$(python - "$label" <<'PY'
+          import json,sys
+          print(json.load(open("/tmp/blocks.json"))[sys.argv[1]]["remoteName"])
+          PY
+            )
+            curl --fail --location --retry 5 "$base/$rel" -o "inputs/$label.blk"
+          done
+
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          rows=json.load(open("/tmp/blocks.json"))
+          for label in ("design","quest"):
+              p=Path("inputs")/(label+".blk")
+              r=rows[label]
+              got=hashlib.md5(p.read_bytes()).hexdigest()
+              print(label,p.stat().st_size,got)
+              assert p.stat().st_size==int(r["fileSize"])
+              assert got.lower()==r["md5"].lower()
+          PY
+
+      - name: Export exact 2.8 QuestExcel object
+        shell: bash
+        run: |
+          set -euo pipefail
+          extractor=$(cat /tmp/extractor)
+          rm -rf design-output quest-output
+          mkdir -p design-output quest-output
+          dotnet "$extractor" inputs/design.blk design-output | tee quest-legacy-28-design-extract.txt
+          dotnet "$extractor" inputs/quest.blk quest-output | tee quest-legacy-28-quest-extract.txt
+
+          test -s design-output/0000006f.dat
+          test -s quest-output/3b87ae83.dat
+
+          python - <<'PY' | tee quest-legacy-28-route.txt
+          import json
+          from pathlib import Path
+          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
+          idx=parse_asset_index(Path("design-output/0000006f.dat").read_bytes())
+          h=mihoyo_name_hash("Data/_ExcelBinOutput/QuestExcelConfigData")
+          name=idx.name_for_hash(h)
+          ref=idx.block_ref_for_asset(name.sub_asset_id)
+          group=idx.block_groups[ref.block_id]
+          out={
+              "hash":f"0x{h:010X}",
+              "exported_name":name.exported_name,
+              "sub_asset_id":name.sub_asset_id,
+              "block_id":ref.block_id,
+              "group_id":group,
+          }
+          print(json.dumps(out,indent=2))
+          assert name.exported_name.lower()=="3b87ae83"
+          assert ref.block_id==25539185
+          assert group==0
+          PY
+
+      - name: Decode exact 2.8 Quest 351
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-351.txt
+          import hashlib,json
+          from pathlib import Path
+          from genshinre.questlegacy import (
+              detect_legacy_quest_xor_key,
+              find_quest_rows,
+              parse_legacy_quest_prefix,
+          )
+
+          p=Path("quest-output/3b87ae83.dat")
+          raw=p.read_bytes()
+          key,count=detect_legacy_quest_xor_key(
+              raw,probe_rows=100,min_row_count=1000,max_row_count=100000
+          )
+          decoded=parse_legacy_quest_prefix(raw,xor_key=key,max_rows=count)
+          q351=find_quest_rows(decoded,main_id=351)
+
+          rows=[]
+          for r in q351:
+              f=r.fields
+              rows.append({
+                  "index":r.index,
+                  "start":r.start,
+                  "end":r.end,
+                  "subId":f.get("sub_id"),
+                  "mainId":f.get("main_id"),
+                  "order":f.get("order"),
+                  "bitfield":f.get("bitfield"),
+                  "acceptCondComb":f.get("accept_cond_comb"),
+                  "acceptCond":f.get("accept_cond"),
+                  "beginExec":f.get("begin_exec"),
+                  "finishCond":f.get("finish_cond"),
+                  "failCond":f.get("fail_cond"),
+                  "finishExec":f.get("finish_exec"),
+                  "failExec":f.get("fail_exec"),
+              })
+
+          out={
+              "raw_size":len(raw),
+              "sha256":hashlib.sha256(raw).hexdigest(),
+              "xor_key":f"0x{key:02X}",
+              "row_count":count,
+              "consumed":decoded.consumed,
+              "payload_complete":decoded.consumed==len(raw)-4,
+              "quest351":rows,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-28-351.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          expected={
+              35100:(35104,3),
+              35107:(35100,3),
+              35101:(35107,3),
+              35106:(35101,3),
+              35105:(35106,3),
+              35103:(35105,3),
+              35102:(35103,3),
+          }
+          by_sid={x["subId"]:x for x in rows}
+          if set(by_sid)!={35100,35101,35102,35103,35104,35105,35106,35107}:
+              raise SystemExit(f"Quest 351 incomplete: {sorted(by_sid)}")
+          if by_sid[35104]["acceptCond"] not in (None,[]):
+              raise SystemExit("35104 unexpectedly has prerequisite")
+          for sid,(prev,state) in expected.items():
+              cond=by_sid[sid]["acceptCond"]
+              if not cond:
+                  raise SystemExit(f"{sid}: missing acceptCond")
+              params=cond[0].get("param")
+              if params[:2] != [prev,state]:
+                  raise SystemExit(f"{sid}: unexpected prerequisite {cond}")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-351
+          path: |
+            quest-legacy-28-asset-index.txt
+            quest-legacy-28-design-extract.txt
+            quest-legacy-28-quest-extract.txt
+            quest-legacy-28-route.txt
+            quest-legacy-28-351.txt
+            quest-legacy-28-351.json
+          if-no-files-found: warn
