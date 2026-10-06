@@ -1,0 +1,190 @@
+name: Probe 3.2 native QuestExcel asset
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-32-asset.yml"
+
+concurrency:
+  group: probe-quest-legacy-32-asset-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download exact 3.2 Quest block
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20221024103618_h2e3o3zijYKEqHnQ/ScatteredFiles'
+          mkdir -p inputs/3.2.0-global
+          out='inputs/3.2.0-global/25539185.blk'
+
+          urls=(
+            "$base/GenshinImpact_Data/StreamingAssets/AssetBundles/blocks/00/25539185.blk"
+            "$base/YuanShen_Data/StreamingAssets/AssetBundles/blocks/00/25539185.blk"
+          )
+          ok=0
+          for url in "${urls[@]}"; do
+            echo "TRY $url"
+            if curl --fail --location --retry 3 --retry-all-errors \
+              --connect-timeout 30 --max-time 900 "$url" -o "$out"; then
+              ok=1
+              echo "$url" > inputs/3.2.0-global/source-url.txt
+              break
+            fi
+          done
+          test "$ok" = 1
+          test -s "$out"
+
+          python - <<'PY' | tee quest-legacy-32-block.txt
+          from pathlib import Path
+          import hashlib
+          p=Path("inputs/3.2.0-global/25539185.blk")
+          raw=p.read_bytes()
+          print("size",len(raw))
+          print("md5",hashlib.md5(raw).hexdigest())
+          print("sha256",hashlib.sha256(raw).hexdigest())
+          print("source",Path("inputs/3.2.0-global/source-url.txt").read_text().strip())
+          # orilights/pkg_version records the CN 3.2 copy with these exact
+          # size/hash values. Treat equality as a useful cross-region identity check.
+          print("matches_pkg_version_32",
+                len(raw)==8068413 and hashlib.md5(raw).hexdigest()=="bac7294aa224e78b58da64301712e06c")
+          PY
+
+      - name: Install pinned AnimeStudio CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
+          archive=/tmp/animestudio.tar.gz
+          root=/tmp/animestudio
+          curl --fail --location --retry 3 "$url" --output "$archive"
+          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
+          mkdir -p "$root"
+          tar -xzf "$archive" -C "$root"
+          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
+          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
+          if (("${#apphosts[@]}")); then
+            chmod +x "${apphosts[0]}"
+            printf '%s\n' "${apphosts[0]}" > /tmp/animestudio-entry
+          elif (("${#dlls[@]}")); then
+            printf 'dotnet\n%s\n' "${dlls[0]}" > /tmp/animestudio-entry
+          else
+            exit 2
+          fi
+
+      - name: Export 3.2 Quest block
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then
+            cli=("${entry[0]}")
+          else
+            cli=("${entry[0]}" "${entry[1]}")
+          fi
+          rm -rf quest32-output
+          mkdir -p quest32-output
+          "${cli[@]}" inputs/3.2.0-global/25539185.blk quest32-output \
+            --game GI --export_type Raw --logger_flags Error \
+            2>&1 | tee quest-legacy-32-animestudio.txt
+
+          find quest32-output -maxdepth 3 -type f -printf '%p %s\n' | sort \
+            | tee quest-legacy-32-export-files.txt
+
+      - name: Fingerprint exact native 3.2 QuestExcel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-32-asset.txt
+          import hashlib,json,struct
+          from pathlib import Path
+
+          target=Path("quest32-output/MiHoYoBinData/3b87ae83.dat")
+          candidates=sorted(Path("quest32-output").rglob("*.dat"))
+          if not target.is_file():
+              raise SystemExit(
+                  "3b87ae83.dat missing; candidates="+
+                  repr([(str(x),x.stat().st_size) for x in candidates[:100]])
+              )
+
+          raw=target.read_bytes()
+          if len(raw)<4:
+              raise SystemExit("raw object is truncated")
+          declared=struct.unpack_from("<I",raw,0)[0]
+          if declared==len(raw)-4:
+              payload=raw[4:]
+              wrapper="u32_size"
+          else:
+              payload=raw
+              wrapper="unknown"
+
+          def uvar(data,pos=0):
+              value=0; shift=0; start=pos
+              while pos<len(data):
+                  b=data[pos]; pos+=1
+                  value|=(b&0x7f)<<shift
+                  if not b&0x80:
+                      return value,pos-start
+                  shift+=7
+                  if shift>=64:
+                      raise ValueError("wide varint")
+              raise EOFError(start)
+
+          lead=None
+          try:
+              lead=uvar(payload,0)
+          except Exception as exc:
+              lead={"error":f"{type(exc).__name__}: {exc}"}
+
+          out={
+              "path":"Data/_ExcelBinOutput/QuestExcelConfigData",
+              "name_hash":"0x3B87AE8396",
+              "exported_name":"3b87ae83",
+              "raw_size":len(raw),
+              "raw_sha256":hashlib.sha256(raw).hexdigest(),
+              "wrapper":wrapper,
+              "declared_payload_size":declared,
+              "payload_size":len(payload),
+              "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              "payload_head64":payload[:64].hex(),
+              "leading_uvarint":lead,
+              "same_raw_as_7_1":
+                  hashlib.sha256(raw).hexdigest()=="f068fc7f5dc0a0560ef0b145cdca14ee12910d0a3bc25a6332e2546f37650c87",
+              "same_payload_size_as_7_1":len(payload)==2824188,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-32-asset.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload exact 3.2 QuestExcel evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-32-asset
+          path: |
+            quest-legacy-32-block.txt
+            quest-legacy-32-animestudio.txt
+            quest-legacy-32-export-files.txt
+            quest-legacy-32-asset.txt
+            quest-legacy-32-asset.json
+            quest32-output/MiHoYoBinData/3b87ae83.dat
+          if-no-files-found: warn
