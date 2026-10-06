@@ -1,0 +1,248 @@
+name: Probe 3.0 Genshin metadata resolver
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-genshin-metadata.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-genshin-metadata-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            5.0.x
+            6.0.x
+
+      - name: Download exact 3.0.0 Global UserAssembly and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 900             "$base/GenshinImpact_Data/Native/UserAssembly.dll"             -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 300             "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat"             -o "$out/global-metadata.dat"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected = {
+              "UserAssembly.dll": (177601560, "b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+              "global-metadata.dat": (49356392, "efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          root=Path("inputs/3.0.0-global")
+          for name,(size,sha) in expected.items():
+              raw=(root/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name, "size=",len(raw), "sha256=",got)
+              assert len(raw)==size, (name,len(raw),size)
+              assert got==sha, (name,got,sha)
+          PY
+
+      - name: Try pinned Genshin-aware Il2CppDumper
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          root=/tmp/il2cpp-genshin
+          pub=/tmp/il2cpp-genshin-pub
+          out="$GITHUB_WORKSPACE/quest-legacy-30-genshin-dumper"
+          git init -q "$root"
+          git -C "$root" remote add origin https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git
+          git -C "$root" fetch -q --depth 1 origin 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          git -C "$root" checkout -q FETCH_HEAD
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("/tmp/il2cpp-genshin/Il2CppDumper/config.json")
+          d=json.loads(p.read_text())
+          d["RequireAnyKey"]=False
+          d["GenerateDummyDll"]=False
+          d["GenerateStruct"]=False
+          p.write_text(json.dumps(d,indent=2)+"\n")
+          PY
+
+          dotnet publish "$root/Il2CppDumper/Il2CppDumper.csproj"             -f net5.0 -c Release -o "$pub"
+
+          mkdir -p "$out"
+          (
+            cd "$pub"
+            dotnet Il2CppDumper.dll               "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll"               "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"               "$out"
+          ) 2>&1 | tee quest-legacy-30-genshin-dumper.txt
+
+      - name: Try MetadataConverter2 Genshin format matrix
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          root=/tmp/metadata-converter2
+          pub=/tmp/metadata-converter2-pub
+          matrix="$GITHUB_WORKSPACE/quest-legacy-30-metadata-matrix"
+          git init -q "$root"
+          git -C "$root" remote add origin https://github.com/Modder4869/MetadataConverter2.git
+          git -C "$root" fetch -q --depth 1 origin 113230b5d447f05c68c4ee3ad4fe6630ab5dd5a4
+          git -C "$root" checkout -q FETCH_HEAD
+          dotnet publish "$root/MetadataConverter2.CLI/MetadataConverter2.CLI.csproj"             -c Release -o "$pub"
+
+          mkdir -p "$matrix"
+          src="$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"
+          for kind in GI GIPack GICB1 GICBX GIV2; do
+            out="$matrix/$kind.dat"
+            (
+              cd "$pub"
+              dotnet MetadataConverter2.CLI.dll "$src" "$out" "$kind" convert
+            ) >"$matrix/$kind.log" 2>&1 || true
+          done
+
+          python - <<'PY' | tee quest-legacy-30-metadata-matrix.txt
+          from pathlib import Path
+          import hashlib, json, struct
+
+          root=Path("quest-legacy-30-metadata-matrix")
+          report={}
+          for kind in ("GI","GIPack","GICB1","GICBX","GIV2"):
+              p=root/f"{kind}.dat"
+              log=(root/f"{kind}.log").read_text(errors="replace")
+              x={"exists":p.is_file(),"log_tail":"\n".join(log.splitlines()[-20:])}
+              if p.is_file():
+                  raw=p.read_bytes()
+                  x["size"]=len(raw)
+                  x["sha256"]=hashlib.sha256(raw).hexdigest()
+                  if len(raw)>=8:
+                      x["head8"]=raw[:8].hex()
+                      x["sanity"]=f"0x{struct.unpack_from('<I',raw,0)[0]:08X}"
+                      x["version"]=struct.unpack_from("<i",raw,4)[0]
+                      x["standard"]=struct.unpack_from("<I",raw,0)[0] == 0xFAB11BAF
+              report[kind]=x
+              print(kind, json.dumps(x,sort_keys=True))
+          Path("quest-legacy-30-metadata-matrix.json").write_text(
+              json.dumps(report,indent=2,sort_keys=True)+"\n"
+          )
+          PY
+
+      - name: Run generic Il2CppDumper on converted candidates
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          root=/tmp/il2cppdumper-generic
+          mkdir -p "$root"
+          curl --fail --location --retry 5 --retry-all-errors             https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip             -o "$root/dumper.zip"
+          unzip -q "$root/dumper.zip" -d "$root/app"
+
+          python - <<'PY' > /tmp/standard-kinds.txt
+          import json
+          from pathlib import Path
+          p=Path("quest-legacy-30-metadata-matrix.json")
+          if p.is_file():
+              d=json.loads(p.read_text())
+              for k,v in d.items():
+                  if v.get("standard"):
+                      print(k)
+          PY
+
+          while read -r kind; do
+            [ -n "$kind" ] || continue
+            out="$GITHUB_WORKSPACE/quest-legacy-30-generic-$kind"
+            mkdir -p "$out"
+            (
+              cd "$root/app"
+              dotnet Il2CppDumper.dll                 "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll"                 "$GITHUB_WORKSPACE/quest-legacy-30-metadata-matrix/$kind.dat"                 "$out"
+            ) >"$GITHUB_WORKSPACE/quest-legacy-30-generic-$kind.txt" 2>&1 || true
+          done < /tmp/standard-kinds.txt
+
+      - name: Extract QuestExcel exact symbols
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-symbol-summary.txt
+          from pathlib import Path
+          import json,re
+
+          roots=[]
+          for p in [Path("quest-legacy-30-genshin-dumper"), *sorted(Path(".").glob("quest-legacy-30-generic-*"))]:
+              if p.is_dir():
+                  roots.append(p)
+
+          report={}
+          for root in roots:
+              item={"dump_exists":False,"script_exists":False,"dump_blocks":[],"script_matches":[]}
+              dump=root/"dump.cs"
+              if dump.is_file():
+                  item["dump_exists"]=True
+                  s=dump.read_text(encoding="utf-8",errors="replace")
+                  for cls in ("QuestExcelConfigLoader","QuestExcelConfig"):
+                      m=re.search(rf"(?m)^public .*class {re.escape(cls)}\b|^public class {re.escape(cls)}\b",s)
+                      if not m:
+                          m=re.search(rf"\bclass {re.escape(cls)}\b",s)
+                      if m:
+                          start=max(0,s.rfind("// Namespace:",0,m.start()))
+                          end=s.find("// Namespace:",m.end())
+                          if end<0: end=min(len(s),m.start()+50000)
+                          block=s[start:end]
+                          item["dump_blocks"].append({"class":cls,"text":block[:50000]})
+                          print("\n===",root,cls,"===")
+                          print(block[:50000])
+
+              script=root/"script.json"
+              if script.is_file():
+                  item["script_exists"]=True
+                  try:
+                      data=json.loads(script.read_text(encoding="utf-8",errors="replace"))
+                      def walk(x):
+                          if isinstance(x,dict):
+                              blob=json.dumps(x,ensure_ascii=False)
+                              if "QuestExcelConfig" in blob and ("FromBinary" in blob or "FILE_LOCATION" in blob):
+                                  item["script_matches"].append(x)
+                              for v in x.values(): walk(v)
+                          elif isinstance(x,list):
+                              for v in x: walk(v)
+                      walk(data)
+                  except Exception as e:
+                      item["script_error"]=repr(e)
+                  print("\n=== script matches",root,"===")
+                  for x in item["script_matches"][:100]:
+                      print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+              report[str(root)]=item
+
+          Path("quest-legacy-30-symbol-summary.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-genshin-metadata
+          path: |
+            quest-legacy-30-genshin-dumper.txt
+            quest-legacy-30-genshin-dumper/dump.cs
+            quest-legacy-30-genshin-dumper/script.json
+            quest-legacy-30-metadata-matrix.txt
+            quest-legacy-30-metadata-matrix.json
+            quest-legacy-30-metadata-matrix/*.log
+            quest-legacy-30-generic-*.txt
+            quest-legacy-30-generic-*/dump.cs
+            quest-legacy-30-generic-*/script.json
+            quest-legacy-30-symbol-summary.txt
+            quest-legacy-30-symbol-summary.json
+          if-no-files-found: warn
