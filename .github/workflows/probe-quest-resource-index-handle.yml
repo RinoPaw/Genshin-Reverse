@@ -1,0 +1,168 @@
+name: Probe 7.1 Quest ResourceIndex handle resolution
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-resource-index-handle.yml"
+
+concurrency:
+  group: probe-quest-resource-index-handle-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Trace ResourceIndex handle to ResourceIdentifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-resource-index-handle.json \
+            --focus get-resource-identifier:0x7109EE0 \
+            --focus check-legit:0x71068E0 \
+            --focus report-asset:0x7109B30 \
+            --focus provider-load-resource-id:0x701B590 \
+            --max-body 0x10000 \
+            | tee quest-resource-index-handle.txt
+
+      - name: Dump ResourceIndex and ResourceIdentifier metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-resource-index-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          def read(name):
+              with (root/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          methods_by_tdi={}
+          for x in fields:
+              fields_by_tdi.setdefault(int(x["type_definition_index"]),[]).append(x)
+          for x in methods:
+              methods_by_tdi.setdefault(int(x["type_definition_index"]),[]).append(x)
+
+          tdis={11049}
+          for t in types:
+              if "ResourceIdentifier" in str(t.get("type_name","")):
+                  tdis.add(int(t["type_definition_index"]))
+          for m in methods:
+              sig=" ".join([str(m.get("return_type","")),str(m.get("parameter_types",""))])
+              if "ResourceIdentifier" in sig:
+                  tdis.add(int(m["type_definition_index"]))
+
+          out={}
+          for tdi in sorted(tdis):
+              item={
+                  "type":type_by_tdi.get(tdi,{}),
+                  "fields":fields_by_tdi.get(tdi,[]),
+                  "methods":methods_by_tdi.get(tdi,[]),
+              }
+              out[str(tdi)]=item
+              print("TYPE",tdi,json.dumps(item,ensure_ascii=False,indent=2))
+
+          refs=[]
+          for m in methods:
+              sig=" ".join([str(m.get("return_type","")),str(m.get("parameter_types",""))])
+              if "ResourceIdentifier" in sig:
+                  refs.append({
+                      "method":m,
+                      "owner":type_by_tdi.get(int(m["type_definition_index"]),{}),
+                  })
+          print("RESOURCE_IDENTIFIER_SIGNATURE_REFS",len(refs))
+          for x in refs:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-resource-index-types.json").write_text(
+              json.dumps({"types":out,"signature_refs":refs},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Summarize handle path
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-resource-index-summary.txt
+          import json
+          from pathlib import Path
+
+          d=json.loads(Path("quest-resource-index-handle.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in d["focus"].items():
+              interesting=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","jmp","mov","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror"}
+                      and (
+                          m in {"call","jmp"}
+                          or any(r in op for r in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi"))
+                      )
+                  ):
+                      interesting.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":interesting,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          out["anchor_351"]={
+              "main_id":351,
+              "handle_dec":1493294957662636073,
+              "handle_hex":"0x14B93FDA285D0829",
+          }
+          Path("quest-resource-index-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Assert evidence
+        run: |
+          test -s quest-resource-index-handle.json
+          test -s quest-resource-index-types.json
+          test -s quest-resource-index-summary.json
+
+      - name: Upload focused evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-resource-index-handle
+          path: |
+            quest-resource-index-handle.txt
+            quest-resource-index-handle.json
+            quest-resource-index-types.txt
+            quest-resource-index-types.json
+            quest-resource-index-summary.txt
+            quest-resource-index-summary.json
+          if-no-files-found: error
