@@ -793,6 +793,257 @@ jobs:
                   encoding='utf-8',
               )
           PY
+      - name: Recover actual QuestExcelConfig row schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-row-schema.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM, X86_OP_MEM, X86_REG_RAX
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
+
+          def read_csv(name):
+              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv('types.csv')
+          fields = read_csv('fields.csv')
+          methods = read_csv('methods.csv')
+          type_by_tdi = {int(row['type_definition_index']): row for row in types}
+
+          quest_rows = [
+              row for row in types
+              if row.get('type_name') == 'QuestExcelConfig'
+          ]
+          if len(quest_rows) != 1:
+              raise SystemExit(
+                  f'QuestExcelConfig: expected exactly one type, got {len(quest_rows)}: '
+                  + json.dumps(quest_rows, ensure_ascii=False)
+              )
+
+          quest_type = quest_rows[0]
+          quest_tdi = int(quest_type['type_definition_index'])
+          quest_fields = [
+              row for row in fields
+              if int(row['type_definition_index']) == quest_tdi
+          ]
+          quest_methods = [
+              row for row in methods
+              if int(row['type_definition_index']) == quest_tdi
+          ]
+
+          print('=== QuestExcelConfig type ===')
+          print(json.dumps(quest_type, ensure_ascii=False))
+          print('=== QuestExcelConfig fields ===')
+          for row in quest_fields:
+              print(json.dumps(row, ensure_ascii=False))
+          print('=== QuestExcelConfig methods ===')
+          for row in quest_methods:
+              print(json.dumps(row, ensure_ascii=False))
+
+          inner_rows = [
+              row for row in quest_methods
+              if row['method_name'] == 'FromBinaryInner'
+          ]
+          outer_rows = [
+              row for row in quest_methods
+              if row['method_name'] == 'FromBinary'
+          ]
+          if len(inner_rows) < 1:
+              raise SystemExit('QuestExcelConfig FromBinaryInner methods missing')
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          with PEImage(exe) as image:
+              base = image.image_base
+
+              def read_rva(rva, size):
+                  data = image.read_rva(rva, size)
+                  if len(data) != size:
+                      raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
+                  return data
+
+              def read_va(va, size):
+                  if va < base:
+                      raise ValueError(f'not image VA: 0x{va:X}')
+                  return read_rva(va - base, size)
+
+              type_array_va = int.from_bytes(
+                  read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
+              )
+
+              def describe_entry(index, depth=0):
+                  entry = read_va(type_array_va + index * ENTRY_SIZE, ENTRY_SIZE)
+                  if not is_valid_type_entry(entry):
+                      return {'index': index, 'status': 'invalid'}
+                  decoded = decode_type_entry(entry)
+                  kind = int(decoded['kind'])
+                  data_u64 = int.from_bytes(entry[:8], 'little')
+                  out = {
+                      'index': index,
+                      'kind': decoded['kind_name'],
+                      'kind_value': kind,
+                      'data_u64': f'0x{data_u64:X}',
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(decoded['data_u32'])
+                      out['type_definition_index'] = tdi
+                      out['type'] = type_by_tdi.get(tdi, {})
+                  elif kind == 0x1D and depth < 2 and data_u64 >= base:
+                      nested = read_va(data_u64, ENTRY_SIZE)
+                      if is_valid_type_entry(nested):
+                          nd = decode_type_entry(nested)
+                          nkind = int(nd['kind'])
+                          elem = {
+                              'kind': nd['kind_name'],
+                              'kind_value': nkind,
+                              'data_u64': f'0x{int.from_bytes(nested[:8], "little"):X}',
+                          }
+                          if nkind in (0x11, 0x12):
+                              tdi = int(nd['data_u32'])
+                              elem['type_definition_index'] = tdi
+                              elem['type'] = type_by_tdi.get(tdi, {})
+                          out['element'] = elem
+                  return out
+
+              print('=== QuestExcelConfig runtime field types ===')
+              runtime_fields = {}
+              for row in quest_fields:
+                  idx_text = str(row.get('field_type_index', '')).strip()
+                  if not idx_text.isdigit():
+                      continue
+                  idx = int(idx_text)
+                  info = describe_entry(idx)
+                  runtime_fields[row['field_name']] = info
+                  print(row['field_name'], json.dumps(info, ensure_ascii=False))
+
+              def line(insn):
+                  return {
+                      'rva': f'0x{insn.address-base:X}',
+                      'bytes': insn.bytes.hex(),
+                      'mnemonic': insn.mnemonic,
+                      'op_str': insn.op_str,
+                  }
+
+              def dump_method(row, size):
+                  rva = int(row['rva'], 16)
+                  body = list(md.disasm(read_rva(rva, size), base + rva))
+                  rows = []
+                  calls = []
+                  for insn in body:
+                      item = line(insn)
+                      rows.append(item)
+                      if insn.mnemonic == 'call' and insn.operands:
+                          op = insn.operands[0]
+                          if op.type == X86_OP_IMM:
+                              calls.append({
+                                  'site_rva': item['rva'],
+                                  'target_rva': f'0x{op.imm-base:X}',
+                              })
+                      if insn.mnemonic == 'ret' and insn.address > base + rva + 0x20:
+                          break
+                  print(
+                      f'=== {row["method_name"]}/{row["parameter_count"]} '
+                      f'@ 0x{rva:X} ==='
+                  )
+                  for item in rows:
+                      print(
+                          f'{item["rva"]:>11}: {item["bytes"]:<24} '
+                          f'{item["mnemonic"]:<8} {item["op_str"]}'
+                      )
+                  return {
+                      'metadata': row,
+                      'instructions': rows,
+                      'calls': calls,
+                  }
+
+              method_dumps = []
+              # Array overloads are short; element decoder may be much larger.
+              for row in inner_rows:
+                  parameter_count = int(row['parameter_count'])
+                  size = 0x1400 if parameter_count <= 1 else 0x240
+                  method_dumps.append(dump_method(row, size))
+              for row in outer_rows:
+                  method_dumps.append(dump_method(row, 0x240))
+
+              wrapper_candidates = [
+                  row for row in types
+                  if 'QuestExcelConfigWrap' in row.get('type_name', '')
+                  and 'RandomQuestExcelConfigWrap' not in row.get('type_name', '')
+              ]
+              print('=== QuestExcelConfig wrapper candidates ===')
+              wrapper_getters = {}
+              for wrap in wrapper_candidates:
+                  print(json.dumps(wrap, ensure_ascii=False))
+                  tdi = int(wrap['type_definition_index'])
+                  wrap_methods = [
+                      row for row in methods
+                      if int(row['type_definition_index']) == tdi
+                      and row['method_name'] in (
+                          '_g_get_subId',
+                          '_g_get_mainId',
+                          '_g_get_acceptCond',
+                          '_g_get_acceptCondComb',
+                          '_g_get_order',
+                      )
+                  ]
+                  for row in wrap_methods:
+                      print('WRAP_METHOD', json.dumps(row, ensure_ascii=False))
+                      if not row.get('rva'):
+                          continue
+                      rva = int(row['rva'], 16)
+                      body = list(md.disasm(read_rva(rva, 0x180), base + rva))
+                      offsets = []
+                      for insn in body:
+                          for op in insn.operands:
+                              if (
+                                  op.type == X86_OP_MEM
+                                  and op.mem.base == X86_REG_RAX
+                                  and 0x10 <= op.mem.disp <= 0x200
+                              ):
+                                  offsets.append(op.mem.disp)
+                          if insn.mnemonic == 'ret':
+                              break
+                      key = row['method_name'].removeprefix('_g_get_')
+                      wrapper_getters[key] = {
+                          'rva': f'0x{rva:X}',
+                          'candidate_offsets': sorted(set(offsets)),
+                      }
+                      print(
+                          'WRAP_OFFSET',
+                          key,
+                          json.dumps(wrapper_getters[key], ensure_ascii=False),
+                      )
+
+              Path('quest-excel-row-schema.json').write_text(
+                  json.dumps(
+                      {
+                          'quest_type': quest_type,
+                          'fields': quest_fields,
+                          'runtime_fields': runtime_fields,
+                          'inner_methods': inner_rows,
+                          'outer_methods': outer_rows,
+                          'method_dumps': method_dumps,
+                          'wrapper_candidates': wrapper_candidates,
+                          'wrapper_getters': wrapper_getters,
+                      },
+                      ensure_ascii=False,
+                      indent=2,
+                  ) + '\n',
+                  encoding='utf-8',
+              )
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -805,4 +1056,6 @@ jobs:
             quest-cond-binary-reader.json
             quest-frombinary-framing.txt
             quest-frombinary-framing.json
+            quest-excel-row-schema.txt
+            quest-excel-row-schema.json
           if-no-files-found: warn
