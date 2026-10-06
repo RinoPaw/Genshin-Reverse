@@ -104,8 +104,17 @@ jobs:
           preferred=int(pe.OPTIONAL_HEADER.ImageBase)
 
           targets={
-              0x10FD580:("QuestExcelConfigLoader.FromBinary(ByteArray)",0x350),
-              0x3AF9E10:("QuestExcelConfig.FromBinary(ByteArray)",0x15E0),
+              # WorldReverse 3.0 reference points. Keep these as controls.
+              0x10FD580:("WorldReverse QuestExcelConfigLoader.FromBinary(ByteArray) reference",0x350),
+              0x3AF9E10:("WorldReverse QuestExcelConfig.FromBinary(ByteArray) reference",0x15E0),
+
+              # Exact 3.0 Global Genshin-aware metadata candidates.
+              # DIGNFNEANCH owns Dictionary<uint, FKGMHOPOCIN>; FKGMHOPOCIN
+              # has the exact Quest row primitive prefix and ByteArray readers.
+              0x1B0E930:("DIGNFNEANCH.GALKIMALNDL(ByteArray) loader candidate",0x500),
+              0x27AFC90:("FKGMHOPOCIN.GALKIMALNDL(ByteArray) row candidate",0x1000),
+              0x27B0250:("FKGMHOPOCIN.GALKIMALNDL(ByteArray,out row[]) candidate",0x500),
+              0x27B0430:("FKGMHOPOCIN.GALKIMALNDL(ByteArray,out row) candidate",0x400),
           }
 
           report={
