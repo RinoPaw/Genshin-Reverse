@@ -798,21 +798,29 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY' | tee quest-excel-row-schema.txt
+          import bisect
           import csv
           import json
+          import struct
           from collections import defaultdict
           from pathlib import Path
 
           from capstone import CS_ARCH_X86, CS_MODE_64, Cs
           from capstone.x86_const import X86_OP_IMM
 
-          from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
-          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
 
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
           root = Path('versions/7.1.0-global/windows-x64/metadata')
-          QUEST_COND_TDI = 54128
+
+          QUEST_COND_ARRAY_INNER = 0x11582950
+          QUEST_COND_SCALAR_INNER = 0x115825D0
+          QUEST_COND_FROM_BINARY = 0x11582570
+          TARGETS = {
+              QUEST_COND_ARRAY_INNER: 'QuestCond.FromBinaryInner(reader, kind_0x1D)',
+              QUEST_COND_SCALAR_INNER: 'QuestCond.FromBinaryInner(reader)',
+              QUEST_COND_FROM_BINARY: 'QuestCond.FromBinary(reader)',
+          }
 
           def read_csv(name):
               with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
@@ -830,6 +838,19 @@ jobs:
           for row in methods:
               methods_by_owner[int(row['type_definition_index'])].append(row)
 
+          method_rows = []
+          for row in methods:
+              rva_text = row.get('rva', '').strip()
+              if not rva_text:
+                  continue
+              try:
+                  rva = int(rva_text, 16)
+              except ValueError:
+                  continue
+              method_rows.append((rva, row))
+          method_rows.sort(key=lambda item: item[0])
+          method_rvas = [item[0] for item in method_rows]
+
           md = Cs(CS_ARCH_X86, CS_MODE_64)
           md.detail = True
 
@@ -842,159 +863,145 @@ jobs:
                       raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
                   return data
 
-              def read_va(va, size):
-                  if va < base:
-                      raise ValueError(f'not image VA: 0x{va:X}')
-                  return read_rva(va - base, size)
-
-              type_array_va = int.from_bytes(
-                  read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
-              )
-
-              def describe_type_index(index):
-                  entry = read_va(type_array_va + index * ENTRY_SIZE, ENTRY_SIZE)
-                  if not is_valid_type_entry(entry):
-                      return {'index': index, 'status': 'invalid'}
-                  decoded = decode_type_entry(entry)
-                  kind = int(decoded['kind'])
-                  data_u64 = int.from_bytes(entry[:8], 'little')
-                  out = {
-                      'index': index,
-                      'kind': decoded['kind_name'],
-                      'kind_value': kind,
-                      'data_u64': f'0x{data_u64:X}',
-                  }
-                  if kind in (0x11, 0x12):
-                      tdi = int(decoded['data_u32'])
-                      out['type_definition_index'] = tdi
-                      out['type_name'] = type_by_tdi.get(tdi, {}).get('type_name', '')
-                  elif kind == 0x1D and data_u64 >= base:
-                      nested = read_va(data_u64, ENTRY_SIZE)
-                      if is_valid_type_entry(nested):
-                          nd = decode_type_entry(nested)
-                          nkind = int(nd['kind'])
-                          elem = {
-                              'kind': nd['kind_name'],
-                              'kind_value': nkind,
-                              'data_u64': f'0x{int.from_bytes(nested[:8], "little"):X}',
-                          }
-                          if nkind in (0x11, 0x12):
-                              tdi = int(nd['data_u32'])
-                              elem['type_definition_index'] = tdi
-                              elem['type_name'] = type_by_tdi.get(tdi, {}).get('type_name', '')
-                          out['element'] = elem
-                  return out
-
-              print('=== fields whose runtime type is QuestCond[] ===')
-              hits = []
-              type_cache = {}
-              for row in fields:
-                  idx_text = str(row.get('field_type_index', '')).strip()
-                  if not idx_text.isdigit():
-                      continue
-                  idx = int(idx_text)
-                  info = type_cache.get(idx)
-                  if info is None:
-                      try:
-                          info = describe_type_index(idx)
-                      except Exception as exc:
-                          info = {'index': idx, 'error': f'{type(exc).__name__}: {exc}'}
-                      type_cache[idx] = info
-                  elem = info.get('element', {})
-                  if (
-                      info.get('kind') == 'szarray'
-                      and elem.get('type_definition_index') == QUEST_COND_TDI
-                  ):
-                      item = {
-                          'field': row,
-                          'runtime_type': info,
+              def method_context(site_rva):
+                  pos = bisect.bisect_right(method_rvas, site_rva)
+                  prev = []
+                  for i in range(max(0, pos - 5), pos):
+                      rva, row = method_rows[i]
+                      prev.append({
+                          'rva': f'0x{rva:X}',
+                          'distance': site_rva - rva,
+                          'method': row,
+                          'owner_type': type_by_tdi.get(
+                              int(row['type_definition_index']), {}
+                          ),
+                      })
+                  nxt = None
+                  if pos < len(method_rows):
+                      rva, row = method_rows[pos]
+                      nxt = {
+                          'rva': f'0x{rva:X}',
+                          'distance': rva - site_rva,
+                          'method': row,
                           'owner_type': type_by_tdi.get(
                               int(row['type_definition_index']), {}
                           ),
                       }
-                      hits.append(item)
+                  containing = prev[-1] if prev else None
+                  if containing is not None and nxt is not None:
+                      start_rva = int(containing['rva'], 16)
+                      end_rva = int(nxt['rva'], 16)
+                      if not (start_rva <= site_rva < end_rva):
+                          containing = None
+                  return {
+                      'containing_by_next_method_boundary': containing,
+                      'previous_methods': prev,
+                      'next_method': nxt,
+                  }
+
+              print('=== direct rel32 call xrefs to QuestCond binary readers ===')
+              xrefs = []
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  data = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for i in range(0, max(0, len(data) - 5)):
+                      if data[i] != 0xE8:
+                          continue
+                      disp = struct.unpack_from('<i', data, i + 1)[0]
+                      site_rva = sec.virtual_address + i
+                      target_rva = (site_rva + 5 + disp) & 0xFFFFFFFFFFFFFFFF
+                      if target_rva not in TARGETS:
+                          continue
+                      item = {
+                          'site_rva': f'0x{site_rva:X}',
+                          'target_rva': f'0x{target_rva:X}',
+                          'target_name': TARGETS[target_rva],
+                          'section': sec.name,
+                          'context': method_context(site_rva),
+                      }
+                      xrefs.append(item)
                       print(json.dumps(item, ensure_ascii=False))
 
-              if not hits:
-                  raise SystemExit('no field with runtime type QuestCond[] found')
+              if not xrefs:
+                  raise SystemExit('no direct call xrefs to QuestCond readers found')
 
-              owners = sorted({int(item['field']['type_definition_index']) for item in hits})
+              print('=== candidate caller owners ===')
+              owner_hits = defaultdict(list)
+              for item in xrefs:
+                  containing = item['context'].get('containing_by_next_method_boundary')
+                  if not containing:
+                      continue
+                  row = containing['method']
+                  owner = int(row['type_definition_index'])
+                  owner_hits[owner].append(item)
+
               candidates = []
-              print('=== QuestCond[] owner candidates ===')
-              for owner in owners:
+              for owner, hits in owner_hits.items():
                   owner_type = type_by_tdi.get(owner, {})
                   owner_fields = fields_by_owner[owner]
                   owner_methods = methods_by_owner[owner]
-                  method_names = [row['method_name'] for row in owner_methods]
-                  frombinary = [name for name in method_names if name == 'FromBinary']
-                  inner = [name for name in method_names if name == 'FromBinaryInner']
-                  score = (
-                      len(frombinary) * 10
-                      + len(inner) * 12
-                      + min(len(owner_fields), 40)
-                      + (20 if len(owner_fields) >= 20 else 0)
-                      + (10 if any(row['field_type'] == 'uint32' for row in owner_fields) else 0)
+                  score = 0
+                  score += 100 * sum(
+                      1 for h in hits
+                      if h['target_rva'] == f'0x{QUEST_COND_ARRAY_INNER:X}'
+                  )
+                  score += 20 * sum(
+                      1 for h in hits
+                      if h['target_rva'] == f'0x{QUEST_COND_SCALAR_INNER:X}'
+                  )
+                  score += min(len(owner_fields), 60)
+                  score += 20 * sum(
+                      1 for row in owner_methods if row['method_name'] == 'FromBinaryInner'
+                  )
+                  score += 10 * sum(
+                      1 for row in owner_methods if row['method_name'] == 'FromBinary'
                   )
                   item = {
                       'owner': owner,
                       'score': score,
                       'type': owner_type,
-                      'field_count_actual': len(owner_fields),
-                      'method_count_actual': len(owner_methods),
-                      'frombinary_count': len(frombinary),
-                      'inner_count': len(inner),
+                      'field_count': len(owner_fields),
+                      'hits': hits,
                   }
                   candidates.append(item)
                   print(json.dumps(item, ensure_ascii=False))
-                  print('--- fields ---')
-                  for row in owner_fields:
-                      idx_text = str(row.get('field_type_index', '')).strip()
-                      runtime = type_cache.get(int(idx_text)) if idx_text.isdigit() else None
-                      print(json.dumps({
-                          'field': row,
-                          'runtime_type': runtime,
-                      }, ensure_ascii=False))
-                  print('--- methods ---')
-                  for row in owner_methods:
-                      if row['method_name'] in (
-                          'FromBinary',
-                          'FromBinaryInner',
-                          '.ctor',
-                          'ParseFromLine',
-                      ):
-                          print(json.dumps(row, ensure_ascii=False))
+
+              if not candidates:
+                  raise SystemExit('QuestCond reader xrefs did not map to metadata methods')
 
               candidates.sort(key=lambda x: (-x['score'], x['owner']))
               best = candidates[0]
-              if len(candidates) > 1 and candidates[1]['score'] == best['score']:
-                  raise SystemExit(
-                      'QuestCond[] owner ranking ambiguous: '
-                      + json.dumps(candidates[:5], ensure_ascii=False)
+              if (
+                  len(candidates) > 1
+                  and candidates[1]['score'] == best['score']
+              ):
+                  print(
+                      'WARNING: top candidate score tie; keeping all evidence, '
+                      'not claiming owner confirmation'
                   )
 
+              print('=== top candidate owner fields ===')
               quest_tdi = best['owner']
-              quest_type = type_by_tdi[quest_tdi]
-              quest_fields = fields_by_owner[quest_tdi]
-              quest_methods = methods_by_owner[quest_tdi]
-              print('=== SELECTED NORMAL QUEST ROW OWNER ===')
-              print(json.dumps(best, ensure_ascii=False))
+              quest_type = type_by_tdi.get(quest_tdi, {})
+              for row in fields_by_owner[quest_tdi]:
+                  print(json.dumps(row, ensure_ascii=False))
 
-              inner_rows = [
-                  row for row in quest_methods
-                  if row['method_name'] == 'FromBinaryInner' and row.get('rva')
-              ]
-              outer_rows = [
-                  row for row in quest_methods
-                  if row['method_name'] == 'FromBinary' and row.get('rva')
-              ]
-              if not inner_rows:
-                  raise SystemExit('selected QuestCond[] owner has no FromBinaryInner')
+              print('=== top candidate owner methods ===')
+              for row in methods_by_owner[quest_tdi]:
+                  if row['method_name'] in (
+                      'FromBinary',
+                      'FromBinaryInner',
+                      '.ctor',
+                      'ParseFromLine',
+                  ):
+                      print(json.dumps(row, ensure_ascii=False))
 
               def dump_method(row, size):
-                  rva = int(row['rva'], 16)
-                  body = list(md.disasm(read_rva(rva, size), base + rva))
-                  rows = []
-                  calls = []
+                  start_rva = int(row['rva'], 16)
+                  data = image.read_rva(start_rva, size)
+                  body = list(md.disasm(data, base + start_rva))
+                  out = []
                   for insn in body:
                       item = {
                           'rva': f'0x{insn.address-base:X}',
@@ -1002,50 +1009,60 @@ jobs:
                           'mnemonic': insn.mnemonic,
                           'op_str': insn.op_str,
                       }
-                      rows.append(item)
-                      if insn.mnemonic == 'call' and insn.operands:
-                          op = insn.operands[0]
-                          if op.type == X86_OP_IMM:
-                              calls.append({
-                                  'site_rva': item['rva'],
-                                  'target_rva': f'0x{op.imm-base:X}',
-                              })
-                      if insn.mnemonic == 'ret' and insn.address > base + rva + 0x20:
-                          break
-                  print(
-                      f'=== {quest_type.get("type_name")} '
-                      f'{row["method_name"]}/{row["parameter_count"]} '
-                      f'@ 0x{rva:X} ==='
-                  )
-                  for item in rows:
+                      out.append(item)
                       print(
                           f'{item["rva"]:>11}: {item["bytes"]:<24} '
                           f'{item["mnemonic"]:<8} {item["op_str"]}'
                       )
-                  return {
-                      'metadata': row,
-                      'instructions': rows,
-                      'calls': calls,
-                  }
+                      if insn.mnemonic == 'ret' and insn.address > base + start_rva + 0x20:
+                          break
+                  return out
 
-              dumps = []
-              for row in inner_rows:
-                  pc = int(row['parameter_count'])
-                  dumps.append(dump_method(row, 0x1800 if pc <= 1 else 0x300))
-              for row in outer_rows:
-                  dumps.append(dump_method(row, 0x300))
+              caller_dumps = []
+              seen = set()
+              print('=== xref caller disassembly ===')
+              for hit in best['hits']:
+                  containing = hit['context'].get('containing_by_next_method_boundary')
+                  if not containing:
+                      continue
+                  row = containing['method']
+                  key = (row.get('method_index'), row.get('rva'))
+                  if key in seen:
+                      continue
+                  seen.add(key)
+                  start_rva = int(row['rva'], 16)
+                  next_info = hit['context'].get('next_method')
+                  if next_info:
+                      next_rva = int(next_info['rva'], 16)
+                      size = max(0x100, min(0x5000, next_rva - start_rva))
+                  else:
+                      size = 0x2000
+                  print(
+                      f'--- {quest_type.get("type_name")}::{row["method_name"]} '
+                      f'@ 0x{start_rva:X} ---'
+                  )
+                  caller_dumps.append({
+                      'method': row,
+                      'instructions': dump_method(row, size),
+                  })
 
-              evidence = {
-                  'quest_cond_array_hits': hits,
-                  'candidates': candidates,
-                  'selected': best,
-                  'quest_type': quest_type,
-                  'fields': quest_fields,
-                  'methods': quest_methods,
-                  'method_dumps': dumps,
-              }
               Path('quest-excel-row-schema.json').write_text(
-                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+                  json.dumps(
+                      {
+                          'targets': {
+                              f'0x{k:X}': v for k, v in TARGETS.items()
+                          },
+                          'xrefs': xrefs,
+                          'candidates': candidates,
+                          'top_candidate': best,
+                          'top_candidate_type': quest_type,
+                          'top_candidate_fields': fields_by_owner[quest_tdi],
+                          'top_candidate_methods': methods_by_owner[quest_tdi],
+                          'caller_dumps': caller_dumps,
+                      },
+                      ensure_ascii=False,
+                      indent=2,
+                  ) + '\n',
                   encoding='utf-8',
               )
           PY
