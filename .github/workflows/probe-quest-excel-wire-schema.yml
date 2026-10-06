@@ -1,0 +1,224 @@
+name: Probe exact 7.1 QuestExcel wire schema candidates
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-excel-wire-schema.yml"
+      - "versions/7.1.0-global/windows-x64/metadata/types.csv"
+      - "versions/7.1.0-global/windows-x64/metadata/fields.csv"
+      - "versions/7.1.0-global/windows-x64/metadata/methods.csv"
+
+concurrency:
+  group: probe-quest-excel-wire-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Rank current 7.1 wire-schema owner candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-wire-candidates.txt
+          import csv
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = defaultdict(list)
+          methods_by_tdi = defaultdict(list)
+          for row in fields:
+              fields_by_tdi[int(row["type_definition_index"])].append(row)
+          for row in methods:
+              methods_by_tdi[int(row["type_definition_index"])].append(row)
+
+          named_controls = {}
+          control_names = {
+              "RandomQuestExcelConfig",
+              "RandomMainQuestExcelConfig",
+              "QuestCond",
+              "QuestContent",
+              "QuestExec",
+              "QuestGuide",
+          }
+          for row in types:
+              if row.get("type_name") in control_names:
+                  tdi = int(row["type_definition_index"])
+                  named_controls[row["type_name"]] = {
+                      "type": row,
+                      "fields": fields_by_tdi.get(tdi, []),
+                      "methods": methods_by_tdi.get(tdi, []),
+                  }
+
+          # Current named Quest controls give exact 7.1 field-type fingerprints
+          # without assuming their field order applies to the ordinary Quest table.
+          control_field_types = set()
+          control_type_names = set()
+          for item in named_controls.values():
+              for fld in item["fields"]:
+                  control_field_types.add(int(fld["field_type_index"]))
+                  text = str(fld.get("field_type", ""))
+                  if text:
+                      control_type_names.add(text)
+
+          questish_type_names = {
+              "QuestShowType",
+              "ShowQuestGuideType",
+              "QuestExecType",
+              "QuestType",
+              "LogicType",
+              "BanGroupType",
+          } | {x for x in control_type_names if "Quest" in x or "Logic" in x or "Ban" in x}
+
+          histogram = Counter(len(fields_by_tdi.get(int(t["type_definition_index"]), [])) for t in types)
+          high_counts = sorted(
+              (
+                  (len(fields_by_tdi.get(int(t["type_definition_index"]), [])), int(t["type_definition_index"]), t)
+                  for t in types
+              ),
+              reverse=True,
+          )[:100]
+
+          candidates = []
+          for t in types:
+              tdi = int(t["type_definition_index"])
+              owned_fields = fields_by_tdi.get(tdi, [])
+              owned_methods = methods_by_tdi.get(tdi, [])
+              fc = len(owned_fields)
+              method_names = {m.get("method_name", "") for m in owned_methods}
+              param_text = " ".join(str(m.get("parameter_types", "")) for m in owned_methods)
+              field_type_names = [str(x.get("field_type", "")) for x in owned_fields]
+              field_type_indices = [int(x["field_type_index"]) for x in owned_fields]
+
+              named_reader = bool(
+                  method_names & {"FromBinary", "FromBinaryInner", "ParseFromLine"}
+              )
+              reader_param = "FNIAHJGHFAK" in param_text or "ByteArray" in param_text
+              quest_type_hits = sum(name in questish_type_names for name in field_type_names)
+              control_index_hits = sum(idx in control_field_types for idx in field_type_indices)
+              name_hint = "Quest" in str(t.get("type_name", ""))
+
+              # Raw QuestExcel record 0 has a 35-byte presence bitmap. In the
+              # established ExcelBin format this means field slots reach at least
+              # into the high 200s. Treat field count as a ranking signal only:
+              # deleted/reserved slots may make it differ from bitmap capacity.
+              score = 0
+              if 220 <= fc <= 340:
+                  score += 180 - min(120, abs(fc - 280))
+              elif 120 <= fc < 220 or 340 < fc <= 420:
+                  score += 30
+              if named_reader:
+                  score += 80
+              if reader_param:
+                  score += 40
+              score += min(100, quest_type_hits * 20)
+              score += min(80, control_index_hits * 4)
+              if name_hint:
+                  score += 25
+
+              if score <= 0:
+                  continue
+              candidates.append({
+                  "score": score,
+                  "type_definition_index": tdi,
+                  "type": t,
+                  "field_count": fc,
+                  "method_count": len(owned_methods),
+                  "method_names": sorted(method_names),
+                  "reader_param": reader_param,
+                  "quest_type_hits": quest_type_hits,
+                  "control_index_hits": control_index_hits,
+                  "questish_fields": [
+                      x for x in owned_fields
+                      if str(x.get("field_type", "")) in questish_type_names
+                      or int(x["field_type_index"]) in control_field_types
+                  ],
+                  "fields": owned_fields if fc <= 360 else owned_fields[:360],
+                  "methods": owned_methods,
+              })
+
+          candidates.sort(key=lambda x: (-x["score"], abs(x["field_count"] - 280), x["type_definition_index"]))
+
+          result = {
+              "raw_wire_control": {
+                  "top_level_count": 7473,
+                  "first_record_presence_bytes": 35,
+                  "first_record_presence_capacity_bits": 280,
+              },
+              "named_controls": named_controls,
+              "control_field_type_indices": sorted(control_field_types),
+              "questish_type_names": sorted(questish_type_names),
+              "field_count_histogram_100_plus": {
+                  str(k): v for k, v in sorted(histogram.items()) if k >= 100
+              },
+              "highest_field_count_types": [
+                  {"field_count": fc, "type_definition_index": tdi, "type": t}
+                  for fc, tdi, t in high_counts
+              ],
+              "candidates": candidates[:120],
+          }
+
+          print("=== raw wire invariant ===")
+          print(json.dumps(result["raw_wire_control"], indent=2))
+          print("=== named controls ===")
+          for name, item in sorted(named_controls.items()):
+              print(name, "tdi=", item["type"]["type_definition_index"], "fields=", len(item["fields"]))
+          print("=== field-count histogram >=100 ===")
+          print(json.dumps(result["field_count_histogram_100_plus"], sort_keys=True))
+          print("=== top candidates ===")
+          for row in result["candidates"][:40]:
+              print(json.dumps({
+                  "score": row["score"],
+                  "tdi": row["type_definition_index"],
+                  "name": row["type"].get("type_name"),
+                  "namespace": row["type"].get("namespace"),
+                  "field_count": row["field_count"],
+                  "method_count": row["method_count"],
+                  "method_names": row["method_names"],
+                  "reader_param": row["reader_param"],
+                  "quest_type_hits": row["quest_type_hits"],
+                  "control_index_hits": row["control_index_hits"],
+                  "questish_fields": row["questish_fields"],
+              }, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-excel-wire-candidates.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Assert evidence
+        run: test -s quest-excel-wire-candidates.json
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-excel-wire-schema-candidates
+          path: |
+            quest-excel-wire-candidates.txt
+            quest-excel-wire-candidates.json
+          if-no-files-found: error
