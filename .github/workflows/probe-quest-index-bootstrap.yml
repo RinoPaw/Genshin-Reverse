@@ -1,0 +1,100 @@
+name: Probe 7.1 Quest binary index bootstrap
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-index-bootstrap.yml"
+
+concurrency:
+  group: probe-quest-index-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Trace index bootstrap and runtime loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-index-bootstrap.json \
+            --focus odj-set-fnj-index:0x9F9B580 \
+            --focus bootstrap-fnj-index:0xFCBC530 \
+            --focus bootstrap-peer-index:0xFCBC670 \
+            --focus odj-set-peer-index:0x9F886E0 \
+            --focus runtime-load-bin:0x6F366E0 \
+            --focus runtime-load-bin-zip:0x6F367F0 \
+            --max-body 0x10000 \
+            | tee quest-index-bootstrap.txt
+
+      - name: Summarize bootstrap semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-index-bootstrap-summary.txt
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("quest-index-bootstrap.json").read_text(encoding="utf-8"))
+          keep = {}
+          for label, item in data["focus"].items():
+              insns = item.get("disassembly", [])
+              interesting = []
+              for x in insns:
+                  op = x.get("op_str", "").lower()
+                  mnemonic = x.get("mnemonic", "")
+                  if (
+                      mnemonic in {"call", "jmp", "lea", "mov", "cmp", "test", "shr", "shl", "and", "or"}
+                      and (
+                          "rip" in op
+                          or "0x312e0" in op
+                          or "0x312c8" in op
+                          or "0x31318" in op
+                          or "0x31370" in op
+                          or mnemonic in {"call", "jmp"}
+                      )
+                  ):
+                      interesting.append(x)
+              keep[label] = {
+                  "owner": item.get("owner"),
+                  "direct_edges": item.get("direct_edges", []),
+                  "direct_callers": item.get("direct_callers", []),
+                  "interesting": interesting,
+              }
+              print("\n###", label)
+              print(json.dumps(keep[label], ensure_ascii=False, indent=2))
+
+          Path("quest-index-bootstrap-summary.json").write_text(
+              json.dumps(keep, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload focused evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-index-bootstrap
+          path: |
+            quest-index-bootstrap.txt
+            quest-index-bootstrap.json
+            quest-index-bootstrap-summary.txt
+            quest-index-bootstrap-summary.json
+          if-no-files-found: error
