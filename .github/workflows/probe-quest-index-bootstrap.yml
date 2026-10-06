@@ -269,6 +269,90 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Decode IL2CPP metadata string literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-index-metadata-literals.txt
+          import json
+          import re
+          import struct
+          from pathlib import Path
+
+          path = Path("inputs/7.1.0-global/global-metadata.dat")
+          data = path.read_bytes()
+          if len(data) < 32:
+              raise SystemExit("metadata too small")
+
+          sanity, version, lit_off, lit_size, lit_data_off, lit_data_size, str_off, str_size = struct.unpack_from("<8I", data, 0)
+          print(f"sanity=0x{sanity:08X} version={version}")
+          print(f"stringLiteralOffset=0x{lit_off:X} size={lit_size}")
+          print(f"stringLiteralDataOffset=0x{lit_data_off:X} size={lit_data_size}")
+
+          if sanity != 0xFAB11BAF:
+              raise SystemExit("unexpected IL2CPP metadata sanity")
+          if lit_size % 8:
+              raise SystemExit("string literal table is not 8-byte aligned")
+
+          count = lit_size // 8
+          matches = []
+          literals = []
+          for index in range(count):
+              length, data_index = struct.unpack_from("<II", data, lit_off + index * 8)
+              start = lit_data_off + data_index
+              end = start + length
+              if end > len(data):
+                  raise SystemExit(f"literal {index} out of bounds")
+              raw = data[start:end]
+              try:
+                  text = raw.decode("utf-8")
+              except UnicodeDecodeError:
+                  text = raw.decode("utf-8", errors="replace")
+              literals.append(text)
+
+              low = text.lower()
+              if (
+                  "quest" in low
+                  or "binoutput" in low
+                  or "mainquest" in low
+                  or ("bin" in low and ("data" in low or "config" in low or "index" in low))
+              ):
+                  item = {
+                      "index": index,
+                      "length": length,
+                      "data_index": data_index,
+                      "text": text,
+                  }
+                  matches.append(item)
+                  print(json.dumps(item, ensure_ascii=False))
+
+          # Preserve a small neighborhood around strong path/name candidates. This
+          # is useful because generated code often references nearby related literals.
+          strong = [
+              x for x in matches
+              if any(k in x["text"].lower() for k in ("binoutput", "quest", "mainquest"))
+          ]
+          neighborhoods = []
+          seen = set()
+          for item in strong:
+              i = item["index"]
+              for j in range(max(0, i - 3), min(count, i + 4)):
+                  if j in seen:
+                      continue
+                  seen.add(j)
+                  neighborhoods.append({"index": j, "text": literals[j]})
+          out = {
+              "version": version,
+              "count": count,
+              "matches": matches,
+              "neighborhoods": neighborhoods,
+          }
+          Path("quest-index-metadata-literals.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -287,4 +371,6 @@ jobs:
             quest-index-string-slots.txt
             quest-index-string-slots.json
             quest-index-resource-string-candidates.txt
+            quest-index-metadata-literals.txt
+            quest-index-metadata-literals.json
           if-no-files-found: error
