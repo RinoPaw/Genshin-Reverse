@@ -143,7 +143,7 @@ jobs:
                       "RandomQuestExcelConfig","GPCFGOEJFJK",
                       "LAIMPNDEFCL","AFIOOHMJHDM"
                   }
-                  if 18 <= fc <= 48 or named:
+                  if 8 <= fc <= 48 or named:
                       candidates.append((rva,m,t,fc,tdi))
 
           row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
@@ -294,6 +294,7 @@ jobs:
                   score=8000
                   score += 2000*bool(sub_cols)
                   score += 1000*bool(main_cols)
+                  score += 700 if 10 <= len(fields_schema) <= 16 else 0
                   score += 300 if len(fields_schema)==30 else 0
                   score += min(100,len(fields_schema))
                   item={
