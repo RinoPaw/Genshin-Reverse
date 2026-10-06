@@ -163,7 +163,7 @@ jobs:
           got={x["subId"] for x in native}
           if got != expected_sids:
               raise SystemExit(f"3.2 native Quest 351 incomplete: {sorted(got)}")
-          if any(x["native_acceptCond"] is not None for x in native):
+          if any(x["acceptCond"] is not None for x in native):
               raise SystemExit("unexpected native 3.2 acceptCond on Quest 351")
           if not all(
               x["resource_acceptCond_present"]
