@@ -144,307 +144,200 @@ jobs:
           echo "dumper rc=$rc"
           test -s "$out/dump.cs"
 
-      - name: Locate exact legacy Quest row by repeated field-type signature
+      - name: Resolve known 3.0 QuestExcel RVAs in protected metadata dump
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-legacy-30-metadata.txt
+          python - <<'PY' | tee quest-legacy-30-known-rvas.txt
           import json
           import re
           from pathlib import Path
 
-          lines = Path("genshin-dump/dump.cs").read_text(
-              encoding="utf-8", errors="replace"
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
           ).splitlines()
-          print("dump.cs lines", len(lines))
 
-          type_rx = re.compile(
+          targets={
+              0x10FD580:"QuestExcelConfigLoader.FromBinary(ByteArray)",
+              0x3AF9E10:"QuestExcelConfig.FromBinary(ByteArray)",
+          }
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          type_rx=re.compile(
               r"^\s*(?:public|private|protected|internal)?\s*"
               r"(?:sealed\s+|abstract\s+|static\s+)*"
               r"(?:class|struct)\s+([^\s:{]+)"
           )
-          field_rx = re.compile(
-              r"^\s*(?:public|private|protected|internal)\s+"
-              r"(?:(?:static|readonly|const|volatile)\s+)*"
-              r"(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
-          )
-          rva_rx = re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
-          reader_sig_rx = re.compile(
-              r"^public\s+bool\s+([A-Za-z_][A-Za-z0-9_]*)\s*"
-              r"\(OLCLOPLLAGP\s+[A-Za-z_][A-Za-z0-9_]*,\s*"
-              r"int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*0\)"
-          )
 
-          starts=[i for i,l in enumerate(lines) if l.startswith("// Namespace:")]
-          starts.append(len(lines))
-          matches=[]
+          ns=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          ns.append(len(lines))
+          blocks=[]
+          for x,y in zip(ns,ns[1:]):
+              blocks.append((x,y))
 
-          def one_type(by_off, off):
-              vals=by_off.get(off,[])
-              return vals[0]["type"] if len(vals)==1 else None
+          def block_for(line_index):
+              for x,y in blocks:
+                  if x<=line_index<y:
+                      return x,y
+              return max(0,line_index-80),min(len(lines),line_index+120)
 
-          for a,b in zip(starts,starts[1:]):
-              block=lines[a:b]
+          found={}
+          for i,line in enumerate(lines):
+              m=rva_rx.search(line)
+              if not m:
+                  continue
+              rva=int(m.group(1),16)
+              if rva not in targets:
+                  continue
+              a,b=block_for(i)
               decl=None
-              fields=[]
-              by_off={}
-              methods=[]
-              for rel,line in enumerate(block):
-                  if decl is None:
-                      tm=type_rx.search(line)
-                      if tm:
-                          decl={
-                              "line":a+rel+1,
-                              "name":tm.group(1),
-                              "text":line.strip(),
-                          }
-                  fm=field_rx.search(line)
-                  if fm:
-                      item={
-                          "line":a+rel+1,
-                          "type":fm.group(1).strip(),
-                          "name":fm.group(2),
-                          "offset":int(fm.group(3),16),
-                          "text":line.strip(),
-                      }
-                      fields.append(item)
-                      by_off.setdefault(item["offset"],[]).append(item)
-
-                  rm=rva_rx.search(line)
-                  if rm:
-                      rva=int(rm.group(1),16)
-                      sig=None
-                      sig_line=None
-                      for k in range(rel+1,min(len(block),rel+8)):
-                          s=block[k].strip()
-                          if s and not s.startswith("//") and "(" in s and ")" in s:
-                              sig=s
-                              sig_line=a+k+1
-                              break
-                      methods.append({
-                          "rva":rva,
-                          "comment_line":a+rel+1,
-                          "signature_line":sig_line,
-                          "signature":sig,
-                      })
-
-              required=(0x10,0x14,0x18,0x30,0x38,0x40,0x48,0x50,0x58,0x60,
-                        0x74,0x75,0x78,0x7C,0x80,0x88,0x90,
-                        0x98,0xA0,0xA8,0xB0,0xB8)
-              if not all(off in by_off for off in required):
-                  continue
-
-              comb=[one_type(by_off,x) for x in (0x38,0x48,0x58)]
-              cond=[one_type(by_off,x) for x in (0x40,0x50,0x60)]
-              exe=[one_type(by_off,x) for x in (0x80,0x88,0x90)]
-              bools=[one_type(by_off,x) for x in (0x74,0x75,0x7C)]
-              ids=[one_type(by_off,x) for x in (0x10,0x14,0x18)]
-
-              same_comb=None not in comb and len(set(comb))==1
-              # Legacy QuestExcel uses QuestCond[] for accept, but QuestContent[]
-              # for both finish/fail. Do not require all three condition arrays
-              # to have the same element type.
-              cond_shape=(
-                  None not in cond
-                  and all(x.endswith("[]") for x in cond)
-                  and cond[1] == cond[2]
-                  and cond[0] != cond[1]
-              )
-              same_exec=None not in exe and len(set(exe))==1 and exe[0].endswith("[]")
-              bool_triplet=bools==["bool","bool","bool"]
-              id_triplet=(ids[0]=="uint" and ids[1]=="uint" and ids[2] in {"int","uint"})
-              show_pair=(
-                  one_type(by_off,0x30) is not None
-                  and one_type(by_off,0x30)==one_type(by_off,0x78)
-              )
-              uint_array_tail=all(
-                  one_type(by_off,x)=="uint[]" for x in (0x98,0xA0,0xB0,0xB8)
-              ) and one_type(by_off,0xA8)=="uint"
-              distinct_exec=cond_shape and same_exec and exe[0] not in set(cond)
-
-              if not (same_comb and cond_shape and same_exec and bool_triplet
-                      and id_triplet and show_pair and uint_array_tail
-                      and distinct_exec):
-                  continue
-
-              readers=[]
-              for m in methods:
-                  sig=m["signature"] or ""
-                  if reader_sig_rx.search(sig):
-                      readers.append(m)
-
-              extras=sum(off in by_off for off in
-                         (0x98,0xA0,0xA8,0xB0,0xB8))
-              score=1000 + extras*20 + len(readers)*100
-              matches.append({
-                  "score":score,
-                  "namespace_line":a+1,
-                  "namespace":lines[a],
+              for j in range(a,min(b,a+80)):
+                  tm=type_rx.search(lines[j])
+                  if tm:
+                      decl={"line":j+1,"name":tm.group(1),"text":lines[j].strip()}
+                      break
+              sig=None
+              sig_line=None
+              for j in range(i+1,min(b,i+10)):
+                  s=lines[j].strip()
+                  if s and not s.startswith("//") and "(" in s and ")" in s:
+                      sig=s
+                      sig_line=j+1
+                      break
+              context=lines[max(a,i-20):min(b,i+25)]
+              row={
+                  "expected":targets[rva],
+                  "rva":rva,
+                  "comment_line":i+1,
                   "declaration":decl,
-                  "id_types":ids,
-                  "comb_type":comb[0],
-                  "accept_condition_array_type":cond[0],
-                  "finish_fail_condition_array_type":cond[1],
-                  "exec_array_type":exe[0],
-                  "reader_methods":readers,
-                  "fields":fields,
-                  "methods":methods,
-              })
+                  "signature_line":sig_line,
+                  "signature":sig,
+                  "context":context,
+              }
+              found.setdefault(rva,[]).append(row)
 
-          matches.sort(key=lambda x:(-x["score"],x["namespace_line"]))
-          print("\n=== structural legacy Quest row matches ===")
-          print("count",len(matches))
-          for rank,x in enumerate(matches[:30],1):
-              print(f"\n--- rank {rank} score={x['score']} ---")
-              print("NAMESPACE",x["namespace"])
-              print("DECL",x["declaration"])
-              print("ID_TYPES",x["id_types"])
-              print("COMB",x["comb_type"])
-              print("ACCEPT[]",x["accept_condition_array_type"])
-              print("FINISH_FAIL[]",x["finish_fail_condition_array_type"])
-              print("EXEC[]",x["exec_array_type"])
-              print("READERS")
-              for m in x["reader_methods"]:
-                  print(
-                      f"  RVA=0x{m['rva']:X} L{m['signature_line']} "
-                      f"{m['signature']}"
-                  )
-              print("FIELDS")
-              for fld in x["fields"]:
-                  if fld["offset"] <= 0xC0:
-                      print(
-                          f"  +0x{fld['offset']:X} {fld['type']} "
-                          f"{fld['name']}"
-                      )
+          print("dump.cs lines",len(lines))
+          for rva,label in targets.items():
+              rows=found.get(rva,[])
+              print(f"\n=== {label} target=0x{rva:X} hits={len(rows)} ===")
+              for row in rows:
+                  print("DECL",row["declaration"])
+                  print("SIG",row["signature_line"],row["signature"])
+                  print("CONTEXT")
+                  for x in row["context"]:
+                      print(x)
 
-          Path("quest-legacy-30-metadata.json").write_text(
-              json.dumps({
-                  "dump_line_count":len(lines),
-                  "structural_matches":matches,
-              },ensure_ascii=False,indent=2)+"\n",
+          Path("quest-legacy-30-known-rvas.json").write_text(
+              json.dumps(
+                  {
+                      "targets":{hex(k):v for k,v in targets.items()},
+                      "found":{hex(k):v for k,v in found.items()},
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )+"\n",
               encoding="utf-8",
           )
-
-          if not matches:
-              raise SystemExit("no repeated condition/exec-array Quest row type found")
-          if not matches[0]["reader_methods"]:
-              raise SystemExit("top Quest row type has no OLCLOPLLAGP reader method")
+          missing=[hex(x) for x in targets if not found.get(x)]
+          if missing:
+              raise SystemExit("known RVA(s) missing from exact dump: "+",".join(missing))
           PY
 
-      - name: Recover exact PE function bounds and reader fingerprint
+      - name: Compare raw PE with loaded-memory QuestExcel code
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install pefile capstone
-          python - <<'PY' | tee quest-legacy-30-exact-functions.txt
-          import json
-          from pathlib import Path
+
+          python - <<'PY' | tee quest-legacy-30-pe-imports.txt
           import pefile
-          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+          pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll")
+          print("image_base",hex(pe.OPTIONAL_HEADER.ImageBase))
+          print("entrypoint",hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint))
+          for entry in getattr(pe,"DIRECTORY_ENTRY_IMPORT",[]):
+              print(entry.dll.decode(errors="replace"))
+          PY
 
-          meta=json.loads(Path("quest-legacy-30-metadata.json").read_text())
-          best=meta["structural_matches"][0]
-          readers=best["reader_methods"]
-          print("TYPE",best["declaration"])
-          print("ACCEPT",best["accept_condition_array_type"])
-          print("FINISH_FAIL",best["finish_fail_condition_array_type"])
-          print("EXEC",best["exec_array_type"])
+          cat > quest-legacy-30-memory-dump.py <<'PY'
+          import ctypes
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
 
-          pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll",fast_load=False)
-          base=pe.OPTIONAL_HEADER.ImageBase
-          pe.parse_data_directories(
-              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
-          )
-          runtime=sorted(
-              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
-              for x in pe.DIRECTORY_ENTRY_EXCEPTION
-              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
-          )
-          def containing(rva):
-              for a,b in runtime:
-                  if a<=rva<b:
-                      return a,b
-              return None
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+
+          dll=Path("inputs/3.0.0-global/UserAssembly.dll").resolve()
+          pe=pefile.PE(str(dll),fast_load=True)
+          preferred=pe.OPTIONAL_HEADER.ImageBase
+
+          targets={
+              0x10FD580:0x350,
+              0x3AF9E10:0x15E0,
+          }
+
+          print("loading",dll)
+          try:
+              mod=ctypes.WinDLL(str(dll))
+          except Exception as e:
+              print("LOAD_ERROR",repr(e))
+              raise SystemExit(2)
+
+          base=int(mod._handle)
+          print("loaded_base",hex(base),"preferred_base",hex(preferred))
 
           md=Cs(CS_ARCH_X86,CS_MODE_64)
-          md.detail=True
-          out=[]
-          interesting={0x10,0x14,0x18,0x38,0x40,0x48,0x50,0x58,0x60,
-                       0x74,0x75,0x7C,0x80,0x88,0x90,0x98,0xA0,0xA8,0xB0,0xB8}
-          for reader in readers:
-              rva=reader["rva"]
-              bounds=containing(rva)
-              print(f"\n=== reader metadata RVA=0x{rva:X} bounds={bounds} ===")
-              if not bounds:
-                  continue
-              a,b=bounds
-              insns=[]
-              calls=[]
-              refs=[]
-              for ins in md.disasm(pe.get_data(a,b-a),base+a):
-                  row={
-                      "rva":ins.address-base,
+          report={}
+          outdir=Path("quest-legacy-30-memory")
+          outdir.mkdir(exist_ok=True)
+
+          for rva,size in targets.items():
+              raw=pe.get_data(rva,size)
+              mem=ctypes.string_at(base+rva,size)
+              diff=sum(a!=b for a,b in zip(raw,mem))
+              print(
+                  f"\n=== RVA 0x{rva:X} size=0x{size:X} ===",
+                  "raw_sha256",hashlib.sha256(raw).hexdigest(),
+                  "mem_sha256",hashlib.sha256(mem).hexdigest(),
+                  "different_bytes",diff,
+              )
+              (outdir/f"{rva:X}-raw.bin").write_bytes(raw)
+              (outdir/f"{rva:X}-memory.bin").write_bytes(mem)
+
+              rows=[]
+              print("MEMORY DISASM")
+              for n,ins in enumerate(md.disasm(mem,base+rva)):
+                  rr=ins.address-base
+                  rows.append({
+                      "rva":rr,
                       "bytes":ins.bytes.hex(),
                       "mnemonic":ins.mnemonic,
                       "op_str":ins.op_str,
-                  }
-                  if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
-                      row["call_target_rva"]=ins.operands[0].imm-base
-                      calls.append((row["rva"],row["call_target_rva"]))
-                  mem=[]
-                  for op in ins.operands:
-                      if op.type==X86_OP_MEM:
-                          mm={
-                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
-                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
-                              "scale":op.mem.scale,
-                              "disp":op.mem.disp,
-                          }
-                          mem.append(mm)
-                          if op.mem.disp in interesting:
-                              refs.append({
-                                  "rva":row["rva"],
-                                  "mnemonic":ins.mnemonic,
-                                  "op_str":ins.op_str,
-                                  **mm,
-                              })
-                  if mem:
-                      row["mem"]=mem
-                  insns.append(row)
+                  })
+                  if n<800:
+                      print(f"0x{rr:X} {ins.mnemonic:<8} {ins.op_str}")
+              report[hex(rva)]={
+                  "size":size,
+                  "raw_sha256":hashlib.sha256(raw).hexdigest(),
+                  "memory_sha256":hashlib.sha256(mem).hexdigest(),
+                  "different_bytes":diff,
+                  "instructions":rows,
+              }
 
-              print("size",b-a,"instructions",len(insns),"calls",len(calls))
-              print("INTERESTING FIELD-LIKE REFS")
-              for x in refs:
-                  print(
-                      f"  0x{x['rva']:X} disp=0x{x['disp']:X} "
-                      f"base={x['base']} index={x['index']} "
-                      f"{x['mnemonic']} {x['op_str']}"
-                  )
-              print("CALLS")
-              for src,dst in calls:
-                  print(f"  0x{src:X} -> 0x{dst:X}")
-
-              out.append({
-                  "metadata_rva":rva,
-                  "signature":reader["signature"],
-                  "begin_rva":a,
-                  "end_rva":b,
-                  "field_refs":refs,
-                  "calls":[{"rva":s,"target_rva":d} for s,d in calls],
-                  "instructions":insns,
-              })
-
-          Path("quest-legacy-30-exact-functions.json").write_text(
-              json.dumps({
-                  "type":best,
-                  "readers":out,
-              },ensure_ascii=False,indent=2)+"\n",
-              encoding="utf-8",
+          Path("quest-legacy-30-memory.json").write_text(
+              json.dumps(report,indent=2)+"\n",encoding="utf-8"
           )
-          if not out:
-              raise SystemExit("no exact reader PE function recovered")
           PY
+
+          set +e
+          python quest-legacy-30-memory-dump.py 2>&1 | tee quest-legacy-30-memory.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "memory probe rc=$rc"
+          if [ "$rc" -ne 0 ]; then
+            echo "Loaded-memory probe unavailable; keeping exact metadata/RVA evidence."
+          fi
 
       - name: Upload focused metadata evidence
         if: always()
