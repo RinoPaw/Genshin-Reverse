@@ -25,7 +25,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install focused dependencies
-        run: python -m pip install -e . capstone zstandard
+        run: python -m pip install -e . capstone zstandard lz4
 
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
@@ -165,6 +165,53 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Probe static BLB3 decode with pinned peer implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          peer_sha=4681ecd7ce0cfa94efe6f51b1c0122b237ede904
+          mkdir -p third-party/usmdiviner runtime-asset-index-decoded
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/HRB-YuPai/UsmDiviner-GUI/$peer_sha/usmdiviner/blk_versions.py"             -o third-party/usmdiviner/blk_versions.py
+
+          set +e
+          python third-party/usmdiviner/blk_versions.py             runtime-asset-index/31049740.blk             --dump-files-dir runtime-asset-index-decoded             -o runtime-asset-index-blb3.json             > runtime-asset-index-blb3.txt 2>&1
+          status=$?
+          set -e
+          echo "peer_exit_status=$status" | tee -a runtime-asset-index-blb3.txt
+          find runtime-asset-index-decoded -type f -printf '%p %s\n'             | sort | tee runtime-asset-index-decoded-files.txt || true
+
+          python - <<'PY' | tee runtime-asset-index-blb3-summary.txt
+          import json
+          import struct
+          from pathlib import Path
+
+          blk=Path("runtime-asset-index/31049740.blk").read_bytes()
+          if blk[:4] != b"Blb\x03":
+              raise SystemExit("unexpected BLB magic")
+          out={
+              "magic":blk[:4].hex(),
+              "size_field":struct.unpack_from("<I",blk,4)[0],
+              "version":struct.unpack_from("<I",blk,8)[0],
+              "iv":blk[12:28].hex(),
+              "peer_repository":"HRB-YuPai/UsmDiviner-GUI",
+              "peer_commit":"4681ecd7ce0cfa94efe6f51b1c0122b237ede904",
+          }
+          p=Path("runtime-asset-index-blb3.json")
+          if p.is_file():
+              try:
+                  parsed=json.loads(p.read_text(encoding="utf-8"))
+                  out["peer_meta"]=parsed.get("meta")
+                  out["inner_file_count"]=parsed.get("inner_file_count")
+                  out["inner_files"]=parsed.get("inner_files")
+              except Exception as exc:
+                  out["peer_json_error"]=str(exc)
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("runtime-asset-index-blb3-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -183,4 +230,10 @@ jobs:
             runtime-asset-index-asset-map.json
             runtime-asset-index-calls.txt
             runtime-asset-index-calls.json
+            runtime-asset-index-blb3.txt
+            runtime-asset-index-blb3.json
+            runtime-asset-index-blb3-summary.txt
+            runtime-asset-index-blb3-summary.json
+            runtime-asset-index-decoded-files.txt
+            runtime-asset-index-decoded/
           if-no-files-found: error
