@@ -109,6 +109,127 @@ jobs:
           if (name.sub_asset_id, block_ref.block_id, group_id) != (178, 25539185, 0):
               raise SystemExit('unexpected 7.1 QuestExcel asset chain')
           PY
+      - name: Query full Quest 351 handle in design AssetIndex
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-351-design-asset-location.txt
+          import json
+          import struct
+          from pathlib import Path
+
+          from genshinre.assetindex import parse_asset_index, unwrap_mihoyo_bin_data
+
+          export=Path('design-index-output/MiHoYoBinData/0000006f.dat')
+          raw=export.read_bytes()
+          payload=unwrap_mihoyo_bin_data(raw)
+          pos=0
+
+          def take(n):
+              global pos
+              end=pos+n
+              if n<0 or end>len(payload):
+                  raise ValueError(f'truncated at 0x{pos:X}: need {n}')
+              out=payload[pos:end]
+              pos=end
+              return out
+
+          def u8():
+              return take(1)[0]
+
+          def u32():
+              return struct.unpack('<I',take(4))[0]
+
+          def i32():
+              return struct.unpack('<i',take(4))[0]
+
+          def u64():
+              return struct.unpack('<Q',take(8))[0]
+
+          def string():
+              n=u32()
+              return take(n).decode('utf-8')
+
+          type_count=u32()
+          for _ in range(type_count):
+              string(); string()
+
+          asset_count=u32()
+          targets={
+              'full_351': 1493294957662636073,
+              'brief_351': 4648317078461056961,
+          }
+          matches={k:[] for k in targets}
+          low40_matches={k:[] for k in targets}
+          mask40=(1<<40)-1
+
+          for ordinal in range(asset_count):
+              record_offset=pos
+              asset_path_hash=u64()
+              location_count=u8()
+              locations=[]
+              for _ in range(location_count):
+                  locations.append({
+                      'language_code':u8(),
+                      'bundle_hash':i32(),
+                  })
+              row={
+                  'ordinal':ordinal,
+                  'record_offset':record_offset,
+                  'asset_path_hash':f'0x{asset_path_hash:016X}',
+                  'location_count':location_count,
+                  'locations':locations,
+              }
+              for label,target in targets.items():
+                  if asset_path_hash==target:
+                      matches[label].append(row)
+                  if (asset_path_hash & mask40)==(target & mask40):
+                      low40_matches[label].append(row)
+
+          # The existing parser consumes the same bytes through the remaining
+          # block maps. Use it only for block-ref lookup after recovering the
+          # native BundleContent locations above.
+          index=parse_asset_index(raw)
+          resolved={}
+          for label,rows in matches.items():
+              rr=[]
+              for row in rows:
+                  item=dict(row)
+                  block_locations=[]
+                  for loc in row['locations']:
+                      asset_id=loc['bundle_hash'] & 0xffffffff
+                      try:
+                          ref=index.block_ref_for_asset(asset_id)
+                          block_locations.append({
+                              **loc,
+                              'asset_id_u32':asset_id,
+                              'block_id':ref.block_id,
+                              'group_id':index.block_groups.get(ref.block_id),
+                              'unknown0':ref.unknown0,
+                              'unknown1':ref.unknown1,
+                          })
+                      except KeyError:
+                          block_locations.append({**loc,'asset_id_u32':asset_id,'block_ref':None})
+                  item['block_locations']=block_locations
+                  rr.append(item)
+              resolved[label]=rr
+
+          out={
+              'wire_semantics':{
+                  'record':'u64 assetPathHash; u8 locationCount; repeated {u8 languageCode; i32 bundleHash}',
+                  'evidence':'7.1 AssetIndexDeserializer.ReadAssetInfoMap_B @ 0x6DD43E0',
+              },
+              'type_count':type_count,
+              'asset_count':asset_count,
+              'asset_map_end_offset':pos,
+              'targets':{k:f'0x{v:016X}' for k,v in targets.items()},
+              'exact_matches':resolved,
+              'low40_matches':low40_matches,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path('quest-351-design-asset-location.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Resolve and decode current 7.1 MainQuest binary indexes
         shell: bash
         run: |
@@ -954,6 +1075,8 @@ jobs:
           path: |
             reconstruct-summary.txt
             design-index-animestudio.txt
+            quest-351-design-asset-location.txt
+            quest-351-design-asset-location.json
             asset-chain-summary.txt
             quest-animestudio.txt
             quest-payload-summary.txt
