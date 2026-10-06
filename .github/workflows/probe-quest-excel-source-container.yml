@@ -1,0 +1,148 @@
+name: Probe 7.1 QuestExcel source container
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-excel-source-container.yml"
+
+concurrency:
+  group: probe-quest-excel-source-container-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Trace GPC source-row reader callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-gpc-callers.json \
+            --focus gpc-row:0xCAB9080 \
+            --max-body 0x12000 \
+            | tee quest-gpc-callers.txt
+
+      - name: Dump GPC methods and direct caller bodies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-gpc-container-summary.txt
+          import bisect,csv,json,re
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          exe=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          methods_path=Path("versions/7.1.0-global/windows-x64/metadata/methods.csv")
+          require_sha256(exe,PROFILE_71.exe_sha256,label="executable")
+
+          with methods_path.open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+
+          print("=== GPC metadata methods ===")
+          gpc=[]
+          for row in methods:
+              if row.get("type_name")=="GPCFGOEJFJK":
+                  gpc.append(row)
+                  print(json.dumps(row,ensure_ascii=False,sort_keys=True))
+
+          trace=json.loads(Path("quest-gpc-callers.json").read_text(encoding="utf-8"))
+          callers=trace["focus"]["gpc-row"]["direct_callers"]
+          print("=== validated direct callers ===")
+          for row in callers:
+              print(json.dumps(row["caller"],ensure_ascii=False,sort_keys=True))
+
+          # Disassemble the complete metadata body of every unique direct caller.
+          starts={}
+          for row in methods:
+              try:
+                  rva=int(row.get("rva") or "0",0)
+              except ValueError:
+                  continue
+              if rva:
+                  starts.setdefault(rva,[]).append(row)
+          ordered=sorted(starts)
+
+          def end_for(start):
+              i=bisect.bisect_right(ordered,start)
+              return ordered[i] if i<len(ordered) else start+0x10000
+
+          unique=[]
+          for c in callers:
+              start=int(c["caller"]["rva"],0)
+              if start not in unique:
+                  unique.append(start)
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          report={"gpc_methods":gpc,"callers":[]}
+          with PEImage(exe) as image:
+              base=image.image_base
+              for start in unique:
+                  end=min(end_for(start),start+0x12000)
+                  body=image.read_rva(start,end-start)
+                  rows=[]
+                  for x in md.disasm(body,base+start):
+                      irva=x.address-base
+                      rows.append({
+                          "rva":f"0x{irva:X}",
+                          "bytes":x.bytes.hex(),
+                          "mnemonic":x.mnemonic,
+                          "op_str":x.op_str,
+                      })
+                  item={
+                      "start_rva":f"0x{start:X}",
+                      "end_rva":f"0x{end:X}",
+                      "metadata":starts.get(start,[]),
+                      "instructions":rows,
+                  }
+                  report["callers"].append(item)
+                  print("\n=== caller",f"0x{start:X}","===")
+                  for x in rows:
+                      # Preserve count-transform candidates and loop/call structure.
+                      if x["mnemonic"] in {
+                          "call","jmp","je","jne","jae","jb","jl","jle","jg","jge",
+                          "mov","movzx","movsxd","add","sub","xor","or","and","cmp",
+                          "inc","dec","imul","shl","shr","sar"
+                      }:
+                          print(x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-gpc-container-bodies.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          # Hard anchor: exact QuestExcel payload first u32.
+          raw=0x40233AB1
+          print("\nQuestExcel first_u32 =",f"0x{raw:08X}",raw)
+          print("Published same-version row count control = 17814")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-excel-source-container
+          path: |
+            quest-gpc-callers.txt
+            quest-gpc-callers.json
+            quest-gpc-container-summary.txt
+            quest-gpc-container-bodies.json
+          if-no-files-found: error
