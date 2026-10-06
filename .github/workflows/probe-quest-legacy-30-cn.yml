@@ -1,0 +1,145 @@
+name: Probe 3.0 CN WorldReverse QuestExcel match
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-cn.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-cn-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download official 3.0.0 CN UserAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchcn.yuanshen.com/client_app/download/pc_zip/20220815143702_i3RDKzdbDWGYYfZZ/ScatteredFiles'
+          mkdir -p inputs/3.0.0-cn
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/YuanShen_Data/Native/UserAssembly.dll" \
+            -o inputs/3.0.0-cn/UserAssembly.dll
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path("inputs/3.0.0-cn/UserAssembly.dll")
+          b=p.read_bytes()
+          print("size",len(b),"sha256",hashlib.sha256(b).hexdigest())
+          assert len(b)>100_000_000
+          PY
+
+      - name: Check WorldReverse 3.0 QuestExcel RVAs against CN binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-30-cn.txt
+          import bisect,hashlib,json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_MEM,X86_OP_IMM
+
+          p=Path("inputs/3.0.0-cn/UserAssembly.dll")
+          raw=p.read_bytes()
+          pe=pefile.PE(str(p),fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          rt=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          starts=[a for a,b in rt]
+          def containing(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              return rt[i] if i>=0 and rt[i][0]<=rva<rt[i][1] else None
+
+          fields={
+              0x10:"subId",0x14:"mainId",0x18:"order",0x1C:"subIdSet",
+              0x20:"isMpBlock",0x24:"descTextMapHash",0x28:"stepDescTextMapHash",
+              0x2C:"guideTipsTextMapHash",0x30:"showType",0x34:"banType",
+              0x38:"acceptCondComb",0x40:"acceptCond",0x48:"finishCondComb",
+              0x50:"finishCond",0x58:"failCondComb",0x60:"failCond",0x68:"guide",
+              0x70:"showGuide",0x74:"finishParent",0x75:"failParent",
+              0x78:"failParentShow",0x7C:"isRewind",0x80:"finishExec",
+              0x88:"failExec",0x90:"beginExec",0x98:"exclusiveNpcList",
+              0xA0:"sharedNpcList",0xA8:"exclusiveNpcPriority",
+              0xB0:"trialAvatarList",0xB8:"exclusivePlaceList",
+          }
+          anchors={
+              "QuestExcelConfigLoader.FromBinary":0x10FD580,
+              "QuestExcelConfig.FromBinary":0x3AF9E10,
+          }
+          md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+          report={
+              "image_base":base,
+              "size":len(raw),
+              "sha256":hashlib.sha256(raw).hexdigest(),
+              "anchors":{},
+          }
+          print("image_base",hex(base))
+          for name,rva in anchors.items():
+              bounds=containing(rva)
+              print(f"\n===== {name} 0x{rva:X} bounds={bounds} =====")
+              item={"rva":rva,"bounds":bounds,"field_hits":[],"instructions":[]}
+              if bounds:
+                  a,b=bounds
+                  for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                      row={
+                          "rva":ins.address-base,
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          row["call_target_rva"]=ins.operands[0].imm-base
+                      for op in ins.operands:
+                          if op.type==X86_OP_MEM and op.mem.disp in fields:
+                              br=ins.reg_name(op.mem.base) if op.mem.base else None
+                              if br not in (None,"rsp","rbp","rip"):
+                                  item["field_hits"].append({
+                                      "rva":ins.address-base,
+                                      "base":br,
+                                      "offset":op.mem.disp,
+                                      "field":fields[op.mem.disp],
+                                      "instruction":f"{ins.mnemonic} {ins.op_str}",
+                                  })
+                      item["instructions"].append(row)
+                  print("FIELD_HITS",len(item["field_hits"]))
+                  for h in item["field_hits"][:120]:
+                      print(h)
+                  for x in item["instructions"][:120]:
+                      print(f"0x{x['rva']:X} {x['mnemonic']:<8} {x['op_str']}")
+              report["anchors"][name]=item
+
+          Path("quest-legacy-30-cn.json").write_text(
+              json.dumps(report,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload CN evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-cn
+          path: |
+            quest-legacy-30-cn.txt
+            quest-legacy-30-cn.json
+          if-no-files-found: warn
