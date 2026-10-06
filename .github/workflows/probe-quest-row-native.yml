@@ -588,6 +588,187 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace ordinary Quest row array wrapper and table-binding xrefs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-row-table-binding.json \
+            --focus ordinary-row-array:0x9C15C80 \
+            --focus ordinary-row-scalar:0x9C15DF0 \
+            --max-body 0x4000 \
+            | tee quest-row-table-binding.txt
+
+          python - <<'PY' | tee quest-row-array-wrapper.txt
+          import bisect
+          import csv
+          import json
+          import struct
+          from collections import defaultdict
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM, X86_OP_MEM, X86_REG_RIP
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          ARRAY_RVA = 0x9C15C80
+          SCALAR_RVA = 0x9C15DF0
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+
+          by_rva = defaultdict(list)
+          starts = []
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 16)
+              except ValueError:
+                  continue
+              by_rva[rva].append(row)
+              starts.append(rva)
+          starts = sorted(set(starts))
+
+          def owner(rva):
+              pos = bisect.bisect_right(starts, rva) - 1
+              if pos < 0:
+                  return None
+              start = starts[pos]
+              end = starts[pos + 1] if pos + 1 < len(starts) else start + 0x10000
+              if not (start <= rva < end):
+                  return None
+              return {
+                  "start_rva": f"0x{start:X}",
+                  "end_rva": f"0x{end:X}",
+                  "methods": by_rva[start],
+                  "owners": [
+                      type_by_tdi.get(int(m["type_definition_index"]), {})
+                      for m in by_rva[start]
+                  ],
+              }
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          report = {
+              "array_rva": f"0x{ARRAY_RVA:X}",
+              "scalar_rva": f"0x{SCALAR_RVA:X}",
+              "array_metadata": by_rva.get(ARRAY_RVA, []),
+              "scalar_metadata": by_rva.get(SCALAR_RVA, []),
+              "array_body": [],
+              "pointer_occurrences": [],
+              "rip_xrefs_to_pointer_occurrences": [],
+          }
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              array_va = base + ARRAY_RVA
+              scalar_va = base + SCALAR_RVA
+
+              # The next metadata method is the scalar reader, so this is the exact
+              # array-wrapper body range.
+              blob = image.read_rva(ARRAY_RVA, SCALAR_RVA - ARRAY_RVA)
+              for ins in md.disasm(blob, array_va):
+                  item = {
+                      "rva": f"0x{ins.address - base:X}",
+                      "mnemonic": ins.mnemonic,
+                      "op_str": ins.op_str,
+                      "bytes": bytes(ins.bytes).hex(),
+                  }
+                  if ins.mnemonic in {"call", "jmp"}:
+                      for op in ins.operands:
+                          if op.type == X86_OP_IMM:
+                              target = int(op.imm)
+                              target_rva = target - base if target >= base else target
+                              item["direct_target_rva"] = f"0x{target_rva:X}"
+                              item["direct_target_owner"] = owner(target_rva)
+                              break
+                  report["array_body"].append(item)
+                  print(
+                      f"{item['rva']:>12} {item['mnemonic']:<7} "
+                      f"{item['op_str']}"
+                      + (
+                          f" -> {item.get('direct_target_rva')} "
+                          f"{item.get('direct_target_owner')}"
+                          if item.get("direct_target_rva")
+                          else ""
+                      )
+                  )
+
+              # Locate literal method pointers to the array/scalar readers anywhere
+              # in the image. These are useful when the table loader calls through
+              # a registration/vtable/generic slot instead of a direct E8.
+              wanted = {
+                  struct.pack("<Q", array_va): "array",
+                  struct.pack("<Q", scalar_va): "scalar",
+              }
+              pointer_sites = []
+              for sec in image.sections:
+                  data = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for packed, label in wanted.items():
+                      pos = 0
+                      while True:
+                          pos = data.find(packed, pos)
+                          if pos < 0:
+                              break
+                          site = sec.virtual_address + pos
+                          pointer_sites.append((site, label))
+                          item = {
+                              "label": label,
+                              "rva": f"0x{site:X}",
+                              "section": sec.name,
+                          }
+                          report["pointer_occurrences"].append(item)
+                          print("POINTER", json.dumps(item, ensure_ascii=False))
+                          pos += 1
+
+              # Resolve RIP-relative code references to any discovered method-pointer
+              # slots. This catches indirect table-loader dispatch paths.
+              site_set = {site for site, _ in pointer_sites}
+              if site_set:
+                  for sec in image.sections:
+                      if not (sec.characteristics & 0x20000000):
+                          continue
+                      data = image.read_rva(sec.virtual_address, sec.raw_size)
+                      for ins in md.disasm(data, base + sec.virtual_address):
+                          irva = ins.address - base
+                          for op in ins.operands:
+                              if op.type != X86_OP_MEM or op.mem.base != X86_REG_RIP:
+                                  continue
+                              target = irva + ins.size + op.mem.disp
+                              if target not in site_set:
+                                  continue
+                              item = {
+                                  "site_rva": f"0x{irva:X}",
+                                  "target_pointer_rva": f"0x{target:X}",
+                                  "mnemonic": ins.mnemonic,
+                                  "op_str": ins.op_str,
+                                  "owner": owner(irva),
+                              }
+                              report["rip_xrefs_to_pointer_occurrences"].append(item)
+                              print("RIP_XREF", json.dumps(item, ensure_ascii=False))
+
+          Path("quest-row-array-wrapper.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -597,6 +778,8 @@ jobs:
           test -s quest-row-reader-calls.json
           test -s quest-proxy-array-consumers.json
           test -s quest-facade-array-map.json
+          test -s quest-row-table-binding.json
+          test -s quest-row-array-wrapper.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -612,4 +795,8 @@ jobs:
             quest-proxy-array-consumers.json
             quest-facade-array-map.txt
             quest-facade-array-map.json
+            quest-row-table-binding.txt
+            quest-row-table-binding.json
+            quest-row-array-wrapper.txt
+            quest-row-array-wrapper.json
           if-no-files-found: error
