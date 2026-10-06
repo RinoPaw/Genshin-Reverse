@@ -472,13 +472,37 @@ jobs:
           if row["type_name"] != "LDABEPAGBGK" or row["method_name"] != "GMENPOPMKAA":
               raise AssertionError(f"method identity drift: {row}")
 
-          param_indices = json.loads(row.get("parameter_type_indices") or "[]")
           param_names = json.loads(row.get("parameter_types") or "[]")
           print("METHOD", json.dumps(row, ensure_ascii=False, sort_keys=True))
-          print("PARAM_INDICES", param_indices)
           print("PARAM_NAMES", param_names)
-          if len(param_indices) != 2:
-              raise AssertionError(f"expected 2 parameters, got {param_indices}")
+
+          # The checked-in methods.csv predates persistence of
+          # parameter_type_indices. Decode the exact two parameter records
+          # directly from the protected 7.1 metadata instead.
+          from genshinre.mhy71 import BODY_SKIP, decode_metadata_header_71
+          from genshinre.param71 import PARAMETER_RECORD_SIZE, decode_parameter_record
+
+          metadata = Path("inputs/7.1.0-global/global-metadata.dat").read_bytes()
+          parameter_start = int(row["parameter_start"])
+          parameter_count = int(row["parameter_count"])
+          if parameter_count != 2:
+              raise AssertionError(f"expected 2 parameters, got {parameter_count}")
+
+          with PEImage(EXE) as image:
+              header = image.read_rva(
+                  PROFILE_71.embedded_header_rva,
+                  PROFILE_71.embedded_header_size,
+              )
+          layout = decode_metadata_header_71(header)
+          parameter_base = BODY_SKIP + int(layout["parameter_offset"])
+          param_indices = []
+          for ordinal in range(parameter_count):
+              index = parameter_start + ordinal
+              off = parameter_base + index * PARAMETER_RECORD_SIZE
+              rec = metadata[off:off + PARAMETER_RECORD_SIZE]
+              decoded = decode_parameter_record(rec, index)
+              param_indices.append(int(decoded["type_index"]))
+          print("PARAM_INDICES", param_indices)
           generic_index = int(param_indices[1])
 
           def describe(raw, type_by_tdi):
