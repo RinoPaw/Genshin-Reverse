@@ -210,8 +210,100 @@ jobs:
           )
           PY
 
+      - name: Find exact LAIMPNDEFCL projection candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-row-projection-candidates.txt
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = defaultdict(list)
+          methods_by_tdi = defaultdict(list)
+          for row in fields:
+              fields_by_tdi[int(row["type_definition_index"])].append(row)
+          for row in methods:
+              methods_by_tdi[int(row["type_definition_index"])].append(row)
+
+          hits = []
+          owner_tdis = set()
+          for row in methods:
+              hay = " ".join([
+                  str(row.get("return_type", "")),
+                  str(row.get("parameter_types", "")),
+              ])
+              if "LAIMPNDEFCL" not in hay:
+                  continue
+              tdi = int(row["type_definition_index"])
+              owner_tdis.add(tdi)
+              hits.append({
+                  "method": row,
+                  "owner": type_by_tdi.get(tdi, {}),
+              })
+
+          candidates = []
+          for tdi in sorted(owner_tdis):
+              owned_methods = methods_by_tdi[tdi]
+              binary_readers = [
+                  m for m in owned_methods
+                  if "FNIAHJGHFAK" in str(m.get("parameter_types", ""))
+                  or m.get("method_name") in {"FromBinary", "FromBinaryInner"}
+              ]
+              candidates.append({
+                  "type": type_by_tdi.get(tdi, {}),
+                  "fields": fields_by_tdi.get(tdi, []),
+                  "methods": owned_methods,
+                  "laimp_methods": [
+                      h["method"] for h in hits
+                      if int(h["method"]["type_definition_index"]) == tdi
+                  ],
+                  "binary_readers": binary_readers,
+              })
+
+          # Also preserve exact direct callers of the ordinary row constructors /
+          # initializers from metadata-adjacent method RVAs when those calls were
+          # already surfaced by the native probe. This list is a schema search,
+          # so do not infer semantics from it yet.
+          result = {
+              "laimp_signature_hits": hits,
+              "owner_candidates": candidates,
+          }
+
+          print("signature_hits=", len(hits))
+          for item in hits:
+              print("HIT", json.dumps(item, ensure_ascii=False, sort_keys=True))
+          print("owners=", len(candidates))
+          for item in candidates:
+              print("OWNER", json.dumps({
+                  "type": item["type"],
+                  "field_count": len(item["fields"]),
+                  "method_count": len(item["methods"]),
+                  "binary_readers": item["binary_readers"],
+                  "laimp_methods": item["laimp_methods"],
+              }, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-row-projection-candidates.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Assert evidence
-        run: test -s quest-excel-wire-candidates.json
+        run: |
+          test -s quest-excel-wire-candidates.json
+          test -s quest-row-projection-candidates.json
 
       - name: Upload focused evidence
         if: always()
@@ -221,4 +313,6 @@ jobs:
           path: |
             quest-excel-wire-candidates.txt
             quest-excel-wire-candidates.json
+            quest-row-projection-candidates.txt
+            quest-row-projection-candidates.json
           if-no-files-found: error
