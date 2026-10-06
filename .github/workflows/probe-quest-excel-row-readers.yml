@@ -111,6 +111,77 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Resolve orphan row-reader metadata owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-row-reader-owners.txt
+          import bisect,csv,json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (ROOT/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          with (ROOT/"types.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              types=list(csv.DictReader(fh))
+          with (ROOT/"fields.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              fields=list(csv.DictReader(fh))
+
+          targets={
+              "random-quest":0xCF246E0,
+              "gpc":0xCAB9080,
+              "ordinary-runtime":0x9C15DF0,
+              "npdia":0xF3850A0,
+              "mpon":0x1155A450,
+              "lglh":0x12CA3BA0,
+              "geeo":0x11098B90,
+          }
+
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          methods_by_tdi={}
+          fields_by_tdi={}
+          rows=[]
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except ValueError:continue
+              if r: rows.append((r,m))
+              try:methods_by_tdi.setdefault(int(m["type_definition_index"]),[]).append(m)
+              except Exception:pass
+          rows.sort(key=lambda x:x[0]); starts=[r for r,_ in rows]
+          for x in fields:
+              try:fields_by_tdi.setdefault(int(x["type_definition_index"]),[]).append(x)
+              except Exception:pass
+
+          out={}
+          for label,rva in targets.items():
+              exact=[m for r,m in rows if r==rva]
+              if not exact:
+                  i=bisect.bisect_right(starts,rva)-1
+                  exact=[rows[i][1]] if i>=0 else []
+              tdis=sorted({int(m["type_definition_index"]) for m in exact if m.get("type_definition_index")})
+              owners=[]
+              for tdi in tdis:
+                  owners.append({
+                      "type":type_by_tdi.get(tdi,{}),
+                      "fields":fields_by_tdi.get(tdi,[]),
+                      "methods":methods_by_tdi.get(tdi,[]),
+                  })
+              out[label]={"target_rva":f"0x{rva:X}","method_rows":exact,"owners":owners}
+              print("\n###",label,f"0x{rva:X}")
+              print("METHOD",json.dumps(exact,ensure_ascii=False))
+              for owner in owners:
+                  print("TYPE",json.dumps(owner["type"],ensure_ascii=False))
+                  print("FIELDS")
+                  for x in owner["fields"]:
+                      print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+                  print("METHODS")
+                  for x in owner["methods"]:
+                      print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-excel-row-reader-owners.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -119,4 +190,6 @@ jobs:
             qrow-candidates/
             quest-excel-row-reader-fingerprints.txt
             quest-excel-row-reader-fingerprints.json
+            quest-excel-row-reader-owners.txt
+            quest-excel-row-reader-owners.json
           if-no-files-found: error
