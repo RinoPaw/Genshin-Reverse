@@ -154,6 +154,272 @@ jobs:
           if value != 7473:
               raise SystemExit(f'unexpected leading uvarint: {value}')
           PY
+      - name: Locate representative Quest rows and decode acceptCond candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-row-target-scan.txt
+          import json
+          import struct
+          from pathlib import Path
+
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          MASK32 = 0xFFFFFFFF
+          MASK64 = 0xFFFFFFFFFFFFFFFF
+
+          target = Path('quest-output/MiHoYoBinData/3b87ae83.dat')
+          payload = unwrap_mihoyo_bin_data(target.read_bytes())
+
+          TARGETS = [
+              35100, 35101, 35102, 35103, 35104, 35105, 35106, 35107,
+              37504, 37603, 38805,
+          ]
+
+          def enc_sub_id(value):
+              return (((value ^ 0x54F036F0) - 0xECA43BB1) & MASK32).to_bytes(4, 'little')
+
+          def enc_main_id(value):
+              return ((value - 0x37C70F67) & MASK32).to_bytes(4, 'little')
+
+          def all_occurrences(data, needle):
+              out = []
+              start = 0
+              while True:
+                  pos = data.find(needle, start)
+                  if pos < 0:
+                      return out
+                  out.append(pos)
+                  start = pos + 1
+
+          def printable(data):
+              return ''.join(chr(x) if 32 <= x < 127 else '.' for x in data)
+
+          def decode_string_block(raw, size):
+              # RandomQuestCond.FromBinaryInner decodes each source qword with:
+              #   decoded_qword = encoded_qword + 0xFFB5ABCD75E0AA9F
+              # The final partial qword follows the same arithmetic.
+              key = 0xFFB5ABCD75E0AA9F
+              chunks = bytearray()
+              count = (size + 7) // 8
+              padded = raw[:count * 8].ljust(count * 8, b'\0')
+              for i in range(count):
+                  word = struct.unpack_from('<Q', padded, i * 8)[0]
+                  chunks += struct.pack('<Q', (word + key) & MASK64)
+              return bytes(chunks[:size])
+
+          def decode_random_cond(data, start, string_advance):
+              pos = start
+              if pos + 2 > len(data):
+                  raise ValueError('truncated mask')
+              raw_mask = struct.unpack_from('<H', data, pos)[0]
+              pos += 2
+              mask = raw_mask ^ 0xF5FD
+              result = {
+                  'start': start,
+                  'raw_mask': f'0x{raw_mask:04X}',
+                  'mask': f'0x{mask:04X}',
+                  'param_present': bool(mask & 0x80),
+                  'type_present': bool(mask & 0x10),
+              }
+
+              params = []
+              if mask & 0x80:
+                  if pos + 4 > len(data):
+                      raise ValueError('truncated param count')
+                  raw_count = struct.unpack_from('<I', data, pos)[0]
+                  pos += 4
+                  count = raw_count ^ 0xFF097144
+                  if count > 16:
+                      raise ValueError(f'implausible param count {count}')
+                  result['raw_param_count'] = f'0x{raw_count:08X}'
+                  result['param_count'] = count
+                  for _ in range(count):
+                      if pos + 2 > len(data):
+                          raise ValueError('truncated string length')
+                      raw_len = struct.unpack_from('<H', data, pos)[0]
+                      pos += 2
+                      size = raw_len ^ 0xAA9F
+                      if size > 256:
+                          raise ValueError(f'implausible string size {size}')
+                      if size == 0:
+                          params.append('')
+                          continue
+                      wire = size if string_advance == 'byte' else ((size + 7) // 8) * 8
+                      if pos + wire > len(data):
+                          raise ValueError('truncated encoded string')
+                      decoded = decode_string_block(data[pos:pos + max(wire, ((size + 7) // 8) * 8)], size)
+                      try:
+                          text = decoded.decode('utf-8')
+                      except UnicodeDecodeError:
+                          text = decoded.hex()
+                      params.append(text)
+                      pos += wire
+              result['params'] = params
+
+              if mask & 0x10:
+                  if pos + 4 > len(data):
+                      raise ValueError('truncated condition type')
+                  raw_type = struct.unpack_from('<I', data, pos)[0]
+                  pos += 4
+                  cond_type = raw_type ^ 0x2630ADFF
+                  result['raw_type'] = f'0x{raw_type:08X}'
+                  result['type_value'] = cond_type
+              else:
+                  result['type_value'] = 0
+
+              result['end'] = pos
+              result['consumed'] = pos - start
+              return result
+
+          def decode_random_cond_array(data, start, string_advance):
+              if start + 4 > len(data):
+                  raise ValueError('truncated array count')
+              raw_count = struct.unpack_from('<I', data, start)[0]
+              count = (raw_count + 0x2B808E28) & MASK32
+              if count > 16:
+                  raise ValueError(f'implausible array count {count}')
+              pos = start + 4
+              items = []
+              for _ in range(count):
+                  item = decode_random_cond(data, pos, string_advance)
+                  items.append(item)
+                  pos = item['end']
+              return {
+                  'start': start,
+                  'raw_count': f'0x{raw_count:08X}',
+                  'count': count,
+                  'string_advance': string_advance,
+                  'items': items,
+                  'end': pos,
+                  'consumed': pos - start,
+              }
+
+          positions = {}
+          print('=== encoded subId anchors ===')
+          for sub_id in TARGETS:
+              needle = enc_sub_id(sub_id)
+              hits = all_occurrences(payload, needle)
+              positions[sub_id] = hits
+              print(
+                  f'subId={sub_id} encoded={needle.hex()} '
+                  f'hits={[hex(x) for x in hits]}'
+              )
+
+          print('=== 351 row anchor order ===')
+          cluster = []
+          for sub_id in range(35100, 35108):
+              for pos in positions.get(sub_id, []):
+                  cluster.append((pos, sub_id))
+          for pos, sub_id in sorted(cluster):
+              print(f'0x{pos:X} subId={sub_id}')
+
+          evidence = {'targets': {}}
+          print('=== target row windows / acceptCond-array candidates ===')
+          for sub_id in TARGETS:
+              hits = positions[sub_id]
+              record = {
+                  'encoded_sub_id': enc_sub_id(sub_id).hex(),
+                  'hits': hits,
+                  'anchors': [],
+              }
+              evidence['targets'][str(sub_id)] = record
+              if len(hits) != 1:
+                  print(f'-- subId={sub_id}: expected one anchor, got {len(hits)} --')
+                  continue
+
+              pos = hits[0]
+              main_id = sub_id // 100
+              main_hits = [
+                  x for x in all_occurrences(payload, enc_main_id(main_id))
+                  if pos - 256 <= x <= pos + 768
+              ]
+              left = max(0, pos - 192)
+              right = min(len(payload), pos + 1024)
+              window = payload[left:right]
+
+              print(f'-- subId={sub_id} anchor=0x{pos:X} mainId={main_id} --')
+              print('mainId_near=', [hex(x) for x in main_hits])
+              print('window_base=', hex(left))
+              print('window_hex=', window.hex())
+              print('window_ascii=', printable(window))
+
+              candidates = []
+              # RandomQuestCond[] array count is decoded as:
+              #   count = raw_u32 + 0x2B808E28
+              # Probe plausible 0..8 counts in the post-subId region.
+              scan_end = min(len(payload), pos + 1400)
+              for count in range(0, 9):
+                  raw = (count - 0x2B808E28) & MASK32
+                  needle = struct.pack('<I', raw)
+                  start = pos
+                  while True:
+                      at = payload.find(needle, start, scan_end)
+                      if at < 0:
+                          break
+                      candidate = {
+                          'offset': at,
+                          'count': count,
+                          'raw': f'0x{raw:08X}',
+                          'decodes': [],
+                      }
+                      for strategy in ('byte', 'qword'):
+                          try:
+                              decoded = decode_random_cond_array(payload, at, strategy)
+                              # Keep only structurally plausible masks/types.
+                              plausible = all(
+                                  (int(item['mask'], 16) & ~0x90) == 0
+                                  and item['type_value'] < 512
+                                  for item in decoded['items']
+                              )
+                              decoded['plausible'] = plausible
+                              candidate['decodes'].append(decoded)
+                          except Exception as exc:
+                              candidate['decodes'].append({
+                                  'string_advance': strategy,
+                                  'error': f'{type(exc).__name__}: {exc}',
+                              })
+                      candidates.append(candidate)
+                      start = at + 1
+
+              # Also report acceptCondComb-like words. Current row decoder uses
+              # value = raw_u32 ^ 0x71121A23; enum values should remain small.
+              comb = []
+              for at in range(pos, scan_end - 3):
+                  raw = struct.unpack_from('<I', payload, at)[0]
+                  value = raw ^ 0x71121A23
+                  if value <= 8:
+                      comb.append({
+                          'offset': at,
+                          'raw': f'0x{raw:08X}',
+                          'value': value,
+                      })
+
+              anchor_info = {
+                  'sub_id_offset': pos,
+                  'main_id_near': main_hits,
+                  'window_base': left,
+                  'window_hex': window.hex(),
+                  'array_candidates': candidates,
+                  'comb_candidates': comb,
+              }
+              record['anchors'].append(anchor_info)
+
+              for candidate in candidates:
+                  if any(
+                      decoded.get('plausible')
+                      for decoded in candidate['decodes']
+                      if isinstance(decoded, dict)
+                  ):
+                      print('ARRAY_CANDIDATE', json.dumps(candidate, ensure_ascii=False))
+              if comb:
+                  print('COMB_CANDIDATES', json.dumps(comb, ensure_ascii=False))
+
+          Path('quest-row-target-scan.json').write_text(
+              json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -165,4 +431,6 @@ jobs:
             asset-chain-summary.txt
             quest-animestudio.txt
             quest-payload-summary.txt
+            quest-row-target-scan.txt
+            quest-row-target-scan.json
           if-no-files-found: warn
