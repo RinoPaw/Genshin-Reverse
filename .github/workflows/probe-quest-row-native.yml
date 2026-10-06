@@ -1,0 +1,238 @@
+name: Probe ordinary 7.1 Quest row native schema
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-row-native.yml"
+
+concurrency:
+  group: probe-quest-row-native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Resolve LAIMPNDEFCL runtime field types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-row-runtime-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          ROW_TDI = 17589
+          FOCUS_TYPE_INDICES = {495576, 495577}
+
+          def read_csv(name):
+              with (root / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          with PEImage(exe) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def read_entry_by_index(index):
+                  va = type_array_va + index * ENTRY_SIZE
+                  data = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE:
+                      raise ValueError(f"truncated runtime type {index}")
+                  return data
+
+              def read_entry_by_va(va):
+                  data = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE:
+                      raise ValueError(f"truncated Il2CppType @ 0x{va:X}")
+                  return data
+
+              def describe_entry(entry, depth=0):
+                  decoded = decode_type_entry(entry)
+                  kind = int(decoded["kind"])
+                  data_u64 = int.from_bytes(entry[:8], "little")
+                  out = {
+                      "kind": decoded["kind_name"],
+                      "kind_value": kind,
+                      "data_u64": f"0x{data_u64:X}",
+                      "data_u32": int(decoded["data_u32"]),
+                      "raw": entry.hex(),
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(decoded["data_u32"])
+                      out["type_definition_index"] = tdi
+                      out["type"] = type_by_tdi.get(tdi)
+                  elif kind in (0x0F, 0x10, 0x1D) and depth < 5:
+                      nested = read_entry_by_va(data_u64)
+                      out["target_valid"] = is_valid_type_entry(nested)
+                      if out["target_valid"]:
+                          out["target"] = describe_entry(nested, depth + 1)
+                  return out
+
+              row_fields = fields_by_tdi[ROW_TDI]
+              report = {
+                  "row_type": type_by_tdi[ROW_TDI],
+                  "fields": [],
+                  "focus_element_types": {},
+              }
+
+              print("=== LAIMPNDEFCL fields ===")
+              for ordinal, field in enumerate(row_fields, 1):
+                  type_index = int(field["field_type_index"])
+                  entry = read_entry_by_index(type_index)
+                  info = describe_entry(entry)
+                  item = {
+                      "ordinal": ordinal,
+                      "field": field,
+                      "runtime_type_index": type_index,
+                      "runtime_type": info,
+                  }
+                  report["fields"].append(item)
+                  print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+              print("=== focus runtime array types ===")
+              for index in sorted(FOCUS_TYPE_INDICES):
+                  entry = read_entry_by_index(index)
+                  info = describe_entry(entry)
+                  report["focus_element_types"][str(index)] = info
+                  print("FOCUS", index, json.dumps(info, ensure_ascii=False, sort_keys=True))
+
+                  target = info.get("target")
+                  tdi = target.get("type_definition_index") if isinstance(target, dict) else None
+                  if tdi is None:
+                      continue
+
+                  print(f"=== element typeDefinition {tdi} ===")
+                  print(json.dumps(type_by_tdi.get(tdi, {}), ensure_ascii=False, sort_keys=True))
+                  for nested_field in fields_by_tdi.get(tdi, []):
+                      nested_index = int(nested_field["field_type_index"])
+                      nested_info = describe_entry(read_entry_by_index(nested_index))
+                      print(
+                          "ELEMENT_FIELD",
+                          json.dumps(
+                              {
+                                  "field": nested_field,
+                                  "runtime_type_index": nested_index,
+                                  "runtime_type": nested_info,
+                              },
+                              ensure_ascii=False,
+                              sort_keys=True,
+                          ),
+                      )
+                  for method in methods_by_tdi.get(tdi, []):
+                      print("ELEMENT_METHOD", json.dumps(method, ensure_ascii=False, sort_keys=True))
+
+              Path("quest-row-runtime-types.json").write_text(
+                  json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+      - name: Disassemble complete LAIMPNDEFCL row reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/disassemble_rva.py             inputs/7.1.0-global/GenshinImpact.exe             0x9C15DF0 0x1630             --expected-sha256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d             --label LAIMPNDEFCL_GMENPOPMKAA_full             --output quest-row-reader-full.json
+
+          python - <<'PY' | tee quest-row-reader-calls.txt
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          body = json.loads(Path("quest-row-reader-full.json").read_text(encoding="utf-8"))
+
+          with (root / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (root / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          by_rva = defaultdict(list)
+          for row in methods:
+              text = row.get("rva", "").strip()
+              if not text:
+                  continue
+              try:
+                  by_rva[int(text, 16)].append(row)
+              except ValueError:
+                  pass
+
+          calls = []
+          for insn in body["instructions"]:
+              if insn["mnemonic"] != "call":
+                  continue
+              text = insn["op_str"].strip()
+              if not text.startswith("0x"):
+                  continue
+              target_va = int(text, 16)
+              target_rva = target_va - 0x140000000
+              rows = by_rva.get(target_rva, [])
+              item = {
+                  "site_rva": insn["rva"],
+                  "target_rva": f"0x{target_rva:X}",
+                  "methods": rows,
+                  "owners": [
+                      type_by_tdi.get(int(r["type_definition_index"]), {})
+                      for r in rows
+                  ],
+              }
+              calls.append(item)
+              print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-row-reader-calls.json").write_text(
+              json.dumps(calls, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Assert evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s quest-row-runtime-types.json
+          test -s quest-row-reader-full.json
+          test -s quest-row-reader-calls.json
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-ordinary-row-native
+          path: |
+            quest-row-runtime-types.txt
+            quest-row-runtime-types.json
+            quest-row-reader-full.json
+            quest-row-reader-calls.txt
+            quest-row-reader-calls.json
+          if-no-files-found: error
