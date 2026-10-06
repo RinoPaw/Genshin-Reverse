@@ -124,24 +124,26 @@ jobs:
                   "size":max(sec.SizeOfRawData,sec.Misc_VirtualSize),
               })
 
-          # First find the literal bytes. Then disassemble the containing
-          # metadata method so we can distinguish data accidents from a real
-          # xor/add/sub immediate in code.
+          # First find the literal bytes in every PE section. Keep all
+          # RVAs so the executable scan can also resolve RIP-relative loads
+          # from data sections. Only executable literal hits get method owners.
           literal=struct.pack("<I",KEY)
           byte_hits=[]
+          key_rvas=set()
           for sec in pe.sections:
-              if not (sec.Characteristics & 0x20000000):
-                  continue
               blob=sec.get_data()
               pos=0
               while True:
                   pos=blob.find(literal,pos)
                   if pos<0:break
                   rva=sec.VirtualAddress+pos
+                  key_rvas.add(rva)
+                  executable_section=bool(sec.Characteristics & 0x20000000)
                   byte_hits.append({
                       "rva":rva,
                       "section":sec.Name.rstrip(b"\0").decode("ascii",errors="replace"),
-                      "owner":owner(rva),
+                      "executable":executable_section,
+                      "owner":owner(rva) if executable_section else None,
                   })
                   pos+=1
 
@@ -229,7 +231,7 @@ jobs:
               })
 
           print("KEY",f"0x{KEY:08X}")
-          print("byte_hits",len(byte_hits))
+          print("byte_hits",len(byte_hits),"unique_key_rvas",len(key_rvas))
           for x in byte_hits:
               print("BYTE",f"0x{x['rva']:X}",x["section"])
               if x["owner"]:
