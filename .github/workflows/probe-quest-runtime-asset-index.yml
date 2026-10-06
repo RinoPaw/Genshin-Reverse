@@ -482,6 +482,42 @@ jobs:
           Path('runtime-asset-index-bootstrap-summary.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+      - name: Resolve AssetIndex base map construction
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x701EA30 0x180 \
+            --expected-sha256 "$sha" --label "AssetIndex..ctor" \
+            --output runtime-asset-index-base-ctor.json > runtime-asset-index-base-ctor.txt
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            runtime-asset-index-base-ctor-calls.json \
+            --focus asset-index-ctor:0x701EA30 \
+            --max-body 0x1000 \
+            | tee runtime-asset-index-base-ctor-calls.txt
+
+          python - <<'PY' | tee runtime-asset-index-base-schema.txt
+          import csv,json
+          from pathlib import Path
+          root=Path('versions/7.1.0-global/windows-x64/metadata')
+          def rows(n):
+              with (root/n).open('r',encoding='utf-8-sig',newline='') as f:
+                  return list(csv.DictReader(f))
+          types,fields,methods=rows('types.csv'),rows('fields.csv'),rows('methods.csv')
+          typ=next(x for x in types if x.get('type_name')=='AssetIndex')
+          tdi=int(typ['type_definition_index'])
+          out={
+              'type':typ,
+              'fields':[x for x in fields if int(x['type_definition_index'])==tdi],
+              'methods':[x for x in methods if int(x['type_definition_index'])==tdi],
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path('runtime-asset-index-base-schema.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -537,4 +573,10 @@ jobs:
             runtime-asset-index-bootstrap.json
             runtime-asset-index-bootstrap-summary.txt
             runtime-asset-index-bootstrap-summary.json
+            runtime-asset-index-base-ctor.txt
+            runtime-asset-index-base-ctor.json
+            runtime-asset-index-base-ctor-calls.txt
+            runtime-asset-index-base-ctor-calls.json
+            runtime-asset-index-base-schema.txt
+            runtime-asset-index-base-schema.json
           if-no-files-found: error
