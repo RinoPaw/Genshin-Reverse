@@ -89,6 +89,25 @@ class NativeQuestBinTests(unittest.TestCase):
             _core_content(rows[35107]["finishCond"]),
         )
 
+
+    def test_quest351_product_output_has_no_synthetic_prerequisites(self) -> None:
+        product = self.decoded.to_dict()
+        self.assertNotIn("_decode", product)
+        for row in product["quests"]:
+            self.assertNotIn("acceptCond", row)
+            self.assertNotIn("beginExec", row)
+
+    def test_unknown_outer_presence_bit_fails_closed(self) -> None:
+        payload = bytearray(self.payload)
+        raw_mask = int.from_bytes(payload[:8], "little")
+        decoded_mask = (raw_mask + 0xB19CC79B) & 0xFFFFFFFFFFFFFFFF
+        decoded_mask |= 1
+        payload[:8] = ((decoded_mask - 0xB19CC79B) & 0xFFFFFFFFFFFFFFFF).to_bytes(
+            8, "little"
+        )
+        with self.assertRaisesRegex(ValueError, "unsupported presence bit"):
+            decode_main_quest(bytes(payload))
+
     def test_quest351_outer_tail(self) -> None:
         data = self.decoded.data
         self.assertEqual(351, data["mainId"])

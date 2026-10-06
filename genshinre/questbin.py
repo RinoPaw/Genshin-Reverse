@@ -121,6 +121,7 @@ def _read_raw_string(reader: _Reader, length: int) -> dict[str, str]:
 
 def _read_quest_exec(reader: _Reader) -> dict[str, Any]:
     mask = (reader.u8() + 0x44) & 0xFF
+    _require_supported_bits(mask, {2, 5}, label="KIMCPAKMJMH", width=8)
     value: dict[str, Any] = {}
 
     if mask & (1 << 5):
@@ -148,6 +149,7 @@ def _read_quest_exec_array(reader: _Reader) -> list[dict[str, Any]]:
 
 def _read_quest_content(reader: _Reader) -> dict[str, Any]:
     mask = (reader.u8() + 0x8F) & 0xFF
+    _require_supported_bits(mask, {0, 1, 7}, label="JPGNLOPMNHN", width=8)
     value: dict[str, Any] = {}
 
     if mask & (1 << 1):
@@ -181,7 +183,8 @@ def _read_quest_content_array(reader: _Reader) -> list[dict[str, Any]]:
 
 def _read_oop(reader: _Reader) -> dict[str, Any]:
     mask = (reader.u32() - 0x5816EEF2) & _U32_MASK
-    supported = {1, 2, 3, 4, 5, 6, 7, 8, 13, 15, 20, 21, 24, 25, 26, 28, 30}
+    # First production surface: only shapes directly exercised by the 351 gold fixture.
+    supported = {3, 4, 13, 24, 25, 28, 30}
     _require_supported_bits(mask, supported, label="OOPFBIEAILL", width=32)
     value: dict[str, Any] = {}
 
@@ -235,6 +238,11 @@ def _read_oop(reader: _Reader) -> dict[str, Any]:
 
 def _read_kph(reader: _Reader) -> dict[str, Any]:
     flags = reader.u8()
+    if flags & ~0xE4:
+        raise QuestBinDecodeError(
+            f"KPHLFFOELCG has unsupported flag bit(s): "
+            f"{', '.join(str(bit) for bit in _active_bits(flags & ~0xE4, 8))}"
+        )
     value: dict[str, Any] = {"unknown_flags": flags}
 
     if flags & (1 << 2):
@@ -251,9 +259,10 @@ def _read_kph(reader: _Reader) -> dict[str, Any]:
     return value
 
 
+# Production support is intentionally narrower than the research reader.
+# Expand this set only after a new field shape is independently regression-tested.
 _ROW_SUPPORTED_BITS = {
-    0, 3, 5, 6, 10, 11, 12, 17, 19, 21, 22, 23, 25, 26, 31, 33,
-    34, 35, 36, 38, 39, 41, 42, 46, 48, 51, 52, 53, 55, 56, 61, 62,
+    0, 3, 12, 17, 19, 22, 25, 26, 34, 35, 39, 48, 51, 55, 56, 62,
 }
 
 

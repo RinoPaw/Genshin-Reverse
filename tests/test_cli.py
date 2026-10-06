@@ -113,6 +113,17 @@ class CliParserTests(unittest.TestCase):
         self.assertTrue(args.include_executable_holders)
         self.assertEqual("pointer-xrefs.json", str(args.output))
 
+
+    def test_quest_decode_parses_payload_and_debug_options(self) -> None:
+        args = build_parser().parse_args(
+            ["quest-decode", "Quest/351", "--output", "351.json", "--debug"]
+        )
+
+        self.assertEqual("quest-decode", args.command)
+        self.assertEqual("Quest/351", str(args.payload))
+        self.assertEqual("351.json", str(args.output))
+        self.assertTrue(args.debug)
+
     def test_scene_handler_slots_parses_exact_scan_contract(self) -> None:
         args = build_parser().parse_args(
             [
