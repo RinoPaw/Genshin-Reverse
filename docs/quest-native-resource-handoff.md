@@ -410,6 +410,70 @@ JPGNLOPMNHN[] / QuestContent[]:
 Both readers then deserialize exactly `count` scalar elements. Preserve these
 transforms when implementing the direct 351 decoder.
 
+### Direct native Quest 351 decode — current decisive evidence
+
+The full 7.1 resource is now extracted through the exact MainQuestIndex handle:
+
+```text
+Data/_BinOutput/Quest/351
+handle     0x14B93FDA285D0829
+block      24230448
+group      0
+payload    920 bytes
+reader     AFIOOHMJHDM.GMENPOPMKAA @ 0x10409D40
+```
+
+The AFIO ordinary-row field contains eight `LAIMPNDEFCL` entries. The encoded
+row count at `0x3B` decodes to 8 with `raw XOR 0xA74F0ACB`; row 0 starts
+at `0x3F`. Native row starts are currently:
+
+```text
+35100 0x03F
+35101 0x0A9
+35102 0x136
+35103 0x196
+35104 0x1F8
+35105 0x24F
+35106 0x2B2
+35107 0x327
+end   0x398
+```
+
+The decisive 35101 failure data is directly decoded from the full binary:
+
+```text
+35101.failCond[0]
+  QuestContentType 21 = QUEST_CONTENT_TEAM_DEAD
+  params [0,0]
+
+35101.failExec[0]
+  QuestExecType 14 = QUEST_EXEC_ROLLBACK_QUEST
+  params ["35100"]
+```
+
+The scalar exec reader reconstructs the five encoded parameter bytes to literal
+`"35100"`; this is not copied from public JSON.
+
+Other directly decoded core arrays:
+
+```text
+35100 finishCond = FINISH_PLOT [35100,0], TRIGGER_FIRE [1053,0]
+35101 finishCond = TRIGGER_FIRE [1100,0]
+35102 finishCond = TRIGGER_FIRE [1017,0]
+35103 finishCond = TRIGGER_FIRE [1016,0]
+35104 finishCond = FINISH_PLOT [35104,0]
+35105 finishCond = TRIGGER_FIRE [1016,0]
+35106 finishExec = LOCK_POINT ["3","1720"]
+35106 finishCond = UNLOCK_TRANS_POINT [3,6]
+35107 finishExec = REFRESH_GROUP_SUITE ["3","133003429,1"]
+35107 finishCond = TRIGGER_FIRE [1101,0]
+```
+
+This promotes the 35101 team-death rollback behavior itself to direct native
+evidence. Remaining #8 work is to generalize/full-consume the ordinary-row
+decoder, decode additional representative main quests, and close the
+QuestExcel-vs-BinOutput source-authority relation.
+
 ### Resume here
 
 1. Start from `probe/quest-blb3-binoutput` and read:
