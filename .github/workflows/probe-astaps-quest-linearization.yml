@@ -1,0 +1,197 @@
+name: Audit AstaPS Quest prerequisite linearization
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-astaps-quest-linearization.yml"
+
+concurrency:
+  group: probe-astaps-quest-linearization-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch initial AstaPS QuestExcel resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout             https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set             'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout             8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Measure synthetic previous-order prerequisite rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee astaps-quest-linearization.txt
+          import collections
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          rows=json.loads(path.read_text(encoding="utf-8"))
+
+          def state_equal_targets(row):
+              out=[]
+              cond=row.get("acceptCond")
+              if not isinstance(cond,list):
+                  return out
+              for x in cond:
+                  if not isinstance(x,dict):
+                      continue
+                  if x.get("type")!="QUEST_COND_STATE_EQUAL":
+                      continue
+                  p=x.get("param")
+                  if isinstance(p,list) and len(p)>=2 and isinstance(p[0],int):
+                      out.append((p[0],p[1]))
+              return out
+
+          groups=collections.defaultdict(list)
+          for ordinal,row in enumerate(rows):
+              mid=row.get("mainId")
+              sid=row.get("subId")
+              order=row.get("order")
+              if isinstance(mid,int) and isinstance(sid,int):
+                  groups[mid].append((ordinal,row,sid,order))
+
+          total=0
+          has_any=0
+          exact_prev=0
+          contains_prev=0
+          exact_zero_first=0
+          contains_zero_first=0
+          nonfirst=0
+          first=0
+          exceptions=[]
+          group_stats=[]
+
+          for mid,items in groups.items():
+              # The file is already ordered, but use explicit order first and
+              # original ordinal as deterministic tiebreaker.
+              seq=sorted(
+                  items,
+                  key=lambda x:(
+                      x[3] if isinstance(x[3],int) else 2**31-1,
+                      x[0],
+                  ),
+              )
+              gm=0
+              for i,(ordinal,row,sid,order) in enumerate(seq):
+                  total+=1
+                  targets=state_equal_targets(row)
+                  if targets:
+                      has_any+=1
+                  expected=0 if i==0 else seq[i-1][2]
+                  want=(expected,3)
+                  exact=(targets==[want])
+                  contains=(want in targets)
+                  if i==0:
+                      first+=1
+                      exact_zero_first+=exact
+                      contains_zero_first+=contains
+                  else:
+                      nonfirst+=1
+                      exact_prev+=exact
+                      contains_prev+=contains
+                  if contains:
+                      gm+=1
+                  if not contains and len(exceptions)<500:
+                      exceptions.append({
+                          "mainId":mid,
+                          "ordinal":ordinal,
+                          "subId":sid,
+                          "order":order,
+                          "expectedPreviousSubId":expected,
+                          "targets":[list(x) for x in targets],
+                          "acceptCond":row.get("acceptCond"),
+                      })
+              group_stats.append({
+                  "mainId":mid,
+                  "rows":len(seq),
+                  "previous_rule_matches":gm,
+                  "ratio":gm/len(seq),
+              })
+
+          group_stats.sort(key=lambda x:(x["ratio"],-x["rows"],x["mainId"]))
+
+          q351=[]
+          seq=sorted(groups[351],key=lambda x:(x[3],x[0]))
+          for i,(ordinal,row,sid,order) in enumerate(seq):
+              q351.append({
+                  "ordinal":ordinal,
+                  "subId":sid,
+                  "order":order,
+                  "expectedPreviousSubId":0 if i==0 else seq[i-1][2],
+                  "stateEqualTargets":[list(x) for x in state_equal_targets(row)],
+                  "acceptCond":row.get("acceptCond"),
+              })
+
+          report={
+              "source_commit":"8c85a82f37341a422002a0352c89a142c4017e53",
+              "sha256":hashlib.sha256(path.read_bytes()).hexdigest(),
+              "row_count":len(rows),
+              "main_id_groups":len(groups),
+              "analyzed_rows":total,
+              "rows_with_state_equal_accept":has_any,
+              "first_rows":first,
+              "first_exact_zero_state3":exact_zero_first,
+              "first_contains_zero_state3":contains_zero_first,
+              "nonfirst_rows":nonfirst,
+              "nonfirst_exact_previous_state3":exact_prev,
+              "nonfirst_contains_previous_state3":contains_prev,
+              "all_rows_contains_linear_rule":contains_zero_first+contains_prev,
+              "all_rows_linear_rule_ratio":(contains_zero_first+contains_prev)/total,
+              "groups_full_linear_rule":sum(
+                  1 for x in group_stats if x["previous_rule_matches"]==x["rows"]
+              ),
+              "quest351":q351,
+              "lowest_match_groups":group_stats[:100],
+              "exceptions":exceptions,
+          }
+
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("astaps-quest-linearization.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          # Quest 351 must be the exact simple linear chain observed in the
+          # initial resource. This is a local invariant, not the global verdict.
+          expected=[35104,35100,35107,35101,35106,35105,35103,35102]
+          if [x["subId"] for x in q351] != expected:
+              raise SystemExit(f"unexpected Quest 351 order: {q351}")
+          if not all(
+              x["stateEqualTargets"]==[[
+                  x["expectedPreviousSubId"],3
+              ]]
+              for x in q351
+          ):
+              raise SystemExit(f"Quest 351 is not an exact linear chain: {q351}")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: astaps-quest-linearization
+          path: |
+            astaps-quest-linearization.txt
+            astaps-quest-linearization.json
+          if-no-files-found: error
