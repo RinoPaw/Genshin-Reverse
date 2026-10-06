@@ -1,0 +1,350 @@
+name: Probe 2.8 exact QuestExcel reader
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-reader.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 2.8.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          out='inputs/2.8.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" \
+            -o "$out/global-metadata.dat"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(172337920,"48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394"),
+              "global-metadata.dat":(48012356,"8bc2cee2a2c55a2a0fc224e414c2c139e06a116860b4e758cc5a00226bc4de85"),
+          }
+          root=Path("inputs/2.8.0-global")
+          for name,(size,sha) in expected.items():
+              raw=(root/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name,len(raw),got)
+              assert len(raw)==size and got==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none \
+            https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git \
+            .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach \
+            731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 2.8 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump-28"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-reader-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Extract exact QuestExcel types and reader RVAs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-symbols.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump-28/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          target_names=("QuestExcelConfig","QuestExcelConfigLoader")
+          type_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+).*?TypeDefIndex:\s*(\d+)"
+          )
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          field_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal).*?\s+"
+              r"([^\s]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
+          )
+
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+          found={name:[] for name in target_names}
+
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              decl=None
+              for rel,line in enumerate(block[:100]):
+                  tm=type_rx.search(line)
+                  if tm:
+                      decl={
+                          "name":tm.group(1),
+                          "typedef_index":int(tm.group(2)),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      }
+                      break
+              if not decl or decl["name"] not in target_names:
+                  continue
+
+              fields=[]
+              methods=[]
+              for rel,line in enumerate(block):
+                  fm=field_rx.search(line)
+                  if fm:
+                      fields.append({
+                          "type":fm.group(1),
+                          "name":fm.group(2),
+                          "offset":int(fm.group(3),16),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      })
+                  rm=rva_rx.search(line)
+                  if rm:
+                      rva=int(rm.group(1),16)
+                      sig=None
+                      sig_line=None
+                      for k in range(rel+1,min(len(block),rel+8)):
+                          q=block[k].strip()
+                          if q and not q.startswith("//") and "(" in q and ")" in q:
+                              sig=q
+                              sig_line=a+k+1
+                              break
+                      methods.append({
+                          "rva":rva,
+                          "comment_line":a+rel+1,
+                          "signature_line":sig_line,
+                          "signature":sig,
+                      })
+
+              row={
+                  "declaration":decl,
+                  "fields":fields,
+                  "methods":methods,
+              }
+              found[decl["name"]].append(row)
+
+          for name in target_names:
+              xs=found[name]
+              print(f"\n===== {name} matches={len(xs)} =====")
+              for x in xs:
+                  print("DECL",x["declaration"])
+                  print("FIELDS")
+                  for f in x["fields"]:
+                      print(f"  +0x{f['offset']:X} {f['type']} {f['name']}")
+                  print("METHODS")
+                  for m in x["methods"]:
+                      if (
+                          "FromBinary" in (m["signature"] or "")
+                          or "FILE_LOCATION" in (m["signature"] or "")
+                          or name=="QuestExcelConfig"
+                      ):
+                          print(
+                              f"  RVA=0x{m['rva']:X} "
+                              f"L{m['signature_line']} {m['signature']}"
+                          )
+
+          def readers(name):
+              out=[]
+              for x in found[name]:
+                  for m in x["methods"]:
+                      if "FromBinary" in (m["signature"] or ""):
+                          out.append(m)
+              return out
+
+          row_readers=readers("QuestExcelConfig")
+          loader_readers=readers("QuestExcelConfigLoader")
+          print("\nROW_READERS",[(hex(x["rva"]),x["signature"]) for x in row_readers])
+          print("LOADER_READERS",[(hex(x["rva"]),x["signature"]) for x in loader_readers])
+
+          Path("quest-legacy-28-symbols.json").write_text(
+              json.dumps(found,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not row_readers:
+              raise SystemExit("QuestExcelConfig FromBinary not found")
+          PY
+
+      - name: Disassemble exact 2.8 QuestExcel readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-reader.txt
+          import bisect,json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          symbols=json.loads(Path("quest-legacy-28-symbols.json").read_text())
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in runtime]
+
+          def containing(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0:
+                  a,b=runtime[i]
+                  if a<=rva<b:
+                      return a,b
+              return None
+
+          targets=[]
+          for type_name,entries in symbols.items():
+              for entry in entries:
+                  for m in entry["methods"]:
+                      sig=m.get("signature") or ""
+                      if "FromBinary" in sig:
+                          targets.append((type_name,m["rva"],sig))
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report=[]
+          seen=set()
+
+          for type_name,rva,sig in targets:
+              bounds=containing(rva)
+              key=(type_name,rva,bounds)
+              if key in seen:
+                  continue
+              seen.add(key)
+              print(
+                  f"\n===== {type_name} metadata_rva=0x{rva:X} "
+                  f"bounds={bounds} :: {sig} ====="
+              )
+              if not bounds:
+                  continue
+              a,b=bounds
+              rows=[]
+              for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                  row={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic=="call"
+                      and ins.operands
+                      and ins.operands[0].type==X86_OP_IMM
+                  ):
+                      row["call_target_rva"]=ins.operands[0].imm-base
+                  mem=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_MEM:
+                          mem.append({
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale":op.mem.scale,
+                              "disp":op.mem.disp,
+                          })
+                  if mem:
+                      row["mem"]=mem
+                  rows.append(row)
+                  print(f"0x{row['rva']:X} {row['mnemonic']:<7} {row['op_str']}")
+              report.append({
+                  "type":type_name,
+                  "metadata_rva":rva,
+                  "signature":sig,
+                  "begin_rva":a,
+                  "end_rva":b,
+                  "instructions":rows,
+              })
+
+          Path("quest-legacy-28-reader.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload exact reader evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-reader
+          path: |
+            quest-legacy-28-reader-dumper.txt
+            quest-legacy-28-symbols.txt
+            quest-legacy-28-symbols.json
+            quest-legacy-28-reader.txt
+            quest-legacy-28-reader.json
+          if-no-files-found: warn
