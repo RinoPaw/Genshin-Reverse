@@ -23,6 +23,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
 
       - name: Install focused dependencies
         run: python -m pip install -e . capstone zstandard lz4
@@ -165,6 +169,28 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Install pinned AnimeStudio CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
+          archive=/tmp/animestudio.tar.gz
+          root=/tmp/animestudio
+          curl --fail --location --retry 3 "$url" --output "$archive"
+          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
+          mkdir -p "$root"
+          tar -xzf "$archive" -C "$root"
+          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
+          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
+          if ((${#apphosts[@]})); then
+            chmod +x "${apphosts[0]}"
+            printf '%s\n' "${apphosts[0]}" > /tmp/animestudio-entry
+          elif ((${#dlls[@]})); then
+            printf 'dotnet\n%s\n' "${dlls[0]}" > /tmp/animestudio-entry
+          else
+            echo 'AnimeStudio CLI entry point not found' >&2
+            exit 2
+          fi
       - name: Probe static BLB3 decode with pinned peer implementation
         shell: bash
         run: |
@@ -212,6 +238,80 @@ jobs:
           )
           PY
 
+      - name: Raw-export decoded runtime AssetIndex CAB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if ((${#entry[@]} == 1)); then
+            cli=("${entry[0]}")
+          else
+            cli=("${entry[0]}" "${entry[1]}")
+          fi
+
+          cab="$(find runtime-asset-index-decoded -maxdepth 1 -type f -name 'CAB-*' | head -n 1)"
+          if [[ -z "$cab" ]]; then
+            echo "decoded CAB missing" >&2
+            exit 2
+          fi
+
+          rm -rf runtime-asset-index-raw
+          mkdir -p runtime-asset-index-raw
+          "${cli[@]}" "$cab" runtime-asset-index-raw \
+            --game GI \
+            --export_type Raw \
+            --logger_flags Error \
+            2>&1 | tee runtime-asset-index-animestudio.txt
+
+          find runtime-asset-index-raw -type f -printf '%p %s\n' \
+            | sort | tee runtime-asset-index-raw-files.txt
+
+          python - <<'PY' | tee runtime-asset-index-351-scan.txt
+          import json
+          from pathlib import Path
+
+          root=Path("runtime-asset-index-raw")
+          handle=1493294957662636073
+          needles={
+              "handle_u64_le": handle.to_bytes(8,"little"),
+              "assetPathHash_u32_le": (0xDA285D08).to_bytes(4,"little"),
+              "mainId_351_u32_le": (351).to_bytes(4,"little"),
+              "external_asset_index_ascii": b"external_asset_index",
+          }
+
+          out={"files":[],"totals":{}}
+          for label,needle in needles.items():
+              out["totals"][label]=0
+
+          for p in sorted(x for x in root.rglob("*") if x.is_file()):
+              raw=p.read_bytes()
+              item={"path":str(p),"size":len(raw),"hits":{}}
+              any_hit=False
+              for label,needle in needles.items():
+                  pos=[]
+                  start=0
+                  while True:
+                      i=raw.find(needle,start)
+                      if i<0:
+                          break
+                      pos.append(i)
+                      start=i+1
+                      if len(pos)>=200:
+                          break
+                  if pos:
+                      item["hits"][label]=pos
+                      out["totals"][label]+=len(pos)
+                      any_hit=True
+              if any_hit:
+                  out["files"].append(item)
+                  print(json.dumps(item,ensure_ascii=False,sort_keys=True))
+
+          print("TOTALS",json.dumps(out["totals"],sort_keys=True))
+          Path("runtime-asset-index-351-scan.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -236,4 +336,9 @@ jobs:
             runtime-asset-index-blb3-summary.json
             runtime-asset-index-decoded-files.txt
             runtime-asset-index-decoded/
+            runtime-asset-index-animestudio.txt
+            runtime-asset-index-raw-files.txt
+            runtime-asset-index-351-scan.txt
+            runtime-asset-index-351-scan.json
+            runtime-asset-index-raw/
           if-no-files-found: error
