@@ -84,7 +84,71 @@ jobs:
           print("metadata_sha256",sha256_file(meta))
           PY
 
+      - name: Scan raw 4.2 QuestExcel metadata names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-42-raw-names.txt
+          import json
+          from pathlib import Path
+
+          files=[
+              Path("inputs/4.2.0-global/global-metadata.dat"),
+              Path("inputs/4.2.0-global/UserAssembly.dll"),
+          ]
+          needles=[
+              "QuestExcelConfig",
+              "QuestExcelConfigLoader",
+              "MainQuestExcelConfig",
+              "MainQuestExcelConfigLoader",
+              "RandomQuestExcelConfig",
+              "RandomQuestExcelConfigLoader",
+              "Data/_ExcelBinOutput/QuestExcelConfigData",
+              "Data/_ExcelBinOutput/MainQuestExcelConfigData",
+              "acceptCond",
+              "acceptCondComb",
+              "beginExec",
+              "finishCond",
+              "failCond",
+              "finishExec",
+              "failExec",
+          ]
+          out={}
+          for p in files:
+              raw=p.read_bytes()
+              rows=[]
+              for s in needles:
+                  item={"needle":s,"hits":[]}
+                  for enc_name,enc in (
+                      ("ascii",s.encode("utf-8")),
+                      ("utf16le",s.encode("utf-16le")),
+                  ):
+                      pos=[]
+                      start=0
+                      while True:
+                          i=raw.find(enc,start)
+                          if i<0:
+                              break
+                          pos.append(i)
+                          start=i+1
+                          if len(pos)>=100:
+                              break
+                      if pos:
+                          item["hits"].append({"encoding":enc_name,"offsets":pos})
+                  if item["hits"]:
+                      rows.append(item)
+              out[str(p)]=rows
+              print("\nFILE",p)
+              for row in rows:
+                  print(json.dumps(row,ensure_ascii=False))
+          Path("quest-legacy-42-raw-names.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Recover protected 4.2 literals
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -119,12 +183,15 @@ jobs:
           PY
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: quest-legacy-42
           path: |
             quest-legacy-42-sample.txt
+            quest-legacy-42-raw-names.txt
+            quest-legacy-42-raw-names.json
             quest-legacy-42-recovery.txt
             quest-legacy-42-summary.txt
             quest-legacy-42-summary.json
-          if-no-files-found: error
+          if-no-files-found: warn
