@@ -329,6 +329,46 @@ jobs:
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6DDA360 0x30 \
             --expected-sha256 "$sha" --label "BundleContent.PathHash getters" \
             --output runtime-asset-index-pathhash-getters.json > runtime-asset-index-pathhash-getters.txt
+      - name: Locate primary asset_index and trace deserializer callers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY' | tee runtime-asset-index-manifest-hits.txt
+          import json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest
+
+          rows=parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
+          hits=[]
+          for row in rows:
+              name=normalized_name(row)
+              low=name.lower()
+              if 'asset_index' in low or 'assetindex' in low:
+                  item={
+                      'name':name,
+                      'size':row.get('size'),
+                      'md5':row.get('md5'),
+                  }
+                  hits.append(item)
+                  print(json.dumps(item,ensure_ascii=False,sort_keys=True))
+          Path('runtime-asset-index-manifest-hits.json').write_text(
+              json.dumps(hits,ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8',
+          )
+          PY
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            runtime-asset-index-deserialize-callers.json \
+            --focus deserialize:0x6DD3E70 \
+            --focus resource-index-ctor:0x71062F0 \
+            --focus reader-ctor-path:0x6C63B70 \
+            --focus reader-create-handle:0x6C643F0 \
+            --max-body 0x8000 \
+            | tee runtime-asset-index-deserialize-callers.txt
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -366,4 +406,8 @@ jobs:
             runtime-asset-index-readulong.json
             runtime-asset-index-pathhash-getters.txt
             runtime-asset-index-pathhash-getters.json
+            runtime-asset-index-manifest-hits.txt
+            runtime-asset-index-manifest-hits.json
+            runtime-asset-index-deserialize-callers.txt
+            runtime-asset-index-deserialize-callers.json
           if-no-files-found: error
