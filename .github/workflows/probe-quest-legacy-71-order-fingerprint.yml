@@ -1,0 +1,398 @@
+name: Fingerprint 7.1 QuestExcel row reader by native order field
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-order-fingerprint.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-order-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact Dimbreath 7.1 row ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout \
+            792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none \
+            https://github.com/owomocha/genshin-7.0-local-re-devkit.git \
+            /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
+            fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Fingerprint row reader by decoded order at native body +0x0C
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-order-fingerprint.txt
+          import csv
+          import json
+          import struct
+          from collections import Counter
+          from pathlib import Path
+
+          from capstone.x86 import X86_OP_IMM
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          AGD=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+          ORDER_SUB=0x732ED834
+          ORDER_ADD=(-ORDER_SUB) & 0xffffffff
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try: fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception: pass
+
+          deser={}
+          one_by_class={}
+          candidates=[]
+          method_by_rva={}
+          starts=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+              except Exception:
+                  continue
+              if rva:
+                  method_by_rva.setdefault(rva,[]).append(m)
+                  starts.append(rva)
+              if not rva:
+                  continue
+              try: params=json.loads(m.get("parameter_types") or "[]")
+              except Exception: continue
+              if not params or params[0] != READER:
+                  continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)!=1:
+                  continue
+              ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+              priority=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+              prev=one_by_class.get(cls)
+              if prev is None or priority < prev[0]:
+                  one_by_class[cls]=(priority,rva)
+              candidates.append((rva,m,tdi))
+          starts=sorted(set(starts))
+          row_deser={cls:rva for cls,(_p,rva) in one_by_class.items()}
+
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n != len(raw)-4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          rows=json.loads(AGD.read_text(encoding="utf-8"))
+          if len(rows)!=17814:
+              raise SystemExit(f"unexpected Dimbreath row count {len(rows)}")
+
+          encoded={}
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  encoded.setdefault((sid^SUBID_KEY)&0xffffffff,[]).append((ordinal,sid))
+          hits={x:[] for x in encoded}
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in hits: hits[u].append(pos)
+          anchors={}
+          for enc,items in encoded.items():
+              if len(items)==1 and len(hits[enc])==1:
+                  ordinal,sid=items[0]
+                  anchors[ordinal]=(sid,hits[enc][0])
+
+          # Correct physical framing:
+          #   [row body][encoded current subId suffix]
+          # The row reader receives body bytes only.  The suffix is excluded.
+          spans=[]
+          for ordinal in range(len(rows)):
+              cur=anchors.get(ordinal)
+              if not cur:
+                  continue
+              if ordinal==0:
+                  start=4  # top-level 4-byte table header precedes row 0
+              else:
+                  prev=anchors.get(ordinal-1)
+                  if not prev:
+                      continue
+                  start=prev[1]+4
+              end=cur[1]
+              if not 8 <= end-start <= 4096:
+                  continue
+              spans.append({
+                  "ordinal":ordinal,
+                  "subId":cur[0],
+                  "order":rows[ordinal].get("order"),
+                  "start":start,
+                  "end":end,
+                  "size":end-start,
+              })
+          if len(spans)<17000:
+              raise SystemExit(f"too few body-only spans: {len(spans)}")
+
+          # Hard framing controls from the first rows.
+          first=spans[0]
+          if first["subId"]!=34800 or first["start"]!=4 or first["end"]!=60:
+              raise SystemExit(f"unexpected first row framing: {first}")
+          raw_order=struct.unpack_from("<I",payload,first["start"]+0x0C)[0]
+          if ((raw_order-ORDER_SUB)&0xffffffff)!=first["order"]:
+              raise SystemExit("first-row order transform mismatch")
+          print("row_framing", "[body][encoded_subId_suffix]")
+          print("body_span", "previous_suffix+4 .. current_suffix")
+          print("body_spans",len(spans))
+          print("first_row",first)
+          print("order_transform",f"raw-0x{ORDER_SUB:08X}")
+          print("order_control",hex(raw_order),"->",first["order"])
+
+          span_by_ord={x["ordinal"]:x for x in spans}
+          simple=[span_by_ord[i] for i in range(18) if i in span_by_ord]
+          if len(simple)!=18 or any(x["size"]!=56 for x in simple):
+              raise SystemExit("34800..34817 simple-row control drift")
+
+          def quantile_sample(items,count):
+              if len(items)<=count:return list(items)
+              idx=sorted({round(i*(len(items)-1)/(count-1)) for i in range(count)})
+              return [items[i] for i in idx]
+          distributed=quantile_sample(spans,2000)
+
+          class TraceReader(BC.Reader):
+              def __init__(self,b):
+                  super().__init__(b)
+                  self.trace=[]
+              def val(self,w,ops):
+                  start=self.p
+                  rawv=self.u(w)
+                  value=BC.apply_ops(rawv,ops,w)
+                  self.trace.append({
+                      "start":start,
+                      "width":w,
+                      "raw":rawv,
+                      "value":value,
+                      "ops":ops,
+                  })
+                  return value
+
+          built=[]
+          for rva,m,tdi in candidates:
+              try: schema=BC.build(exe,rva,deser,cache={})
+              except Exception: continue
+              built.append((rva,m,tdi,schema))
+          print("one_arg_readers",len(candidates))
+          print("built_schemas",len(built))
+
+          def parse(schema,span,trace=False):
+              rr=TraceReader(payload) if trace else BC.Reader(payload)
+              rr.p=span["start"]
+              try: rr.record(schema)
+              except Exception as exc:
+                  return rr.p, getattr(rr,"trace",[]), type(exc).__name__
+              return rr.p, getattr(rr,"trace",[]), None
+
+          # Strong fingerprint: the schema must actually read body+0x0C as u32
+          # and decode it to order=1,2,3 on the first three rows.
+          fingerprint=[]
+          for rva,m,tdi,schema in built:
+              ok=True
+              controls=[]
+              for span in simple[:3]:
+                  end,tr,err=parse(schema,span,True)
+                  target=span["start"]+0x0C
+                  hit=[
+                      x for x in tr
+                      if x["start"]==target and x["width"]==4
+                      and x["value"]==(span["order"]&0xffffffff)
+                  ]
+                  controls.append({
+                      "ordinal":span["ordinal"],
+                      "subId":span["subId"],
+                      "order":span["order"],
+                      "reader_end":end,
+                      "error":err,
+                      "hit":hit[:3],
+                  })
+                  if not hit:
+                      ok=False
+                      break
+              if ok:
+                  fingerprint.append((rva,m,tdi,schema,controls))
+
+          print("order_fingerprint_candidates",len(fingerprint))
+          ranked=[]
+          for rva,m,tdi,schema,controls in fingerprint:
+              simple_exact=0
+              dist_exact=0
+              errors=0
+              deltas=Counter()
+              for span in simple:
+                  end,_tr,err=parse(schema,span)
+                  if err: errors+=1
+                  delta=end-span["end"]
+                  deltas[delta]+=1
+                  if not err and delta==0:simple_exact+=1
+              for span in distributed:
+                  end,_tr,err=parse(schema,span)
+                  if err: errors+=1
+                  delta=end-span["end"]
+                  if not err and delta==0:dist_exact+=1
+              item={
+                  "rva":f"0x{rva:X}",
+                  "type_name":m.get("type_name"),
+                  "method_name":m.get("method_name"),
+                  "type_definition_index":m.get("type_definition_index"),
+                  "metadata_field_count":type_by_tdi.get(tdi,{}).get("field_count"),
+                  "fields":fields_by_tdi.get(tdi,[]),
+                  "simple_exact":simple_exact,
+                  "simple_total":len(simple),
+                  "distributed_exact":dist_exact,
+                  "distributed_total":len(distributed),
+                  "errors":errors,
+                  "simple_deltas":dict(deltas),
+                  "controls":controls,
+                  "schema":schema,
+              }
+              ranked.append(item)
+          ranked.sort(key=lambda x:(-x["distributed_exact"],-x["simple_exact"],x["rva"]))
+          print("=== fingerprint ranking ===")
+          for x in ranked[:40]:
+              print(json.dumps({
+                  k:v for k,v in x.items()
+                  if k not in {"schema","fields","controls"}
+              } | {
+                  "control_ops":[c["hit"][0]["ops"] for c in x["controls"] if c["hit"]],
+              },ensure_ascii=False))
+
+          # Independent machine-code immediate scan around all one-arg readers.
+          # This is only supporting evidence; the traced value fingerprint above
+          # is authoritative because it permits composite arithmetic.
+          immediate_hits=[]
+          target32={ORDER_SUB,ORDER_ADD}
+          for rva,m,tdi,_schema in built:
+              try: ins=BC.sweep(exe,0x140000000+rva,0x20000)
+              except Exception: continue
+              found=[]
+              for row in ins:
+                  x=row.ins
+                  for op in x.operands:
+                      if op.type==X86_OP_IMM and (op.imm&0xffffffff) in target32:
+                          found.append({
+                              "rva":f"0x{row.addr-0x140000000:X}",
+                              "mnemonic":row.mn,
+                              "op_str":row.ops,
+                              "imm":f"0x{op.imm&0xffffffff:08X}",
+                          })
+              if found:
+                  immediate_hits.append({
+                      "reader_rva":f"0x{rva:X}",
+                      "type_name":m.get("type_name"),
+                      "method_name":m.get("method_name"),
+                      "type_definition_index":m.get("type_definition_index"),
+                      "hits":found,
+                  })
+          print("order_immediate_reader_hits",len(immediate_hits))
+          for x in immediate_hits[:80]:
+              print(json.dumps(x,ensure_ascii=False))
+
+          report={
+              "native":{
+                  "raw_size":len(raw),
+                  "payload_size":len(payload),
+              },
+              "agd":{
+                  "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+                  "rows":len(rows),
+              },
+              "row_framing":"[body][encoded_subId_suffix]",
+              "body_span":"previous_suffix+4 .. current_suffix",
+              "subId_xor_key":f"0x{SUBID_KEY:08X}",
+              "order_transform":f"raw-0x{ORDER_SUB:08X}",
+              "body_spans":len(spans),
+              "simple_control":simple,
+              "reader_methods":len(candidates),
+              "built_schemas":len(built),
+              "fingerprint_candidates":ranked,
+              "order_immediate_hits":immediate_hits,
+          }
+          Path("quest-legacy-71-order-fingerprint.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-order-fingerprint
+          path: |
+            quest-legacy-71-order-fingerprint.txt
+            quest-legacy-71-order-fingerprint.json
+          if-no-files-found: error
