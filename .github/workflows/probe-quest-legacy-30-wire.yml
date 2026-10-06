@@ -1,0 +1,505 @@
+name: Probe 3.0 legacy QuestExcel wire fingerprint
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Install focused dependencies
+        run: python -m pip install capstone pefile
+
+      - name: Download and verify exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" \
+            -o "$out/global-metadata.dat"
+
+          python - <<'PY' | tee quest-legacy-30-wire-sample.txt
+          from pathlib import Path
+          import hashlib
+
+          expected = {
+              "UserAssembly.dll": (
+                  177601560,
+                  "b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b",
+              ),
+              "global-metadata.dat": (
+                  49356392,
+                  "efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a",
+              ),
+          }
+          root = Path("inputs/3.0.0-global")
+          for name, (size, sha) in expected.items():
+              raw = (root / name).read_bytes()
+              got = hashlib.sha256(raw).hexdigest()
+              print(name, "size=", len(raw), "sha256=", got)
+              if len(raw) != size or got != sha:
+                  raise SystemExit(f"{name}: exact sample mismatch")
+          PY
+
+      - name: Dump exact IL2CPP metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/il2cppdumper
+          out="$GITHUB_WORKSPACE/quest-legacy-30-wire-dump"
+          mkdir -p "$root" "$out"
+          curl --fail --location --retry 5 --retry-all-errors \
+            'https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip' \
+            -o "$root/dumper.zip"
+          unzip -q "$root/dumper.zip" -d "$root/app"
+          (
+            cd "$root/app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) 2>&1 | tee quest-legacy-30-wire-il2cppdumper.txt
+
+      - name: Resolve QuestExcel signatures without assuming the nearby RVA comment is exact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-wire-symbols.txt
+          import json
+          import re
+          from pathlib import Path
+
+          dump_path = Path("quest-legacy-30-wire-dump/dump.cs")
+          dump = dump_path.read_text(encoding="utf-8", errors="replace")
+          lines = dump.splitlines()
+
+          targets = (
+              ("QuestExcelConfigLoader", "FromBinary"),
+              ("QuestExcelConfig", "FromBinary"),
+          )
+
+          report = {}
+          for class_name, method_name in targets:
+              class_rx = re.compile(rf"\bclass\s+{re.escape(class_name)}\b")
+              starts = [i for i, line in enumerate(lines) if class_rx.search(line)]
+              if not starts:
+                  raise SystemExit(f"class not found: {class_name}")
+
+              # Choose the class block containing the requested method signature.
+              found = []
+              for start in starts:
+                  end = len(lines)
+                  for j in range(start + 1, len(lines)):
+                      if lines[j].startswith("// Namespace:"):
+                          end = j
+                          break
+                  for i in range(start, end):
+                      if method_name in lines[i] and "(" in lines[i] and ")" in lines[i]:
+                          found.append((start, end, i))
+
+              if not found:
+                  raise SystemExit(f"method not found: {class_name}.{method_name}")
+
+              entries = []
+              for start, end, i in found:
+                  lo = max(start, i - 24)
+                  hi = min(end, i + 12)
+                  nearby = lines[lo:hi]
+                  rvas = []
+                  for k in range(lo, i + 1):
+                      m = re.search(r"RVA:\s*0x([0-9A-Fa-f]+)", lines[k])
+                      if m:
+                          rvas.append((k, int(m.group(1), 16), lines[k].strip()))
+                  entries.append({
+                      "signature_line": i + 1,
+                      "signature": lines[i].strip(),
+                      "preceding_rvas": [
+                          {"line": k + 1, "rva": rva, "text": text}
+                          for k, rva, text in rvas
+                      ],
+                      "context": [
+                          {"line": k + 1, "text": lines[k]}
+                          for k in range(lo, hi)
+                      ],
+                  })
+
+              report[f"{class_name}.{method_name}"] = entries
+              print(f"\n=== {class_name}.{method_name} ===")
+              for entry in entries:
+                  print("signature", entry["signature_line"], entry["signature"])
+                  print("preceding RVAs", [
+                      f"L{x['line']}=0x{x['rva']:X}" for x in entry["preceding_rvas"]
+                  ])
+                  for x in entry["context"]:
+                      print(f"{x['line']:8d}: {x['text']}")
+
+          Path("quest-legacy-30-wire-symbols.json").write_text(
+              json.dumps(report, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Recover actual PE runtime-function bounds around metadata anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-wire-functions.txt
+          import json
+          import re
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_RIP
+
+          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe = pefile.PE(str(exe), fast_load=False)
+          base = pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+
+          runtime = sorted(
+              (
+                  int(x.struct.BeginAddress),
+                  int(x.struct.EndAddress),
+              )
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress) > int(x.struct.BeginAddress)
+          )
+
+          def containing(rva):
+              hits = [(a, b) for a, b in runtime if a <= rva < b]
+              return hits[0] if hits else None
+
+          def neighbors(rva, count=3):
+              before = [(a, b) for a, b in runtime if b <= rva][-count:]
+              after = [(a, b) for a, b in runtime if a > rva][:count]
+              return before, after
+
+          symbols = json.loads(
+              Path("quest-legacy-30-wire-symbols.json").read_text(encoding="utf-8")
+          )
+
+          anchors = {}
+          for label, entries in symbols.items():
+              vals = []
+              for entry in entries:
+                  vals.extend(x["rva"] for x in entry["preceding_rvas"])
+              # Retain every nearby metadata RVA; do not assume the closest one is correct.
+              anchors[label] = sorted(set(vals))
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def disasm(a, b):
+              out = []
+              for ins in md.disasm(pe.get_data(a, b - a), base + a):
+                  item = {
+                      "rva": ins.address - base,
+                      "bytes": ins.bytes.hex(),
+                      "mnemonic": ins.mnemonic,
+                      "op_str": ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic == "call"
+                      and ins.operands
+                      and ins.operands[0].type == X86_OP_IMM
+                  ):
+                      item["call_target_rva"] = ins.operands[0].imm - base
+                  mem = []
+                  for op in ins.operands:
+                      if op.type != X86_OP_MEM:
+                          continue
+                      mem.append({
+                          "base": ins.reg_name(op.mem.base) if op.mem.base else None,
+                          "index": ins.reg_name(op.mem.index) if op.mem.index else None,
+                          "scale": op.mem.scale,
+                          "disp": op.mem.disp,
+                      })
+                  if mem:
+                      item["mem"] = mem
+                  out.append(item)
+              return out
+
+          report = {"image_base": base, "anchors": anchors, "functions": []}
+          seen = set()
+          for label, rvas in anchors.items():
+              print(f"\n=== {label} ===")
+              for rva in rvas:
+                  hit = containing(rva)
+                  before, after = neighbors(rva)
+                  print(
+                      f"metadata_rva=0x{rva:X}",
+                      "containing=" + (
+                          f"0x{hit[0]:X}-0x{hit[1]:X}" if hit else "NONE"
+                      ),
+                      "before=" + ",".join(f"0x{a:X}-0x{b:X}" for a, b in before),
+                      "after=" + ",".join(f"0x{a:X}-0x{b:X}" for a, b in after),
+                  )
+
+                  # Dump the containing function and the immediate next runtime function.
+                  candidates = []
+                  if hit:
+                      candidates.append(("containing", hit))
+                  if after:
+                      candidates.append(("next", after[0]))
+                  for relation, bounds in candidates:
+                      key = (label, relation, bounds)
+                      if key in seen:
+                          continue
+                      seen.add(key)
+                      a, b = bounds
+                      insns = disasm(a, b)
+                      report["functions"].append({
+                          "label": label,
+                          "metadata_rva": rva,
+                          "relation": relation,
+                          "begin_rva": a,
+                          "end_rva": b,
+                          "instructions": insns,
+                      })
+                      print(
+                          f"\n--- {relation} runtime function "
+                          f"0x{a:X}-0x{b:X} ({b-a} bytes) ---"
+                      )
+                      for x in insns:
+                          call = (
+                              f" -> 0x{x['call_target_rva']:X}"
+                              if "call_target_rva" in x else ""
+                          )
+                          print(
+                              f"0x{x['rva']:X} {x['bytes']:<24} "
+                              f"{x['mnemonic']} {x['op_str']}{call}"
+                          )
+
+          Path("quest-legacy-30-wire-functions.json").write_text(
+              json.dumps(report, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Extract high-value field/call fingerprints from candidate row functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-wire-fingerprint.txt
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("quest-legacy-30-wire-functions.json").read_text(encoding="utf-8")
+          )
+
+          target_disps = {
+              0x10: "subId",
+              0x14: "mainId",
+              0x18: "order",
+              0x38: "acceptCondComb",
+              0x40: "acceptCond",
+              0x80: "finishExec",
+              0x88: "failExec",
+              0x90: "beginExec",
+          }
+
+          out = []
+          for fn in report["functions"]:
+              if "QuestExcelConfig.FromBinary" not in fn["label"]:
+                  continue
+              insns = fn["instructions"]
+              hits = []
+              calls = []
+              for i, ins in enumerate(insns):
+                  if "call_target_rva" in ins:
+                      calls.append({
+                          "rva": ins["rva"],
+                          "target_rva": ins["call_target_rva"],
+                          "context": insns[max(0, i-5):min(len(insns), i+6)],
+                      })
+                  for mem in ins.get("mem", []):
+                      disp = mem["disp"]
+                      if disp not in target_disps:
+                          continue
+                      hits.append({
+                          "field_candidate": target_disps[disp],
+                          "disp": disp,
+                          "rva": ins["rva"],
+                          "instruction": ins,
+                          "base": mem["base"],
+                          "index": mem["index"],
+                          "context": insns[max(0, i-8):min(len(insns), i+9)],
+                      })
+
+              item = {
+                  "relation": fn["relation"],
+                  "metadata_rva": fn["metadata_rva"],
+                  "begin_rva": fn["begin_rva"],
+                  "end_rva": fn["end_rva"],
+                  "field_hits": hits,
+                  "calls": calls,
+              }
+              out.append(item)
+
+              print(
+                  f"\n=== row candidate {fn['relation']} "
+                  f"0x{fn['begin_rva']:X}-0x{fn['end_rva']:X} ==="
+              )
+              print("field-like memory refs", len(hits), "direct calls", len(calls))
+              for hit in hits:
+                  print(
+                      f"FIELD? {hit['field_candidate']} disp=0x{hit['disp']:X} "
+                      f"base={hit['base']} index={hit['index']} "
+                      f"at 0x{hit['rva']:X}: "
+                      f"{hit['instruction']['mnemonic']} {hit['instruction']['op_str']}"
+                  )
+                  for x in hit["context"]:
+                      print(
+                          f"  0x{x['rva']:X} {x['mnemonic']} {x['op_str']}"
+                      )
+              print("CALL TARGETS")
+              for call in calls:
+                  print(f"  0x{call['rva']:X} -> 0x{call['target_rva']:X}")
+
+          Path("quest-legacy-30-wire-fingerprint.json").write_text(
+              json.dumps(out, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Disassemble direct helper callees referenced by candidate loader/row functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-wire-helpers.txt
+          import json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+
+          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe = pefile.PE(str(exe), fast_load=False)
+          base = pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime = sorted(
+              (
+                  int(x.struct.BeginAddress),
+                  int(x.struct.EndAddress),
+              )
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress) > int(x.struct.BeginAddress)
+          )
+
+          def exact_or_containing(rva):
+              for a, b in runtime:
+                  if a == rva:
+                      return a, b
+              for a, b in runtime:
+                  if a <= rva < b:
+                      return a, b
+              return None
+
+          funcs = json.loads(
+              Path("quest-legacy-30-wire-functions.json").read_text(encoding="utf-8")
+          )["functions"]
+          targets = []
+          for fn in funcs:
+              for ins in fn["instructions"]:
+                  t = ins.get("call_target_rva")
+                  if t is not None:
+                      targets.append(t)
+
+          # Frequency ranking keeps the artifact focused while still covering
+          # primitive readers/constructors repeatedly used by serialization.
+          freq = {}
+          for t in targets:
+              freq[t] = freq.get(t, 0) + 1
+          ranked = sorted(freq, key=lambda t: (-freq[t], t))[:80]
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          helper_report = []
+          for target in ranked:
+              bounds = exact_or_containing(target)
+              if not bounds:
+                  continue
+              a, b = bounds
+              size = min(b - a, 0x280)
+              insns = []
+              for ins in md.disasm(pe.get_data(a, size), base + a):
+                  insns.append({
+                      "rva": ins.address - base,
+                      "bytes": ins.bytes.hex(),
+                      "mnemonic": ins.mnemonic,
+                      "op_str": ins.op_str,
+                  })
+              helper_report.append({
+                  "target_rva": target,
+                  "frequency": freq[target],
+                  "begin_rva": a,
+                  "end_rva": b,
+                  "instructions": insns,
+              })
+              print(
+                  f"\n=== helper target=0x{target:X} freq={freq[target]} "
+                  f"function=0x{a:X}-0x{b:X} ==="
+              )
+              for x in insns:
+                  print(
+                      f"0x{x['rva']:X} {x['bytes']:<24} "
+                      f"{x['mnemonic']} {x['op_str']}"
+                  )
+
+          Path("quest-legacy-30-wire-helpers.json").write_text(
+              json.dumps(helper_report, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Upload focused wire evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-wire
+          path: |
+            quest-legacy-30-wire-sample.txt
+            quest-legacy-30-wire-il2cppdumper.txt
+            quest-legacy-30-wire-symbols.txt
+            quest-legacy-30-wire-symbols.json
+            quest-legacy-30-wire-functions.txt
+            quest-legacy-30-wire-functions.json
+            quest-legacy-30-wire-fingerprint.txt
+            quest-legacy-30-wire-fingerprint.json
+            quest-legacy-30-wire-helpers.txt
+            quest-legacy-30-wire-helpers.json
+            quest-legacy-30-wire-dump/dump.cs
+            quest-legacy-30-wire-dump/script.json
+          if-no-files-found: warn
