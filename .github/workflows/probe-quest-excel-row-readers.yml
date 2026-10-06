@@ -182,6 +182,67 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Scan legacy QuestExcel count constants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-count-constant-xrefs.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+          raw=0x40233AB1
+          expected=17814
+          constants={
+              "add_to_17814":(expected-raw)&0xffffffff,
+              "xor_to_17814":raw^expected,
+              "add_to_7473":(7473-raw)&0xffffffff,
+              "xor_to_7473":raw^7473,
+          }
+
+          with (ROOT/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          starts=[]; by={}
+          for row in methods:
+              try:r=int(row.get("rva") or "0",0)
+              except ValueError:continue
+              if not r:continue
+              starts.append(r);by.setdefault(r,[]).append(row)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i];e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not s<=rva<e:return None
+              return {"start":f"0x{s:X}","end":f"0x{e:X}","rows":by[s]}
+
+          report={"raw":f"0x{raw:08X}","expected_public_row_count":expected,"constants":{}}
+          with PEImage(EXE) as image:
+              for label,value in constants.items():
+                  pat=value.to_bytes(4,"little")
+                  hits=[]
+                  for sec in image.sections:
+                      blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                      pos=0
+                      while True:
+                          pos=blob.find(pat,pos)
+                          if pos<0:break
+                          rva=sec.virtual_address+pos
+                          hits.append({"rva":f"0x{rva:X}","section":sec.name,"owner":owner(rva)})
+                          pos+=1
+                  report["constants"][label]={"value":f"0x{value:08X}","hits":hits}
+                  print(label,f"0x{value:08X}","hits",len(hits))
+                  for h in hits[:80]:
+                      print(json.dumps(h,ensure_ascii=False))
+          Path("quest-excel-count-constant-xrefs.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -190,6 +251,8 @@ jobs:
             qrow-candidates/
             quest-excel-row-reader-fingerprints.txt
             quest-excel-row-reader-fingerprints.json
+            quest-excel-count-constant-xrefs.txt
+            quest-excel-count-constant-xrefs.json
             quest-excel-row-reader-owners.txt
             quest-excel-row-reader-owners.json
           if-no-files-found: error
