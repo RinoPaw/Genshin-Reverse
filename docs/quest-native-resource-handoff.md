@@ -436,7 +436,7 @@ at `0x3F`. Native row starts are currently:
 35105 0x24F
 35106 0x2B2
 35107 0x327
-end   0x398
+row-array end 0x384
 ```
 
 The decisive 35101 failure data is directly decoded from the full binary:
@@ -470,9 +470,31 @@ Other directly decoded core arrays:
 ```
 
 This promotes the 35101 team-death rollback behavior itself to direct native
-evidence. Remaining #8 work is to generalize/full-consume the ordinary-row
-decoder, decode additional representative main quests, and close the
-QuestExcel-vs-BinOutput source-authority relation.
+evidence.
+
+The ordinary-row array ends at `0x384`, after row 35107. The remaining
+20 bytes are AFIO outer fields and decode exactly as:
+
+```text
+bit49 uint64[] count = 1
+  value = 14457059026087496718
+bit37 u32 = 1001
+bit40 u32 = 1008400655
+```
+
+They correspond to `JNHHOJAPDPP[0]`, `resId`, and outer
+`NBOJMAHCCGM`. The AFIO reader therefore consumes the complete 920-byte
+payload through `0x398` with zero unexplained trailing bytes.
+
+The directly recovered core finish/fail arrays match the same-version
+`BinOutput/Quest/351.json` materialization exactly. Treat same-version
+BinOutput core runtime fields as validated by native evidence for these tested
+fields; this still does not validate AstaPS QuestExcel's legacy `acceptCond`
+chain.
+
+Remaining #8 work is to apply the same direct-decode invariant to additional
+representative main quests and close the QuestExcel-vs-BinOutput
+source-authority/projection relation.
 
 ### Resume here
 
