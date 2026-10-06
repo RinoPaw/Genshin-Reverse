@@ -821,22 +821,56 @@ jobs:
           methods = read_csv('methods.csv')
           type_by_tdi = {int(row['type_definition_index']): row for row in types}
 
-          quest_rows = [
-              row for row in types
-              if row.get('type_name') == 'QuestExcelConfig'
-          ]
-          if len(quest_rows) != 1:
+          fields_by_owner = {}
+          for row in fields:
+              owner = int(row['type_definition_index'])
+              fields_by_owner.setdefault(owner, []).append(row)
+
+          # 7.1 no longer exposes the normal row type as literal
+          # "QuestExcelConfig". Recover it from the preserved field signature.
+          required = {'_subId', '_mainId', '_order', '_acceptCond', '_acceptCondComb'}
+          normal_hints = {
+              '_stepDescTextMapHash',
+              '_guideTipsTextMapHash',
+              '_exclusiveNpcList',
+              '_sharedNpcList',
+              '_trialAvatarList',
+              '_exclusivePlaceList',
+              '_isMpBlock',
+          }
+          candidates = []
+          for owner, owner_fields in fields_by_owner.items():
+              names = {row['field_name'] for row in owner_fields}
+              if not required.issubset(names):
+                  continue
+              type_row = type_by_tdi.get(owner, {})
+              if type_row.get('type_name') == 'RandomQuestExcelConfig':
+                  continue
+              score = len(names & normal_hints)
+              candidates.append({
+                  'owner': owner,
+                  'score': score,
+                  'type': type_row,
+                  'field_names': sorted(names),
+              })
+
+          print('=== QuestExcelConfig field-signature candidates ===')
+          for item in sorted(candidates, key=lambda x: (-x['score'], x['owner'])):
+              print(json.dumps(item, ensure_ascii=False))
+
+          if not candidates:
+              raise SystemExit('QuestExcelConfig field-signature candidate missing')
+          best_score = max(item['score'] for item in candidates)
+          best = [item for item in candidates if item['score'] == best_score]
+          if len(best) != 1:
               raise SystemExit(
-                  f'QuestExcelConfig: expected exactly one type, got {len(quest_rows)}: '
-                  + json.dumps(quest_rows, ensure_ascii=False)
+                  'QuestExcelConfig field-signature candidate is ambiguous: '
+                  + json.dumps(best, ensure_ascii=False)
               )
 
-          quest_type = quest_rows[0]
-          quest_tdi = int(quest_type['type_definition_index'])
-          quest_fields = [
-              row for row in fields
-              if int(row['type_definition_index']) == quest_tdi
-          ]
+          quest_tdi = best[0]['owner']
+          quest_type = type_by_tdi[quest_tdi]
+          quest_fields = fields_by_owner[quest_tdi]
           quest_methods = [
               row for row in methods
               if int(row['type_definition_index']) == quest_tdi
@@ -927,6 +961,23 @@ jobs:
                   info = describe_entry(idx)
                   runtime_fields[row['field_name']] = info
                   print(row['field_name'], json.dumps(info, ensure_ascii=False))
+
+              accept_info = runtime_fields.get('_acceptCond', {})
+              accept_elem = accept_info.get('element', {})
+              accept_elem_type = accept_elem.get('type', {})
+              if (
+                  accept_info.get('kind') != 'szarray'
+                  or accept_elem_type.get('type_name') != 'QuestCond'
+              ):
+                  raise SystemExit(
+                      'selected QuestExcelConfig candidate does not have QuestCond[] '
+                      'acceptCond: ' + json.dumps(accept_info, ensure_ascii=False)
+                  )
+              print(
+                  'CONFIRMED _acceptCond = QuestCond[] for owner',
+                  quest_tdi,
+                  quest_type.get('type_name'),
+              )
 
               def line(insn):
                   return {
