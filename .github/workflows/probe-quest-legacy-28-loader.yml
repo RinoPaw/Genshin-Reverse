@@ -1,0 +1,272 @@
+name: Probe 2.8 QuestExcel loader wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-loader.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-loader-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 2.8.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          out='inputs/2.8.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(172337920,"48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394"),
+              "global-metadata.dat":(48012356,"8bc2cee2a2c55a2a0fc224e414c2c139e06a116860b4e758cc5a00226bc4de85"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/2.8.0-global")/name).read_bytes()
+              assert len(raw)==size and hashlib.sha256(raw).hexdigest()==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=False
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-loader-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Resolve loader owner and disassemble row-array callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-loader.txt
+          import bisect,json,re
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+          type_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+).*?TypeDefIndex:\s*(\d+)"
+          )
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+
+          row_type="LHMHKEAMFBG"
+          owners=[]
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              if row_type not in "\n".join(block):
+                  continue
+              decl=None
+              for rel,line in enumerate(block[:120]):
+                  m=type_rx.search(line)
+                  if m:
+                      decl={
+                          "name":m.group(1),
+                          "typedef_index":int(m.group(2)),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      }
+                      break
+              if not decl or decl["name"]==row_type:
+                  continue
+
+              methods=[]
+              for rel,line in enumerate(block):
+                  rm=rva_rx.search(line)
+                  if not rm:
+                      continue
+                  rva=int(rm.group(1),16)
+                  sig=None
+                  sigline=None
+                  for k in range(rel+1,min(len(block),rel+8)):
+                      q=block[k].strip()
+                      if q and not q.startswith("//") and "(" in q and ")" in q:
+                          sig=q
+                          sigline=a+k+1
+                          break
+                  if sig:
+                      methods.append({"rva":rva,"line":sigline,"signature":sig})
+              owners.append({
+                  "declaration":decl,
+                  "block":block,
+                  "methods":methods,
+              })
+
+          print("OWNER_CANDIDATES",len(owners))
+          for x in owners:
+              d=x["declaration"]
+              print(f"\n=== {d['name']} TypeDefIndex={d['typedef_index']} L{d['line']} ===")
+              for line in x["block"][:260]:
+                  if row_type in line or "Dictionary<" in line or "List<" in line:
+                      print(line)
+              for m in x["methods"]:
+                  print(f"METHOD 0x{m['rva']:X} L{m['line']} {m['signature']}")
+
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          funcs=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in funcs]
+          def bounds(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0 and funcs[i][0]<=rva<funcs[i][1]:
+                  return funcs[i]
+              return None
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          row_targets={0x2DEB2B0:"row_instance",0x2DEBB70:"row_array",0x2DEBD30:"row_single"}
+          caller_hits=[]
+          owner_methods=[]
+
+          for x in owners:
+              for m in x["methods"]:
+                  bd=bounds(m["rva"])
+                  if not bd or bd[1]-bd[0]>0x5000:
+                      continue
+                  a,b=bd
+                  calls=[]
+                  insns=[]
+                  for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                      rva=ins.address-base
+                      row={"rva":rva,"mnemonic":ins.mnemonic,"op_str":ins.op_str}
+                      if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          t=ins.operands[0].imm-base
+                          row["call_target_rva"]=t
+                          calls.append((rva,t))
+                      insns.append(row)
+                  hits=[(r,t,row_targets[t]) for r,t in calls if t in row_targets]
+                  if hits:
+                      owner_methods.append({
+                          "owner":x["declaration"],
+                          "method":m,
+                          "bounds":[a,b],
+                          "hits":hits,
+                          "instructions":insns,
+                      })
+                      for h in hits:
+                          caller_hits.append((x["declaration"]["name"],m["rva"],m["signature"],h))
+
+          print("\nROW_READER_CALLERS",len(owner_methods))
+          for x in owner_methods:
+              d=x["owner"]; m=x["method"]
+              print(
+                  f"\n===== owner={d['name']} method=0x{m['rva']:X} "
+                  f"bounds=0x{x['bounds'][0]:X}-0x{x['bounds'][1]:X} ====="
+              )
+              print(m["signature"])
+              print("HITS",x["hits"])
+              hit_rvas={h[0] for h in x["hits"]}
+              for i,ins in enumerate(x["instructions"]):
+                  if ins["rva"] not in hit_rvas:
+                      continue
+                  print(f"-- around 0x{ins['rva']:X}")
+                  for y in x["instructions"][max(0,i-35):min(len(x["instructions"]),i+25)]:
+                      tail=f" ->0x{y['call_target_rva']:X}" if "call_target_rva" in y else ""
+                      print(f"  0x{y['rva']:X} {y['mnemonic']:<8} {y['op_str']}{tail}")
+
+          Path("quest-legacy-28-loader.json").write_text(
+              json.dumps({
+                  "row_type":row_type,
+                  "owners":owners,
+                  "owner_methods":owner_methods,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not owner_methods:
+              raise SystemExit("no owner method directly calls exact Quest row reader helpers")
+          PY
+
+      - name: Upload loader evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-loader
+          path: |
+            quest-legacy-28-loader-dumper.txt
+            quest-legacy-28-loader.txt
+            quest-legacy-28-loader.json
+          if-no-files-found: warn
