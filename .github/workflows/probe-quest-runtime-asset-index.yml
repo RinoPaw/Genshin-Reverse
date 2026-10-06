@@ -1,0 +1,186 @@
+name: Probe 7.1 runtime AssetIndex for Quest handle
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-runtime-asset-index.yml"
+
+concurrency:
+  group: probe-quest-runtime-asset-index-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Confirm current 7.1 runtime AssetIndex literal
+        shell: bash
+        run: |
+          set -euo pipefail
+          peer_sha=1008fd7db28dcbc55729d5bb6b3a585dab86cf8b
+          mkdir -p third-party/gi-stringliteral
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$peer_sha/recover_string_literals.py"             -o third-party/gi-stringliteral/recover_string_literals.py
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$peer_sha/extract_constants.py"             -o third-party/gi-stringliteral/extract_constants.py
+          (
+            cd third-party/gi-stringliteral
+            python recover_string_literals.py               ../../inputs/7.1.0-global/global-metadata.dat               ../../inputs/7.1.0-global/GenshinImpact.exe               -o ../../asset-index-literals-all.json               2> ../../asset-index-literal-recovery.txt
+          )
+          python - <<'PY' | tee asset-index-literals.txt
+          import json
+          from pathlib import Path
+          rows=json.loads(Path("asset-index-literals-all.json").read_text(encoding="utf-8"))
+          needles=("31049740","asset_index","release_asset_index","medium_asset_index")
+          hits=[r for r in rows if any(n in str(r.get("value","")).lower() for n in needles)]
+          for r in hits:
+              print(json.dumps(r,ensure_ascii=False))
+          Path("asset-index-literals.json").write_text(
+              json.dumps(hits,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          if not any("31049740" in str(r.get("value","")) for r in hits):
+              print("NOTE exact 31049740 literal not recovered; manifest/native deserializer evidence remains usable")
+          PY
+
+      - name: Reconstruct exact 7.1 runtime AssetIndex block
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee runtime-asset-index-block.txt
+          import hashlib
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import decompress_zstd, download, normalized_name, parse_manifest, reconstruct
+
+          rows=parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
+          suffix="/assetbundles/blocks/00/31049740.blk"
+          matches=[r for r in rows if normalized_name(r).endswith(suffix)]
+          if len(matches)!=1:
+              raise SystemExit(f"{suffix}: expected one manifest row, got {len(matches)}")
+          row=matches[0]
+          out=Path("runtime-asset-index/31049740.blk")
+          out.parent.mkdir(parents=True,exist_ok=True)
+          reconstruct(PROFILE_71.sophon_chunk_prefix,row,out,workers=8)
+          raw=out.read_bytes()
+          print("path=",out)
+          print("size=",len(raw))
+          print("sha256=",hashlib.sha256(raw).hexdigest())
+          print("md5_manifest=",row.get("md5"))
+          print("head64=",raw[:64].hex())
+          print("head_ascii=",repr(raw[:32]))
+          PY
+
+      - name: Dump exact 7.1 AssetIndex reader schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee runtime-asset-index-schema.txt
+          import csv,json
+          from pathlib import Path
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(n):
+              with (root/n).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types,fields,methods=rows("types.csv"),rows("fields.csv"),rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          wanted={"AssetIndexDeserializer","AssetIndexBinaryReader","BundleContent","ResourceIndex"}
+          out={}
+          for t in types:
+              if t.get("type_name") not in wanted:
+                  continue
+              tdi=int(t["type_definition_index"])
+              out[str(tdi)]={
+                  "type":t,
+                  "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                  "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              }
+              print("\nTYPE",tdi,t.get("namespace"),t.get("type_name"))
+              print(json.dumps(out[str(tdi)],ensure_ascii=False,indent=2))
+          Path("runtime-asset-index-schema.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Disassemble exact runtime AssetIndex decoders
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6DD3E70 0x570             --expected-sha256 "$sha"             --label "AssetIndexDeserializer.DeserializeBinary"             --output runtime-asset-index-deserialize.json             > runtime-asset-index-deserialize.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6DD43E0 0x360             --expected-sha256 "$sha"             --label "AssetIndexDeserializer.ReadAssetInfoMap_B"             --output runtime-asset-index-asset-map.json             > runtime-asset-index-asset-map.txt
+
+      - name: Annotate AssetIndex direct calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee runtime-asset-index-calls.txt
+          import csv,json,re
+          from pathlib import Path
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              methods=list(csv.DictReader(f))
+          with (root/"types.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              types=list(csv.DictReader(f))
+          by_rva={}
+          for m in methods:
+              s=(m.get("rva") or "").strip()
+              if s:
+                  try: by_rva.setdefault(int(s,0),[]).append(m)
+                  except ValueError: pass
+          tb={int(t["type_definition_index"]):t for t in types}
+          out={}
+          for fn in ("runtime-asset-index-deserialize.json","runtime-asset-index-asset-map.json"):
+              d=json.loads(Path(fn).read_text(encoding="utf-8"))
+              base=int(d["image_base"],16)
+              rr=[]
+              for ins in d["instructions"]:
+                  if ins.get("mnemonic") not in {"call","jmp"}: continue
+                  mm=re.fullmatch(r"0x([0-9a-fA-F]+)",ins.get("op_str",""))
+                  if not mm: continue
+                  v=int(mm.group(1),16); rva=v-base if v>=base else v
+                  meta=by_rva.get(rva,[])
+                  item={
+                      "site_rva":ins["rva"],"target_rva":f"0x{rva:X}",
+                      "metadata":meta,
+                      "owners":[tb.get(int(m["type_definition_index"]),{}) for m in meta],
+                  }
+                  rr.append(item)
+                  if meta:
+                      print(fn,json.dumps(item,ensure_ascii=False,sort_keys=True))
+              out[fn]=rr
+          Path("runtime-asset-index-calls.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-runtime-asset-index
+          path: |
+            asset-index-literal-recovery.txt
+            asset-index-literals.txt
+            asset-index-literals.json
+            runtime-asset-index-block.txt
+            runtime-asset-index/31049740.blk
+            runtime-asset-index-schema.txt
+            runtime-asset-index-schema.json
+            runtime-asset-index-deserialize.txt
+            runtime-asset-index-deserialize.json
+            runtime-asset-index-asset-map.txt
+            runtime-asset-index-asset-map.json
+            runtime-asset-index-calls.txt
+            runtime-asset-index-calls.json
+          if-no-files-found: error
