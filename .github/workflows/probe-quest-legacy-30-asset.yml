@@ -160,7 +160,7 @@ jobs:
           test -s design-output/0000006f.dat
           test -s quest-output/3b87ae83.dat
 
-      - name: Verify route and decode exact Quest 351
+      - name: Decode exact 3.0 Quest 351
         shell: bash
         run: |
           set -euo pipefail
@@ -168,21 +168,20 @@ jobs:
           import hashlib,json
           from pathlib import Path
 
-          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
           from genshinre.questlegacy import (
               detect_legacy_quest_xor_key,
               find_quest_rows,
               parse_legacy_quest_prefix,
           )
 
-          path="Data/_ExcelBinOutput/QuestExcelConfigData"
-          idx=parse_asset_index(Path("design-output/0000006f.dat").read_bytes())
-          h=mihoyo_name_hash(path)
-          name=idx.name_for_hash(h)
-          ref=idx.block_ref_for_asset(name.sub_asset_id)
-          group=idx.block_groups[ref.block_id]
-
           raw=Path("quest-output/3b87ae83.dat").read_bytes()
+          expected_sha="06e542afe858ae9c356fcb66699d9b90ab21637e74b8aef63117b4873966c987"
+          got_sha=hashlib.sha256(raw).hexdigest()
+          if len(raw)!=668531 or got_sha!=expected_sha:
+              raise SystemExit(
+                  f"unexpected 3.0 QuestExcel identity size={len(raw)} sha256={got_sha}"
+              )
+
           key,count=detect_legacy_quest_xor_key(
               raw,probe_rows=160,min_row_count=1_000,max_row_count=100_000
           )
@@ -191,14 +190,10 @@ jobs:
 
           out={
               "asset":{
-                  "path":path,
-                  "hash":f"0x{h:010X}",
-                  "exported_name":name.exported_name,
-                  "sub_asset_id":name.sub_asset_id,
-                  "block_id":ref.block_id,
-                  "group_id":group,
+                  "path":"Data/_ExcelBinOutput/QuestExcelConfigData",
+                  "exported_name":"3b87ae83",
                   "raw_size":len(raw),
-                  "sha256":hashlib.sha256(raw).hexdigest(),
+                  "sha256":got_sha,
               },
               "wire":{
                   "xor_key":f"0x{key:02X}",
@@ -237,6 +232,12 @@ jobs:
           got={r.fields.get("sub_id") for r in rows}
           if got != expected:
               raise SystemExit(f"Quest 351 incomplete: {sorted(x for x in got if x)}")
+          if key != 0x91 or count != 14726:
+              raise SystemExit(
+                  f"unexpected wire fingerprint key=0x{key:02X} row_count={count}"
+              )
+          if any(r.fields.get("accept_cond") is not None for r in rows):
+              raise SystemExit("3.0 Quest 351 unexpectedly contains acceptCond")
           PY
 
       - name: Upload evidence
