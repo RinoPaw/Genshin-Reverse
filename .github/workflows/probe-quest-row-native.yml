@@ -1598,6 +1598,145 @@ jobs:
             --label "RandomMainQuestExcelConfig.FromBinaryInner(reader)" \
             --output quest-random-main-reader.json \
             > quest-random-main-reader.txt
+      - name: Disassemble compact FNJ Quest table reader
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_sha=$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x1269C5F0 0xB40 \
+            --expected-sha256 "$expected_sha" \
+            --label "FNJLMNMEKLN.GMENPOPMKAA(FNIAHJGHFAK)" \
+            --output quest-fnj-reader-full.json \
+            > quest-fnj-reader-full.txt
+
+          python - <<'PY' | tee quest-fnj-reader-calls.txt
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          obj = json.loads(Path("quest-fnj-reader-full.json").read_text(encoding="utf-8"))
+          base = int(obj["image_base"], 16)
+
+          with (root / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (root / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+
+          by_rva = {}
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  by_rva.setdefault(int(text, 0), []).append(row)
+              except ValueError:
+                  pass
+
+          report = []
+          for ins in obj["instructions"]:
+              if ins["mnemonic"] not in {"call", "jmp"}:
+                  continue
+              m = re.fullmatch(r"0x([0-9a-fA-F]+)", ins["op_str"])
+              if not m:
+                  continue
+              trva = int(m.group(1), 16) - base
+              meta = by_rva.get(trva, [])
+              owners = [
+                  type_by_tdi.get(int(x["type_definition_index"]), {})
+                  for x in meta
+              ]
+              item = {
+                  "site_rva": ins["rva"],
+                  "target_rva": f"0x{trva:X}",
+                  "metadata": meta,
+                  "owners": owners,
+              }
+              report.append(item)
+              print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-fnj-reader-calls.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-fnj-field-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
+
+          with (root / "fields.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              fields = list(csv.DictReader(f))
+          with (root / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+
+          target_fields = [
+              r for r in fields if int(r["type_definition_index"]) == 85802
+          ]
+
+          out = []
+          with PEImage(exe) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def read_entry(index):
+                  va = type_array_va + index * ENTRY_SIZE
+                  data = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE or not is_valid_type_entry(data):
+                      raise ValueError(f"bad runtime type entry {index}")
+                  return decode_type_entry(data)
+
+              def nested_from_array(d):
+                  if int(d["kind"]) != 0x1D:
+                      return None
+                  va = int(d["data_u64"])
+                  raw = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(raw) != ENTRY_SIZE or not is_valid_type_entry(raw):
+                      return None
+                  nd = decode_type_entry(raw)
+                  result = dict(nd)
+                  if int(nd["kind"]) in (0x11, 0x12):
+                      result["type_definition"] = type_by_tdi.get(int(nd["data_u32"]), {})
+                  return result
+
+              for ordinal, fld in enumerate(target_fields):
+                  idx = int(fld["field_type_index"])
+                  d = read_entry(idx)
+                  item = {
+                      "ordinal": ordinal,
+                      "field": fld,
+                      "runtime_type": d,
+                      "nested_array_element": nested_from_array(d),
+                  }
+                  if int(d["kind"]) in (0x11, 0x12):
+                      item["type_definition"] = type_by_tdi.get(int(d["data_u32"]), {})
+                  out.append(item)
+                  print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-fnj-field-types.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1617,6 +1756,9 @@ jobs:
           test -s quest-becfl-object-projection.json
           test -s quest-becfl-summary.json
           test -s quest-main-id-cardinality.json
+          test -s quest-fnj-reader-full.json
+          test -s quest-fnj-reader-calls.json
+          test -s quest-fnj-field-types.json
           test -s quest-random-main-control.json
           test -s quest-main-wrapper-field-map.json
           test -s quest-random-main-reader.json
@@ -1659,6 +1801,12 @@ jobs:
             quest-becfl-summary.json
             quest-main-id-cardinality.txt
             quest-main-id-cardinality.json
+            quest-fnj-reader-full.txt
+            quest-fnj-reader-full.json
+            quest-fnj-reader-calls.txt
+            quest-fnj-reader-calls.json
+            quest-fnj-field-types.txt
+            quest-fnj-field-types.json
             quest-random-main-control.txt
             quest-random-main-control.json
             quest-main-wrapper-field-map.txt
