@@ -1243,6 +1243,109 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Disassemble compact FNJ Quest container reader
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x1269C5F0 0xB40 \
+            --expected-sha256 "$expected_sha" \
+            --label "FNJLMNMEKLN.GMENPOPMKAA(FNIAHJGHFAK)" \
+            --output quest-fnj-reader.json \
+            > quest-fnj-reader.txt
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x1269D130 0x60 \
+            --expected-sha256 "$expected_sha" \
+            --label "FNJLMNMEKLN.OHPBNHHCBLB(FNIAHJGHFAK)" \
+            --output quest-fnj-side-reader.json \
+            > quest-fnj-side-reader.txt
+
+          python - <<'PY' | tee quest-fnj-reader-calls.txt
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (root / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          by_rva = {}
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  by_rva.setdefault(int(text, 0), []).append(row)
+              except ValueError:
+                  pass
+
+          def summarize(path):
+              obj = json.loads(Path(path).read_text(encoding="utf-8"))
+              base = int(obj["image_base"], 16)
+              out = []
+              for idx, ins in enumerate(obj["instructions"]):
+                  if ins["mnemonic"] != "call":
+                      continue
+                  m = re.fullmatch(r"0x([0-9a-fA-F]+)", ins["op_str"])
+                  if not m:
+                      continue
+                  trva = int(m.group(1), 16) - base
+                  meta = by_rva.get(trva, [])
+                  out.append({
+                      "index": idx,
+                      "site_rva": ins["rva"],
+                      "target_rva": f"0x{trva:X}",
+                      "metadata": [
+                          {
+                              "method": row,
+                              "owner": type_by_tdi.get(int(row["type_definition_index"]), {}),
+                          }
+                          for row in meta
+                      ],
+                      "context": obj["instructions"][max(0, idx-6): min(len(obj["instructions"]), idx+7)],
+                  })
+              return out
+
+          report = {
+              "reader_calls": summarize("quest-fnj-reader.json"),
+              "side_reader_calls": summarize("quest-fnj-side-reader.json"),
+          }
+
+          for group, rows in report.items():
+              print("===", group, "===")
+              for row in rows:
+                  names = [
+                      f'{x["owner"].get("type_name","?")}::{x["method"].get("method_name","?")}'
+                      for x in row["metadata"]
+                  ]
+                  print(row["site_rva"], "->", row["target_rva"], names or ["<unmapped>"])
+                  for x in row["context"]:
+                      print(f'  {x["rva"]:>12} {x["mnemonic"]:<8} {x["op_str"]}')
+
+          Path("quest-fnj-reader-calls.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          obj = json.loads(Path("quest-fnj-reader.json").read_text(encoding="utf-8"))
+          Path("quest-fnj-reader-head.json").write_text(
+              json.dumps(obj["instructions"][:120], ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print("=== first 120 instructions ===")
+          for x in obj["instructions"][:120]:
+              print(f'{x["rva"]:>12} {x["mnemonic"]:<8} {x["op_str"]}')
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1262,6 +1365,10 @@ jobs:
           test -s quest-becfl-object-projection.json
           test -s quest-becfl-summary.json
           test -s quest-main-id-cardinality.json
+          test -s quest-fnj-reader.json
+          test -s quest-fnj-side-reader.json
+          test -s quest-fnj-reader-calls.json
+          test -s quest-fnj-reader-head.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -1297,4 +1404,11 @@ jobs:
             quest-becfl-summary.json
             quest-main-id-cardinality.txt
             quest-main-id-cardinality.json
+            quest-fnj-reader.txt
+            quest-fnj-reader.json
+            quest-fnj-side-reader.txt
+            quest-fnj-side-reader.json
+            quest-fnj-reader-calls.txt
+            quest-fnj-reader-calls.json
+            quest-fnj-reader-head.json
           if-no-files-found: error
