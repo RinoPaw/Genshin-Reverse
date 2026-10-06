@@ -1,0 +1,233 @@
+name: Probe 7.1 legacy QuestExcel resource alignment
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-resource-alignment.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-resource-alignment-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact previously exported 7.1 QuestExcel asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-artifact
+          gh run download 37438756230 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir previous-artifact
+          test -s previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch AstaPS resource QuestExcel JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/RinoPaw/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            ExcelBinOutput/QuestExcelConfigData.json
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+          sha256sum /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Compare legacy binary count with resource row ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-resource-alignment.txt
+          import hashlib,json,struct
+          from pathlib import Path
+
+          raw_path=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat")
+          json_path=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+
+          raw=raw_path.read_bytes()
+          wrapper_size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+wrapper_size]
+          if wrapper_size != len(raw)-4:
+              raise SystemExit(
+                  f"wrapper mismatch declared={wrapper_size} actual={len(raw)-4}"
+              )
+
+          def uvar(data,pos):
+              start=pos
+              value=0
+              shift=0
+              while True:
+                  if pos>=len(data): raise EOFError(start)
+                  b=data[pos]; pos+=1
+                  value |= (b&0x7f)<<shift
+                  if not b&0x80: return value,pos
+                  shift += 7
+                  if shift>=64: raise ValueError("wide varint")
+
+          count,pos=uvar(payload,0)
+          presence_len=payload[pos]
+          presence=payload[pos+1:pos+1+presence_len]
+          set_bits=[
+              i for i in range(presence_len*8)
+              if presence[i>>3] & (1<<(i&7))
+          ]
+
+          data=json.loads(json_path.read_text(encoding="utf-8"))
+          if not isinstance(data,list):
+              raise SystemExit(f"expected top-level list, got {type(data).__name__}")
+
+          def pick(row,*names):
+              for n in names:
+                  if n in row: return row[n]
+              return None
+
+          def subid(row):
+              return pick(row,"subId","_subId","SubId","_SubId")
+
+          def mainid(row):
+              return pick(row,"mainId","_mainId","MainId","_MainId")
+
+          targets=list(range(35100,35108))
+          positions={x:[] for x in targets}
+          for i,row in enumerate(data):
+              sid=subid(row)
+              if sid in positions:
+                  positions[sid].append(i)
+
+          first=data[0]
+          nonempty=[]
+          for k,v in first.items():
+              if v is None or v is False or v==0 or v=="" or v==[] or v=={}:
+                  continue
+              nonempty.append(k)
+
+          prefix=data[:count]
+          prefix_ids=[subid(x) for x in prefix]
+          prefix_target_positions={
+              sid:[i for i,x in enumerate(prefix_ids) if x==sid]
+              for sid in targets
+          }
+          tail_target_positions={
+              sid:[count+i for i,x in enumerate(data[count:]) if subid(x)==sid]
+              for sid in targets
+          }
+
+          # Check whether the first binary record's number of presence bits
+          # agrees with JSON's explicit/non-default field population. This is
+          # only an alignment signal; JSON exporters may retain defaults.
+          report={
+              "binary":{
+                  "raw_size":len(raw),
+                  "raw_sha256":hashlib.sha256(raw).hexdigest(),
+                  "payload_size":len(payload),
+                  "table_count_uvar":count,
+                  "count_prefix_bytes":pos,
+                  "first_row_presence_length":presence_len,
+                  "first_row_presence_hex":presence.hex(),
+                  "first_row_set_bit_count":len(set_bits),
+                  "first_row_set_bits":set_bits,
+              },
+              "resource":{
+                  "json_size":json_path.stat().st_size,
+                  "json_sha256":hashlib.sha256(json_path.read_bytes()).hexdigest(),
+                  "row_count":len(data),
+                  "first_row_sub_id":subid(first),
+                  "first_row_main_id":mainid(first),
+                  "first_row_key_count":len(first),
+                  "first_row_keys":list(first.keys()),
+                  "first_row_nondefault_count":len(nonempty),
+                  "first_row_nondefault_keys":nonempty,
+                  "first_20_sub_ids":prefix_ids[:20],
+                  "prefix_count":len(prefix),
+                  "prefix_unique_sub_ids":len(set(x for x in prefix_ids if x is not None)),
+                  "prefix_min_sub_id":min((x for x in prefix_ids if isinstance(x,int)),default=None),
+                  "prefix_max_sub_id":max((x for x in prefix_ids if isinstance(x,int)),default=None),
+              },
+              "quest351":{
+                  "all_positions":positions,
+                  "prefix_positions":prefix_target_positions,
+                  "tail_positions":tail_target_positions,
+                  "all_in_legacy_prefix":all(
+                      len(prefix_target_positions[x])>0 for x in targets
+                  ),
+                  "any_in_tail":any(
+                      len(tail_target_positions[x])>0 for x in targets
+                  ),
+              },
+          }
+
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-resource-alignment.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          if count != 7473:
+              raise SystemExit(f"unexpected binary count {count}")
+          if presence_len != 35:
+              raise SystemExit(f"unexpected first presence length {presence_len}")
+          PY
+
+      - name: Inspect legacy-prefix Quest 351 rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-resource-351.txt
+          import json
+          from pathlib import Path
+
+          path=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          rows=json.loads(path.read_text(encoding="utf-8"))
+
+          def sid(r):
+              for k in ("subId","_subId","SubId","_SubId"):
+                  if k in r:return r[k]
+              return None
+
+          wanted=set(range(35100,35108))
+          out=[]
+          for i,row in enumerate(rows):
+              if sid(row) not in wanted:
+                  continue
+              item={
+                  "ordinal":i,
+                  "in_first_7473":i<7473,
+                  "row":row,
+              }
+              out.append(item)
+              print(json.dumps(item,ensure_ascii=False,sort_keys=False))
+
+          Path("quest-legacy-71-resource-351.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload alignment evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-resource-alignment
+          path: |
+            quest-legacy-71-resource-alignment.txt
+            quest-legacy-71-resource-alignment.json
+            quest-legacy-71-resource-351.txt
+            quest-legacy-71-resource-351.json
+          if-no-files-found: warn
