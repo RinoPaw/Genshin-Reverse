@@ -83,10 +83,10 @@ jobs:
           ls -lh
 
       - name: Load exact UserAssembly and compare protected RVAs
-        shell: pwsh
+        shell: bash
         run: |
-          $ErrorActionPreference = "Continue"
-          $env:PATH = "$(Resolve-Path 'inputs/3.0.0-global');$env:PATH"
+          set -u
+          export PATH="$PWD/inputs/3.0.0-global:$PATH"
           python - <<'PY'
           import ctypes
           import hashlib
@@ -216,7 +216,6 @@ jobs:
               json.dumps(report,indent=2)+"\n",encoding="utf-8"
           )
           PY
-          exit 0
 
       - name: Upload loaded-memory evidence
         if: always()
