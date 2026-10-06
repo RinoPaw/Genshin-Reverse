@@ -241,6 +241,160 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace named QuestProxy consumers of ordinary row arrays
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-proxy-array-consumers.txt
+          import csv
+          import json
+          import re
+          from bisect import bisect_right
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
+
+          def rows(name):
+              with (root / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods = rows("methods.csv")
+          types = rows("types.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          methods_by_tdi = {}
+          all_rvas = []
+          by_rva = {}
+          for m in methods:
+              tdi = int(m["type_definition_index"])
+              methods_by_tdi.setdefault(tdi, []).append(m)
+              text = m.get("rva", "").strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 16)
+              except ValueError:
+                  continue
+              all_rvas.append(rva)
+              by_rva.setdefault(rva, []).append(m)
+          all_rvas = sorted(set(all_rvas))
+
+          QUEST_PROXY = 87002
+          FACADE = 40413
+          ARRAY_OFFSETS = {0x10, 0x18, 0x20, 0x58}
+          semantic_name = re.compile(
+              r"(finish|fail|cond|exec|rewind|guide|content|valid|check|questconfig)",
+              re.I,
+          )
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = False
+
+          with PEImage(exe) as image:
+              base = image.image_base
+
+              def method_body(m):
+                  rva = int(m["rva"], 16)
+                  pos = bisect_right(all_rvas, rva)
+                  next_rva = all_rvas[pos] if pos < len(all_rvas) else rva + 0x800
+                  size = min(max(1, next_rva - rva), 0x2000)
+                  code = image.read_rva(rva, size)
+                  return [
+                      {
+                          "rva": ins.address - base,
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                      }
+                      for ins in md.disasm(code, base + rva)
+                  ]
+
+              facade_rvas = {
+                  int(m["rva"], 16): m
+                  for m in methods_by_tdi.get(FACADE, [])
+                  if m.get("rva", "").strip()
+              }
+
+              def relevant_accesses(insns):
+                  hits = []
+                  for ins in insns:
+                      text = ins["op_str"].lower()
+                      for off in ARRAY_OFFSETS:
+                          if re.search(rf"\+ 0x{off:x}\]", text):
+                              hits.append(
+                                  {
+                                      "rva": f"0x{ins['rva']:X}",
+                                      "offset": f"0x{off:X}",
+                                      "mnemonic": ins["mnemonic"],
+                                      "op_str": ins["op_str"],
+                                  }
+                              )
+                  return hits
+
+              report = {
+                  "quest_proxy_type": type_by_tdi[QUEST_PROXY],
+                  "facade_type": type_by_tdi[FACADE],
+                  "named_methods": [],
+                  "facade_methods": {},
+              }
+
+              for m in methods_by_tdi.get(QUEST_PROXY, []):
+                  if not m.get("rva", "").strip():
+                      continue
+                  if not semantic_name.search(m.get("method_name", "")):
+                      continue
+                  insns = method_body(m)
+                  calls = []
+                  for ins in insns:
+                      if ins["mnemonic"] != "call":
+                          continue
+                      target = ins["op_str"].strip()
+                      if not target.startswith("0x"):
+                          continue
+                      target_rva = int(target, 16) - base
+                      if target_rva in facade_rvas:
+                          fm = facade_rvas[target_rva]
+                          calls.append(
+                              {
+                                  "site_rva": f"0x{ins['rva']:X}",
+                                  "target_rva": f"0x{target_rva:X}",
+                                  "facade_method": fm,
+                              }
+                          )
+                  item = {
+                      "method": m,
+                      "ordinary_array_accesses": relevant_accesses(insns),
+                      "facade_calls": calls,
+                  }
+                  report["named_methods"].append(item)
+                  print("QUEST_PROXY", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+              called_facade = {
+                  int(call["target_rva"], 16)
+                  for item in report["named_methods"]
+                  for call in item["facade_calls"]
+              }
+              for rva in sorted(called_facade):
+                  m = facade_rvas[rva]
+                  insns = method_body(m)
+                  item = {
+                      "method": m,
+                      "ordinary_array_accesses": relevant_accesses(insns),
+                  }
+                  report["facade_methods"][f"0x{rva:X}"] = item
+                  print("FACADE", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-proxy-array-consumers.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -248,6 +402,7 @@ jobs:
           test -s quest-row-runtime-types.json
           test -s quest-row-reader-full.json
           test -s quest-row-reader-calls.json
+          test -s quest-proxy-array-consumers.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -259,4 +414,6 @@ jobs:
             quest-row-reader-full.json
             quest-row-reader-calls.txt
             quest-row-reader-calls.json
+            quest-proxy-array-consumers.txt
+            quest-proxy-array-consumers.json
           if-no-files-found: error
