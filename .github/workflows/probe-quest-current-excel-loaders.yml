@@ -299,7 +299,8 @@ jobs:
               hits=raw["matches"].get(key,[])
               rows=[]
               for h in hits:
-                  rva=int(h["rva"],0) if isinstance(h.get("rva"),str) else int(h.get("rva",0))
+                  raw_rva=h.get("instruction_rva",h.get("rva",0))
+                  rva=int(raw_rva,0) if isinstance(raw_rva,str) else int(raw_rva or 0)
                   rows.append({**h,"owner":owner(rva)})
               out["results"][label]=rows
               print("\n===",label,s,"hits",len(rows),"===")
