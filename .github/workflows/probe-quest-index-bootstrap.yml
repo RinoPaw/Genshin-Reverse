@@ -387,6 +387,60 @@ jobs:
           )
           PY
 
+      - name: Recover protected 7.1 string literals with pinned peer implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          peer_sha=1008fd7db28dcbc55729d5bb6b3a585dab86cf8b
+          mkdir -p third-party/gi-stringliteral
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$peer_sha/recover_string_literals.py" \
+            -o third-party/gi-stringliteral/recover_string_literals.py
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$peer_sha/extract_constants.py" \
+            -o third-party/gi-stringliteral/extract_constants.py
+
+          (
+            cd third-party/gi-stringliteral
+            python recover_string_literals.py \
+              ../../inputs/7.1.0-global/global-metadata.dat \
+              ../../inputs/7.1.0-global/GenshinImpact.exe \
+              -o ../../quest-index-string-literals-all.json \
+              2> ../../quest-index-string-literals-recovery.txt
+          )
+
+          python - <<'PY' | tee quest-index-string-literals-filtered.txt
+          import json
+          from pathlib import Path
+
+          rows = json.loads(Path("quest-index-string-literals-all.json").read_text(encoding="utf-8"))
+          needles = (
+              "quest",
+              "binoutput",
+              "mainquest",
+              "excelbinoutput",
+              "index",
+          )
+          hits = [
+              row for row in rows
+              if any(n in str(row.get("value", "")).lower() for n in needles)
+          ]
+          print("total_literals=", len(rows))
+          print("filtered_hits=", len(hits))
+          for row in hits:
+              print(json.dumps(row, ensure_ascii=False))
+
+          Path("quest-index-string-literals-filtered.json").write_text(
+              json.dumps({
+                  "peer_repository": "kuma-dayo/gi-stringliteral",
+                  "peer_commit": "1008fd7db28dcbc55729d5bb6b3a585dab86cf8b",
+                  "total_literals": len(rows),
+                  "hits": hits,
+              }, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -409,4 +463,7 @@ jobs:
             quest-index-string-usage-registration.json
             quest-index-mhy-metadata-layout.txt
             quest-index-mhy-metadata-layout.json
+            quest-index-string-literals-recovery.txt
+            quest-index-string-literals-filtered.txt
+            quest-index-string-literals-filtered.json
           if-no-files-found: error
