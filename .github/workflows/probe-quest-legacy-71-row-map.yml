@@ -200,12 +200,13 @@ jobs:
               raise SystemExit(f"Quest 351 unique anchors incomplete: {q351}")
           PY
 
-      - name: Infer scalar and acceptCond wire transforms
+      - name: Infer fields from native-order row spans
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY' | tee quest-legacy-71-field-inference.txt
           import collections
+          import copy
           import json
           import struct
           from pathlib import Path
@@ -220,56 +221,50 @@ jobs:
           anchors=json.loads(Path("quest-legacy-71-row-anchors.json").read_text())
           by_ord={x["ordinal"]:x for x in anchors}
 
-          # Use only consecutive unique anchors, so each [subId anchor, next
-          # subId anchor) is guaranteed to stay inside the current row after
-          # the subId field.
+          # Native row order is defined by the binary anchors, not by JSON
+          # ordinal order.  Use the next native anchor as the row end.
+          native=sorted(anchors,key=lambda x:x["position"])
           spans=[]
-          for ordinal,row in enumerate(rows[:-1]):
-              a=by_ord.get(ordinal)
-              b=by_ord.get(ordinal+1)
-              if not a or not b or b["position"] <= a["position"]:
-                  continue
+          span_by_ord={}
+          for a,b in zip(native,native[1:]):
               gap=b["position"]-a["position"]
-              if not (8 <= gap <= 2048):
+              if not (8 <= gap <= 4096):
                   continue
-              spans.append((ordinal,row,a["position"],b["position"]))
+              ordinal=a["ordinal"]
+              row=rows[ordinal]
+              item=(ordinal,row,a["position"],b["position"],gap)
+              spans.append(item)
+              span_by_ord[ordinal]=item
 
-          def top_transform(field, width=4, limit=12):
-              xor_counts=collections.Counter()
-              sub_counts=collections.Counter()
-              add_counts=collections.Counter()
-              support=0
+          def top_transform(field,width=4,limit=20):
               mask=(1<<(width*8))-1
-              for ordinal,row,a,b in spans:
+              counters={k:collections.Counter() for k in ("xor","sub","add")}
+              support=0
+              for ordinal,row,a,b,gap in spans:
                   v=row.get(field)
                   if not isinstance(v,int):
                       continue
+                  support+=1
                   v &= mask
-                  support += 1
-                  # Deduplicate a key within a row, otherwise repeated byte
-                  # patterns would overweight a single row.
-                  kxor=set(); ksub=set(); kadd=set()
-                  data=payload[a:b]
+                  data=payload[a+4:b]  # exclude the proven subId anchor itself
+                  sets={k:set() for k in counters}
                   for off in range(0,max(0,len(data)-width+1)):
                       u=int.from_bytes(data[off:off+width],"little")
-                      kxor.add(u^v)
-                      ksub.add((u-v)&mask)
-                      kadd.add((u+v)&mask)
-                  xor_counts.update(kxor)
-                  sub_counts.update(ksub)
-                  add_counts.update(kadd)
-              def fmt(counter):
-                  return [
-                      {"key":f"0x{k:0{width*2}X}","row_support":n}
-                      for k,n in counter.most_common(limit)
-                  ]
+                      sets["xor"].add(u^v)
+                      sets["sub"].add((u-v)&mask)
+                      sets["add"].add((u+v)&mask)
+                  for k in counters:counters[k].update(sets[k])
               return {
                   "field":field,
                   "width":width,
                   "eligible_rows":support,
-                  "xor":fmt(xor_counts),
-                  "raw_minus_value":fmt(sub_counts),
-                  "raw_plus_value":fmt(add_counts),
+                  **{
+                      k:[
+                          {"key":f"0x{x:0{width*2}X}","row_support":n}
+                          for x,n in c.most_common(limit)
+                      ]
+                      for k,c in counters.items()
+                  },
               }
 
           scalars=[]
@@ -278,94 +273,172 @@ jobs:
               "stepDescTextMapHash","guideTipsTextMapHash",
               "exclusiveNpcPriority",
           ):
-              scalars.append(top_transform(field,4))
-              scalars.append(top_transform(field,2))
-              scalars.append(top_transform(field,1))
+              for width in (4,2,1):
+                  scalars.append(top_transform(field,width))
 
-          # AcceptCond target: select rows whose first condition is exactly a
-          # state-equal with an integer first parameter. Search the whole
-          # post-subId row span, allowing nested arrays to move around.
           cond_rows=[]
-          for ordinal,row,a,b in spans:
+          for ordinal,row,a,b,gap in spans:
               cond=row.get("acceptCond")
-              if not isinstance(cond,list) or not cond:
+              if not isinstance(cond,list) or len(cond)!=1:
                   continue
               first=cond[0]
-              if not isinstance(first,dict):
-                  continue
-              if first.get("type")!="QUEST_COND_STATE_EQUAL":
+              if not isinstance(first,dict) or first.get("type")!="QUEST_COND_STATE_EQUAL":
                   continue
               param=first.get("param")
               if not isinstance(param,list) or not param or not isinstance(param[0],int):
                   continue
-              cond_rows.append((ordinal,row,a,b,param[0]))
+              cond_rows.append((ordinal,row,a,b,gap,param[0]))
 
-          def rank_cond(width):
+          def rank_cond(width,limit=80):
               mask=(1<<(width*8))-1
-              counters={
-                  "xor":collections.Counter(),
-                  "raw_minus_value":collections.Counter(),
-                  "raw_plus_value":collections.Counter(),
-              }
-              for ordinal,row,a,b,v in cond_rows:
-                  v &= mask
+              counters={k:collections.Counter() for k in ("xor","sub","add")}
+              for ordinal,row,a,b,gap,v in cond_rows:
+                  vv=v&mask
+                  data=payload[a+4:b]
                   sets={k:set() for k in counters}
-                  data=payload[a:b]
                   for off in range(0,max(0,len(data)-width+1)):
                       u=int.from_bytes(data[off:off+width],"little")
-                      sets["xor"].add(u^v)
-                      sets["raw_minus_value"].add((u-v)&mask)
-                      sets["raw_plus_value"].add((u+v)&mask)
-                  for k in counters:
-                      counters[k].update(sets[k])
+                      sets["xor"].add(u^vv)
+                      sets["sub"].add((u-vv)&mask)
+                      sets["add"].add((u+vv)&mask)
+                  for k in counters:counters[k].update(sets[k])
               return {
                   "width":width,
                   "eligible_rows":len(cond_rows),
                   **{
-                      kind:[
-                          {"key":f"0x{k:0{width*2}X}","row_support":n}
-                          for k,n in counter.most_common(40)
+                      k:[
+                          {"key":f"0x{x:0{width*2}X}","row_support":n}
+                          for x,n in c.most_common(limit)
                       ]
-                      for kind,counter in counters.items()
+                      for k,c in counters.items()
                   },
               }
 
-          # Also test literal LEB128 and ZigZag-LEB128 occurrence in each row.
-          def uleb(v):
-              v &= 0xffffffff
-              out=bytearray()
-              while True:
-                  b=v&0x7f; v >>= 7
-                  if v:b|=0x80
-                  out.append(b)
-                  if not v:return bytes(out)
-          literal=0
-          zigzag=0
-          samples=[]
-          for ordinal,row,a,b,v in cond_rows:
-              data=payload[a:b]
-              u=uleb(v)
-              z=uleb((v<<1)&0xffffffff)
-              hu=data.find(u)
-              hz=data.find(z)
-              literal += hu>=0
-              zigzag += hz>=0
-              if len(samples)<40 and (hu>=0 or hz>=0):
-                  samples.append({
-                      "ordinal":ordinal,"subId":row.get("subId"),
-                      "target":v,"literal_off":hu,"zigzag_off":hz,
-                  })
+          # Differential groups: rows whose JSON semantics are identical after
+          # removing identity/order and the first STATE_EQUAL target.  If a
+          # group has equal native lengths, byte differences isolate the target
+          # encoding much more cleanly than a whole-row frequency scan.
+          def normalized(row):
+              x=copy.deepcopy(row)
+              for k in ("json_file","subId","subIdSet","order"):
+                  x.pop(k,None)
+              cond=x.get("acceptCond")
+              if (
+                  isinstance(cond,list) and len(cond)==1
+                  and isinstance(cond[0],dict)
+                  and cond[0].get("type")=="QUEST_COND_STATE_EQUAL"
+                  and isinstance(cond[0].get("param"),list)
+                  and cond[0]["param"]
+                  and isinstance(cond[0]["param"][0],int)
+              ):
+                  cond[0]["param"][0]="<TARGET>"
+                  return json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+              return None
+
+          groups=collections.defaultdict(list)
+          for ordinal,row,a,b,gap,v in cond_rows:
+              key=normalized(row)
+              if key is not None:
+                  groups[key].append((ordinal,row,a,b,gap,v))
+
+          diff_groups=[]
+          diff_transform=collections.Counter()
+          for members in groups.values():
+              if len(members)<2:
+                  continue
+              lengths={m[4] for m in members}
+              if len(lengths)!=1:
+                  continue
+              length=next(iter(lengths))
+              blobs=[payload[m[2]:m[3]] for m in members]
+              varying=[
+                  off for off in range(length)
+                  if len({blob[off] for blob in blobs})>1
+              ]
+              candidates=[]
+              for width in (4,2,1):
+                  mask=(1<<(width*8))-1
+                  for off in range(4,length-width+1):
+                      vals=[]
+                      for m,blob in zip(members,blobs):
+                          rawv=int.from_bytes(blob[off:off+width],"little")
+                          target=m[5]&mask
+                          vals.append((rawv,target))
+                      for kind in ("xor","sub","add"):
+                          if kind=="xor": keys={u^v for u,v in vals}
+                          elif kind=="sub": keys={(u-v)&mask for u,v in vals}
+                          else: keys={(u+v)&mask for u,v in vals}
+                          if len(keys)==1:
+                              keyv=next(iter(keys))
+                              candidate={
+                                  "width":width,"offset":off,"kind":kind,
+                                  "key":f"0x{keyv:0{width*2}X}",
+                              }
+                              candidates.append(candidate)
+                              diff_transform[(width,off,kind,keyv)] += 1
+              diff_groups.append({
+                  "member_count":len(members),
+                  "length":length,
+                  "members":[
+                      {
+                          "ordinal":m[0],
+                          "subId":m[1].get("subId"),
+                          "target":m[5],
+                          "position":m[2],
+                      }
+                      for m in members[:30]
+                  ],
+                  "varying_offsets":varying,
+                  "transform_candidates":candidates[:200],
+              })
+
+          diff_groups.sort(key=lambda x:(-x["member_count"],x["length"]))
+          diff_rank=[
+              {
+                  "width":k[0],"offset":k[1],"kind":k[2],
+                  "key":f"0x{k[3]:0{k[0]*2}X}","group_support":n,
+              }
+              for k,n in diff_transform.most_common(200)
+          ]
+
+          # Quest 351 targeted evidence with exact native row boundaries.
+          quest351=[]
+          for ordinal,row,a,b,gap in spans:
+              sid=row.get("subId")
+              if not isinstance(sid,int) or not (35100<=sid<=35107):
+                  continue
+              cond=row.get("acceptCond")
+              target=None
+              if isinstance(cond,list) and cond and isinstance(cond[0],dict):
+                  param=cond[0].get("param")
+                  if isinstance(param,list) and param and isinstance(param[0],int):
+                      target=param[0]
+              quest351.append({
+                  "ordinal":ordinal,"subId":sid,"order":row.get("order"),
+                  "accept_target":target,"position":a,"row_size":gap,
+                  "row_hex":payload[a:b].hex(),
+              })
+          quest351.sort(key=lambda x:x["position"])
 
           out={
-              "consecutive_unique_spans":len(spans),
+              "native_anchor_rows":len(native),
+              "native_spans_le_4096":len(spans),
+              "native_gap_stats":{
+                  "min":min((x[4] for x in spans),default=None),
+                  "max":max((x[4] for x in spans),default=None),
+                  "mean":(
+                      sum(x[4] for x in spans)/len(spans) if spans else None
+                  ),
+              },
               "scalar_transforms":scalars,
               "acceptCond_target":{
-                  "eligible_rows":len(cond_rows),
+                  "eligible_single_state_equal_rows":len(cond_rows),
                   "fixed_width":[rank_cond(4),rank_cond(2),rank_cond(1)],
-                  "uleb_exact_row_support":literal,
-                  "zigzag_uleb_exact_row_support":zigzag,
-                  "varint_samples":samples,
+                  "differential_group_count":len(diff_groups),
+                  "differential_groups":diff_groups[:120],
+                  "differential_transform_rank":diff_rank,
               },
+              "quest351":quest351,
           }
           print(json.dumps(out,ensure_ascii=False,indent=2))
           Path("quest-legacy-71-field-inference.json").write_text(
