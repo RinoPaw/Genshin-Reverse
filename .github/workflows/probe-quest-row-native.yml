@@ -136,6 +136,7 @@ jobs:
 
                   print(f"=== element typeDefinition {tdi} ===")
                   print(json.dumps(type_by_tdi.get(tdi, {}), ensure_ascii=False, sort_keys=True))
+                  nested_type_defs = set()
                   for nested_field in fields_by_tdi.get(tdi, []):
                       nested_index = int(nested_field["field_type_index"])
                       nested_info = describe_entry(read_entry_by_index(nested_index))
@@ -151,8 +152,26 @@ jobs:
                               sort_keys=True,
                           ),
                       )
+                      nested_tdi = nested_info.get("type_definition_index")
+                      if isinstance(nested_tdi, int):
+                          nested_type_defs.add(nested_tdi)
                   for method in methods_by_tdi.get(tdi, []):
                       print("ELEMENT_METHOD", json.dumps(method, ensure_ascii=False, sort_keys=True))
+
+                  for nested_tdi in sorted(nested_type_defs):
+                      print(
+                          "NESTED_TYPE",
+                          json.dumps(
+                              type_by_tdi.get(nested_tdi, {}),
+                              ensure_ascii=False,
+                              sort_keys=True,
+                          ),
+                      )
+                      for enum_field in fields_by_tdi.get(nested_tdi, []):
+                          print(
+                              "NESTED_TYPE_FIELD",
+                              json.dumps(enum_field, ensure_ascii=False, sort_keys=True),
+                          )
 
               Path("quest-row-runtime-types.json").write_text(
                   json.dumps(report, ensure_ascii=False, indent=2) + "\n",
@@ -163,7 +182,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/disassemble_rva.py             inputs/7.1.0-global/GenshinImpact.exe             0x9C15DF0 0x1630             --expected-sha256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d             --label LAIMPNDEFCL_GMENPOPMKAA_full             --output quest-row-reader-full.json
+          expected_sha=$(python - <<'PY'
+          from genshinre.nativeprofile import PROFILE_71
+          print(PROFILE_71.exe_sha256)
+          PY
+          )
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x9C15DF0 0x1630 --expected-sha256 "$expected_sha" --label LAIMPNDEFCL_GMENPOPMKAA_full --output quest-row-reader-full.json
 
           python - <<'PY' | tee quest-row-reader-calls.txt
           import csv
