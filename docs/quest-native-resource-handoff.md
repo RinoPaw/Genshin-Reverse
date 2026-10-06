@@ -1,6 +1,6 @@
 # Quest native-resource research handoff
 
-Checkpoint: 2026-10-06 12:10 +08:00
+Checkpoint: 2026-10-06 12:38 +08:00
 
 This file is the resumable handoff for the current Quest native-resource investigation. Continue from the branch and evidence below; do not restart the earlier manifest/XMF/ctable guessing work.
 
@@ -8,12 +8,20 @@ This file is the resumable handoff for the current Quest native-resource investi
 
 - Repository: `RinoPaw/Genshin-Reverse`
 - Branch: `probe/quest-blb3-binoutput`
-- Latest focused comparison head: `324f916b0d6caabb1b23e87d632bf01cd0278e81`
-- Head message: `ci: require QuestExcel source comparison evidence`
+- Latest native-schema head with both total CI and focused probe passing:
+  `0e93a4a9d40c483a97cb7e8093d0facb68db57c5`
+- Head message: `ci: fix RandomQuest enum field sizing`
 - CI passed:
-  - validate / tests: run `37411379239`
-  - focused probe: run `37411379300`, job `112100344621`
-- Focused probe artifact: `quest-row-prereq-schema`, artifact id `11389790544`, zip SHA256 `cb220b0a6def6c20f13daa37e7cf4c5ef61db40d02d59aff283c8181006231a3`.
+  - total CI: #970 / run `37414435136`
+  - focused ordinary-row probe: run `37414435078`
+- Focused artifact:
+  - name: `quest-ordinary-row-native`
+  - artifact id: `11390607376`
+  - SHA256: `e23221c2f491161bf30b49340c21cddfc1e3bd349f48d6fe1df3701321a30474`
+- Earlier source-comparison evidence remains:
+  - run `37411379300`
+  - artifact id `11389790544`
+  - SHA256 `cb220b0a6def6c20f13daa37e7cf4c5ef61db40d02d59aff283c8181006231a3`.
 - Durable #8 analysis:
   - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/README.md`
   - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/representative-comparison.json`
@@ -236,8 +244,45 @@ confirmed order offset       +0xA8
 
 The named `QuestProxy` getters and the ordinary-row deserializer provide exact native evidence for these mappings.
 
-The next decisive #8 step is to bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact
-`Data/_ExcelBinOutput/QuestExcelConfigData` loader/table path, recover the condition/combiner fields, and decode the 2,824,188-byte payload with full consumption or an equally strong invariant.
+#### Ordinary finish/fail arrays — exact native cross-variant mapping
+
+Focused run `37414435078` resolved the previously unknown ordinary-row object arrays:
+
+- `495576 = KIMCPAKMJMH[]`, whose element carries `QuestExecType` and string params;
+- `495577 = JPGNLOPMNHN[]`, whose element carries the current `QUEST_CONTENT_*` enum family.
+
+The unified facade then cross-maps ordinary and named random-quest variants in the same methods:
+
+```text
+FPNFFCCCGMO @ 0x8E9F6B0
+  LAIMPNDEFCL +0x10  <->  RandomQuestExcelConfig._failExec +0x28
+
+EKGLIKLEEPG @ 0x8E9B300
+  LAIMPNDEFCL +0x18  <->  RandomQuestExcelConfig._failCond +0x50
+
+LNFDDNGBBNG @ 0x8E9D890
+PIEPOFGEGIK @ 0x8E9B7A0
+  LAIMPNDEFCL +0x20  <->  RandomQuestExcelConfig._finishCond +0x30
+
+GGPGGIOLACH @ 0x8E9F810
+  LAIMPNDEFCL +0x58  <->  RandomQuestExcelConfig._finishExec +0x48
+```
+
+Therefore:
+
+```text
+LAIMPNDEFCL +0x10 = failExec
+LAIMPNDEFCL +0x18 = failCond
+LAIMPNDEFCL +0x20 = finishCond
+LAIMPNDEFCL +0x58 = finishExec
+```
+
+This is stronger than field-order inference: both facade branches perform the same semantic operation.
+
+No direct ordinary `acceptCond` / `beginExec` object-array slot is present in this recovered field family. Do not project the legacy public QuestExcel schema onto the ordinary 7.1 row.
+
+The next decisive #8 step is now narrower: bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact
+`Data/_ExcelBinOutput/QuestExcelConfigData` loader/table path, then establish table/row framing and decode the 2,824,188-byte payload with full consumption or an equally strong invariant.
 
 Do not infer current field order from public JSON or historical class layouts.
 
@@ -251,8 +296,8 @@ Do not infer current field order from public JSON or historical class layouts.
 3. Treat Dimbreath same-version Excel public field names as schema-drifted until native mappings validate them.
 4. Reuse `LAIMPNDEFCL` typeDefinition 17589 and deserializer `0x9C15DF0`.
 5. Bind that deserializer to the exact QuestExcel asset/table loader.
-6. Recover native accept/finish/fail condition fields and combiner fields from exact read/access sites.
-7. Decode representative rows from the exact 2,824,188-byte payload and require complete consumption.
+6. Treat `+0x10 failExec / +0x18 failCond / +0x20 finishCond / +0x58 finishExec` as solved; do not reopen them without contradictory exact evidence.
+7. Recover table/row framing and decode representative rows from the exact 2,824,188-byte payload with complete consumption.
 8. Compare direct decode against:
    - current same-version BinOutput;
    - Dimbreath public Excel;
