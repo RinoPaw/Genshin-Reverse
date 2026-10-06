@@ -369,6 +369,20 @@ jobs:
             --focus reader-create-handle:0x6C643F0 \
             --max-body 0x8000 \
             | tee runtime-asset-index-deserialize-callers.txt
+      - name: Disassemble underlying runtime AssetIndex numeric readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6ECC1F0 0x100 \
+            --expected-sha256 "$sha" --label "runtime AssetIndex uint64 primitive" \
+            --output runtime-asset-index-u64-primitive.json > runtime-asset-index-u64-primitive.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6EE85B0 0x100 \
+            --expected-sha256 "$sha" --label "runtime AssetIndex byte primitive" \
+            --output runtime-asset-index-byte-primitive.json > runtime-asset-index-byte-primitive.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6EA76D0 0x100 \
+            --expected-sha256 "$sha" --label "runtime AssetIndex int32 primitive" \
+            --output runtime-asset-index-i32-primitive.json > runtime-asset-index-i32-primitive.txt
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -406,6 +420,12 @@ jobs:
             runtime-asset-index-readulong.json
             runtime-asset-index-pathhash-getters.txt
             runtime-asset-index-pathhash-getters.json
+            runtime-asset-index-u64-primitive.txt
+            runtime-asset-index-u64-primitive.json
+            runtime-asset-index-byte-primitive.txt
+            runtime-asset-index-byte-primitive.json
+            runtime-asset-index-i32-primitive.txt
+            runtime-asset-index-i32-primitive.json
             runtime-asset-index-manifest-hits.txt
             runtime-asset-index-manifest-hits.json
             runtime-asset-index-deserialize-callers.txt
