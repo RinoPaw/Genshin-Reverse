@@ -1705,10 +1705,10 @@ jobs:
                       raise ValueError(f"bad runtime type entry {index}")
                   return decode_type_entry(data)
 
-              def nested_from_array(d):
+              def nested_from_array(entry_raw, d):
                   if int(d["kind"]) != 0x1D:
                       return None
-                  va = int(d["data_u64"])
+                  va = int.from_bytes(entry_raw[:8], "little")
                   raw = image.read_rva(va - base, ENTRY_SIZE)
                   if len(raw) != ENTRY_SIZE or not is_valid_type_entry(raw):
                       return None
@@ -1720,12 +1720,15 @@ jobs:
 
               for ordinal, fld in enumerate(target_fields):
                   idx = int(fld["field_type_index"])
-                  d = read_entry(idx)
+                  entry_raw = image.read_rva(type_array_va + idx * ENTRY_SIZE - base, ENTRY_SIZE)
+                  if len(entry_raw) != ENTRY_SIZE or not is_valid_type_entry(entry_raw):
+                      raise ValueError(f"bad runtime type entry {idx}")
+                  d = decode_type_entry(entry_raw)
                   item = {
                       "ordinal": ordinal,
                       "field": fld,
                       "runtime_type": d,
-                      "nested_array_element": nested_from_array(d),
+                      "nested_array_element": nested_from_array(entry_raw, d),
                   }
                   if int(d["kind"]) in (0x11, 0x12):
                       item["type_definition"] = type_by_tdi.get(int(d["data_u32"]), {})
