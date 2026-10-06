@@ -384,6 +384,142 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Resolve GPC array owners and table wrappers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-gpc-array-owners.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          GPC_TDI = 82662
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          gpc_array_indices = []
+          gpc_direct_indices = []
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def read_raw_index(index):
+                  raw = image.read_rva(type_array_va + index * ENTRY_SIZE - base, ENTRY_SIZE)
+                  if len(raw) != ENTRY_SIZE:
+                      raise ValueError(f"truncated runtime type {index}")
+                  return raw
+
+              def read_raw_va(va):
+                  raw = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(raw) != ENTRY_SIZE:
+                      raise ValueError(f"truncated runtime type VA 0x{va:X}")
+                  return raw
+
+              for index in range(PROFILE_71.runtime_type_count):
+                  raw = read_raw_index(index)
+                  if not is_valid_type_entry(raw):
+                      continue
+                  d = decode_type_entry(raw)
+                  kind = int(d["kind"])
+                  if kind in (0x11, 0x12) and int(d["data_u32"]) == GPC_TDI:
+                      gpc_direct_indices.append(index)
+                  elif kind == 0x1D:
+                      target_va = int.from_bytes(raw[:8], "little")
+                      if target_va < base:
+                          continue
+                      try:
+                          nested_raw = read_raw_va(target_va)
+                      except Exception:
+                          continue
+                      if not is_valid_type_entry(nested_raw):
+                          continue
+                      nd = decode_type_entry(nested_raw)
+                      if int(nd["kind"]) in (0x11, 0x12) and int(nd["data_u32"]) == GPC_TDI:
+                          gpc_array_indices.append(index)
+
+          owners = []
+          interesting_indices = set(gpc_array_indices) | set(gpc_direct_indices)
+          for fld in fields:
+              if int(fld["field_type_index"]) not in interesting_indices:
+                  continue
+              owner_tdi = int(fld["type_definition_index"])
+              owners.append({
+                  "field": fld,
+                  "owner_type": type_by_tdi.get(owner_tdi, {}),
+                  "owner_fields": fields_by_tdi.get(owner_tdi, []),
+                  "owner_methods": methods_by_tdi.get(owner_tdi, []),
+              })
+
+          signature_mentions = []
+          for row in methods:
+              hay = " ".join([
+                  str(row.get("return_type", "")),
+                  str(row.get("parameter_types", "")),
+              ])
+              if "GPCFGOEJFJK" in hay:
+                  signature_mentions.append({
+                      "method": row,
+                      "owner_type": type_by_tdi.get(int(row["type_definition_index"]), {}),
+                  })
+
+          report = {
+              "gpc_type_definition_index": GPC_TDI,
+              "gpc_direct_runtime_type_indices": gpc_direct_indices,
+              "gpc_array_runtime_type_indices": gpc_array_indices,
+              "owners": owners,
+              "signature_mentions": signature_mentions,
+          }
+
+          print("GPC_DIRECT_RUNTIME_TYPES", gpc_direct_indices)
+          print("GPC_ARRAY_RUNTIME_TYPES", gpc_array_indices)
+          print("OWNERS", len(owners))
+          for item in owners:
+              print("OWNER", json.dumps({
+                  "field": item["field"],
+                  "owner_type": item["owner_type"],
+                  "owner_method_count": len(item["owner_methods"]),
+              }, ensure_ascii=False, sort_keys=True))
+              for m in item["owner_methods"]:
+                  if (
+                      "FNIAHJGHFAK" in str(m.get("parameter_types", ""))
+                      or m.get("method_name") in {"GMENPOPMKAA", "FromBinary", "FromBinaryInner"}
+                  ):
+                      print(" OWNER_READER", json.dumps(m, ensure_ascii=False, sort_keys=True))
+
+          print("SIGNATURE_MENTIONS", len(signature_mentions))
+          for item in signature_mentions:
+              print("MENTION", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-gpc-array-owners.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         run: |
           test -s quest-runtime-bridge.json
@@ -392,6 +528,7 @@ jobs:
           test -s quest-gpc-bridge-disasm-plan.json
           test -s quest-gpc-instance-methods.json
           test -s quest-gpc-fnj-field-map.json
+          test -s quest-gpc-array-owners.json
 
       - name: Upload focused evidence
         if: always()
@@ -411,4 +548,6 @@ jobs:
             quest-gpc-instance-methods.json
             quest-gpc-fnj-field-map.txt
             quest-gpc-fnj-field-map.json
+            quest-gpc-array-owners.txt
+            quest-gpc-array-owners.json
           if-no-files-found: error
