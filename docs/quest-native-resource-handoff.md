@@ -9,12 +9,17 @@ Refetch the branch head before editing because focused probes may still advance 
 
 - Repository: `RinoPaw/Genshin-Reverse`
 - Branch: `probe/quest-blb3-binoutput`
-- Last fully green provenance checkpoint:
+- Latest fully green checkpoint before this handoff edit:
+  - head `728479dcdf216b0de8bda4d98c737b4577324276`
+  - CI #1175 / run `37491875319`: SUCCESS
+  - `Verify 3.0 native Quest 351 prerequisites` #2 / run `37491875548`: SUCCESS
+  - artifact `quest-legacy-30-asset` id `11425403215`
+- Previous provenance checkpoint:
   - head `10e14fd65923a9504b37a256ecbfc7a4a8dc0036`
   - CI #1150 / run `37480736397`: SUCCESS
   - `Compare native and AstaPS Quest 351 provenance` #2 / run `37480736548`: SUCCESS
   - artifact `quest-351-provenance` id `11420239191`
-- A later focused 7.1 subId-transform probe may be running; inspect current branch/runs before resuming.
+- Refetch branch head and workflow state before resuming.
 
 Durable analysis:
 - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/README.md`
@@ -24,9 +29,13 @@ Durable analysis:
 The **AstaPS Quest 351 prerequisite-chain provenance is CONFIRMED downstream
 synthesis/materialization**.
 
+Exact official-client decoding now proves that Quest 351 prerequisites exist in
+2.8 but are already gone in 3.0. The removal therefore happened **between 2.8 and
+3.0**, earlier than previously established.
+
 The exact 7.1 legacy `Data/_ExcelBinOutput/QuestExcelConfigData` row wire is still
-unresolved. That remaining format problem is independent and no longer blocks the
-AstaPS provenance verdict.
+not completely decoded. That remaining format problem is independent and no longer
+blocks the AstaPS provenance verdict.
 
 Do not revert to the old assumption that exact 7.1 legacy-table decoding is required
 before classifying the AstaPS 351 chain.
@@ -128,6 +137,50 @@ spuriously.
 
 ---
 
+
+### Latest 7.1 structural progress
+
+Same-version Dimbreath 7.1 row ordering was validated against the exact native
+`3b87ae83.dat` using only the independently recovered `subId` transform:
+
+```text
+Dimbreath rows          17,814
+unique native subId     17,812
+adjacent exact spans    17,760
+subId transform         raw_u32 XOR 0xB1571A55
+row framing             row[N].start = subId[N-1] + 4
+                        row[N].end   = subId[N] + 4
+```
+
+This strongly establishes row identity and row boundaries. It does **not** validate
+Dimbreath field names. In Quest 351, several Dimbreath columns are visibly shifted
+or semantically wrong (for example fields labelled `acceptCondComb` contain guide
+objects), so Dimbreath may be used as a row-order oracle, not as a field-schema oracle.
+
+The exact-consumption scan then built **3,831** one-argument binary-reader schemas and
+tested them against 2,000 distributed native row spans. No candidate was universal:
+
+```text
+best candidate:
+  OMHJBJAKIFK.GMENPOPMKAA @ 0x7BE9F20
+  388 / 2000 exact rows
+
+next:
+  KMKHHMFDNKI.GMENPOPMKAA @ 0x11F76150
+  384 / 2000
+
+  FKBFEDEMEOJ.GMENPOPMKAA @ 0xA2D06E0
+  384 / 2000
+```
+
+A separate transform scan built 1,621 plausible schemas and found **0 exact 8/8**
+reader-field transforms for the eight Quest 351 `subId` anchors.
+
+Interpretation: the native row framing is now strong, while the current binconfig
+model still misses part of the 7.1 reader/transform family. Do not promote the partial
+reader leaders to the QuestExcel reader.
+
+
 ## 3. Historical native QuestExcel — decisive provenance evidence
 
 ### 2.8 official client
@@ -161,6 +214,34 @@ Quest 351 still carries historical prerequisites, but the graph is not a simple 
   OR-style combination
 ```
 
+### 3.0 official client
+
+Exact Global 3.0 package extraction now decodes with the same historical QuestExcel
+schema:
+
+```text
+asset          Data/_ExcelBinOutput/QuestExcelConfigData
+exported name  3b87ae83
+raw size       668,531
+raw sha256     06e542afe858ae9c356fcb66699d9b90ab21637e74b8aef63117b4873966c987
+XOR key        0x91
+row count      14,726
+```
+
+All eight Quest 351 rows decode cleanly. **None has `acceptCond`.**
+
+This is stronger than the earlier 3.2 boundary: the old prerequisite graph was already
+removed from official QuestExcel by 3.0. Therefore the transition is now bounded to:
+
+```text
+2.8 official: prerequisite graph present
+3.0 official: prerequisite graph absent
+```
+
+The earlier assumption that the historical 3.0 QuestExcel reader RVAs were unusable
+was caused by mixing raw on-disk code inspection with loaded/runtime mappings. The
+asset-level decoder is now the authoritative evidence for this provenance question.
+
 ### 3.2 official client
 
 ```text
@@ -183,7 +264,7 @@ row count  16,727
 Again, all eight Quest 351 rows have no `acceptCond`.
 
 Therefore the historical 351 prerequisites were already absent from official client
-QuestExcel by 3.2.
+QuestExcel by 3.0.
 
 ### 4.2 control
 
@@ -323,10 +404,11 @@ For AstaPS Quest 351:
 Evidence chain:
 
 1. exact native 2.8 contains a more complex historical graph;
-2. exact native 3.2 and 3.4 contain no 351 `acceptCond`;
-3. community tooling explicitly carries 2.8 quest logic into newer resource generations;
-4. AstaPS initial 351 is a simplified order-derived graph, not native 2.8;
-5. PR #9 explicitly identifies the same previous-row heuristic as an existing convention.
+2. exact native 3.0, 3.2, and 3.4 contain no 351 `acceptCond`;
+3. therefore official removal occurred between 2.8 and 3.0;
+4. community tooling explicitly carries 2.8 quest logic into newer resource generations;
+5. AstaPS initial 351 is a simplified order-derived graph, not native 2.8;
+6. PR #9 explicitly identifies the same previous-row heuristic as an existing convention.
 
 The exact physical contents of the 7.1 legacy `3b87ae83.dat` rows remain unproven.
 Do not claim that 7.1 physically contains or physically lacks 351 `acceptCond` until the
@@ -359,12 +441,14 @@ Quest 351 is a strong candidate for removing/replacing the synthetic chain becau
 
 If continuing exact 7.1 legacy decoding:
 
-1. use current native registration / table container evidence;
-2. do not search by obsolete 3.x field names alone;
-3. use the confirmed `subId` anchors as structural checkpoints;
-4. require exact row-boundary consumption across many consecutive rows;
-5. require full table consumption or an equally strong invariant before assigning field
-   semantics.
+1. start from the 17,760 recovered exact row spans and the final-field `subId` framing;
+2. use current native registration / table container evidence;
+3. do not search by obsolete 3.x field names alone;
+4. treat Dimbreath 7.1 as row ordering only; its semantic column labels are not trustworthy;
+5. investigate why partial readers consume subsets of rows exactly — inheritance/variant
+   row families or a missing outer discriminator are the current leading possibilities;
+6. require near-full-table exact consumption or an equally strong invariant before assigning
+   field semantics.
 
 Do not use:
 - old 3.x row schema by assumption;
