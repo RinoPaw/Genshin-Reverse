@@ -16,14 +16,14 @@ permissions:
 
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |\n            5.0.x\n            6.0.x
+          dotnet-version: "6.0.x"
 
       - uses: actions/setup-python@v7
         with:
@@ -36,6 +36,7 @@ jobs:
           base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
           out='inputs/3.0.0-global'
           mkdir -p "$out"
+
           curl --fail --location --retry 8 --retry-all-errors \
             --connect-timeout 30 --max-time 900 \
             "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
@@ -48,170 +49,292 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import hashlib
-          expected={
-            "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
-            "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+
+          expected = {
+              "UserAssembly.dll": (
+                  177601560,
+                  "b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b",
+              ),
+              "global-metadata.dat": (
+                  49356392,
+                  "efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a",
+              ),
           }
-          root=Path("inputs/3.0.0-global")
-          for name,(size,sha) in expected.items():
-              raw=(root/name).read_bytes()
-              got=hashlib.sha256(raw).hexdigest()
-              print(name,"size=",len(raw),"sha256=",got)
-              assert len(raw)==size and got==sha
+          root = Path("inputs/3.0.0-global")
+          for name, (size, sha) in expected.items():
+              raw = (root / name).read_bytes()
+              got = hashlib.sha256(raw).hexdigest()
+              print(name, "size=", len(raw), "sha256=", got)
+              if len(raw) != size or got != sha:
+                  raise SystemExit(f"{name}: exact sample mismatch")
           PY
-
-      - name: Build pinned MetadataConverter2
-        shell: bash
-        run: |
-          set -euo pipefail
-          git clone --filter=blob:none https://github.com/Modder4869/MetadataConverter2.git /tmp/MetadataConverter2
-          git -C /tmp/MetadataConverter2 checkout --detach 113230b5d447f05c68c4ee3ad4fe6630ab5dd5a4
-          dotnet build /tmp/MetadataConverter2/MetadataConverter2.CLI/MetadataConverter2.CLI.csproj -c Release
-
-      - name: Try Genshin metadata conversion variants
-        shell: bash
-        run: |
-          set -euo pipefail
-          cli=/tmp/MetadataConverter2/MetadataConverter2.CLI/bin/Release/net6.0/MetadataConverter2.CLI.dll
-          src="$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"
-          mkdir -p converted
-          for kind in GI GIPack GICB1 GICBX GIV2; do
-            out="$GITHUB_WORKSPACE/converted/$kind.dat"
-            echo "=== $kind ==="
-            dotnet "$cli" "$src" "$out" "$kind" convert 2>&1 | tee "converted/$kind.log" || true
-            if [ -f "$out" ]; then
-              python - "$kind" "$out" <<'PY'
-          import hashlib,struct,sys
-          from pathlib import Path
-          kind,path=sys.argv[1],Path(sys.argv[2])
-          raw=path.read_bytes()
-          sanity=struct.unpack_from('<I',raw,0)[0] if len(raw)>=4 else None
-          version=struct.unpack_from('<I',raw,4)[0] if len(raw)>=8 else None
-          print(kind,"size=",len(raw),"sha256=",hashlib.sha256(raw).hexdigest(),
-                "sanity=",hex(sanity) if sanity is not None else None,"version=",version)
-          Path(str(path)+'.valid').write_text(
-              '1' if sanity==0xFAB11BAF and version is not None and 16<=version<=40 else '0'
-          )
-          PY
-            fi
-          done
 
       - name: Build pinned Genshin-aware Il2CppDumper
         shell: bash
         run: |
           set -euo pipefail
-          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git /tmp/Il2CppDumper-Genshin
-          git -C /tmp/Il2CppDumper-Genshin checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          rm -rf .probe-tools/Il2CppDumper-Genshin
+          mkdir -p .probe-tools
+          git clone --filter=blob:none \
+            https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git \
+            .probe-tools/Il2CppDumper-Genshin
+          git -C .probe-tools/Il2CppDumper-Genshin checkout --detach \
+            731c4022a15b126da993e54a9f7d7e2c8a06c1af
+
           python - <<'PY'
           from pathlib import Path
-          p=Path("/tmp/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
-          s=p.read_text(encoding="utf-8-sig")
-          s=s.replace("<TargetFrameworks>net472;net5.0</TargetFrameworks>","<TargetFramework>net6.0</TargetFramework>")
-          p.write_text(s,encoding="utf-8")
+          p = Path(".probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
+          s = p.read_text(encoding="utf-8-sig")
+          s = s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>",
+          )
+          # The upstream project enables unsafe code only for its original TFMs.
+          s = s.replace(
+              "<TargetFramework>net6.0</TargetFramework>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+              1,
+          )
+          p.write_text(s, encoding="utf-8")
           PY
-          dotnet build /tmp/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
-            -c Release --nologo
-          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
-          python - "$app/config.json" <<'PY'
-          import json,sys
-          p=sys.argv[1]
-          x=json.load(open(p,encoding='utf-8-sig'))
-          x['RequireAnyKey']=False
-          x['GenerateDummyDll']=False
-          x['GenerateStruct']=False
-          json.dump(x,open(p,'w',encoding='utf-8'),indent=2)
-          PY
-          ls -la "$app"
 
-      - name: Dump exact 3.0 metadata with Genshin-aware dumper
+          dotnet build \
+            .probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
+            -c Release --nologo
+
+          app=.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          p = Path(sys.argv[1])
+          cfg = json.loads(p.read_text(encoding="utf-8-sig"))
+          cfg["RequireAnyKey"] = False
+          cfg["GenerateDummyDll"] = False
+          cfg["GenerateStruct"] = False
+          cfg["GenerateScript"] = True
+          cfg["DumpMethod"] = True
+          cfg["DumpField"] = True
+          cfg["DumpFieldOffset"] = True
+          cfg["DumpMethodOffset"] = True
+          p.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Dump exact protected 3.0 UserAssembly and native metadata
         shell: bash
         run: |
           set -euo pipefail
-          app=/tmp/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
-          mkdir -p dumps
+          app="$GITHUB_WORKSPACE/.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
 
-          success=0
-          for spec in "native:inputs/3.0.0-global/global-metadata.dat" "GI:converted/GI.dat"; do
-            kind="${spec%%:*}"
-            meta="${spec#*:}"
-            [ -f "$meta" ] || continue
-            out="$GITHUB_WORKSPACE/dumps/$kind"
-            mkdir -p "$out"
-            echo "=== GenshinDumper $kind ==="
-            set +e
-            (
-              cd "$app"
-              timeout 180s dotnet Il2CppDumper.dll \
-                "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
-                "$GITHUB_WORKSPACE/$meta" \
-                "$out"
-            ) </dev/null >"$GITHUB_WORKSPACE/converted/$kind-genshin-dumper.log" 2>&1
-            rc=$?
-            set -e
-            cat "$GITHUB_WORKSPACE/converted/$kind-genshin-dumper.log"
-            if [ -s "$out/dump.cs" ]; then
-              echo "SUCCESS_VARIANT=$kind"
-              success=$((success+1))
-            else
-              echo "$kind dumper rc=$rc no dump.cs"
-            fi
-          done
+          set +e
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null >"$GITHUB_WORKSPACE/quest-legacy-30-genshin-dumper.log" 2>&1
+          rc=$?
+          set -e
 
-          echo "successful dumps=$success"
-          if [ "$success" -eq 0 ]; then
-            exit 1
-          fi
+          cat "$GITHUB_WORKSPACE/quest-legacy-30-genshin-dumper.log"
+          echo "dumper rc=$rc"
+          test -s "$out/dump.cs"
 
       - name: Extract exact QuestExcel symbols and class layout
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY' | tee quest-legacy-30-metadata.txt
-          import json,re
+          import json
+          import re
           from pathlib import Path
 
-          report={}
-          for dump_path in sorted(Path('dumps').glob('*/dump.cs')):
-              kind=dump_path.parent.name
-              text=dump_path.read_text(encoding='utf-8',errors='replace')
-              lines=text.splitlines()
-              item={"classes":{}}
-              for cls in ("QuestExcelConfigLoader","QuestExcelConfig"):
-                  starts=[i for i,line in enumerate(lines) if re.search(rf'\bclass\s+{re.escape(cls)}\b',line)]
-                  entries=[]
-                  for start in starts:
-                      end=min(len(lines),start+500)
-                      block=lines[start:end]
-                      fields=[]
-                      methods=[]
-                      for rel,line in enumerate(block):
-                          fm=re.search(r'^\s*(?:public|private|protected|internal).*?\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)',line)
-                          if fm:
-                              fields.append({"name":fm.group(1),"offset":int(fm.group(2),16),"line":start+rel+1,"text":line.strip()})
-                          if 'FromBinary' in line and '(' in line:
-                              preceding=[]
-                              for k in range(max(start,start+rel-4),start+rel+1):
-                                  m=re.search(r'RVA:\s*0x([0-9A-Fa-f]+)',lines[k])
-                                  if m:
-                                      preceding.append({"line":k+1,"rva":int(m.group(1),16),"text":lines[k].strip()})
-                              methods.append({"line":start+rel+1,"signature":line.strip(),"preceding_rvas":preceding})
-                      entries.append({"class_line":start+1,"declaration":lines[start].strip(),"fields":fields,"from_binary":methods,"context":lines[start:min(end,start+220)]})
-                  item["classes"][cls]=entries
-              report[kind]=item
+          dump_path = Path("genshin-dump/dump.cs")
+          lines = dump_path.read_text(encoding="utf-8", errors="replace").splitlines()
+          report = {}
 
-              print(f"\n===== {kind} =====")
-              for cls,entries in item['classes'].items():
-                  print(f"=== {cls}: {len(entries)} class match(es) ===")
-                  for e in entries:
-                      print('CLASS',e['class_line'],e['declaration'])
-                      for f in e['fields']:
-                          if f['name'] in {'subId','mainId','order','acceptCondComb','acceptCond','finishCondComb','finishCond','failCondComb','failCond','beginExec','finishExec','failExec','exclusiveNpcList','sharedNpcList','exclusiveNpcPriority','trialAvatarList','exclusivePlaceList'}:
-                              print(f"FIELD {f['name']} +0x{f['offset']:X} L{f['line']}")
-                      for m in e['from_binary']:
-                          print('FROM_BINARY',m['line'],m['signature'])
-                          print('RVAS',[(x['line'],hex(x['rva'])) for x in m['preceding_rvas']])
+          for cls in ("QuestExcelConfigLoader", "QuestExcelConfig"):
+              starts = [
+                  i for i, line in enumerate(lines)
+                  if re.search(rf"\bclass\s+{re.escape(cls)}\b", line)
+              ]
+              entries = []
+              for start in starts:
+                  end = min(len(lines), start + 700)
+                  for j in range(start + 1, end):
+                      if lines[j].startswith("// Namespace:"):
+                          end = j
+                          break
 
-          Path('quest-legacy-30-metadata.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+                  fields = []
+                  methods = []
+                  for i in range(start, end):
+                      line = lines[i]
+                      fm = re.search(
+                          r"^\s*(?:public|private|protected|internal).*?\s+"
+                          r"([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)",
+                          line,
+                      )
+                      if fm:
+                          fields.append({
+                              "name": fm.group(1),
+                              "offset": int(fm.group(2), 16),
+                              "line": i + 1,
+                              "text": line.strip(),
+                          })
+
+                      if "FromBinary" in line and "(" in line:
+                          preceding = []
+                          for k in range(max(start, i - 6), i + 1):
+                              m = re.search(r"RVA:\s*0x([0-9A-Fa-f]+)", lines[k])
+                              if m:
+                                  preceding.append({
+                                      "line": k + 1,
+                                      "rva": int(m.group(1), 16),
+                                      "text": lines[k].strip(),
+                                  })
+                          methods.append({
+                              "line": i + 1,
+                              "signature": line.strip(),
+                              "preceding_rvas": preceding,
+                          })
+
+                  entries.append({
+                      "class_line": start + 1,
+                      "declaration": lines[start].strip(),
+                      "fields": fields,
+                      "from_binary": methods,
+                  })
+              report[cls] = entries
+
+          print("dump.cs lines", len(lines))
+          for cls, entries in report.items():
+              print(f"\n=== {cls}: {len(entries)} class match(es) ===")
+              for entry in entries:
+                  print("CLASS", entry["class_line"], entry["declaration"])
+                  for f in entry["fields"]:
+                      if cls == "QuestExcelConfig":
+                          print(
+                              f"FIELD {f['name']} +0x{f['offset']:X} "
+                              f"L{f['line']} {f['text']}"
+                          )
+                  for m in entry["from_binary"]:
+                      print("FROM_BINARY", m["line"], m["signature"])
+                      print(
+                          "RVAS",
+                          [(x["line"], hex(x["rva"])) for x in m["preceding_rvas"]],
+                      )
+
+          Path("quest-legacy-30-metadata.json").write_text(
+              json.dumps(report, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          rows = report.get("QuestExcelConfig", [])
+          if not rows or not any(x["from_binary"] for x in rows):
+              raise SystemExit("QuestExcelConfig.FromBinary not recovered")
+          PY
+
+      - name: Recover exact PE function bounds and field-base accesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-30-exact-functions.txt
+          import json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+
+          symbols = json.loads(
+              Path("quest-legacy-30-metadata.json").read_text(encoding="utf-8")
+          )
+          anchors = []
+          for cls, entries in symbols.items():
+              for entry in entries:
+                  for method in entry["from_binary"]:
+                      for x in method["preceding_rvas"]:
+                          anchors.append((cls, method["signature"], x["rva"]))
+
+          pe = pefile.PE("inputs/3.0.0-global/UserAssembly.dll", fast_load=False)
+          base = pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime = sorted(
+              (int(x.struct.BeginAddress), int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress) > int(x.struct.BeginAddress)
+          )
+
+          def containing(rva):
+              for a, b in runtime:
+                  if a <= rva < b:
+                      return a, b
+              return None
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+          out = []
+
+          for cls, signature, rva in anchors:
+              bounds = containing(rva)
+              print(
+                  f"\n=== {cls} {signature} "
+                  f"metadata_rva=0x{rva:X} bounds={bounds} ==="
+              )
+              if not bounds:
+                  continue
+              a, b = bounds
+              insns = []
+              for ins in md.disasm(pe.get_data(a, b - a), base + a):
+                  row = {
+                      "rva": ins.address - base,
+                      "bytes": ins.bytes.hex(),
+                      "mnemonic": ins.mnemonic,
+                      "op_str": ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic == "call"
+                      and ins.operands
+                      and ins.operands[0].type == X86_OP_IMM
+                  ):
+                      row["call_target_rva"] = ins.operands[0].imm - base
+                  mem = []
+                  for op in ins.operands:
+                      if op.type == X86_OP_MEM:
+                          mem.append({
+                              "base": ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index": ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale": op.mem.scale,
+                              "disp": op.mem.disp,
+                          })
+                  if mem:
+                      row["mem"] = mem
+                  insns.append(row)
+                  print(
+                      f"0x{row['rva']:X} {row['mnemonic']:<7} {row['op_str']}"
+                  )
+
+              out.append({
+                  "class": cls,
+                  "signature": signature,
+                  "metadata_rva": rva,
+                  "begin_rva": a,
+                  "end_rva": b,
+                  "instructions": insns,
+              })
+
+          Path("quest-legacy-30-exact-functions.json").write_text(
+              json.dumps(out, indent=2) + "\n",
+              encoding="utf-8",
+          )
           PY
 
       - name: Upload focused metadata evidence
@@ -220,8 +343,9 @@ jobs:
         with:
           name: quest-legacy-30-metadata
           path: |
-            converted/*.log
-            converted/*.valid
+            quest-legacy-30-genshin-dumper.log
             quest-legacy-30-metadata.txt
             quest-legacy-30-metadata.json
+            quest-legacy-30-exact-functions.txt
+            quest-legacy-30-exact-functions.json
           if-no-files-found: warn
