@@ -144,175 +144,205 @@ jobs:
           echo "dumper rc=$rc"
           test -s "$out/dump.cs"
 
-      - name: Resolve known 3.0 QuestExcel RVAs in protected metadata dump
+      - name: Locate exact 3.0 Quest row by semantic field types
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-legacy-30-known-rvas.txt
-          import json
-          import re
+          python - <<'PY' | tee quest-legacy-30-semantic-map.txt
+          import json,re
           from pathlib import Path
 
           lines=Path("genshin-dump/dump.cs").read_text(
               encoding="utf-8",errors="replace"
           ).splitlines()
 
-          targets={
-              0x10FD580:"QuestExcelConfigLoader.FromBinary(ByteArray)",
-              0x3AF9E10:"QuestExcelConfig.FromBinary(ByteArray)",
-          }
-          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          field_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)\s+"
+              r"(?:(?:static|readonly|const|volatile)\s+)*"
+              r"(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
+          )
           type_rx=re.compile(
               r"^\s*(?:public|private|protected|internal)?\s*"
               r"(?:sealed\s+|abstract\s+|static\s+)*"
               r"(?:class|struct)\s+([^\s:{]+)"
           )
-
-          ns=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
-          ns.append(len(lines))
-          blocks=[]
-          for x,y in zip(ns,ns[1:]):
-              blocks.append((x,y))
-
-          def block_for(line_index):
-              for x,y in blocks:
-                  if x<=line_index<y:
-                      return x,y
-              return max(0,line_index-80),min(len(lines),line_index+120)
-
-          found={}
-          for i,line in enumerate(lines):
-              m=rva_rx.search(line)
-              if not m:
-                  continue
-              rva=int(m.group(1),16)
-              if rva not in targets:
-                  continue
-              a,b=block_for(i)
-              decl=None
-              for j in range(a,min(b,a+80)):
-                  tm=type_rx.search(lines[j])
-                  if tm:
-                      decl={"line":j+1,"name":tm.group(1),"text":lines[j].strip()}
-                      break
-              sig=None
-              sig_line=None
-              for j in range(i+1,min(b,i+10)):
-                  s=lines[j].strip()
-                  if s and not s.startswith("//") and "(" in s and ")" in s:
-                      sig=s
-                      sig_line=j+1
-                      break
-              context=lines[max(a,i-20):min(b,i+25)]
-              row={
-                  "expected":targets[rva],
-                  "rva":rva,
-                  "comment_line":i+1,
-                  "declaration":decl,
-                  "signature_line":sig_line,
-                  "signature":sig,
-                  "context":context,
-              }
-              found.setdefault(rva,[]).append(row)
-
-          print("dump.cs lines",len(lines))
-          for rva,label in targets.items():
-              rows=found.get(rva,[])
-              print(f"\n=== {label} target=0x{rva:X} hits={len(rows)} ===")
-              for row in rows:
-                  print("DECL",row["declaration"])
-                  print("SIG",row["signature_line"],row["signature"])
-                  print("CONTEXT")
-                  for x in row["context"]:
-                      print(x)
-
-          Path("quest-legacy-30-known-rvas.json").write_text(
-              json.dumps(
-                  {
-                      "targets":{hex(k):v for k,v in targets.items()},
-                      "found":{hex(k):v for k,v in found.items()},
-                  },
-                  ensure_ascii=False,
-                  indent=2,
-              )+"\n",
-              encoding="utf-8",
-          )
-          missing=[hex(x) for x in targets if not found.get(x)]
-          print("missing known WorldReverse RVAs",missing)
-          PY
-
-      - name: Resolve WorldReverse TypeDefIndex anchors in exact Global dump
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY' | tee quest-legacy-30-typedef.txt
-          import json
-          import re
-          from pathlib import Path
-
-          lines=Path("genshin-dump/dump.cs").read_text(
-              encoding="utf-8",errors="replace"
-          ).splitlines()
-
-          targets={
-              14890:"QuestExcelConfigLoader",
-              15968:"MainQuestExcelConfigLoader",
-              15969:"QuestExcelConfig",
-          }
-          typedef_rx=re.compile(r"TypeDefIndex:\s*(\d+)")
           rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
 
-          hits={}
-          for i,line in enumerate(lines):
-              m=typedef_rx.search(line)
-              if not m:
-                  continue
-              idx=int(m.group(1))
-              if idx not in targets:
-                  continue
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+          rows=[]
 
-              a=max(0,i-3)
-              b=len(lines)
-              for j in range(i+1,min(len(lines),i+1800)):
-                  if lines[j].startswith("// Namespace:"):
-                      b=j
-                      break
+          semantic_weights={
+              "QuestShowType":250,
+              "BanGroupType":180,
+              "LogicType":220,
+              "ShowQuestGuideType":220,
+          }
+
+          for a,b in zip(starts,starts[1:]):
               block=lines[a:b]
-              methods=[]
+              decl=None
               fields=[]
-              for rel,x in enumerate(block):
-                  rm=rva_rx.search(x)
-                  if rm:
-                      rva=int(rm.group(1),16)
-                      sig=None
-                      for k in range(rel+1,min(len(block),rel+8)):
-                          y=block[k].strip()
-                          if y and not y.startswith("//") and "(" in y and ")" in y:
-                              sig=y
-                              break
-                      methods.append({"rva":rva,"signature":sig})
-                  if "// 0x" in x and ";" in x:
-                      fields.append(x.strip())
+              by_off={}
+              semantic=0
 
-              hits[str(idx)]={
-                  "expected":targets[idx],
-                  "line":i+1,
-                  "declaration":line.strip(),
-                  "block":block,
-                  "fields":fields,
-                  "methods":methods,
+              for rel,line in enumerate(block):
+                  if decl is None:
+                      tm=type_rx.search(line)
+                      if tm:
+                          decl={
+                              "line":a+rel+1,
+                              "name":tm.group(1),
+                              "text":line.strip(),
+                          }
+                  fm=field_rx.search(line)
+                  if fm:
+                      t=fm.group(1).strip()
+                      off=int(fm.group(3),16)
+                      x={
+                          "line":a+rel+1,
+                          "type":t,
+                          "name":fm.group(2),
+                          "offset":off,
+                          "text":line.strip(),
+                      }
+                      fields.append(x)
+                      by_off.setdefault(off,[]).append(x)
+                      semantic += semantic_weights.get(t,0)
+
+              if not decl:
+                  continue
+
+              def typ(off):
+                  xs=by_off.get(off,[])
+                  return xs[0]["type"] if len(xs)==1 else None
+
+              score=semantic
+              reasons=[]
+
+              # Stable primitive prefix from the deobfuscated historical schema.
+              prefix={
+                  0x10:"uint",0x14:"uint",0x1C:"uint",0x20:"bool",
+                  0x24:"uint",0x28:"uint",0x2C:"uint",
               }
+              prefix_hits=sum(typ(o)==t for o,t in prefix.items())
+              score += prefix_hits*35
+              if prefix_hits:
+                  reasons.append(f"primitive_prefix={prefix_hits}/7")
 
-              print(f"\n===== TypeDefIndex {idx} expected {targets[idx]} =====")
-              for x in block:
-                  print(x)
+              if typ(0x18) in {"int","uint"}:
+                  score += 40
+                  reasons.append("order@0x18")
 
-          Path("quest-legacy-30-typedef.json").write_text(
-              json.dumps(hits,ensure_ascii=False,indent=2)+"\n",
+              # Quest-specific enum pattern.
+              if typ(0x30)=="QuestShowType":
+                  score += 350
+                  reasons.append("QuestShowType@0x30")
+              if typ(0x34)=="BanGroupType":
+                  score += 300
+                  reasons.append("BanGroupType@0x34")
+              if typ(0x38)=="LogicType" and typ(0x48)=="LogicType" and typ(0x58)=="LogicType":
+                  score += 700
+                  reasons.append("LogicType@38/48/58")
+              if typ(0x70)=="ShowQuestGuideType":
+                  score += 350
+                  reasons.append("ShowQuestGuideType@0x70")
+              if typ(0x78)=="QuestShowType":
+                  score += 300
+                  reasons.append("QuestShowType@0x78")
+
+              # Packed bools include the unusual +0x75 field.
+              if typ(0x74)=="bool" and typ(0x75)=="bool" and typ(0x7C)=="bool":
+                  score += 650
+                  reasons.append("bool@74/75/7C")
+
+              # Three execution arrays share one element type.
+              execs=[typ(x) for x in (0x80,0x88,0x90)]
+              if None not in execs and len(set(execs))==1 and execs[0].endswith("[]"):
+                  score += 650
+                  reasons.append("same_exec_arrays@80/88/90")
+
+              # Finish/fail condition arrays share a type, accept is a distinct array type.
+              conds=[typ(x) for x in (0x40,0x50,0x60)]
+              if (
+                  None not in conds
+                  and all(x.endswith("[]") for x in conds)
+                  and conds[1]==conds[2]
+              ):
+                  score += 450
+                  reasons.append("condition_arrays@40/50/60")
+                  if conds[0]!=conds[1]:
+                      score += 150
+                      reasons.append("accept_distinct")
+
+              tail=[typ(x) for x in (0x98,0xA0,0xB0,0xB8)]
+              if tail==["uint[]"]*4 and typ(0xA8)=="uint":
+                  score += 750
+                  reasons.append("uint_tail@98/A0/A8/B0/B8")
+
+              methods=[]
+              for rel,line in enumerate(block):
+                  rm=rva_rx.search(line)
+                  if not rm:
+                      continue
+                  rva=int(rm.group(1),16)
+                  sig=None
+                  sig_line=None
+                  for k in range(rel+1,min(len(block),rel+8)):
+                      s=block[k].strip()
+                      if s and not s.startswith("//") and "(" in s and ")" in s:
+                          sig=s
+                          sig_line=a+k+1
+                          break
+                  if sig:
+                      methods.append({"rva":rva,"line":sig_line,"signature":sig})
+                      if "OLCLOPLLAGP" in sig and sig.startswith("public bool "):
+                          score += 500
+                          reasons.append("ByteArray-like bool reader")
+
+              if score>=500:
+                  rows.append({
+                      "score":score,
+                      "reasons":reasons,
+                      "namespace_line":a+1,
+                      "namespace":lines[a],
+                      "declaration":decl,
+                      "fields":fields,
+                      "methods":methods,
+                  })
+
+          rows.sort(key=lambda x:(-x["score"],x["namespace_line"]))
+          print("candidates",len(rows))
+          for rank,x in enumerate(rows[:50],1):
+              print(
+                  f"\n=== RANK {rank:02d} score={x['score']} "
+                  f"type={x['declaration']['name']} "
+                  f"TypeLine={x['declaration']['line']} ==="
+              )
+              print("REASONS",", ".join(x["reasons"]))
+              print("DECL",x["declaration"]["text"])
+              for fld in x["fields"]:
+                  if fld["offset"]<=0xC0:
+                      print(
+                          f"FIELD +0x{fld['offset']:X} {fld['type']} {fld['name']}"
+                      )
+              print("READERS")
+              for m in x["methods"]:
+                  if "OLCLOPLLAGP" in m["signature"]:
+                      print(
+                          f"  RVA=0x{m['rva']:X} L{m['line']} "
+                          f"{m['signature']}"
+                      )
+
+          Path("quest-legacy-30-semantic-map.json").write_text(
+              json.dumps({
+                  "dump_line_count":len(lines),
+                  "candidates":rows[:100],
+              },ensure_ascii=False,indent=2)+"\n",
               encoding="utf-8",
           )
-          missing=[idx for idx in targets if str(idx) not in hits]
-          print("missing typedef anchors",missing)
+          if not rows:
+              raise SystemExit("no semantic Quest candidates")
           PY
 
       - name: Compare raw PE with loaded-memory QuestExcel code
