@@ -395,6 +395,201 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Cross-map ordinary arrays through RandomQuestExcelConfig facade
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-facade-array-map.txt
+          import csv
+          import json
+          import re
+          from bisect import bisect_right
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry
+          from genshinre.sampleidentity import require_sha256
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (root / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          all_method_rvas = []
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+              text = row.get("rva", "").strip()
+              if text:
+                  try:
+                      all_method_rvas.append(int(text, 16))
+                  except ValueError:
+                      pass
+          all_method_rvas = sorted(set(all_method_rvas))
+
+          RANDOM_TDI = 36711
+          FACADE_TDI = 40413
+          ordinary_offsets = {0x10, 0x18, 0x20, 0x58}
+          wanted_random_names = {
+              "_finishCond", "_failCond", "_finishExec", "_failExec",
+              "_acceptCond", "_beginExec",
+          }
+
+          with PEImage(exe) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def entry(index):
+                  va = type_array_va + index * ENTRY_SIZE
+                  return image.read_rva(va - base, ENTRY_SIZE)
+
+              def size_align(type_index):
+                  e = entry(type_index)
+                  d = decode_type_entry(e)
+                  k = int(d["kind"])
+                  if k in (0x02, 0x04, 0x05):
+                      return 1, 1
+                  if k in (0x03, 0x06, 0x07):
+                      return 2, 2
+                  if k in (0x08, 0x09, 0x0C, 0x55):
+                      return 4, 4
+                  if k in (0x0A, 0x0B, 0x0D, 0x18, 0x19):
+                      return 8, 8
+                  if k in (0x0E, 0x0F, 0x10, 0x12, 0x14, 0x15, 0x1C, 0x1D):
+                      return 8, 8
+                  if k == 0x11:
+                      tdi = int(d["data_u32"])
+                      nested = fields_by_tdi.get(tdi, [])
+                      # All value types used by the named RandomQuest row here are enum-like.
+                      # Keep this conservative and prove it against exact native offset anchors below.
+                      if len(nested) <= 1:
+                          return 4, 4
+                      return 8, 8
+                  raise ValueError(f"unsupported runtime kind 0x{k:02X} for field type {type_index}")
+
+              def align_up(v, a):
+                  return (v + a - 1) & ~(a - 1)
+
+              random_fields = fields_by_tdi[RANDOM_TDI]
+              offset = 0x10
+              layout = {}
+              for fld in random_fields:
+                  sz, al = size_align(int(fld["field_type_index"]))
+                  offset = align_up(offset, al)
+                  layout[fld["field_name"]] = offset
+                  offset += sz
+
+              anchors = {
+                  "_acceptCond": 0x20,
+                  "_mainId": 0x5C,
+                  "_subId": 0x64,
+                  "_acceptCondComb": 0x74,
+                  "_order": 0x94,
+                  "_subIdSet": 0x98,
+              }
+              for name, expected in anchors.items():
+                  actual = layout.get(name)
+                  if actual != expected:
+                      raise AssertionError(
+                          f"RandomQuest layout anchor {name}: got {actual!r}, expected 0x{expected:X}"
+                      )
+
+              wanted = {name: layout[name] for name in wanted_random_names if name in layout}
+              print("RANDOM_LAYOUT", json.dumps(layout, ensure_ascii=False, sort_keys=True))
+              print("WANTED_RANDOM", json.dumps(wanted, ensure_ascii=False, sort_keys=True))
+
+              md = Cs(CS_ARCH_X86, CS_MODE_64)
+              report = {
+                  "random_layout": layout,
+                  "wanted_random": wanted,
+                  "candidates": [],
+              }
+
+              for m in methods_by_tdi[FACADE_TDI]:
+                  text = m.get("rva", "").strip()
+                  if not text:
+                      continue
+                  rva = int(text, 16)
+                  pos = bisect_right(all_method_rvas, rva)
+                  next_rva = all_method_rvas[pos] if pos < len(all_method_rvas) else rva + 0x400
+                  size = min(max(1, next_rva - rva), 0x800)
+                  code = image.read_rva(rva, size)
+                  insns = [
+                      {
+                          "rva": ins.address - base,
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                      }
+                      for ins in md.disasm(code, base + rva)
+                  ]
+
+                  ordinary_hits = []
+                  random_hits = []
+                  for ins in insns:
+                      op = ins["op_str"].lower()
+                      for off in ordinary_offsets:
+                          if re.search(rf"\+ 0x{off:x}\]", op):
+                              ordinary_hits.append((off, ins))
+                      for name, off in wanted.items():
+                          if re.search(rf"\+ 0x{off:x}\]", op):
+                              random_hits.append((name, off, ins))
+
+                  if not ordinary_hits or not random_hits:
+                      continue
+
+                  item = {
+                      "method": m,
+                      "ordinary_hits": [
+                          {
+                              "offset": f"0x{off:X}",
+                              "rva": f"0x{ins['rva']:X}",
+                              "mnemonic": ins["mnemonic"],
+                              "op_str": ins["op_str"],
+                          }
+                          for off, ins in ordinary_hits
+                      ],
+                      "random_hits": [
+                          {
+                              "field": name,
+                              "offset": f"0x{off:X}",
+                              "rva": f"0x{ins['rva']:X}",
+                              "mnemonic": ins["mnemonic"],
+                              "op_str": ins["op_str"],
+                          }
+                          for name, off, ins in random_hits
+                      ],
+                      "instructions": [
+                          {
+                              "rva": f"0x{ins['rva']:X}",
+                              "mnemonic": ins["mnemonic"],
+                              "op_str": ins["op_str"],
+                          }
+                          for ins in insns
+                      ],
+                  }
+                  report["candidates"].append(item)
+                  print("CANDIDATE", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-facade-array-map.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -403,6 +598,7 @@ jobs:
           test -s quest-row-reader-full.json
           test -s quest-row-reader-calls.json
           test -s quest-proxy-array-consumers.json
+          test -s quest-facade-array-map.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -416,4 +612,6 @@ jobs:
             quest-row-reader-calls.json
             quest-proxy-array-consumers.txt
             quest-proxy-array-consumers.json
+            quest-facade-array-map.txt
+            quest-facade-array-map.json
           if-no-files-found: error
