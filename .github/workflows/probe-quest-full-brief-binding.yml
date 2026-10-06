@@ -212,7 +212,7 @@ jobs:
           Path('quest-array-reader-calls.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
-      - name: Disassemble ordinary Quest condition and exec scalar readers
+      - name: Disassemble ordinary Quest condition and exec scalar entry readers
         shell: bash
         run: |
           set -euo pipefail
