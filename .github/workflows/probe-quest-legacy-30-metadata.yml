@@ -228,8 +228,9 @@ jobs:
                           "signature":sig,
                       })
 
-              required=(0x10,0x14,0x18,0x38,0x40,0x48,0x50,0x58,0x60,
-                        0x74,0x75,0x7C,0x80,0x88,0x90)
+              required=(0x10,0x14,0x18,0x30,0x38,0x40,0x48,0x50,0x58,0x60,
+                        0x74,0x75,0x78,0x7C,0x80,0x88,0x90,
+                        0x98,0xA0,0xA8,0xB0,0xB8)
               if not all(off in by_off for off in required):
                   continue
 
@@ -240,14 +241,30 @@ jobs:
               ids=[one_type(by_off,x) for x in (0x10,0x14,0x18)]
 
               same_comb=None not in comb and len(set(comb))==1
-              same_cond=None not in cond and len(set(cond))==1 and cond[0].endswith("[]")
+              # Legacy QuestExcel uses QuestCond[] for accept, but QuestContent[]
+              # for both finish/fail. Do not require all three condition arrays
+              # to have the same element type.
+              cond_shape=(
+                  None not in cond
+                  and all(x.endswith("[]") for x in cond)
+                  and cond[1] == cond[2]
+                  and cond[0] != cond[1]
+              )
               same_exec=None not in exe and len(set(exe))==1 and exe[0].endswith("[]")
               bool_triplet=bools==["bool","bool","bool"]
-              id_triplet=all(x in {"uint","int"} for x in ids)
-              distinct_arrays=same_cond and same_exec and cond[0] != exe[0]
+              id_triplet=(ids[0]=="uint" and ids[1]=="uint" and ids[2] in {"int","uint"})
+              show_pair=(
+                  one_type(by_off,0x30) is not None
+                  and one_type(by_off,0x30)==one_type(by_off,0x78)
+              )
+              uint_array_tail=all(
+                  one_type(by_off,x)=="uint[]" for x in (0x98,0xA0,0xB0,0xB8)
+              ) and one_type(by_off,0xA8)=="uint"
+              distinct_exec=cond_shape and same_exec and exe[0] not in set(cond)
 
-              if not (same_comb and same_cond and same_exec and bool_triplet
-                      and id_triplet and distinct_arrays):
+              if not (same_comb and cond_shape and same_exec and bool_triplet
+                      and id_triplet and show_pair and uint_array_tail
+                      and distinct_exec):
                   continue
 
               readers=[]
@@ -266,7 +283,8 @@ jobs:
                   "declaration":decl,
                   "id_types":ids,
                   "comb_type":comb[0],
-                  "condition_array_type":cond[0],
+                  "accept_condition_array_type":cond[0],
+                  "finish_fail_condition_array_type":cond[1],
                   "exec_array_type":exe[0],
                   "reader_methods":readers,
                   "fields":fields,
@@ -282,7 +300,8 @@ jobs:
               print("DECL",x["declaration"])
               print("ID_TYPES",x["id_types"])
               print("COMB",x["comb_type"])
-              print("COND[]",x["condition_array_type"])
+              print("ACCEPT[]",x["accept_condition_array_type"])
+              print("FINISH_FAIL[]",x["finish_fail_condition_array_type"])
               print("EXEC[]",x["exec_array_type"])
               print("READERS")
               for m in x["reader_methods"]:
@@ -328,7 +347,8 @@ jobs:
           best=meta["structural_matches"][0]
           readers=best["reader_methods"]
           print("TYPE",best["declaration"])
-          print("COND",best["condition_array_type"])
+          print("ACCEPT",best["accept_condition_array_type"])
+          print("FINISH_FAIL",best["finish_fail_condition_array_type"])
           print("EXEC",best["exec_array_type"])
 
           pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll",fast_load=False)
