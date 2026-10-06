@@ -66,6 +66,53 @@ jobs:
           print("metadata_sha256",sha256_file(meta))
           PY
 
+      - name: Recover protected 6.7 string literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/gi-stringliteral
+          commit=1008fd7db28dcbc55729d5bb6b3a585dab86cf8b
+          mkdir -p "$root"
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$commit/recover_string_literals.py"             -o "$root/recover_string_literals.py"
+          curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$commit/extract_constants.py"             -o "$root/extract_constants.py"
+          (
+            cd "$root"
+            python recover_string_literals.py               "$GITHUB_WORKSPACE/inputs/6.7.0-global/global-metadata.dat"               "$GITHUB_WORKSPACE/inputs/6.7.0-global/GenshinImpact.exe"               -o "$GITHUB_WORKSPACE/quest-legacy-67-literals-all.json"
+          ) 2>&1 | tee quest-legacy-67-literal-recovery.txt
+
+          python - <<'PY' | tee quest-legacy-67-literals.txt
+          import json
+          from pathlib import Path
+
+          rows=json.loads(Path("quest-legacy-67-literals-all.json").read_text(encoding="utf-8"))
+          needles=(
+              "QuestExcelConfigData",
+              "QuestExcelConfig",
+              "MainQuestExcelConfigData",
+              "RandomQuestExcelConfigData",
+              "acceptCond",
+              "acceptCondComb",
+              "beginExec",
+          )
+          hits=[
+              row for row in rows
+              if any(n in row.get("value","") for n in needles)
+          ]
+          out={
+              "peer_repository":"kuma-dayo/gi-stringliteral",
+              "peer_commit":"1008fd7db28dcbc55729d5bb6b3a585dab86cf8b",
+              "total_literals":len(rows),
+              "hits":hits,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-legacy-67-literals.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not hits:
+              raise SystemExit("protected literal recovery succeeded but no QuestExcel-related literals found")
+          PY
+
       - name: Scan legacy QuestExcel strings
         shell: bash
         run: |
@@ -149,6 +196,10 @@ jobs:
           name: quest-legacy-67
           path: |
             quest-legacy-67-sample.txt
+            quest-legacy-67-literal-recovery.txt
+            quest-legacy-67-literals.txt
+            quest-legacy-67-literals.json
+            quest-legacy-67-literals-all.json
             quest-legacy-67-strings.txt
             quest-legacy-67-strings.json
             quest-legacy-67-xrefs.txt
