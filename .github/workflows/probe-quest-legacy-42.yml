@@ -95,7 +95,7 @@ jobs:
           curl --fail --location --retry 3             "https://raw.githubusercontent.com/kuma-dayo/gi-stringliteral/$commit/extract_constants.py"             -o "$root/extract_constants.py"
           (
             cd "$root"
-            python recover_string_literals.py               "$GITHUB_WORKSPACE/inputs/4.2.0-global/global-metadata.dat"               "$GITHUB_WORKSPACE/inputs/4.2.0-global/GameAssembly.dll"               -o "$GITHUB_WORKSPACE/quest-legacy-42-literals-all.json"
+            python recover_string_literals.py               "$GITHUB_WORKSPACE/inputs/4.2.0-global/global-metadata.dat"               "$GITHUB_WORKSPACE/inputs/4.2.0-global/UserAssembly.dll"               -o "$GITHUB_WORKSPACE/quest-legacy-42-literals-all.json"
           ) 2>&1 | tee quest-legacy-42-recovery.txt
 
           python - <<'PY' | tee quest-legacy-42-summary.txt
