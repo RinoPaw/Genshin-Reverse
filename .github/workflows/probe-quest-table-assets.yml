@@ -677,6 +677,128 @@ jobs:
           )
           PY
 
+      - name: Export representative MainQuest full payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+
+          python - <<'PY' | tee representative-mainquest-assets.txt
+          import json,struct
+          from pathlib import Path
+          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index,unwrap_mihoyo_bin_data
+
+          MASK32=0xffffffff; MASK64=0xffffffffffffffff
+          targets=(375,376,388)
+          items=json.loads(Path('mainquest-index-assets.json').read_text(encoding='utf-8'))
+          full=next(x for x in items if x['path']=='Data/_BinOutput/IndexDic/MainQuestIndex')
+          root=Path('mainquest-index-output')/str(full['block_id'])/'MiHoYoBinData'
+          src=root/(full['exported_name']+'.dat')
+          payload=unwrap_mihoyo_bin_data(src.read_bytes())
+          enc_count=struct.unpack_from('<I',payload,0)[0]
+          count=((enc_count^0x5785D208)+0x0A34766E)&MASK32
+          rows={}
+          pos=4
+          for _ in range(count):
+              enc_id=struct.unpack_from('<I',payload,pos)[0]
+              enc_handle=struct.unpack_from('<Q',payload,pos+4)[0]
+              pos+=12
+              mid=enc_id^0x92C938B5
+              if mid in targets:
+                  rows[mid]=(enc_handle+0x2B6567EA)&MASK64
+          if set(rows)!=set(targets):
+              raise SystemExit(f'missing target handles: {rows}')
+
+          design=parse_asset_index(Path('design-index-output/MiHoYoBinData/0000006f.dat').read_bytes())
+          out=[]
+          for mid in targets:
+              handle=rows[mid]
+              low40=handle & ((1<<40)-1)
+              path=f'Data/_BinOutput/Quest/{mid}'
+              expected=mihoyo_name_hash(path)
+              if low40!=expected:
+                  raise SystemExit(f'{mid}: low40/path mismatch 0x{low40:010X} != 0x{expected:010X}')
+              name=design.name_for_hash(low40)
+              ref=design.block_ref_for_asset(name.sub_asset_id)
+              group=design.block_groups[ref.block_id]
+              item={
+                  'main_id':mid,'path':path,'handle':handle,'handle_hex':f'0x{handle:016X}',
+                  'handle_low40':f'0x{low40:010X}','exported_name':name.exported_name,
+                  'sub_asset_id':name.sub_asset_id,'block_id':ref.block_id,'group_id':group,
+                  'unknown0':ref.unknown0,'unknown1':ref.unknown1,
+              }
+              out.append(item)
+              print(json.dumps(item,ensure_ascii=False))
+          Path('representative-mainquest-assets.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+
+          python - <<'PY' | tee representative-mainquest-reconstruct.txt
+          import json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import decompress_zstd,download,normalized_name,parse_manifest,reconstruct
+          items=json.loads(Path('representative-mainquest-assets.json').read_text(encoding='utf-8'))
+          rows=parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
+          done=set()
+          for item in items:
+              key=(int(item['group_id']),int(item['block_id']))
+              if key in done: continue
+              done.add(key)
+              group,block=key
+              suffix=f'/assetbundles/blocks/{group:02x}/{block}.blk'
+              matches=[r for r in rows if normalized_name(r).endswith(suffix)]
+              if len(matches)!=1:
+                  suffix2=f'/assetbundles/blocks/{group:02d}/{block}.blk'
+                  matches=[r for r in rows if normalized_name(r).endswith(suffix2)]
+              if len(matches)!=1:
+                  raise SystemExit(f'{key}: expected one manifest row, got {len(matches)}')
+              target=Path(f'representative-mainquest-blocks/{group}/{block}.blk')
+              reconstruct(PROFILE_71.sophon_chunk_prefix,matches[0],target,workers=8)
+              print(target,'size=',target.stat().st_size,'md5=',matches[0].get('md5'))
+          PY
+
+          rm -rf representative-mainquest-output
+          mkdir -p representative-mainquest-output
+          python - <<'PY' > /tmp/representative-mainquest-blocks
+          import json
+          from pathlib import Path
+          items=json.loads(Path('representative-mainquest-assets.json').read_text())
+          seen=set()
+          for x in items:
+              p=f"representative-mainquest-blocks/{x['group_id']}/{x['block_id']}.blk"
+              if p not in seen:
+                  print(p); seen.add(p)
+          PY
+          while IFS= read -r block; do
+            out="representative-mainquest-output/$(basename "$block" .blk)"
+            mkdir -p "$out"
+            "${cli[@]}" "$block" "$out" --game GI --export_type Raw --logger_flags Error 2>&1 | tee -a representative-mainquest-animestudio.txt
+          done < /tmp/representative-mainquest-blocks
+
+          python - <<'PY' | tee representative-mainquest-raw-summary.txt
+          import json
+          from pathlib import Path
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+          items=json.loads(Path('representative-mainquest-assets.json').read_text(encoding='utf-8'))
+          summaries=[]
+          payload_dir=Path('representative-mainquest-payloads'); payload_dir.mkdir(exist_ok=True)
+          for item in items:
+              root=Path('representative-mainquest-output')/str(item['block_id'])/'MiHoYoBinData'
+              target=root/(item['exported_name']+'.dat')
+              if not target.is_file():
+                  candidates=list(root.glob('*.dat')) if root.is_dir() else []
+                  raise SystemExit(f"{item['main_id']}: missing {target}; candidates={candidates[:30]}")
+              raw=target.read_bytes(); payload=unwrap_mihoyo_bin_data(raw)
+              outp=payload_dir/f"quest{item['main_id']}-payload.bin"; outp.write_bytes(payload)
+              summary={**item,'raw_path':str(target),'raw_size':len(raw),'payload_size':len(payload),
+                       'payload_path':str(outp),'payload_prefix_hex':payload[:64].hex(),
+                       'payload_suffix_hex':payload[-32:].hex() if payload else ''}
+              summaries.append(summary); print(json.dumps(summary,ensure_ascii=False,indent=2))
+          Path('representative-mainquest-raw-summary.json').write_text(
+              json.dumps(summaries,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Extract and validate exact QuestExcel Raw object
         shell: bash
         run: |
@@ -1144,4 +1266,11 @@ jobs:
             quest351-brief-raw-summary.txt
             quest351-brief-raw-summary.json
             quest351-brief-payload.bin
+            representative-mainquest-assets.txt
+            representative-mainquest-assets.json
+            representative-mainquest-reconstruct.txt
+            representative-mainquest-animestudio.txt
+            representative-mainquest-raw-summary.txt
+            representative-mainquest-raw-summary.json
+            representative-mainquest-payloads/
           if-no-files-found: warn
