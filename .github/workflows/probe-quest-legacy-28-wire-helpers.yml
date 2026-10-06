@@ -1,0 +1,181 @@
+name: Probe 2.8 QuestExcel wire helpers
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-wire-helpers.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-wire-helpers-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 2.8.0 UserAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles/GenshinImpact_Data/Native/UserAssembly.dll'
+          mkdir -p inputs/2.8.0-global
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 "$url" \
+            -o inputs/2.8.0-global/UserAssembly.dll
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path("inputs/2.8.0-global/UserAssembly.dll")
+          b=p.read_bytes()
+          assert len(b)==172337920
+          assert hashlib.sha256(b).hexdigest()=="48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394"
+          PY
+
+      - name: Disassemble Quest wire helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-wire-helpers.txt
+          import bisect,json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          funcs=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in funcs]
+          def bounds(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0 and funcs[i][0]<=rva<funcs[i][1]:
+                  return funcs[i]
+              return None
+
+          roots={
+              "row":0x2DEB2B0,
+              "row_array":0x2DEBB70,
+              "presence_init":0x418FDF0,
+              "presence_test":0x0D576C0,
+              "read_u32":0x4148CE0,
+              "read_i32":0x418CE30,
+              "read_bool":0x4170540,
+              "read_quest_show_type":0x41934F0,
+              "read_ban_type":0x413DC40,
+              "read_logic_type":0x4141A10,
+              "read_accept_cond_array":0x0F82150,
+              "read_content_array":0x22A8D50,
+              "read_guide":0x39638E0,
+              "read_show_guide_type":0x4168F40,
+              "read_exec_array":0x151F790,
+              "read_u32_array":0x418D2D0,
+          }
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report={}
+          direct_children=set()
+
+          def disasm(label,rva):
+              bd=bounds(rva)
+              if not bd:
+                  return {"label":label,"rva":rva,"bounds":None,"instructions":[]}
+              a,b=bd
+              rows=[]
+              for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                  x={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                      t=ins.operands[0].imm-base
+                      x["call_target_rva"]=t
+                      direct_children.add(t)
+                  mem=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_MEM:
+                          mem.append({
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale":op.mem.scale,
+                              "disp":op.mem.disp,
+                              "size":op.size,
+                          })
+                  if mem: x["mem"]=mem
+                  rows.append(x)
+              return {
+                  "label":label,"rva":rva,"bounds":[a,b],
+                  "size":b-a,"instructions":rows,
+              }
+
+          for label,rva in roots.items():
+              report[label]=disasm(label,rva)
+
+          root_rvas=set(roots.values())
+          # Include small direct callees of the scalar/presence/array helpers;
+          # this catches primitive byte reads and count transforms without
+          # exploding into the whole runtime.
+          children={}
+          for rva in sorted(direct_children-root_rvas):
+              bd=bounds(rva)
+              if not bd or bd[1]-bd[0]>0x900:
+                  continue
+              children[f"0x{rva:X}"]=disasm(f"child_0x{rva:X}",rva)
+
+          def dump_one(x):
+              print(
+                  f"\n===== {x['label']} rva=0x{x['rva']:X} "
+                  f"bounds={x['bounds']} size={x.get('size')} ====="
+              )
+              for y in x["instructions"]:
+                  tail=""
+                  if "call_target_rva" in y:
+                      tail=f"  CALL->0x{y['call_target_rva']:X}"
+                  print(f"0x{y['rva']:X} {y['mnemonic']:<8} {y['op_str']}{tail}")
+
+          for x in report.values():
+              dump_one(x)
+          print("\n===== DIRECT CHILDREN =====")
+          for x in children.values():
+              dump_one(x)
+
+          Path("quest-legacy-28-wire-helpers.json").write_text(
+              json.dumps({
+                  "image_base":base,
+                  "roots":report,
+                  "children":children,
+              },indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload helper evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-wire-helpers
+          path: |
+            quest-legacy-28-wire-helpers.txt
+            quest-legacy-28-wire-helpers.json
+          if-no-files-found: warn
