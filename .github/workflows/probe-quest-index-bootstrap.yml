@@ -88,6 +88,75 @@ jobs:
           )
           PY
 
+      - name: Resolve bootstrap string slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-index-string-slots.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          exe = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="executable")
+
+          slots = {
+              "fnj_index_resource_name": 0x5A57BA8,
+              "peer_index_resource_name": 0x5A57BC8,
+          }
+          out = {}
+          with PEImage(exe) as image:
+              base = image.image_base
+              for label, rva in slots.items():
+                  raw = image.read_rva(rva, 0x20)
+                  q = int.from_bytes(raw[:8], "little")
+                  item = {
+                      "slot_rva": f"0x{rva:X}",
+                      "slot_bytes": raw.hex(),
+                      "qword": f"0x{q:X}",
+                  }
+                  if q >= base:
+                      target_rva = q - base
+                      item["target_rva"] = f"0x{target_rva:X}"
+                      try:
+                          blob = image.read_rva(target_rva, 0x100)
+                          item["target_bytes"] = blob.hex()
+                          if len(blob) >= 0x14:
+                              n = int.from_bytes(blob[0x10:0x14], "little", signed=True)
+                              if 0 <= n <= 100:
+                                  chars = blob[0x14:0x14 + n * 2]
+                                  if len(chars) == n * 2:
+                                      try:
+                                          item["il2cpp_string_candidate"] = chars.decode("utf-16-le")
+                                      except UnicodeDecodeError:
+                                          pass
+                      except Exception as exc:
+                          item["target_error"] = str(exc)
+                  out[label] = item
+                  print(label, json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-index-string-slots.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          {
+            echo "=== ASCII/UTF-8 metadata candidates ==="
+            strings -a -n 5 inputs/7.1.0-global/global-metadata.dat \
+              | grep -Ei 'quest|binoutput|bin.*data|data.*bin' \
+              | sort -u \
+              | head -n 1000 || true
+            echo "=== UTF-16LE executable candidates ==="
+            strings -a -el -n 5 inputs/7.1.0-global/GenshinImpact.exe \
+              | grep -Ei 'quest|binoutput|bin.*data|data.*bin' \
+              | sort -u \
+              | head -n 1000 || true
+          } | tee quest-index-resource-string-candidates.txt
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -97,4 +166,7 @@ jobs:
             quest-index-bootstrap.json
             quest-index-bootstrap-summary.txt
             quest-index-bootstrap-summary.json
+            quest-index-string-slots.txt
+            quest-index-string-slots.json
+            quest-index-resource-string-candidates.txt
           if-no-files-found: error
