@@ -25,41 +25,94 @@ jobs:
           - version: "3.4"
             stamp: "20230109135018_10QhExKHwAoa4ecr"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install focused dependencies
+      - name: Install focused Python dependencies
         run: python -m pip install -e .
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "6.0.x"
 
-      - name: Install pinned AnimeStudio CLI
+      - name: Build pinned 2022 GenshinStudio MiHoYoBinData extractor
         shell: bash
         run: |
           set -euo pipefail
-          url='https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz'
-          archive=/tmp/animestudio.tar.gz
-          root=/tmp/animestudio
-          curl --fail --location --retry 3 "$url" --output "$archive"
-          echo '12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  /tmp/animestudio.tar.gz' | sha256sum --check
-          mkdir -p "$root"
-          tar -xzf "$archive" -C "$root"
-          mapfile -t apphosts < <(find "$root" -type f -name 'AnimeStudio.CLI' | sort)
-          mapfile -t dlls < <(find "$root" -type f -name 'AnimeStudio.CLI.dll' | sort)
-          if (("${#apphosts[@]}")); then
-            chmod +x "${apphosts[0]}"
-            printf '%s\n' "${apphosts[0]}" >/tmp/animestudio-entry
-          elif (("${#dlls[@]}")); then
-            printf 'dotnet\n%s\n' "${dlls[0]}" >/tmp/animestudio-entry
-          else
-            exit 2
-          fi
+          root=/tmp/GenshinStudio
+          git clone --filter=blob:none https://github.com/game-maker-ly/GenshinStudio.git "$root"
+          git -C "$root" checkout --detach 46c5aca5c6c7d5124e54a5693264bb61165846c3
 
-      - name: Fetch exact package index and design index block
+          mkdir -p "$root/ProbeExtract"
+          cat > "$root/ProbeExtract/ProbeExtract.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net6.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>disable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../AssetStudio/AssetStudio.csproj" />
+            </ItemGroup>
+          </Project>
+          EOF
+
+          cat > "$root/ProbeExtract/Program.cs" <<'EOF'
+          using AssetStudio;
+          using System.Buffers.Binary;
+
+          if (args.Length != 2)
+          {
+              Console.Error.WriteLine("usage: ProbeExtract <blk> <output-dir>");
+              return 2;
+          }
+
+          var input = Path.GetFullPath(args[0]);
+          var output = Path.GetFullPath(args[1]);
+          Directory.CreateDirectory(output);
+
+          var manager = new AssetsManager();
+          manager.LoadFiles(input);
+
+          int files = 0;
+          int bins = 0;
+          foreach (var assetsFile in manager.assetsFileList)
+          {
+              files++;
+              IndexObject? index = null;
+              if (assetsFile.ObjectsDic.TryGetValue(2, out var obj) && obj is IndexObject io)
+                  index = io;
+
+              foreach (var asset in assetsFile.Objects)
+              {
+                  if (asset is not MiHoYoBinData bin)
+                      continue;
+
+                  string name = $"pathid-{bin.m_PathID}";
+                  if (index != null && index.Names.TryGetValue(bin.m_PathID, out var recovered))
+                      name = recovered;
+
+                  name = Path.GetFileNameWithoutExtension(name);
+                  var raw = new byte[4 + bin.RawData.Length];
+                  BinaryPrimitives.WriteInt32LittleEndian(raw.AsSpan(0, 4), bin.RawData.Length);
+                  bin.RawData.CopyTo(raw, 4);
+                  File.WriteAllBytes(Path.Combine(output, name + ".dat"), raw);
+                  bins++;
+              }
+          }
+
+          Console.WriteLine($"assets_files={files}");
+          Console.WriteLine($"mihoyo_bin_data={bins}");
+          return bins > 0 ? 0 : 3;
+          EOF
+
+          dotnet build "$root/ProbeExtract/ProbeExtract.csproj" -c Release --nologo
+          printf '%s\n' "$root/ProbeExtract/bin/Release/net6.0/ProbeExtract.dll" > /tmp/genshinstudio-extractor
+
+      - name: Fetch exact old-package index and fixed design/quest blocks
         shell: bash
         env:
           VERSION: ${{ matrix.version }}
@@ -72,13 +125,13 @@ jobs:
 
           fetch() {
             local rel="$1" out="$2"
-            if curl --fail --location --retry 2 --connect-timeout 15 --max-time 180 \
+            if curl --fail --location --retry 2 --connect-timeout 15 --max-time 240 \
                 "$official/$rel" -o "$out"; then
               echo "source=official rel=$rel"
               return
             fi
             rm -f "$out"
-            curl --fail --location --retry 3 --connect-timeout 15 --max-time 300 \
+            curl --fail --location --retry 3 --connect-timeout 15 --max-time 360 \
               "$mirror/$rel" -o "$out"
             echo "source=mirror rel=$rel"
           }
@@ -88,159 +141,144 @@ jobs:
           python - <<'PY' | tee package-index-summary.txt
           import json,os
           from pathlib import Path
-          rows=[]
-          for line in Path("inputs/pkg_version").read_text(encoding="utf-8-sig",errors="strict").splitlines():
-              line=line.strip()
-              if line: rows.append(json.loads(line))
-          suffix="/StreamingAssets/AssetBundles/blocks/00/31049740.blk"
-          hits=[x for x in rows if str(x.get("remoteName","")).replace("\\","/").endswith(suffix)]
-          print("version",os.environ["VERSION"],"rows",len(rows),"design_hits",len(hits))
-          for x in hits: print(json.dumps(x,sort_keys=True))
-          if len(hits)!=1: raise SystemExit("design index entry missing/ambiguous")
-          Path("/tmp/design-entry.json").write_text(json.dumps(hits[0]))
-          PY
 
-          rel=$(python -c 'import json; print(json.load(open("/tmp/design-entry.json"))["remoteName"])')
-          fetch "$rel" inputs/31049740.blk
-
-          python - <<'PY'
-          import hashlib,json
-          from pathlib import Path
-          x=json.load(open("/tmp/design-entry.json"))
-          p=Path("inputs/31049740.blk")
-          got=hashlib.md5(p.read_bytes()).hexdigest()
-          print("design_size",p.stat().st_size,"md5",got)
-          if p.stat().st_size != int(x["fileSize"]): raise SystemExit("design size mismatch")
-          if got.lower()!=x["md5"].lower(): raise SystemExit("design md5 mismatch")
-          PY
-
-      - name: Resolve exact historical QuestExcel block
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t entry </tmp/animestudio-entry
-          if (("${#entry[@]}"==1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
-          rm -rf design-output
-          mkdir -p design-output
-          "${cli[@]}" inputs/31049740.blk design-output --game GI --export_type Raw --logger_flags Error
-
-          python - <<'PY' | tee quest-asset-location.txt
-          import json
-          from pathlib import Path
-          from genshinre.assetindex import mihoyo_name_hash,parse_asset_index
-          path="Data/_ExcelBinOutput/QuestExcelConfigData"
-          h=mihoyo_name_hash(path)
-          candidates=list(Path("design-output").rglob("*.dat"))
-          exact=[x for x in candidates if x.name=="0000006f.dat"]
-          if len(exact)!=1:
-              raise SystemExit(f"asset index export missing candidates={candidates[:30]}")
-          idx=parse_asset_index(exact[0].read_bytes())
-          name=idx.name_for_hash(h)
-          ref=idx.block_ref_for_asset(name.sub_asset_id)
-          group=idx.block_groups[ref.block_id]
-          out={
-            "path":path,"hash":f"0x{h:010X}","exported_name":name.exported_name,
-            "sub_asset_id":name.sub_asset_id,"block_id":ref.block_id,"group_id":group,
-            "unknown0":ref.unknown0,"unknown1":ref.unknown1,
+          rows=[
+              json.loads(line)
+              for line in Path("inputs/pkg_version").read_text(
+                  encoding="utf-8-sig",errors="strict"
+              ).splitlines()
+              if line.strip()
+          ]
+          wanted={
+              "design":"31049740.blk",
+              "quest":"25539185.blk",
           }
-          print(json.dumps(out,indent=2))
-          Path("quest-asset-location.json").write_text(json.dumps(out,indent=2)+"\n")
+          selected={}
+          for label,base in wanted.items():
+              hits=[
+                  x for x in rows
+                  if str(x.get("remoteName","")).replace("\\","/").endswith(
+                      "/StreamingAssets/AssetBundles/blocks/00/"+base
+                  )
+              ]
+              print(label,"hits",len(hits))
+              for x in hits: print(json.dumps(x,sort_keys=True))
+              if len(hits)!=1:
+                  raise SystemExit(f"{label}: block entry missing/ambiguous")
+              selected[label]=hits[0]
+          Path("/tmp/old-blocks.json").write_text(json.dumps(selected))
+          print("version",os.environ["VERSION"],"package_rows",len(rows))
           PY
 
-      - name: Fetch target block from exact package
-        shell: bash
-        env:
-          STAMP: ${{ matrix.stamp }}
-        run: |
-          set -euo pipefail
-          official="https://autopatchhk.yuanshen.com/client_app/download/pc_zip/$STAMP/ScatteredFiles"
-          mirror="https://autopatchrr.yyheggegg.com/anime-os/client_app/download/pc_zip/$STAMP/ScatteredFiles"
-
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          loc=json.load(open("quest-asset-location.json"))
-          rows=[json.loads(x) for x in Path("inputs/pkg_version").read_text(encoding="utf-8-sig").splitlines() if x.strip()]
-          bid=loc["block_id"]
-          suffix=f"/StreamingAssets/AssetBundles/blocks/{loc['group_id']:02d}/{bid}.blk"
-          alt=f"/StreamingAssets/AssetBundles/blocks/{loc['group_id']:02x}/{bid}.blk"
-          hits=[x for x in rows if str(x.get("remoteName","")).replace("\\","/").endswith(suffix)]
-          if len(hits)!=1:
-              hits=[x for x in rows if str(x.get("remoteName","")).replace("\\","/").endswith(alt)]
-          if len(hits)!=1:
-              raise SystemExit(f"target block entry missing/ambiguous suffix={suffix} alt={alt}")
-          Path("/tmp/target-entry.json").write_text(json.dumps(hits[0]))
-          print(json.dumps(hits[0],sort_keys=True))
+          for label in design quest; do
+            rel=$(python - "$label" <<'PY'
+          import json,sys
+          print(json.load(open("/tmp/old-blocks.json"))[sys.argv[1]]["remoteName"])
           PY
-
-          rel=$(python -c 'import json; print(json.load(open("/tmp/target-entry.json"))["remoteName"])')
-          if ! curl --fail --location --retry 2 --connect-timeout 15 --max-time 240 \
-              "$official/$rel" -o inputs/quest.blk; then
-            rm -f inputs/quest.blk
-            curl --fail --location --retry 3 --connect-timeout 15 --max-time 300 \
-              "$mirror/$rel" -o inputs/quest.blk
-          fi
+            )
+            fetch "$rel" "inputs/$label.blk"
+          done
 
           python - <<'PY'
           import hashlib,json
           from pathlib import Path
-          x=json.load(open("/tmp/target-entry.json"))
-          p=Path("inputs/quest.blk")
-          got=hashlib.md5(p.read_bytes()).hexdigest()
-          print("target_size",p.stat().st_size,"md5",got)
-          if p.stat().st_size != int(x["fileSize"]): raise SystemExit("target size mismatch")
-          if got.lower()!=x["md5"].lower(): raise SystemExit("target md5 mismatch")
+          selected=json.load(open("/tmp/old-blocks.json"))
+          for label in ("design","quest"):
+              p=Path("inputs")/(label+".blk")
+              row=selected[label]
+              md5=hashlib.md5(p.read_bytes()).hexdigest()
+              print(label,"size",p.stat().st_size,"md5",md5)
+              if p.stat().st_size != int(row["fileSize"]):
+                  raise SystemExit(f"{label} size mismatch")
+              if md5.lower()!=row["md5"].lower():
+                  raise SystemExit(f"{label} md5 mismatch")
           PY
 
-      - name: Export and fingerprint native QuestExcel object
+      - name: Extract old AssetIndex and QuestExcel MiHoYoBinData
+        shell: bash
+        run: |
+          set -euo pipefail
+          extractor=$(cat /tmp/genshinstudio-extractor)
+          rm -rf design-output quest-output
+          mkdir -p design-output quest-output
+
+          dotnet "$extractor" inputs/design.blk design-output 2>&1 | tee old-design-extract.txt
+          dotnet "$extractor" inputs/quest.blk quest-output 2>&1 | tee old-quest-extract.txt
+
+          echo "DESIGN OUTPUT"
+          find design-output -maxdepth 1 -type f -printf '%f %s\n' | sort | head -200
+          echo "QUEST OUTPUT"
+          find quest-output -maxdepth 1 -type f -printf '%f %s\n' | sort | head -200
+
+          test -s design-output/0000006f.dat
+          test -s quest-output/3b87ae83.dat
+
+      - name: Verify historical AssetIndex routing and fingerprint QuestExcel
         shell: bash
         env:
           VERSION: ${{ matrix.version }}
         run: |
           set -euo pipefail
-          mapfile -t entry </tmp/animestudio-entry
-          if (("${#entry[@]}"==1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
-          rm -rf quest-output
-          mkdir -p quest-output
-          "${cli[@]}" inputs/quest.blk quest-output --game GI --export_type Raw --logger_flags Error
-
           python - <<'PY' | tee quest-native-fingerprint.txt
           import hashlib,json,os,struct
           from pathlib import Path
-          from genshinre.assetindex import unwrap_mihoyo_bin_data
+          from genshinre.assetindex import (
+              mihoyo_name_hash,parse_asset_index,unwrap_mihoyo_bin_data
+          )
 
-          loc=json.load(open("quest-asset-location.json"))
-          root=Path("quest-output/MiHoYoBinData")
-          p=root/(loc["exported_name"]+".dat")
-          if not p.is_file():
-              raise SystemExit(f"raw object missing: {p}, candidates={list(root.glob('*.dat'))[:30]}")
-          raw=p.read_bytes()
+          path="Data/_ExcelBinOutput/QuestExcelConfigData"
+          h=mihoyo_name_hash(path)
+          idx_raw=Path("design-output/0000006f.dat").read_bytes()
+          idx=parse_asset_index(idx_raw)
+          name=idx.name_for_hash(h)
+          ref=idx.block_ref_for_asset(name.sub_asset_id)
+          group=idx.block_groups[ref.block_id]
+
+          raw=Path("quest-output/3b87ae83.dat").read_bytes()
           payload=unwrap_mihoyo_bin_data(raw)
 
           def uvar(data,pos=0):
               value=0; shift=0; start=pos
               while True:
+                  if pos>=len(data): raise EOFError(start)
                   b=data[pos];pos+=1
                   value|=(b&0x7f)<<shift
                   if not b&0x80:return value,pos-start
                   shift+=7
+                  if shift>=64: raise ValueError("wide uvar")
           uv,n=uvar(payload)
           zz=(-(uv&1) ^ (uv>>1))
+
           out={
-            "version":os.environ["VERSION"],
-            **loc,
-            "raw_size":len(raw),
-            "raw_sha256":hashlib.sha256(raw).hexdigest(),
-            "payload_size":len(payload),
-            "payload_sha256":hashlib.sha256(payload).hexdigest(),
-            "head64":payload[:64].hex(),
-            "leading_uvar":uv,
-            "leading_uvar_bytes":n,
-            "zigzag_i32_interpretation":zz,
+              "version":os.environ["VERSION"],
+              "path":path,
+              "hash":f"0x{h:010X}",
+              "exported_name":name.exported_name,
+              "sub_asset_id":name.sub_asset_id,
+              "block_id":ref.block_id,
+              "group_id":group,
+              "unknown0":ref.unknown0,
+              "unknown1":ref.unknown1,
+              "raw_size":len(raw),
+              "raw_sha256":hashlib.sha256(raw).hexdigest(),
+              "payload_size":len(payload),
+              "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              "head64":payload[:64].hex(),
+              "leading_uvar":uv,
+              "leading_uvar_bytes":n,
+              "zigzag_i32_interpretation":zz,
           }
-          print(json.dumps(out,indent=2))
-          Path("quest-native-fingerprint.json").write_text(json.dumps(out,indent=2)+"\n")
-          Path("quest-native.dat").write_bytes(raw)
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-native-fingerprint.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          if name.exported_name.lower()!="3b87ae83":
+              raise SystemExit(f"unexpected exported name {name.exported_name}")
+          if ref.block_id != 25539185 or group != 0:
+              raise SystemExit(
+                  f"unexpected historical QuestExcel route block={ref.block_id} group={group}"
+              )
           PY
 
       - name: Upload evidence
@@ -250,9 +288,10 @@ jobs:
           name: quest-legacy-native-${{ matrix.version }}
           path: |
             package-index-summary.txt
-            quest-asset-location.txt
-            quest-asset-location.json
+            old-design-extract.txt
+            old-quest-extract.txt
             quest-native-fingerprint.txt
             quest-native-fingerprint.json
-            quest-native.dat
+            design-output/0000006f.dat
+            quest-output/3b87ae83.dat
           if-no-files-found: warn
