@@ -1,0 +1,525 @@
+name: Probe 3.0 QuestExcel structural type shape
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-shape.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-shape-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 900             "$base/GenshinImpact_Data/Native/UserAssembly.dll"             -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 300             "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat"             -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+            "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+            "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/3.0.0-global")/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name,len(raw),got)
+              assert len(raw)==size and got==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none             https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git             .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach             731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+            "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+            "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build             .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj             -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact protected 3.0 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll               "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll"               "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"               "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-shape-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Match historical QuestExcel by structural field type shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-shape.txt
+          import json
+          import re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          # Historical 3.0 QuestExcelConfig field layout from WorldReverse.
+          required_offsets = [
+              0x10,0x14,0x18,0x1C,0x20,0x24,0x28,0x2C,
+              0x30,0x34,0x38,0x40,0x48,0x50,0x58,0x60,
+              0x68,0x70,0x74,0x75,0x78,0x7C,0x80,0x88,
+              0x90,0x98,0xA0,0xA8,0xB0,0xB8,
+          ]
+          req=set(required_offsets)
+
+          # Primitive constraints that survive symbol obfuscation.
+          primitive = {
+              0x10:"uint",0x14:"uint",0x18:"int",0x1C:"uint",
+              0x20:"bool",0x24:"uint",0x28:"uint",0x2C:"uint",
+              0x74:"bool",0x75:"bool",0x7C:"bool",0xA8:"uint",
+          }
+
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          typedef_rx=re.compile(r"TypeDefIndex:\s*(\d+)")
+          decl_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+|partial\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+)"
+          )
+          field_rx=re.compile(
+              r"^\s*(?P<mods>(?:(?:public|private|protected|internal|static|readonly|const|volatile|new)\s+)*)"
+              r"(?P<type>.+?)\s+"
+              r"(?P<name>[A-Za-z_<>][A-Za-z0-9_<>]*)\s*;\s*//\s*0x(?P<off>[0-9A-Fa-f]+)\s*$"
+          )
+
+          def norm_type(t):
+              t=re.sub(r"\s+"," ",t.strip())
+              aliases={
+                  "System.UInt32":"uint",
+                  "System.Int32":"int",
+                  "System.Boolean":"bool",
+                  "System.String":"string",
+              }
+              return aliases.get(t,t)
+
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+          candidates=[]
+
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              decl=None
+              typedef=None
+              fields_by_off={}
+              all_fields=[]
+              methods=[]
+
+              for rel,line in enumerate(block):
+                  if decl is None:
+                      dm=decl_rx.search(line)
+                      if dm:
+                          decl={
+                              "line":a+rel+1,
+                              "name":dm.group(1),
+                              "text":line.strip(),
+                          }
+                          tm=typedef_rx.search(line)
+                          if tm:
+                              typedef=int(tm.group(1))
+
+                  fm=field_rx.search(line)
+                  if fm:
+                      mods=fm.group("mods").split()
+                      if "static" in mods or "const" in mods:
+                          continue
+                      off=int(fm.group("off"),16)
+                      row={
+                          "line":a+rel+1,
+                          "type":norm_type(fm.group("type")),
+                          "name":fm.group("name"),
+                          "offset":off,
+                          "text":line.strip(),
+                      }
+                      all_fields.append(row)
+                      fields_by_off.setdefault(off,[]).append(row)
+
+                  rm=rva_rx.search(line)
+                  if rm:
+                      rva=int(rm.group(1),16)
+                      sig=None
+                      sig_line=None
+                      for k in range(rel+1,min(len(block),rel+8)):
+                          q=block[k].strip()
+                          if q and not q.startswith("//") and "(" in q and ")" in q:
+                              sig=q
+                              sig_line=a+k+1
+                              break
+                      if sig:
+                          methods.append({
+                              "rva":rva,
+                              "signature":sig,
+                              "line":sig_line,
+                          })
+
+              if not decl:
+                  continue
+
+              # Only consider offsets with exactly one instance-field interpretation.
+              types={
+                  off:rows[0]["type"]
+                  for off,rows in fields_by_off.items()
+                  if len(rows)==1
+              }
+              present=set(types)
+              overlap=len(req & present)
+              if overlap < 20:
+                  continue
+
+              score=overlap*20
+              reasons=[]
+              failures=[]
+
+              # Primitive exact matches.
+              prim_hits=0
+              for off,want in primitive.items():
+                  got=types.get(off)
+                  ok=(got==want)
+                  if ok:
+                      prim_hits+=1
+                      score+=45
+                  else:
+                      failures.append(
+                          f"primitive +0x{off:X}: got={got!r} want={want}"
+                      )
+              reasons.append(f"primitive={prim_hits}/{len(primitive)}")
+
+              def rel_eq(offsets,label,weight):
+                  nonlocal score
+                  vals=[types.get(x) for x in offsets]
+                  ok=all(v is not None for v in vals) and len(set(vals))==1
+                  if ok:
+                      score+=weight
+                      reasons.append(label+"=yes:"+str(vals[0]))
+                  else:
+                      failures.append(label+"="+repr(vals))
+                  return ok
+
+              eq_logic=rel_eq([0x38,0x48,0x58],"logic_type_triplet",180)
+              eq_show=rel_eq([0x30,0x78],"show_type_pair",120)
+              eq_content=rel_eq([0x50,0x60],"content_array_pair",160)
+              eq_exec=rel_eq([0x80,0x88,0x90],"exec_array_triplet",220)
+              eq_uintarrays=rel_eq(
+                  [0x98,0xA0,0xB0,0xB8],"uint_array_quad",220
+              )
+
+              if eq_uintarrays and types.get(0x98)=="uint[]":
+                  score+=180
+                  reasons.append("uint_array_quad_exact")
+              elif eq_uintarrays:
+                  failures.append(
+                      "uint_array_quad type is "+repr(types.get(0x98))
+                  )
+
+              # QuestCond[], QuestContent[] and QuestExec[] must be arrays;
+              # Cond and Content are distinct element types.
+              t40=types.get(0x40)
+              t50=types.get(0x50)
+              t80=types.get(0x80)
+              for off,t,label in (
+                  (0x40,t40,"accept"),
+                  (0x50,t50,"content"),
+                  (0x80,t80,"exec"),
+              ):
+                  if t and t.endswith("[]"):
+                      score+=80
+                      reasons.append(label+"_array=yes:"+t)
+                  else:
+                      failures.append(label+"_array got="+repr(t))
+
+              if t40 and t50 and t40!=t50:
+                  score+=70
+                  reasons.append("accept_content_distinct")
+              else:
+                  failures.append("accept/content not distinct")
+
+              if t50 and t80 and t50!=t80:
+                  score+=70
+                  reasons.append("content_exec_distinct")
+              else:
+                  failures.append("content/exec not distinct")
+
+              # Avoid generic serializer/helper structs.
+              if decl["text"].startswith("public struct"):
+                  score-=120
+              if "<>" in decl["name"]:
+                  score-=250
+
+              bytearray_methods=[
+                  m for m in methods
+                  if "OLCLOPLLAGP" in m["signature"]
+                  and re.search(r"\bbool\b",m["signature"])
+              ]
+              if bytearray_methods:
+                  score+=min(250,60*len(bytearray_methods))
+                  reasons.append(
+                      "bytearray_bool_methods="+str(len(bytearray_methods))
+                  )
+
+              candidates.append({
+                  "score":score,
+                  "namespace_line":a+1,
+                  "declaration":decl,
+                  "typedef_index":typedef,
+                  "overlap":overlap,
+                  "types":{hex(k):v for k,v in sorted(types.items()) if k in req},
+                  "primitive_hits":prim_hits,
+                  "reasons":reasons,
+                  "failures":failures,
+                  "methods":methods,
+                  "bytearray_methods":bytearray_methods,
+                  "fields":[x for x in all_fields if x["offset"] in req],
+              })
+
+          candidates.sort(
+              key=lambda x:(
+                  -x["score"],
+                  -x["primitive_hits"],
+                  -x["overlap"],
+                  x["namespace_line"],
+              )
+          )
+
+          print("dump lines",len(lines))
+          print("candidates",len(candidates))
+          for rank,c in enumerate(candidates[:40],1):
+              d=c["declaration"]
+              print(
+                  f"\n=== RANK {rank:02d} score={c['score']} "
+                  f"type={d['name']} TypeDefIndex={c['typedef_index']} "
+                  f"overlap={c['overlap']}/30 primitive={c['primitive_hits']}/12 ==="
+              )
+              print("DECL",d["text"])
+              print("REASONS"," | ".join(c["reasons"]))
+              print("FAILURES"," | ".join(c["failures"][:20]))
+              print("TYPES")
+              for off in required_offsets:
+                  t=c["types"].get(hex(off))
+                  if t is not None:
+                      print(f"  +0x{off:X} {t}")
+              print("BYTEARRAY METHODS")
+              for m in c["bytearray_methods"]:
+                  print(f"  RVA=0x{m['rva']:X} L{m['line']} {m['signature']}")
+              print("ALL METHODS")
+              for m in c["methods"]:
+                  print(f"  RVA=0x{m['rva']:X} L{m['line']} {m['signature']}")
+
+          Path("quest-legacy-30-shape.json").write_text(
+              json.dumps(
+                  {
+                      "required_offsets":[hex(x) for x in required_offsets],
+                      "candidates":candidates[:100],
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )+"\n",
+              encoding="utf-8",
+          )
+
+          strong=[
+              c for c in candidates
+              if c["overlap"]>=28
+              and c["primitive_hits"]>=10
+              and any("logic_type_triplet=yes" in x for x in c["reasons"])
+              and any("exec_array_triplet=yes" in x for x in c["reasons"])
+              and any("uint_array_quad=yes" in x for x in c["reasons"])
+          ]
+          print("\nSTRONG_CANDIDATES",len(strong))
+          for c in strong[:20]:
+              print(
+                  c["declaration"]["name"],
+                  c["typedef_index"],
+                  c["score"],
+                  [hex(m["rva"]) for m in c["bytearray_methods"]],
+              )
+          if not strong:
+              raise SystemExit("no strong historical QuestExcel structural candidate")
+          PY
+
+      - name: Disassemble candidate ByteArray readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-30-shape-readers.txt
+          import json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          data=json.loads(Path("quest-legacy-30-shape.json").read_text())
+          candidates=data["candidates"]
+          selected=[]
+          for c in candidates:
+              if (
+                  c["overlap"]>=28
+                  and c["primitive_hits"]>=10
+                  and any("logic_type_triplet=yes" in x for x in c["reasons"])
+                  and any("exec_array_triplet=yes" in x for x in c["reasons"])
+                  and any("uint_array_quad=yes" in x for x in c["reasons"])
+              ):
+                  selected.append(c)
+
+          pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted(
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          )
+
+          def bounds(rva):
+              lo,hi=0,len(runtime)
+              while lo<hi:
+                  mid=(lo+hi)//2
+                  if runtime[mid][0]<=rva:
+                      lo=mid+1
+                  else:
+                      hi=mid
+              for idx in (lo-1,lo):
+                  if 0<=idx<len(runtime):
+                      a,b=runtime[idx]
+                      if a<=rva<b:
+                          return a,b
+              return None
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report=[]
+
+          for c in selected[:10]:
+              methods=c["bytearray_methods"]
+              if not methods:
+                  methods=[
+                      m for m in c["methods"]
+                      if re.search(r"\bbool\b",m["signature"])
+                  ] if False else []
+              for m in methods[:8]:
+                  rva=m["rva"]
+                  bb=bounds(rva)
+                  print(
+                      f"\n=== {c['declaration']['name']} "
+                      f"RVA=0x{rva:X} bounds={bb} ==="
+                  )
+                  if not bb:
+                      continue
+                  a,b=bb
+                  rows=[]
+                  for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                      row={
+                          "rva":ins.address-base,
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if (
+                          ins.mnemonic=="call"
+                          and ins.operands
+                          and ins.operands[0].type==X86_OP_IMM
+                      ):
+                          row["call_target_rva"]=ins.operands[0].imm-base
+                      mem=[]
+                      for op in ins.operands:
+                          if op.type==X86_OP_MEM:
+                              mem.append({
+                                  "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                                  "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                                  "scale":op.mem.scale,
+                                  "disp":op.mem.disp,
+                              })
+                      if mem:
+                          row["mem"]=mem
+                      rows.append(row)
+                      print(
+                          f"0x{row['rva']:X} "
+                          f"{row['mnemonic']:<8} {row['op_str']}"
+                      )
+                  report.append({
+                      "type":c["declaration"]["name"],
+                      "typedef_index":c["typedef_index"],
+                      "method":m,
+                      "begin_rva":a,
+                      "end_rva":b,
+                      "instructions":rows,
+                  })
+
+          Path("quest-legacy-30-shape-readers.json").write_text(
+              json.dumps(report,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload structural evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-shape
+          path: |
+            quest-legacy-30-shape-dumper.txt
+            quest-legacy-30-shape.txt
+            quest-legacy-30-shape.json
+            quest-legacy-30-shape-readers.txt
+            quest-legacy-30-shape-readers.json
+          if-no-files-found: warn
