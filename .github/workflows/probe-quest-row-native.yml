@@ -2137,6 +2137,132 @@ jobs:
           )
           print("UNIQUE_METHOD_SLOT_XREFS", len(final))
           PY
+      - name: Resolve FNIAHJGHFAK reader primitive semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY' | tee quest-bin-reader-primitives.txt
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET_TDI=30748
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          typ=next(x for x in types if int(x["type_definition_index"])==TARGET_TDI)
+          target_fields=[x for x in fields if int(x["type_definition_index"])==TARGET_TDI]
+          target_methods=[x for x in methods if int(x["type_definition_index"])==TARGET_TDI]
+
+          all_rvas=[]
+          by_rva={}
+          for m in methods:
+              s=(m.get("rva") or "").strip()
+              if not s:
+                  continue
+              try:
+                  r=int(s,16)
+              except ValueError:
+                  continue
+              all_rvas.append(r)
+              by_rva.setdefault(r,[]).append(m)
+          all_rvas=sorted(set(all_rvas))
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report={
+              "type":typ,
+              "fields":target_fields,
+              "methods":[],
+          }
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              for m in target_methods:
+                  s=(m.get("rva") or "").strip()
+                  if not s:
+                      report["methods"].append({"metadata":m,"instructions":[]})
+                      continue
+                  start=int(s,16)
+                  pos=bisect.bisect_right(all_rvas,start)
+                  end=all_rvas[pos] if pos<len(all_rvas) else start+0x800
+                  size=end-start
+                  if size<=0 or size>0x4000:
+                      size=0x800
+                  blob=image.read_rva(start,size)
+                  insns=[]
+                  for ins in md.disasm(blob,base+start):
+                      item={
+                          "rva":f"0x{ins.address-base:X}",
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                          "bytes":ins.bytes.hex(),
+                      }
+                      if ins.mnemonic in {"call","jmp"}:
+                          for op in ins.operands:
+                              if op.type==X86_OP_IMM:
+                                  target=int(op.imm)
+                                  trva=target-base if target>=base else target
+                                  item["direct_target_rva"]=f"0x{trva:X}"
+                                  item["direct_target_metadata"]=by_rva.get(trva,[])
+                                  break
+                      insns.append(item)
+                  entry={"metadata":m,"start_rva":f"0x{start:X}","size":size,"instructions":insns}
+                  report["methods"].append(entry)
+                  print("\n###",m["method_name"],f"@ 0x{start:X}",m.get("parameter_types"))
+                  for x in insns:
+                      print(x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-bin-reader-primitives.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-bin-reader-aapd-summary.txt
+          import json
+          from pathlib import Path
+
+          d=json.loads(Path("quest-bin-reader-primitives.json").read_text(encoding="utf-8"))
+          target=next(
+              x for x in d["methods"]
+              if x["metadata"].get("method_name")=="AAPDIPLACAE"
+          )
+          print("TYPE",json.dumps(d["type"],ensure_ascii=False))
+          print("FIELDS")
+          for f in d["fields"]:
+              print(json.dumps(f,ensure_ascii=False,sort_keys=True))
+          print("AAPDIPLACAE",json.dumps(target["metadata"],ensure_ascii=False,sort_keys=True))
+          for x in target["instructions"]:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-bin-reader-aapd-summary.json").write_text(
+              json.dumps({
+                  "type":d["type"],
+                  "fields":d["fields"],
+                  "method":target,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Assert evidence
         shell: bash
         run: |
@@ -2159,6 +2285,8 @@ jobs:
           test -s quest-fnj-reader-full.json
           test -s quest-fnj-reader-calls.json
           test -s quest-fnj-field-types.json
+          test -s quest-bin-reader-primitives.json
+          test -s quest-bin-reader-aapd-summary.json
           test -s quest-binary-slice-index.json
           test -s quest-binary-slice-index-summary.json
           test -s quest-bin-loader-native.json
@@ -2218,6 +2346,10 @@ jobs:
             quest-fnj-reader-calls.json
             quest-fnj-field-types.txt
             quest-fnj-field-types.json
+            quest-bin-reader-primitives.txt
+            quest-bin-reader-primitives.json
+            quest-bin-reader-aapd-summary.txt
+            quest-bin-reader-aapd-summary.json
             quest-binary-slice-index.txt
             quest-binary-slice-index.json
             quest-binary-slice-index-summary.txt
