@@ -1,6 +1,6 @@
 # QuestExcel extraction / prerequisite corruption
 
-Status: **HIGH_CONFIDENCE downstream root cause; exact-client row decode still UNRESOLVED**
+Status: **CONFIRMED downstream prerequisite synthesis/materialization; exact 7.1 legacy row wire still UNRESOLVED**
 
 Issues: #8, with #19 as the ordinary-row schema dependency.
 
@@ -32,9 +32,11 @@ Recovered invariants:
 
 - Raw object size: 2,824,192 bytes
 - payload after MiHoYoBinData length prefix: 2,824,188 bytes
-- leading unsigned varint: 7473
+- raw SHA256: `f068fc7f5dc0a0560ef0b145cdca14ee12910d0a3bc25a6332e2546f37650c87`
+- payload SHA256: `07ab4816ee1eaa68fefd636b92dcfa923fe58a15731d18de0c0fb26863791fe5`
+- the first bytes can be interpreted as unsigned varint `7473`, but this is **not** a confirmed table row count
 
-This solves location/extraction of the exact asset. It does not yet solve row framing or the ordinary Quest row schema.
+This solves location/extraction of the exact asset. It does not yet solve the 7.1 legacy row framing or schema.
 
 ## Focused public-source comparison
 
@@ -110,6 +112,125 @@ PR #9 added 7,956 rows by appending them, so the pre-PR table had 25,261 rows. T
 Current same-version `BinOutput/Quest/351.json` in both Dimbreath and AstaPS has no `acceptCond` on `35100..35107`.
 
 This classifies the AstaPS 351 prerequisite drift as **legacy resource contamination/materialization drift** with HIGH_CONFIDENCE.
+
+## Historical-native provenance closes the Quest 351 prerequisite question
+
+The prerequisite provenance can now be classified independently of the still-unresolved
+7.1 legacy row wire.
+
+### Exact native 2.8
+
+The exact official 2.8 QuestExcel asset is fully decoded with the historical wire:
+
+- raw size: 3,830,872 bytes
+- raw SHA256: `d11516d19a77e38c41f3b88aabc6fb6fe1277a57798633a96bc9da17e1df9877`
+- single-byte XOR key: `0x98`
+- row count: 12,158
+- complete payload consumption: confirmed
+
+Quest 351 contains historical prerequisite conditions in 2.8. The graph is not a simple
+linear chain. In particular:
+
+- 35100 depends on 35104;
+- 35107 depends on 35100;
+- 35101 depends on 35100;
+- 35106 depends on 35101;
+- 35105 depends on 35106;
+- 35103 combines state-equal 35106 with state-not-equal 35105;
+- 35102 accepts through an OR-style combination of 35103 and 35105.
+
+### Exact native 3.2 and 3.4
+
+The exact official assets were independently extracted and decoded with the same historical
+QuestExcel family:
+
+```text
+3.2
+  raw SHA256 891d83000eb3eb7382d7781bff12213b55159e7053c22312857a371fa4243c36
+  XOR key    0x93
+  row count  15818
+  Quest 351 acceptCond: absent on all eight rows
+
+3.4
+  raw SHA256 c034b6ea8714f04d3c3ea8e31e3a944969ecef4fa804156ff046ffd516beaa64
+  XOR key    0x95
+  row count  16727
+  Quest 351 acceptCond: absent on all eight rows
+```
+
+Therefore the old 351 prerequisite schema was already removed from the official client
+QuestExcel by 3.2. A later resource that labels the old chain as 3.2+ data is a downstream
+materialization.
+
+### Community materialization path
+
+A pinned community resource tool provides direct provenance evidence.
+
+`233-Jerry/Grasscutter-Resources/Tool/QuestGC.js` loads both newer Quest data and
+`QuestExcelConfigData_2.8.json`. For any subquest already present in 2.8 it explicitly
+copies the old:
+
+```text
+acceptCond
+finishCond
+failCond
+guide
+finishExec
+failExec
+beginExec
+```
+
+into the newer materialized quest row.
+
+The same repository documents its QuestExcel as modified and describes 3.0+ quest data as
+incomplete. Its `MergeQuests.js` then uses a materialized
+`QuestExcelConfigData (3.2).json` as the baseline when rebuilding
+`BinOutput/Quest/*.json`. This explains how old prerequisite data propagated across both
+public Excel and BinOutput directories.
+
+### AstaPS initial resource is an additional synthesis
+
+AstaPS first imported `QuestExcelConfigData.json` at commit
+`8c85a82f37341a422002a0352c89a142c4017e53` with 25,261 rows.
+
+Its Quest 351 prerequisite graph is:
+
+```text
+35104 <- [0,3]
+35100 <- [35104,3]
+35107 <- [35100,3]
+35101 <- [35107,3]
+35106 <- [35101,3]
+35105 <- [35106,3]
+35103 <- [35105,3]
+35102 <- [35103,3]
+```
+
+This is a pure previous-row/order chain. It differs from the exact 2.8 native graph above,
+so it cannot be described as an unmodified 2.8 carry-forward.
+
+Later AstaPS-Resource PR #9 explicitly documents the same heuristic for newly appended
+quests: first row gets `QUEST_COND_STATE_EQUAL [0,3]`, then each later row depends on the
+previous row. The PR says this follows the "convention of the existing rows". Quest 351
+predates PR #9, so PR #9 did not create its chain; it documents and reuses the already
+present synthesis convention.
+
+### Provenance verdict
+
+For AstaPS Quest 351, the prerequisite chain is now **CONFIRMED downstream
+synthetic/materialized data**.
+
+This verdict does not require the exact 7.1 legacy row decoder:
+
+1. official 2.8 preserves a more complex historical prerequisite graph;
+2. official 3.2 and 3.4 no longer contain 351 `acceptCond`;
+3. community tooling explicitly grafts old 2.8 quest logic into newer materializations;
+4. AstaPS's initial 351 graph is a simplified order-derived chain, distinct from native 2.8;
+5. AstaPS PR #9 explicitly identifies that same order-derived rule as an existing resource
+   convention.
+
+The exact 7.1 `3b87ae83.dat` decoder remains useful format archaeology, but it no longer
+blocks the AstaPS provenance classification.
 
 ## Published 7.1 Excel field names are also misaligned
 
@@ -438,26 +559,28 @@ Current layer-by-layer classification:
 | --- | --- |
 | exact 7.1 QuestExcel asset location/extraction | CONFIRMED |
 | AstaPS current QuestExcel provenance | HIGH_CONFIDENCE synthetic/mixed legacy resource |
-| AstaPS quest 351 prerequisite graph | HIGH_CONFIDENCE legacy contamination |
+| AstaPS quest 351 prerequisite graph | **CONFIRMED downstream synthesis/materialization** |
 | same-version Dimbreath QuestExcel public field labels | HIGH_CONFIDENCE schema/field-name misalignment |
 | exact native ordinary finish/fail condition+exec representation | CONFIRMED field families/offsets |
 | direct ordinary-row acceptCond / beginExec representation | no direct slot found; table-source relation still UNRESOLVED |
 | exact source-authority relation between QuestExcel and BinOutput/Quest | UNRESOLVED |
 
-Per issue #8's promotion gate, the overall native root-cause classification is **not
-CONFIRMED** until the exact client table is directly decoded with a validated ordinary-row
-schema.
+The AstaPS Quest 351 prerequisite provenance is **CONFIRMED** from historical-native and
+repository/tooling evidence. The exact 7.1 legacy table wire remains unresolved as a
+separate format-research item; do not infer its physical 351 `acceptCond` contents until
+that row format is decoded directly.
 
 ## Next steps
 
-1. Reuse #19's `LAIMPNDEFCL` evidence; do not restart literal-name or direct
-   `QuestCond[]` searches.
-2. Bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact QuestExcel asset loader/table
-   registration path.
-3. Bind the confirmed ordinary field layout to the table loader; do not reopen finish/fail slot discovery.
-4. Establish table and row framing against the recovered 2,824,188-byte payload.
-5. Require complete payload consumption or an equivalently strong structural invariant.
-6. Decode representative rows including 35104, 35100, 35102, 35103, 37504, 37603 and
-   38805.
-7. Compare direct decode against same-version BinOutput and both public Excel layers.
-8. Only then promote issue #8 to CONFIRMED and decide the correct AstaPS resource repair.
+1. Treat the AstaPS prerequisite provenance as closed: the 351 order-chain is downstream
+   synthesis/materialization.
+2. Audit how broadly the same previous-row heuristic affects the 25,261-row initial resource
+   and the 7,956 rows appended by PR #9 before changing AstaPS resources.
+3. Check AstaPS runtime dependencies on synthetic `acceptCond`/`beginExec` before removal;
+   current 7.1 native BinOutput/runtime conditions must remain the authority.
+4. Keep exact 7.1 legacy `3b87ae83.dat` decoding as an independent format-research task.
+   Do not force the 2.8/3.x row schema onto it: the current devkit scan tested 13,411 reader
+   methods / 262 candidates and found no schema that consumed all Quest 351 windows exactly.
+5. If continuing the wire research, identify the 7.1 table container/reader from native
+   registration or dynamic loading evidence, then require full-row and full-table structural
+   consumption.
