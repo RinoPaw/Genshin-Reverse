@@ -109,6 +109,179 @@ jobs:
           if (name.sub_asset_id, block_ref.block_id, group_id) != (178, 25539185, 0):
               raise SystemExit('unexpected 7.1 QuestExcel asset chain')
           PY
+      - name: Resolve and decode current 7.1 MainQuest binary indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+
+          python - <<'PY' | tee mainquest-index-asset-summary.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.assetindex import mihoyo_name_hash, parse_asset_index
+
+          export = Path('design-index-output/MiHoYoBinData/0000006f.dat')
+          index = parse_asset_index(export.read_bytes())
+          paths = [
+              'Data/_BinOutput/IndexDic/MainQuestIndex',
+              'Data/_BinOutput/IndexDic/MainQuestBriefIndex',
+              'Data/_ExcelBinOutput/MainQuestExcelConfigData',
+          ]
+          out = []
+          for path in paths:
+              h = mihoyo_name_hash(path)
+              name = index.name_for_hash(h)
+              ref = index.block_ref_for_asset(name.sub_asset_id)
+              group_id = index.block_groups[ref.block_id]
+              item = {
+                  'path': path,
+                  'hash': f'0x{h:010X}',
+                  'exported_name': name.exported_name,
+                  'sub_asset_id': name.sub_asset_id,
+                  'block_id': ref.block_id,
+                  'group_id': group_id,
+                  'unknown0': ref.unknown0,
+                  'unknown1': ref.unknown1,
+              }
+              out.append(item)
+              print(json.dumps(item, ensure_ascii=False))
+          Path('mainquest-index-assets.json').write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+          python - <<'PY' | tee mainquest-index-reconstruct.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import (
+              decompress_zstd,
+              download,
+              normalized_name,
+              parse_manifest,
+              reconstruct,
+          )
+
+          items = json.loads(Path('mainquest-index-assets.json').read_text(encoding='utf-8'))
+          rows = parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
+          done = set()
+          for item in items:
+              block_id = int(item['block_id'])
+              group_id = int(item['group_id'])
+              key = (group_id, block_id)
+              if key in done:
+                  continue
+              done.add(key)
+              suffix = f'/assetbundles/blocks/{group_id:02x}/{block_id}.blk'
+              matches = [r for r in rows if normalized_name(r).endswith(suffix)]
+              if len(matches) != 1:
+                  # Some manifests render the block group as decimal rather than hex.
+                  suffix2 = f'/assetbundles/blocks/{group_id:02d}/{block_id}.blk'
+                  matches = [r for r in rows if normalized_name(r).endswith(suffix2)]
+              if len(matches) != 1:
+                  raise SystemExit(
+                      f'block {block_id} group {group_id}: expected one manifest row, got {len(matches)}'
+                  )
+              target = Path(f'mainquest-index-blocks/{group_id}/{block_id}.blk')
+              reconstruct(PROFILE_71.sophon_chunk_prefix, matches[0], target, workers=8)
+              print(target, 'size=', target.stat().st_size, 'md5=', matches[0].get('md5'))
+          PY
+
+          rm -rf mainquest-index-output
+          mkdir -p mainquest-index-output
+          python - <<'PY' > /tmp/mainquest-index-block-list
+          import json
+          from pathlib import Path
+          items=json.loads(Path('mainquest-index-assets.json').read_text(encoding='utf-8'))
+          seen=set()
+          for x in items:
+              p=f"mainquest-index-blocks/{x['group_id']}/{x['block_id']}.blk"
+              if p not in seen:
+                  print(p)
+                  seen.add(p)
+          PY
+
+          while IFS= read -r block; do
+            out="mainquest-index-output/$(basename "$block" .blk)"
+            mkdir -p "$out"
+            "${cli[@]}" "$block" "$out" --game GI --export_type Raw --logger_flags Error \
+              2>&1 | tee -a mainquest-index-animestudio.txt
+          done < /tmp/mainquest-index-block-list
+
+          python - <<'PY' | tee mainquest-index-decode.txt
+          import json
+          import struct
+          from pathlib import Path
+
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          MASK32 = 0xFFFFFFFF
+          MASK64 = 0xFFFFFFFFFFFFFFFF
+
+          def decode_index(payload):
+              if len(payload) < 4:
+                  raise ValueError('truncated index payload')
+              encoded_count = struct.unpack_from('<I', payload, 0)[0]
+              count = ((encoded_count ^ 0x5785D208) + 0x0A34766E) & MASK32
+              expected = 4 + count * 12
+              if expected != len(payload):
+                  raise ValueError(
+                      f'index framing mismatch: count={count} expected={expected} actual={len(payload)}'
+                  )
+              rows=[]
+              pos=4
+              for i in range(count):
+                  enc_id=struct.unpack_from('<I',payload,pos)[0]
+                  enc_handle=struct.unpack_from('<Q',payload,pos+4)[0]
+                  pos += 12
+                  rows.append({
+                      'index': i,
+                      'id': enc_id ^ 0x92C938B5,
+                      'handle': (enc_handle + 0x2B6567EA) & MASK64,
+                  })
+              return rows
+
+          items=json.loads(Path('mainquest-index-assets.json').read_text(encoding='utf-8'))
+          results=[]
+          for item in items:
+              if not item['path'].startswith('Data/_BinOutput/IndexDic/'):
+                  continue
+              root=Path('mainquest-index-output')/str(item['block_id'])/'MiHoYoBinData'
+              target=root/(item['exported_name'] + '.dat')
+              if not target.is_file():
+                  candidates=list(root.glob('*.dat')) if root.is_dir() else []
+                  raise SystemExit(
+                      f"missing raw export for {item['path']}: expected {target}; candidates={candidates[:20]}"
+                  )
+              raw=target.read_bytes()
+              payload=unwrap_mihoyo_bin_data(raw)
+              rows=decode_index(payload)
+              ids=[x['id'] for x in rows]
+              hit351=[x for x in rows if x['id'] == 351]
+              summary={
+                  **item,
+                  'raw_size': len(raw),
+                  'payload_size': len(payload),
+                  'count': len(rows),
+                  'unique_ids': len(set(ids)),
+                  'min_id': min(ids) if ids else None,
+                  'max_id': max(ids) if ids else None,
+                  'id_351': hit351,
+                  'first_entries': rows[:12],
+                  'last_entries': rows[-4:],
+              }
+              results.append(summary)
+              print(json.dumps(summary, ensure_ascii=False, indent=2))
+          Path('mainquest-index-decode.json').write_text(
+              json.dumps(results, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
       - name: Extract and validate exact QuestExcel Raw object
         shell: bash
         run: |
@@ -515,4 +688,10 @@ jobs:
             quest-outer-framing.json
             quest-row-target-scan.txt
             quest-row-target-scan.json
+            mainquest-index-asset-summary.txt
+            mainquest-index-assets.json
+            mainquest-index-reconstruct.txt
+            mainquest-index-animestudio.txt
+            mainquest-index-decode.txt
+            mainquest-index-decode.json
           if-no-files-found: warn
