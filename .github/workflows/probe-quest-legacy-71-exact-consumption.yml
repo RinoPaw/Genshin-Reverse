@@ -1,0 +1,409 @@
+name: Identify 7.1 QuestExcel reader by exact row consumption
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-exact-consumption.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-exact-consumption-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact Dimbreath 7.1 QuestExcel row ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout \
+            792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Checkout pinned 7.0 binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none \
+            https://github.com/owomocha/genshin-7.0-local-re-devkit.git \
+            /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
+            fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Rank readers by exact native row consumption
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-exact-consumption.txt
+          import csv
+          import json
+          import struct
+          from pathlib import Path
+
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          AGD=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try:
+                  fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception:
+                  pass
+
+          deser={}
+          one_by_class={}
+          candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+              except Exception:
+                  continue
+              if not rva:
+                  continue
+              try:
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not params or params[0] != READER:
+                  continue
+
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)!=1:
+                  continue
+
+              ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+              priority=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+              prev=one_by_class.get(cls)
+              if prev is None or priority < prev[0]:
+                  one_by_class[cls]=(priority,rva)
+
+              t=type_by_tdi.get(tdi,{})
+              try:
+                  fc=int(t.get("field_count") or "0")
+              except ValueError:
+                  fc=0
+              named=cls in {
+                  "RandomQuestExcelConfig","GPCFGOEJFJK",
+                  "LAIMPNDEFCL","AFIOOHMJHDM"
+              }
+              if 4 <= fc <= 64 or named:
+                  candidates.append((rva,m,t,fc,tdi))
+
+          row_deser={cls:rva for cls,(_priority,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n != len(raw)-4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          rows=json.loads(AGD.read_text(encoding="utf-8"))
+          if len(rows)!=17814:
+              raise SystemExit(f"unexpected Dimbreath row count {len(rows)}")
+
+          # Derive row boundaries only from independently recovered native
+          # subId transform and same-version row ordering. subId is the final
+          # four-byte scalar of each current row.
+          encoded={}
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  encoded.setdefault((sid^SUBID_KEY)&0xffffffff,[]).append((ordinal,sid))
+
+          wanted=set(encoded)
+          hits={x:[] for x in wanted}
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in hits:
+                  hits[u].append(pos)
+
+          anchors={}
+          for enc,items in encoded.items():
+              if len(items)!=1 or len(hits[enc])!=1:
+                  continue
+              ordinal,sid=items[0]
+              anchors[ordinal]=(sid,hits[enc][0])
+
+          spans=[]
+          for ordinal in range(1,len(rows)):
+              prev=anchors.get(ordinal-1)
+              cur=anchors.get(ordinal)
+              if not prev or not cur:
+                  continue
+              start=prev[1]+4
+              end=cur[1]+4
+              if end<=start:
+                  continue
+              size=end-start
+              if not 4 <= size <= 4096:
+                  continue
+              spans.append({
+                  "ordinal":ordinal,
+                  "subId":cur[0],
+                  "start":start,
+                  "end":end,
+                  "size":size,
+              })
+
+          if len(spans)<17000:
+              raise SystemExit(f"too few exact row spans: {len(spans)}")
+
+          # Deterministic distributed sample across the full table.
+          def quantile_sample(items,n):
+              if len(items)<=n:
+                  return list(items)
+              idxs=sorted({
+                  round(i*(len(items)-1)/(n-1))
+                  for i in range(n)
+              })
+              return [items[i] for i in idxs]
+
+          stage1=quantile_sample(spans,64)
+
+          built=[]
+          for rva,m,t,fc,tdi in candidates:
+              try:
+                  schema=BC.build(exe,rva,deser,cache={})
+              except Exception:
+                  continue
+              built.append((rva,m,t,fc,tdi,schema))
+
+          print("dimbreath_rows",len(rows))
+          print("unique_subid_anchors",len(anchors))
+          print("exact_row_spans",len(spans))
+          print("candidate_methods",len(candidates))
+          print("built_schemas",len(built))
+          print("stage1_rows",len(stage1))
+
+          def consume(schema,span):
+              reader=BC.Reader(payload)
+              reader.p=span["start"]
+              try:
+                  value=reader.record(schema)
+              except Exception as exc:
+                  return False,reader.p,None,type(exc).__name__
+              return reader.p==span["end"],reader.p,value,None
+
+          leaders=[]
+          for rva,m,t,fc,tdi,schema in built:
+              exact=0
+              over=0
+              under=0
+              errors=0
+              deltas=[]
+              for span in stage1:
+                  ok,end,_value,err=consume(schema,span)
+                  if err:
+                      errors+=1
+                      continue
+                  delta=end-span["end"]
+                  deltas.append(delta)
+                  if ok:
+                      exact+=1
+                  elif delta>0:
+                      over+=1
+                  else:
+                      under+=1
+
+              if exact==0:
+                  continue
+              leaders.append({
+                  "stage1_exact":exact,
+                  "stage1_total":len(stage1),
+                  "stage1_ratio":exact/len(stage1),
+                  "stage1_over":over,
+                  "stage1_under":under,
+                  "stage1_errors":errors,
+                  "stage1_delta_min":min(deltas) if deltas else None,
+                  "stage1_delta_max":max(deltas) if deltas else None,
+                  "rva":f"0x{rva:X}",
+                  "_rva_int":rva,
+                  "method":m,
+                  "type":t,
+                  "field_count_metadata":fc,
+                  "type_fields":fields_by_tdi.get(tdi,[]),
+                  "schema":schema,
+              })
+
+          leaders.sort(key=lambda x:(-x["stage1_exact"],abs(x["field_count_metadata"]-16),x["rva"]))
+          print("\n=== stage1 leaders ===")
+          for x in leaders[:40]:
+              print(json.dumps({
+                  k:v for k,v in x.items()
+                  if not k.startswith("_") and k not in {"schema","type_fields","method","type"}
+              } | {
+                  "type_name":x["method"].get("type_name"),
+                  "method_name":x["method"].get("method_name"),
+                  "schema_fields":sum(1 for st in x["schema"].get("steps",[]) if st.get("kind")!="base"),
+              },ensure_ascii=False))
+
+          # Stage 2: exact-consumption validation on up to 2,000 rows for the
+          # strongest 20 stage-1 candidates.
+          stage2=quantile_sample(spans,2000)
+          finalists=[]
+          for x in leaders[:20]:
+              schema=x["schema"]
+              exact=0
+              errors=0
+              first_misses=[]
+              for span in stage2:
+                  ok,end,_value,err=consume(schema,span)
+                  if err:
+                      errors+=1
+                      if len(first_misses)<20:
+                          first_misses.append({**span,"kind":"error","error":err,"end":end})
+                      continue
+                  if ok:
+                      exact+=1
+                  elif len(first_misses)<20:
+                      first_misses.append({
+                          **span,
+                          "kind":"under" if end<span["end"] else "over",
+                          "end":end,
+                          "delta":end-span["end"],
+                      })
+
+              y={k:v for k,v in x.items() if k not in {"schema","_rva_int"}}
+              y.update({
+                  "stage2_exact":exact,
+                  "stage2_total":len(stage2),
+                  "stage2_ratio":exact/len(stage2),
+                  "stage2_errors":errors,
+                  "stage2_first_misses":first_misses,
+                  "schema":schema,
+              })
+              finalists.append(y)
+
+          finalists.sort(key=lambda x:(-x["stage2_exact"],-x["stage1_exact"],x["rva"]))
+          print("\n=== stage2 finalists ===")
+          for x in finalists:
+              print(json.dumps({
+                  "rva":x["rva"],
+                  "type_name":x["method"].get("type_name"),
+                  "method_name":x["method"].get("method_name"),
+                  "metadata_fields":x["field_count_metadata"],
+                  "schema_fields":sum(1 for st in x["schema"].get("steps",[]) if st.get("kind")!="base"),
+                  "stage1_exact":x["stage1_exact"],
+                  "stage1_total":x["stage1_total"],
+                  "stage2_exact":x["stage2_exact"],
+                  "stage2_total":x["stage2_total"],
+                  "stage2_errors":x["stage2_errors"],
+                  "first_misses":x["stage2_first_misses"][:5],
+              },ensure_ascii=False))
+
+          report={
+              "native":{
+                  "raw_size":len(raw),
+                  "payload_size":len(payload),
+              },
+              "agd":{
+                  "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+                  "rows":len(rows),
+              },
+              "subId_key":f"0x{SUBID_KEY:08X}",
+              "unique_subid_anchors":len(anchors),
+              "exact_row_spans":len(spans),
+              "span_size":{
+                  "min":min(x["size"] for x in spans),
+                  "max":max(x["size"] for x in spans),
+                  "mean":sum(x["size"] for x in spans)/len(spans),
+              },
+              "candidate_methods":len(candidates),
+              "built_schemas":len(built),
+              "stage1_sample":stage1,
+              "stage1_leaders":[
+                  {k:v for k,v in x.items() if not k.startswith("_")}
+                  for x in leaders[:100]
+              ],
+              "stage2_sample_count":len(stage2),
+              "finalists":finalists,
+          }
+          Path("quest-legacy-71-exact-consumption.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          if not finalists:
+              print("\nNo candidate reader exactly consumed even one distributed row.")
+          else:
+              best=finalists[0]
+              print(
+                  "\nBEST",
+                  best["rva"],
+                  best["method"].get("type_name"),
+                  best["method"].get("method_name"),
+                  f"{best['stage2_exact']}/{best['stage2_total']}",
+              )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-exact-consumption
+          path: |
+            quest-legacy-71-exact-consumption.txt
+            quest-legacy-71-exact-consumption.json
+          if-no-files-found: error
