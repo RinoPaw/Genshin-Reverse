@@ -1,0 +1,274 @@
+name: Resolve 7.1 QuestExcel subId field transform
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-subid-transform.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-subid-transform-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447             --repo RinoPaw/Genshin-Reverse             --name quest-excel-asset-chain-probe             --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Checkout pinned 7.0 binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none             https://github.com/owomocha/genshin-7.0-local-re-devkit.git             /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach             fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Match native subId anchors against every plausible row reader transform
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-subid-transform.txt
+          import csv
+          import json
+          import struct
+          from pathlib import Path
+
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+          TARGETS=[35104,35100,35107,35101,35106,35105,35103,35102]
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try: fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception: pass
+
+          deser={}
+          one_by_class={}
+          candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+              except Exception:
+                  continue
+              if not rva:
+                  continue
+              try:
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not params or params[0] != READER:
+                  continue
+
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+                  pr=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or pr < prev[0]:
+                      one_by_class[cls]=(pr,rva)
+
+                  t=type_by_tdi.get(tdi,{})
+                  try: fc=int(t.get("field_count") or "0")
+                  except ValueError: fc=0
+                  # Legacy QuestExcel historically has 30 fields. Include a
+                  # generous neighborhood plus named controls.
+                  named=cls in {
+                      "RandomQuestExcelConfig","GPCFGOEJFJK",
+                      "LAIMPNDEFCL","AFIOOHMJHDM"
+                  }
+                  if 18 <= fc <= 48 or named:
+                      candidates.append((rva,m,t,fc,tdi))
+
+          row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n != len(raw)-4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          anchors={}
+          for sid in TARGETS:
+              needle=struct.pack("<I",(sid ^ SUBID_KEY)&0xffffffff)
+              hits=[]
+              at=0
+              while True:
+                  x=payload.find(needle,at)
+                  if x<0: break
+                  hits.append(x); at=x+1
+              if len(hits)!=1:
+                  raise SystemExit(f"subId {sid}: native anchor ambiguity {hits}")
+              anchors[sid]=hits[0]
+
+          def flatten(node,path=""):
+              out=[]
+              for i,st in enumerate(node.get("steps",[])):
+                  p=f"{path}/{i}"
+                  kind=st.get("kind")
+                  if kind=="base":
+                      out.extend(flatten(st["sub"],p+"/base"))
+                      continue
+                  if kind=="scalar" and st.get("width"):
+                      out.append({
+                          "path":p,
+                          "kind":"scalar",
+                          "width":st.get("width"),
+                          "ops":st.get("ops",[]),
+                          "bit":st.get("bit"),
+                          "dest":st.get("dest"),
+                      })
+                  if kind=="multi":
+                      for j,r in enumerate(st.get("reads",[])):
+                          out.append({
+                              "path":p+f"/read{j}",
+                              "kind":"multi_read",
+                              "width":r.get("width"),
+                              "ops":r.get("ops",[]),
+                              "bit":st.get("bit"),
+                              "dest":r.get("dest"),
+                          })
+                  if kind in ("call","objarray","rec") and isinstance(st.get("sub"),dict):
+                      out.extend(flatten(st["sub"],p+"/"+kind))
+              return out
+
+          def decode_anchor(field,sid):
+              width=field["width"]
+              pos=anchors[sid]
+              if pos+width > len(payload):
+                  return None
+              rawv=int.from_bytes(payload[pos:pos+width],"little")
+              return BC.apply_ops(rawv,field["ops"],width)
+
+          matches=[]
+          partial=[]
+          built=0
+          for rva,m,t,fc,tdi in candidates:
+              try:
+                  schema=BC.build(exe,rva,deser,cache={})
+              except Exception:
+                  continue
+              built += 1
+              flat=flatten(schema)
+              for field in flat:
+                  if field.get("width") != 4:
+                      continue
+                  vals=[decode_anchor(field,sid) for sid in TARGETS]
+                  exact=sum(v==sid for v,sid in zip(vals,TARGETS))
+                  if exact:
+                      item={
+                          "exact":exact,
+                          "rva":f"0x{rva:X}",
+                          "type_name":m.get("type_name"),
+                          "method_name":m.get("method_name"),
+                          "field_count_metadata":fc,
+                          "schema_field_count":sum(1 for st in schema.get("steps",[]) if st.get("kind")!="base"),
+                          "field":field,
+                          "decoded":vals,
+                          "expected":TARGETS,
+                          "type":t,
+                          "metadata_fields":fields_by_tdi.get(tdi,[]),
+                      }
+                      partial.append(item)
+                      if exact==len(TARGETS):
+                          matches.append(item)
+
+          partial.sort(key=lambda x:(-x["exact"],abs(x["field_count_metadata"]-30),x["rva"]))
+          matches.sort(key=lambda x:(abs(x["field_count_metadata"]-30),x["rva"]))
+
+          print("candidate_methods",len(candidates))
+          print("built_schemas",built)
+          print("exact_transform_matches",len(matches))
+          print("\n=== exact 8/8 transforms ===")
+          for x in matches[:100]:
+              print(json.dumps({
+                  "rva":x["rva"],
+                  "type":x["type_name"],
+                  "method":x["method_name"],
+                  "metadata_fields":x["field_count_metadata"],
+                  "schema_fields":x["schema_field_count"],
+                  "field":x["field"],
+                  "decoded":x["decoded"],
+              },ensure_ascii=False))
+          print("\n=== best partial transforms ===")
+          for x in partial[:100]:
+              print(json.dumps({
+                  "exact":x["exact"],
+                  "rva":x["rva"],
+                  "type":x["type_name"],
+                  "method":x["method_name"],
+                  "metadata_fields":x["field_count_metadata"],
+                  "schema_fields":x["schema_field_count"],
+                  "field":x["field"],
+                  "decoded":x["decoded"],
+              },ensure_ascii=False))
+
+          report={
+              "subId_xor_observation":f"0x{SUBID_KEY:08X}",
+              "anchors":{str(k):v for k,v in anchors.items()},
+              "candidate_methods":len(candidates),
+              "built_schemas":built,
+              "exact_matches":matches,
+              "best_partial":partial[:250],
+          }
+          Path("quest-legacy-71-subid-transform.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-subid-transform
+          path: |
+            quest-legacy-71-subid-transform.txt
+            quest-legacy-71-subid-transform.json
+          if-no-files-found: error
