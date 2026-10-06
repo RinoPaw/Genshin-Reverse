@@ -25,94 +25,37 @@ jobs:
           python-version: "3.12"
 
       - name: Install focused dependencies
-        run: python -m pip install remotezip requests capstone pefile
+        run: python -m pip install capstone pefile
 
-      - name: Range-extract exact 3.0.0 executable and metadata
+      - name: Download exact 3.0.0 UserAssembly and metadata from official ScatteredFiles
         shell: bash
         run: |
           set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+
+          code_url="$base/GenshinImpact_Data/Native/UserAssembly.dll"
+          meta_url="$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat"
+
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$code_url" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$meta_url" -o "$out/global-metadata.dat"
+
           python - <<'PY' | tee quest-legacy-30-sample.txt
-          import hashlib
-          import shutil
-          import time
           from pathlib import Path
+          import hashlib
 
-          import requests
-          from requests.adapters import HTTPAdapter
-          from urllib3.util.retry import Retry
-          from remotezip import RemoteZip
-
-          url = (
-              "https://autopatchhk.yuanshen.com/client_app/download/pc_zip/"
-              "20220815143807_dyIghvy1b5fjfzHU/GenshinImpact_3.0.0.zip"
-          )
-          out = Path("inputs/3.0.0-global")
-          out.mkdir(parents=True, exist_ok=True)
-
-          retry = Retry(
-              total=8,
-              connect=8,
-              read=8,
-              status=8,
-              backoff_factor=1.0,
-              status_forcelist=(429, 500, 502, 503, 504),
-              allowed_methods=frozenset(("GET", "HEAD")),
-          )
-          session = requests.Session()
-          session.mount("https://", HTTPAdapter(max_retries=retry))
-
-          def open_zip():
-              # The 3.0 archive central directory is close to 1 MiB. Fetching a
-              # 4 MiB suffix up front avoids the fragile follow-up range read
-              # that failed in the first probe.
-              return RemoteZip(
-                  url,
-                  session=session,
-                  initial_buffer_size=4 << 20,
-                  support_suffix_range=False,
-                  timeout=(30, 300),
-                  headers={"User-Agent": "Genshin-Reverse/quest-probe"},
-              )
-
-          with open_zip() as rz:
-              names = rz.namelist()
-          exe = [n for n in names if n.lower().endswith("/genshinimpact.exe") or n.lower()=="genshinimpact.exe"]
-          meta_all = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
-          meta = [
-              n for n in meta_all
-              if n.replace("\\","/").lower().endswith(
-                  "/managed/metadata/global-metadata.dat"
-              )
-          ]
-          print("zip_entries", len(names))
-          print("exe_matches", exe)
-          print("metadata_matches", meta_all)
-          print("selected_metadata", meta)
-          if len(exe) != 1:
-              raise SystemExit(f"expected one GenshinImpact.exe, got {exe}")
-          if len(meta) != 1:
-              raise SystemExit(f"expected one Managed/Metadata/global-metadata.dat, got {meta}")
-
-          for src_name, dst_name in ((exe[0], "GenshinImpact.exe"), (meta[0], "global-metadata.dat")):
-              dst = out / dst_name
-              last = None
-              for attempt in range(1, 5):
-                  try:
-                      tmp = dst.with_suffix(dst.suffix + ".part")
-                      tmp.unlink(missing_ok=True)
-                      with open_zip() as rz, rz.open(src_name) as src, tmp.open("wb") as fp:
-                          shutil.copyfileobj(src, fp, length=8 << 20)
-                      tmp.replace(dst)
-                      last = None
-                      break
-                  except Exception as exc:
-                      last = exc
-                      print(f"retry {attempt}/4 for {src_name}: {type(exc).__name__}: {exc}")
-                      time.sleep(min(8, attempt * 2))
-              if last is not None:
-                  raise last
-              h = hashlib.sha256(dst.read_bytes()).hexdigest()
-              print(dst_name, "size=", dst.stat().st_size, "sha256=", h)
+          root=Path("inputs/3.0.0-global")
+          for name in ("UserAssembly.dll","global-metadata.dat"):
+              p=root/name
+              raw=p.read_bytes()
+              print(name,"size=",len(raw),"sha256=",hashlib.sha256(raw).hexdigest())
+              if len(raw)<1_000_000:
+                  raise SystemExit(f"{name}: unexpectedly small")
           PY
 
       - name: Disassemble legacy QuestExcel loader and row reader
@@ -126,7 +69,7 @@ jobs:
           from capstone import Cs, CS_ARCH_X86, CS_MODE_64
           from capstone.x86 import X86_OP_IMM, X86_OP_MEM
 
-          exe = Path("inputs/3.0.0-global/GenshinImpact.exe")
+          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
           pe = pefile.PE(str(exe), fast_load=True)
           base = pe.OPTIONAL_HEADER.ImageBase
           print("image_base", hex(base))
@@ -181,7 +124,7 @@ jobs:
           from capstone import Cs, CS_ARCH_X86, CS_MODE_64
           from capstone.x86 import X86_OP_MEM
 
-          exe = Path("inputs/3.0.0-global/GenshinImpact.exe")
+          exe = Path("inputs/3.0.0-global/UserAssembly.dll")
           pe = pefile.PE(str(exe), fast_load=True)
           base = pe.OPTIONAL_HEADER.ImageBase
           md = Cs(CS_ARCH_X86, CS_MODE_64)
