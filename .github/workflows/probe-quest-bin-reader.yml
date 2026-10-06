@@ -103,17 +103,18 @@ jobs:
           )
           PY
 
-      - name: Trace refill primitive direct edges and callers
+      - name: Disassemble refill primitive directly
         shell: bash
         run: |
           set -euo pipefail
-          python tools/trace_native_call_edges.py \
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py \
             inputs/7.1.0-global/GenshinImpact.exe \
-            versions/7.1.0-global/windows-x64/metadata/methods.csv \
-            quest-bin-reader-refill.json \
-            --focus refill:0x1269BFC0 \
-            --max-body 0x10000 \
-            | tee quest-bin-reader-refill.txt
+            0x1269BFC0 0x240 \
+            --expected-sha256 "$expected_sha" \
+            --label "FNIAHJGHFAK.AAPDIPLACAE(int32)" \
+            --output quest-bin-reader-refill.json \
+            > quest-bin-reader-refill.txt
 
       - name: Assert evidence
         run: |
