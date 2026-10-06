@@ -108,38 +108,10 @@ jobs:
           print("\nLOADED_BUNDLE")
           print(json.dumps(report["loaded_bundle"],ensure_ascii=False,indent=2))
 
-          # Preserve types whose methods look like the Read/Length/Dispose shape
-          # consumed by FNIAHJGHFAK's +0x20 source object.
-          candidates=[]
-          for t in types:
-              tdi=int(t["type_definition_index"])
-              ms=methods_by_tdi.get(tdi,[])
-              names={m.get("method_name","") for m in ms}
-              sig=" ".join(
-                  str(m.get("parameter_types",""))+" "+str(m.get("return_type",""))
-                  for m in ms
-              )
-              name=str(t.get("type_name",""))
-              ns=str(t.get("namespace",""))
-              score=0
-              if any(k.lower() in name.lower() for k in ("stream","reader","bin","memory","byte","file","resource","bundle")):
-                  score+=1
-              if "int32" in sig and ("kind_0x1D" in sig or "uint8" in sig or "byte" in sig.lower()):
-                  score+=1
-              if any(n in names for n in ("Read","get_Length","Dispose","Close","Seek")):
-                  score+=2
-              if score>=2:
-                  candidates.append({
-                      "score":score,
-                      "type":t,
-                      "fields":fields_by_tdi.get(tdi,[]),
-                      "methods":ms,
-                  })
-          candidates.sort(key=lambda x:(-x["score"],int(x["type"]["type_definition_index"])))
-          report["candidate_types"]=candidates[:120]
-          print("\nSOURCE_CANDIDATES",len(candidates))
-          for x in candidates[:120]:
-              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+          # The source object type is traced separately through FNIAHJGHFAK
+          # and MiHoYoMemZipFile. Avoid an O(types*methods) candidate scan here.
+          report["candidate_types"]=[]
+          print("\nSOURCE_CANDIDATES skipped: exact bridge is probed separately")
 
           Path("quest-loaded-bundle-bin-summary.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",
