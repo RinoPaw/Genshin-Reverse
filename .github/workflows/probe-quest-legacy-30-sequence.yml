@@ -1,0 +1,518 @@
+name: Probe 3.0 QuestExcel field sequence
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-sequence.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-sequence-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 900             "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors             --connect-timeout 30 --max-time 300             "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+            "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+            "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/3.0.0-global")/name).read_bytes()
+              assert len(raw)==size
+              assert hashlib.sha256(raw).hexdigest()==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none             https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach             731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+            "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+            "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact protected 3.0 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll               "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll"               "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat"               "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-sequence-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Match QuestExcel by ordered field-type relationships
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-sequence.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          decl_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+|partial\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+)"
+          )
+          typedef_rx=re.compile(r"TypeDefIndex:\s*(\d+)")
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          field_rx=re.compile(
+              r"^\s*(?P<mods>(?:(?:public|private|protected|internal|static|readonly|const|volatile|new)\s+)*)"
+              r"(?P<type>.+?)\s+"
+              r"(?P<name>[A-Za-z_<>][A-Za-z0-9_<>]*)\s*;\s*//\s*0x(?P<off>[0-9A-Fa-f]+)\s*$"
+          )
+
+          def norm(t):
+              t=re.sub(r"\s+"," ",t.strip())
+              return {
+                  "System.UInt32":"uint",
+                  "System.Int32":"int",
+                  "System.Boolean":"bool",
+              }.get(t,t)
+
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+          candidates=[]
+          random_sanity=[]
+
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              decl=None
+              typedef=None
+              fields=[]
+              methods=[]
+
+              for rel,line in enumerate(block):
+                  if decl is None:
+                      dm=decl_rx.search(line)
+                      if dm:
+                          decl={
+                              "name":dm.group(1),
+                              "text":line.strip(),
+                              "line":a+rel+1,
+                          }
+                          tm=typedef_rx.search(line)
+                          if tm:
+                              typedef=int(tm.group(1))
+
+                  fm=field_rx.search(line)
+                  if fm:
+                      mods=fm.group("mods").split()
+                      if "static" in mods or "const" in mods:
+                          continue
+                      fields.append({
+                          "type":norm(fm.group("type")),
+                          "name":fm.group("name"),
+                          "offset":int(fm.group("off"),16),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      })
+
+                  rm=rva_rx.search(line)
+                  if rm:
+                      rva=int(rm.group(1),16)
+                      sig=None
+                      sig_line=None
+                      for k in range(rel+1,min(len(block),rel+8)):
+                          q=block[k].strip()
+                          if q and not q.startswith("//") and "(" in q and ")" in q:
+                              sig=q
+                              sig_line=a+k+1
+                              break
+                      if sig:
+                          methods.append({
+                              "rva":rva,
+                              "signature":sig,
+                              "line":sig_line,
+                          })
+
+              if not decl:
+                  continue
+
+              ts=[x["type"] for x in fields]
+              n=len(ts)
+              if decl["name"].endswith("RandomQuestExcelConfig"):
+                  random_sanity.append({
+                      "declaration":decl,
+                      "typedef_index":typedef,
+                      "fields":fields,
+                      "methods":methods,
+                  })
+
+              # QuestExcel has 30 instance fields in WorldReverse. Permit small
+              # build drift but compare the first 30-field windows as well.
+              windows=[]
+              if 28<=n<=34:
+                  if n>=30:
+                      windows=[
+                          (start,ts[start:start+30])
+                          for start in range(0,n-30+1)
+                      ]
+                  else:
+                      windows=[(0,ts)]
+
+              for start,w in windows:
+                  if len(w)!=30:
+                      continue
+                  score=0
+                  reasons=[]
+                  failures=[]
+
+                  primitive={
+                      0:"uint",1:"uint",2:"int",3:"uint",4:"bool",
+                      5:"uint",6:"uint",7:"uint",
+                      18:"bool",19:"bool",21:"bool",27:"uint",
+                  }
+                  prim_hits=0
+                  for i,want in primitive.items():
+                      if w[i]==want:
+                          prim_hits+=1
+                          score+=55
+                      else:
+                          failures.append(
+                              f"primitive[{i}] got={w[i]!r} want={want}"
+                          )
+
+                  def eq(pos,label,weight):
+                      vals=[w[i] for i in pos]
+                      ok=len(set(vals))==1
+                      if ok:
+                          reasons.append(label+"="+vals[0])
+                      else:
+                          failures.append(label+"="+repr(vals))
+                      return weight if ok else 0
+
+                  score+=eq([8,20],"show_pair",150)
+                  score+=eq([10,12,14],"logic_triplet",220)
+                  score+=eq([13,15],"content_pair",180)
+                  score+=eq([22,23,24],"exec_triplet",260)
+                  score+=eq([25,26,28,29],"uint_array_quad",260)
+
+                  array_positions=[11,13,15,22,23,24,25,26,28,29]
+                  array_hits=sum(1 for i in array_positions if w[i].endswith("[]"))
+                  score+=array_hits*35
+                  reasons.append(f"arrays={array_hits}/{len(array_positions)}")
+
+                  if all(w[i]=="uint[]" for i in [25,26,28,29]):
+                      score+=220
+                      reasons.append("uint_array_quad_exact")
+                  else:
+                      failures.append(
+                          "uint_array_quad_exact="+repr([w[i] for i in [25,26,28,29]])
+                      )
+
+                  if w[11].endswith("[]") and w[13].endswith("[]") and w[11]!=w[13]:
+                      score+=90
+                      reasons.append("cond_content_distinct")
+                  else:
+                      failures.append("cond/content relation")
+
+                  if w[13].endswith("[]") and w[22].endswith("[]") and w[13]!=w[22]:
+                      score+=90
+                      reasons.append("content_exec_distinct")
+                  else:
+                      failures.append("content/exec relation")
+
+                  # show/logic/ban/guide enums/classes must not collapse to
+                  # primitives or to each other in a real Quest config.
+                  nonprim_positions=[8,9,10,16,17,20]
+                  nonprim_hits=sum(
+                      1 for i in nonprim_positions
+                      if w[i] not in {"uint","int","bool","float","double","string"}
+                  )
+                  score+=nonprim_hits*30
+                  reasons.append(f"nonprim={nonprim_hits}/{len(nonprim_positions)}")
+
+                  bytearray_methods=[
+                      m for m in methods
+                      if re.search(r"\bbool\b",m["signature"])
+                      and "OLCLOPLLAGP" in m["signature"]
+                  ]
+                  if bytearray_methods:
+                      score+=200
+                      reasons.append(
+                          "bytearray_bool="+str(len(bytearray_methods))
+                      )
+
+                  candidates.append({
+                      "score":score,
+                      "declaration":decl,
+                      "typedef_index":typedef,
+                      "field_count":n,
+                      "window_start":start,
+                      "types":w,
+                      "fields":fields,
+                      "methods":methods,
+                      "bytearray_methods":bytearray_methods,
+                      "primitive_hits":prim_hits,
+                      "array_hits":array_hits,
+                      "nonprim_hits":nonprim_hits,
+                      "reasons":reasons,
+                      "failures":failures,
+                  })
+
+          candidates.sort(
+              key=lambda x:(
+                  -x["score"],
+                  -x["primitive_hits"],
+                  -x["array_hits"],
+                  x["declaration"]["line"],
+              )
+          )
+
+          print("dump lines",len(lines))
+          print("\n=== RandomQuest sanity ===")
+          for x in random_sanity:
+              print(
+                  x["declaration"]["text"],
+                  "fields",len(x["fields"]),
+                  "typedef",x["typedef_index"],
+              )
+              for i,f in enumerate(x["fields"]):
+                  print(
+                      f"  {i:02d} +0x{f['offset']:X} "
+                      f"{f['type']} {f['name']}"
+                  )
+
+          print("\n=== Quest sequence candidates ===")
+          for rank,c in enumerate(candidates[:50],1):
+              d=c["declaration"]
+              print(
+                  f"\nRANK {rank:02d} score={c['score']} "
+                  f"type={d['name']} typedef={c['typedef_index']} "
+                  f"fields={c['field_count']} start={c['window_start']} "
+                  f"prim={c['primitive_hits']}/12 "
+                  f"arrays={c['array_hits']}/10 nonprim={c['nonprim_hits']}/6"
+              )
+              print("DECL",d["text"])
+              print("TYPES")
+              for i,t in enumerate(c["types"]):
+                  print(f"  {i:02d} {t}")
+              print("REASONS"," | ".join(c["reasons"]))
+              print("FAILURES"," | ".join(c["failures"]))
+              print("BYTEARRAY METHODS")
+              for m in c["bytearray_methods"]:
+                  print(
+                      f"  RVA=0x{m['rva']:X} "
+                      f"L{m['line']} {m['signature']}"
+                  )
+
+          Path("quest-legacy-30-sequence.json").write_text(
+              json.dumps({
+                  "random_sanity":random_sanity,
+                  "candidates":candidates[:150],
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          strong=[
+              c for c in candidates
+              if c["primitive_hits"]>=11
+              and c["array_hits"]>=9
+              and c["nonprim_hits"]>=5
+              and c["types"][8]==c["types"][20]
+              and c["types"][10]==c["types"][12]==c["types"][14]
+              and c["types"][13]==c["types"][15]
+              and c["types"][22]==c["types"][23]==c["types"][24]
+              and all(c["types"][i]=="uint[]" for i in [25,26,28,29])
+          ]
+          print("\nSTRONG",len(strong))
+          for c in strong:
+              print(
+                  c["declaration"]["name"],
+                  c["typedef_index"],
+                  c["score"],
+                  [hex(x["rva"]) for x in c["bytearray_methods"]],
+              )
+          if not strong:
+              raise SystemExit("no strong Quest field-sequence candidate")
+          PY
+
+      - name: Disassemble strong candidate readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-30-sequence-readers.txt
+          import json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          data=json.loads(Path("quest-legacy-30-sequence.json").read_text())
+          strong=[]
+          for c in data["candidates"]:
+              t=c["types"]
+              if (
+                  c["primitive_hits"]>=11
+                  and c["array_hits"]>=9
+                  and c["nonprim_hits"]>=5
+                  and t[8]==t[20]
+                  and t[10]==t[12]==t[14]
+                  and t[13]==t[15]
+                  and t[22]==t[23]==t[24]
+                  and all(t[i]=="uint[]" for i in [25,26,28,29])
+              ):
+                  strong.append(c)
+
+          pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted(
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          )
+
+          def containing(rva):
+              lo=0
+              hi=len(runtime)
+              while lo<hi:
+                  mid=(lo+hi)//2
+                  if runtime[mid][0]<=rva:
+                      lo=mid+1
+                  else:
+                      hi=mid
+              if lo:
+                  a,b=runtime[lo-1]
+                  if a<=rva<b:
+                      return a,b
+              return None
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report=[]
+
+          for c in strong[:10]:
+              methods=c["bytearray_methods"]
+              print(
+                  f"\n##### TYPE {c['declaration']['name']} "
+                  f"typedef={c['typedef_index']} methods={len(methods)} #####"
+              )
+              for m in methods[:12]:
+                  rva=m["rva"]
+                  bb=containing(rva)
+                  print(
+                      f"\n=== RVA=0x{rva:X} bounds={bb} "
+                      f"{m['signature']} ==="
+                  )
+                  if not bb:
+                      continue
+                  a,b=bb
+                  rows=[]
+                  for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                      irva=ins.address-base
+                      row={
+                          "rva":irva,
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if (
+                          ins.mnemonic=="call"
+                          and ins.operands
+                          and ins.operands[0].type==X86_OP_IMM
+                      ):
+                          row["call_target_rva"]=ins.operands[0].imm-base
+                      mem=[]
+                      for op in ins.operands:
+                          if op.type==X86_OP_MEM:
+                              mem.append({
+                                  "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                                  "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                                  "scale":op.mem.scale,
+                                  "disp":op.mem.disp,
+                              })
+                      if mem:
+                          row["mem"]=mem
+                      rows.append(row)
+                      print(
+                          f"0x{irva:X} {ins.mnemonic:<8} {ins.op_str}"
+                      )
+                  report.append({
+                      "type":c["declaration"]["name"],
+                      "typedef_index":c["typedef_index"],
+                      "method":m,
+                      "bounds":bb,
+                      "instructions":rows,
+                  })
+
+          Path("quest-legacy-30-sequence-readers.json").write_text(
+              json.dumps(report,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload sequence evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-sequence
+          path: |
+            quest-legacy-30-sequence-dumper.txt
+            quest-legacy-30-sequence.txt
+            quest-legacy-30-sequence.json
+            quest-legacy-30-sequence-readers.txt
+            quest-legacy-30-sequence-readers.json
+          if-no-files-found: warn
