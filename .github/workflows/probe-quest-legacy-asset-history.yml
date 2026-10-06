@@ -21,17 +21,17 @@ jobs:
       matrix:
         include:
           - version: "4.2"
-            build: "A7MXB8KyIJQg"
-            manifest: "b142c9f962d5da2c_41726ac4de910b1bb494cb01646c330f"
+            manifest_url: "https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/FW5Jsqqpfqku/manifest_2bd138466b83a87a_a003975a9375c7ee6acd566653f82b48"
+            chunk_prefix: "https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/FW5Jsqqpfqku"
           - version: "5.0"
-            build: "Xjsq5P6brXRg"
-            manifest: "a840226e3d67bc2e_8553accd71b3242c98b3cbc0589825cc"
+            manifest_url: "https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/1p5Z63ziyxnT/manifest_3ce8def7c0c4e16b_6729553b5420cc2d60533ef0c37d45ca"
+            chunk_prefix: "https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/1p5Z63ziyxnT"
           - version: "6.0"
-            build: "R6VKQTMPUUBa"
-            manifest: "e64ca10c417ae850_028ff30ff105d093df1df15a46fed16a"
+            manifest_url: "https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/keNBn8xtnZIG/manifest_447a8efc62cc9c01_5b94c65f18a898c898ac1d015e141423"
+            chunk_prefix: "https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/keNBn8xtnZIG"
           - version: "6.7"
-            build: "E2zvp18oyzw6"
-            manifest: "ccce2f7066358067_b659db7d40b8ac7311addf76f7edf5b5"
+            manifest_url: "https://autopatchcn.yuanshen.com/client_app/sophon/manifests/cxgf44wie1a8/UXbYZpr4abD0/manifest_3297999ae57e8371_fb057139851f8a313dfdfdcb8c7808b1"
+            chunk_prefix: "https://autopatchcn.yuanshen.com/client_app/sophon/chunks/cxgf44wie1a8/UXbYZpr4abD0"
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -72,8 +72,8 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ matrix.version }}
-          BUILD: ${{ matrix.build }}
-          MANIFEST: ${{ matrix.manifest }}
+          MANIFEST_URL: ${{ matrix.manifest_url }}
+          CHUNK_PREFIX: ${{ matrix.chunk_prefix }}
         run: |
           set -euo pipefail
           python - <<'PY' | tee historical-index-reconstruct.txt
@@ -82,17 +82,8 @@ jobs:
           from genshinre.samplefetch import download,decompress_zstd,parse_manifest,normalized_name,reconstruct
 
           version=os.environ["VERSION"]
-          build=os.environ["BUILD"]
-          manifest_id=os.environ["MANIFEST"]
-          base="cxhpq4g4rgg0"
-          manifest_url=(
-              f"https://autopatchhk.yuanshen.com/client_app/sophon/manifests/"
-              f"{base}/{build}/manifest_{manifest_id}"
-          )
-          chunk_prefix=(
-              f"https://autopatchhk.yuanshen.com/client_app/sophon/chunks/"
-              f"{base}/{build}"
-          )
+          manifest_url=os.environ["MANIFEST_URL"]
+          chunk_prefix=os.environ["CHUNK_PREFIX"]
           rows=parse_manifest(decompress_zstd(download(manifest_url)))
           suffix="/assetbundles/blocks/00/31049741.blk"
           hits=[r for r in rows if normalized_name(r).endswith(suffix)]
@@ -204,6 +195,7 @@ jobs:
               raise SystemExit(f"{version}: raw export missing: {expected}; candidates={candidates[:30]}")
           raw=expected.read_bytes()
           payload=unwrap_mihoyo_bin_data(raw)
+          Path("historical-quest-payload.bin").write_bytes(payload)
           result={
               **loc,
               "raw_size":len(raw),
@@ -232,4 +224,6 @@ jobs:
             historical-quest-animestudio.txt
             historical-quest-fingerprint.txt
             historical-quest-fingerprint.json
+            quest-output/MiHoYoBinData/3b87ae83.dat
+            historical-quest-payload.bin
           if-no-files-found: warn
