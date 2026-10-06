@@ -876,6 +876,134 @@ jobs:
           )
           PY
 
+      - name: Resolve ResourceIndex internal map and packed identifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py             inputs/7.1.0-global/GenshinImpact.exe             0x6CDEBC0 0x50             --expected-sha256 "$expected_sha"             --label "ResourceIdentifier accessors"             --output quest-resource-identifier-accessors.json             > quest-resource-identifier-accessors.txt
+
+          python - <<'PY' | tee quest-resource-index-schema.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, TYPE_KIND_NAMES, decode_type_entry, is_valid_type_entry
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          ri=next(x for x in types if x.get("type_name")=="ResourceIndex")
+          tdi=int(ri["type_definition_index"])
+          ri_fields=[x for x in fields if int(x["type_definition_index"])==tdi]
+          ri_methods=[x for x in methods if int(x["type_definition_index"])==tdi]
+
+          report={
+              "resource_index_type":ri,
+              "fields":[],
+              "methods":ri_methods,
+          }
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+
+              def read_type(index):
+                  raw=image.read_rva(type_array_va+index*ENTRY_SIZE-base,ENTRY_SIZE)
+                  if len(raw)!=ENTRY_SIZE or not is_valid_type_entry(raw):
+                      return {"runtime_type_index":index,"valid":False,"raw":raw.hex()}
+                  d=decode_type_entry(raw)
+                  out={
+                      "runtime_type_index":index,
+                      "valid":True,
+                      "kind":int(d["kind"]),
+                      "kind_name":TYPE_KIND_NAMES.get(int(d["kind"]),f"kind_0x{int(d['kind']):02X}"),
+                      "data_u32":int(d["data_u32"]),
+                      "data_u64":f"0x{int.from_bytes(raw[:8],'little'):X}",
+                      "raw":raw.hex(),
+                  }
+                  if int(d["kind"]) in (0x11,0x12):
+                      out["type_definition"]=type_by_tdi.get(int(d["data_u32"]),{})
+                  return out
+
+              for ordinal,fld in enumerate(ri_fields):
+                  item={
+                      "ordinal":ordinal,
+                      "field":fld,
+                      "runtime_type":read_type(int(fld["field_type_index"])),
+                  }
+                  report["fields"].append(item)
+                  print("FIELD",json.dumps(item,ensure_ascii=False,sort_keys=True))
+
+          print("METHODS")
+          for m in ri_methods:
+              print(json.dumps(m,ensure_ascii=False,sort_keys=True))
+
+          # Exact 351 handle anchor. GetResourceIdentifier ends by packing a
+          # signed/absolute lookup result into low32 and handle bits 8..39 into
+          # high32. Preserve the directly computable half here.
+          h=1493294957662636073
+          report["handle_351"]={
+              "decimal":h,
+              "hex":f"0x{h:016X}",
+              "bits_8_39_u32":(h>>8)&0xffffffff,
+              "bits_8_39_hex":f"0x{((h>>8)&0xffffffff):08X}",
+              "low8":h&0xff,
+          }
+          print("HANDLE351",json.dumps(report["handle_351"],sort_keys=True))
+
+          Path("quest-resource-index-schema.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-resource-identifier-pack.txt
+          import json
+          from pathlib import Path
+
+          access=json.loads(Path("quest-resource-identifier-accessors.json").read_text(encoding="utf-8"))
+          schema=json.loads(Path("quest-resource-index-schema.json").read_text(encoding="utf-8"))
+
+          # Keep all accessor instructions so field offsets can be read without
+          # relying on public C# dumps.
+          print("ACCESSORS")
+          for x in access["instructions"]:
+              print(json.dumps(x,ensure_ascii=False,sort_keys=True))
+
+          h=int(schema["handle_351"]["decimal"])
+          asset_path_hash=(h>>8)&0xffffffff
+          signed=asset_path_hash if asset_path_hash<0x80000000 else asset_path_hash-0x100000000
+          out={
+              "handle_351":h,
+              "handle_351_hex":f"0x{h:016X}",
+              "direct_handle_bits_8_39_u32":asset_path_hash,
+              "direct_handle_bits_8_39_i32":signed,
+              "direct_handle_bits_8_39_hex":f"0x{asset_path_hash:08X}",
+              "bundle_hash_lookup_required":True,
+          }
+          print("PACK",json.dumps(out,indent=2))
+          Path("quest-resource-identifier-pack.json").write_text(
+              json.dumps(out,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -914,4 +1042,10 @@ jobs:
             quest-resource-identifier-schema.json
             quest-resource-identifier-summary.txt
             quest-resource-identifier-summary.json
+            quest-resource-identifier-accessors.txt
+            quest-resource-identifier-accessors.json
+            quest-resource-index-schema.txt
+            quest-resource-index-schema.json
+            quest-resource-identifier-pack.txt
+            quest-resource-identifier-pack.json
           if-no-files-found: error
