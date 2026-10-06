@@ -155,6 +155,49 @@ Named `QuestProxy` getter machine code confirms:
 - `LAIMPNDEFCL +0x74 = quest config id / subId`
 - `LAIMPNDEFCL +0xA8 = order`
 
+Focused run `37414435078` (artifact `quest-ordinary-row-native`,
+artifact id `11390607376`, SHA256
+`e23221c2f491161bf30b49340c21cddfc1e3bd349f48d6fe1df3701321a30474`)
+also resolves the four ordinary Quest content/exec arrays by exact facade branch
+cross-mapping against the named `RandomQuestExcelConfig` variant.
+
+The decisive `BEAEOMIOFDE` methods are:
+
+- `FPNFFCCCGMO @ 0x8E9F6B0`
+  - ordinary branch: `[facade+0x8] -> LAIMPNDEFCL +0x10`
+  - random branch: `[facade+0x10] -> RandomQuestExcelConfig +0x28 (_failExec)`
+- `EKGLIKLEEPG @ 0x8E9B300`
+  - ordinary branch: `LAIMPNDEFCL +0x18`
+  - random branch: `RandomQuestExcelConfig +0x50 (_failCond)`
+- `LNFDDNGBBNG @ 0x8E9D890`
+  - ordinary branch: `LAIMPNDEFCL +0x20`
+  - random branch: `RandomQuestExcelConfig +0x30 (_finishCond)`
+- `KKHAHMGGOBL @ 0x8E9D6B0`
+  - ordinary branch: `LAIMPNDEFCL +0x58`
+  - random branch: `RandomQuestExcelConfig +0x48 (_finishExec)`
+
+Therefore the ordinary-row mapping is:
+
+```text
+LAIMPNDEFCL +0x10 = failExec
+LAIMPNDEFCL +0x18 = failCond
+LAIMPNDEFCL +0x20 = finishCond
+LAIMPNDEFCL +0x58 = finishExec
+```
+
+Runtime type evidence independently agrees:
+
+- `+0x10` and `+0x58` are `KIMCPAKMJMH[]`; the element type contains
+  `QuestExecType` plus its parameter payload.
+- `+0x18` and `+0x20` are `JPGNLOPMNHN[]`; the element type contains the
+  `IPONFOFHKIJ` enum whose literals are the current `QUEST_CONTENT_*`
+  family, including `QUEST_CONTENT_TEAM_DEAD`.
+
+This is strong exact-native evidence that the ordinary 7.1 row directly carries
+finish/fail content and exec data. It does **not** expose named equivalents of
+the random-row `_acceptCond` or `_beginExec` fields among these four arrays.
+Do not project the historical seven-list QuestExcel schema onto `LAIMPNDEFCL`.
+
 Focused runs on head `0e93a4a9d40c483a97cb7e8093d0facb68db57c5`
 (`CI #970`, focused run `37414435078`) also resolved the two previously unknown
 ordinary-row object-array element types:
