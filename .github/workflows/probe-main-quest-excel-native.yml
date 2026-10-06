@@ -1072,6 +1072,139 @@ jobs:
                   encoding='utf-8',
               )
           PY
+      - name: Compare 7.1 QuestExcel rows across resource sources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fL --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/DimbreathBot/AnimeGameData/792978e5503ecfba73dcb3562ed44a0d35a2abe2/ExcelBinOutput/QuestExcelConfigData.json" \
+            -o dimbreath-quest-excel.json
+
+          curl -fL --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/RinoPaw/AstaPS-Resource/main/ExcelBinOutput/QuestExcelConfigData.json" \
+            -o astaps-quest-excel.json
+
+          python - <<'PY' | tee quest-excel-source-compare.txt
+          import json
+          from pathlib import Path
+
+          TARGETS = {35100,35101,35102,35103,35104,35105,35106,35107,37504,37603,38805}
+          SEMANTIC_ID_KEYS = ('subId', 'SubId', 'NFGFDHPPBIF')
+          INTEREST_KEYS = {
+              'subId', 'SubId', 'NFGFDHPPBIF',
+              'mainId', 'MainId', 'PCOMHEOJPOO',
+              'order', 'Order', 'GBFIFKGFKHD',
+              'acceptCond', 'AcceptCond',
+              'acceptCondComb', 'AcceptCondComb',
+              'finishCond', 'failCond',
+              'showType', 'isRewind',
+          }
+
+          def load(path):
+              raw = Path(path).read_bytes()
+              print(f'FILE {path} size={len(raw)}')
+              return json.loads(raw)
+
+          def direct_target_id(obj):
+              if not isinstance(obj, dict):
+                  return None
+              for key in SEMANTIC_ID_KEYS:
+                  value = obj.get(key)
+                  if isinstance(value, int) and value in TARGETS:
+                      return value
+              return None
+
+          def shallow_target_values(obj):
+              if not isinstance(obj, dict):
+                  return []
+              hits = []
+              for key, value in obj.items():
+                  if isinstance(value, int) and value in TARGETS:
+                      hits.append((key, value))
+              return hits
+
+          def summarize(obj):
+              if not isinstance(obj, dict):
+                  return obj
+              picked = {}
+              for key, value in obj.items():
+                  if key in INTEREST_KEYS:
+                      picked[key] = value
+              if not picked:
+                  picked = obj
+              return picked
+
+          def extract(root, label):
+              print(f'=== {label}: root={type(root).__name__} ===')
+              if isinstance(root, list):
+                  print('top_level_count=', len(root))
+                  top = root
+              elif isinstance(root, dict):
+                  list_values = [
+                      (key, value) for key, value in root.items()
+                      if isinstance(value, list)
+                  ]
+                  print('top_level_keys=', list(root.keys())[:50])
+                  print('list_fields=', [(k, len(v)) for k, v in list_values[:20]])
+                  top = max(list_values, key=lambda kv: len(kv[1]))[1] if list_values else []
+              else:
+                  top = []
+
+              exact = {}
+              fallback = []
+              for index, obj in enumerate(top):
+                  tid = direct_target_id(obj)
+                  if tid is not None:
+                      exact.setdefault(tid, []).append({'index': index, 'row': obj})
+                      continue
+                  vals = shallow_target_values(obj)
+                  if vals:
+                      fallback.append({'index': index, 'hits': vals, 'row': obj})
+
+              print('exact_target_ids=', sorted(exact))
+              for tid in sorted(exact):
+                  for item in exact[tid]:
+                      print(
+                          'ROW',
+                          tid,
+                          'index=', item['index'],
+                          json.dumps(summarize(item['row']), ensure_ascii=False, sort_keys=True),
+                      )
+
+              print('fallback_count=', len(fallback))
+              for item in fallback[:80]:
+                  print(
+                      'FALLBACK',
+                      item['index'],
+                      item['hits'],
+                      json.dumps(summarize(item['row']), ensure_ascii=False, sort_keys=True),
+                  )
+
+              return {
+                  'root_type': type(root).__name__,
+                  'top_level_count': len(top),
+                  'exact': exact,
+                  'fallback': fallback,
+              }
+
+          dim = extract(load('dimbreath-quest-excel.json'), 'Dimbreath 7.1 Excel')
+          asta = extract(load('astaps-quest-excel.json'), 'AstaPS current Excel')
+
+          report = {
+              'targets': sorted(TARGETS),
+              'dimbreath_commit': '792978e5503ecfba73dcb3562ed44a0d35a2abe2',
+              'dimbreath_commit_title': 'CNRELWin7.1.0_R48379043_S48511369_D48533839',
+              'dimbreath': dim,
+              'astaps': asta,
+          }
+          Path('quest-excel-source-compare.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+          rm -f dimbreath-quest-excel.json astaps-quest-excel.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -1086,4 +1219,6 @@ jobs:
             quest-frombinary-framing.json
             quest-excel-row-schema.txt
             quest-excel-row-schema.json
+            quest-excel-source-compare.txt
+            quest-excel-source-compare.json
           if-no-files-found: warn
