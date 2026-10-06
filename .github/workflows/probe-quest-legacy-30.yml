@@ -17,7 +17,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -34,7 +34,12 @@ jobs:
           python - <<'PY' | tee quest-legacy-30-sample.txt
           import hashlib
           import shutil
+          import time
           from pathlib import Path
+
+          import requests
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
           from remotezip import RemoteZip
 
           url = (
@@ -44,24 +49,63 @@ jobs:
           out = Path("inputs/3.0.0-global")
           out.mkdir(parents=True, exist_ok=True)
 
-          with RemoteZip(url) as rz:
-              names = rz.namelist()
-              exe = [n for n in names if n.lower().endswith("/genshinimpact.exe") or n.lower()=="genshinimpact.exe"]
-              meta = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
-              print("zip_entries", len(names))
-              print("exe_matches", exe)
-              print("metadata_matches", meta)
-              if len(exe) != 1:
-                  raise SystemExit(f"expected one GenshinImpact.exe, got {exe}")
-              if len(meta) != 1:
-                  raise SystemExit(f"expected one global-metadata.dat, got {meta}")
+          retry = Retry(
+              total=8,
+              connect=8,
+              read=8,
+              status=8,
+              backoff_factor=1.0,
+              status_forcelist=(429, 500, 502, 503, 504),
+              allowed_methods=frozenset(("GET", "HEAD")),
+          )
+          session = requests.Session()
+          session.mount("https://", HTTPAdapter(max_retries=retry))
 
-              for src_name, dst_name in ((exe[0], "GenshinImpact.exe"), (meta[0], "global-metadata.dat")):
-                  dst = out / dst_name
-                  with rz.open(src_name) as src, dst.open("wb") as fp:
-                      shutil.copyfileobj(src, fp, length=8 << 20)
-                  h = hashlib.sha256(dst.read_bytes()).hexdigest()
-                  print(dst_name, "size=", dst.stat().st_size, "sha256=", h)
+          def open_zip():
+              # The 3.0 archive central directory is close to 1 MiB. Fetching a
+              # 4 MiB suffix up front avoids the fragile follow-up range read
+              # that failed in the first probe.
+              return RemoteZip(
+                  url,
+                  session=session,
+                  initial_buffer_size=4 << 20,
+                  support_suffix_range=False,
+                  timeout=(30, 300),
+                  headers={"User-Agent": "Genshin-Reverse/quest-probe"},
+              )
+
+          with open_zip() as rz:
+              names = rz.namelist()
+          exe = [n for n in names if n.lower().endswith("/genshinimpact.exe") or n.lower()=="genshinimpact.exe"]
+          meta = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
+          print("zip_entries", len(names))
+          print("exe_matches", exe)
+          print("metadata_matches", meta)
+          if len(exe) != 1:
+              raise SystemExit(f"expected one GenshinImpact.exe, got {exe}")
+          if len(meta) != 1:
+              raise SystemExit(f"expected one global-metadata.dat, got {meta}")
+
+          for src_name, dst_name in ((exe[0], "GenshinImpact.exe"), (meta[0], "global-metadata.dat")):
+              dst = out / dst_name
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      tmp = dst.with_suffix(dst.suffix + ".part")
+                      tmp.unlink(missing_ok=True)
+                      with open_zip() as rz, rz.open(src_name) as src, tmp.open("wb") as fp:
+                          shutil.copyfileobj(src, fp, length=8 << 20)
+                      tmp.replace(dst)
+                      last = None
+                      break
+                  except Exception as exc:
+                      last = exc
+                      print(f"retry {attempt}/4 for {src_name}: {type(exc).__name__}: {exc}")
+                      time.sleep(min(8, attempt * 2))
+              if last is not None:
+                  raise last
+              h = hashlib.sha256(dst.read_bytes()).hexdigest()
+              print(dst_name, "size=", dst.stat().st_size, "sha256=", h)
           PY
 
       - name: Disassemble legacy QuestExcel loader and row reader
