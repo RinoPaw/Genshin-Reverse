@@ -6,6 +6,7 @@ on:
       - probe/quest-blb3-binoutput
     paths:
       - ".github/workflows/probe-quest-legacy-32-34-assets.yml"
+      - "genshinre/questlegacy.py"
 
 concurrency:
   group: probe-quest-legacy-32-34-assets-${{ github.ref }}
@@ -22,8 +23,16 @@ jobs:
         include:
           - version: "3.2"
             stamp: "20221024103618_h2e3o3zijYKEqHnQ"
+            xor_key: "0x93"
+            row_count: "15818"
+            raw_size: "719939"
+            raw_sha256: "891d83000eb3eb7382d7781bff12213b55159e7053c22312857a371fa4243c36"
           - version: "3.4"
             stamp: "20230109135018_10QhExKHwAoa4ecr"
+            xor_key: "0x95"
+            row_count: "16727"
+            raw_size: "764222"
+            raw_sha256: "c034b6ea8714f04d3c3ea8e31e3a944969ecef4fa804156ff046ffd516beaa64"
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -31,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install focused Python dependencies
+      - name: Install focused Python package
         run: python -m pip install -e .
       - uses: actions/setup-dotnet@v4
         with:
@@ -77,11 +86,9 @@ jobs:
           var manager = new AssetsManager();
           manager.LoadFiles(input);
 
-          int files = 0;
           int bins = 0;
           foreach (var assetsFile in manager.assetsFileList)
           {
-              files++;
               IndexObject? index = null;
               if (assetsFile.ObjectsDic.TryGetValue(2, out var obj) && obj is IndexObject io)
                   index = io;
@@ -104,7 +111,6 @@ jobs:
               }
           }
 
-          Console.WriteLine($"assets_files={files}");
           Console.WriteLine($"mihoyo_bin_data={bins}");
           return bins > 0 ? 0 : 3;
           EOF
@@ -112,7 +118,7 @@ jobs:
           dotnet build "$root/ProbeExtract/ProbeExtract.csproj" -c Release --nologo
           printf '%s\n' "$root/ProbeExtract/bin/Release/net6.0/ProbeExtract.dll" > /tmp/genshinstudio-extractor
 
-      - name: Fetch exact old-package index and fixed design/quest blocks
+      - name: Fetch exact old-package Quest block
         shell: bash
         env:
           VERSION: ${{ matrix.version }}
@@ -149,136 +155,123 @@ jobs:
               ).splitlines()
               if line.strip()
           ]
-          wanted={
-              "design":"31049740.blk",
-              "quest":"25539185.blk",
-          }
-          selected={}
-          for label,base in wanted.items():
-              hits=[
-                  x for x in rows
-                  if str(x.get("remoteName","")).replace("\\","/").endswith(
-                      "/StreamingAssets/AssetBundles/blocks/00/"+base
-                  )
-              ]
-              print(label,"hits",len(hits))
-              for x in hits: print(json.dumps(x,sort_keys=True))
-              if len(hits)!=1:
-                  raise SystemExit(f"{label}: block entry missing/ambiguous")
-              selected[label]=hits[0]
-          Path("/tmp/old-blocks.json").write_text(json.dumps(selected))
-          print("version",os.environ["VERSION"],"package_rows",len(rows))
+          suffix="/StreamingAssets/AssetBundles/blocks/00/25539185.blk"
+          hits=[
+              x for x in rows
+              if str(x.get("remoteName","")).replace("\\","/").endswith(suffix)
+          ]
+          print("version",os.environ["VERSION"],"package_rows",len(rows),"quest_hits",len(hits))
+          for x in hits:
+              print(json.dumps(x,sort_keys=True))
+          if len(hits)!=1:
+              raise SystemExit("Quest block entry missing/ambiguous")
+          Path("/tmp/quest-block.json").write_text(json.dumps(hits[0]))
           PY
 
-          for label in design quest; do
-            rel=$(python - "$label" <<'PY'
-          import json,sys
-          print(json.load(open("/tmp/old-blocks.json"))[sys.argv[1]]["remoteName"])
-          PY
-            )
-            fetch "$rel" "inputs/$label.blk"
-          done
+          rel=$(python -c 'import json; print(json.load(open("/tmp/quest-block.json"))["remoteName"])')
+          fetch "$rel" inputs/quest.blk
 
           python - <<'PY'
           import hashlib,json
           from pathlib import Path
-          selected=json.load(open("/tmp/old-blocks.json"))
-          for label in ("design","quest"):
-              p=Path("inputs")/(label+".blk")
-              row=selected[label]
-              md5=hashlib.md5(p.read_bytes()).hexdigest()
-              print(label,"size",p.stat().st_size,"md5",md5)
-              if p.stat().st_size != int(row["fileSize"]):
-                  raise SystemExit(f"{label} size mismatch")
-              if md5.lower()!=row["md5"].lower():
-                  raise SystemExit(f"{label} md5 mismatch")
+          row=json.load(open("/tmp/quest-block.json"))
+          p=Path("inputs/quest.blk")
+          md5=hashlib.md5(p.read_bytes()).hexdigest()
+          print("quest_block_size",p.stat().st_size,"md5",md5)
+          if p.stat().st_size != int(row["fileSize"]):
+              raise SystemExit("Quest block size mismatch")
+          if md5.lower()!=row["md5"].lower():
+              raise SystemExit("Quest block md5 mismatch")
           PY
 
-      - name: Extract old AssetIndex and QuestExcel MiHoYoBinData
+      - name: Extract exact QuestExcel Raw MiHoYoBinData
         shell: bash
         run: |
           set -euo pipefail
           extractor=$(cat /tmp/genshinstudio-extractor)
-          rm -rf design-output quest-output
-          mkdir -p design-output quest-output
-
-          dotnet "$extractor" inputs/design.blk design-output 2>&1 | tee old-design-extract.txt
+          rm -rf quest-output
+          mkdir -p quest-output
           dotnet "$extractor" inputs/quest.blk quest-output 2>&1 | tee old-quest-extract.txt
-
-          echo "DESIGN OUTPUT"
-          find design-output -maxdepth 1 -type f -printf '%f %s\n' | sort | sed -n '1,200p'
-          echo "QUEST OUTPUT"
-          find quest-output -maxdepth 1 -type f -printf '%f %s\n' | sort | sed -n '1,200p'
-
-          test -s design-output/0000006f.dat
           test -s quest-output/3b87ae83.dat
 
-      - name: Verify historical AssetIndex routing and fingerprint QuestExcel
+      - name: Decode native Quest 351 with legacy wire schema
         shell: bash
         env:
           VERSION: ${{ matrix.version }}
+          EXPECTED_XOR_KEY: ${{ matrix.xor_key }}
+          EXPECTED_ROW_COUNT: ${{ matrix.row_count }}
+          EXPECTED_RAW_SIZE: ${{ matrix.raw_size }}
+          EXPECTED_RAW_SHA256: ${{ matrix.raw_sha256 }}
         run: |
           set -euo pipefail
-          python - <<'PY' | tee quest-native-fingerprint.txt
-          import hashlib,json,os,struct
+          python - <<'PY' | tee quest-351-native.txt
+          import hashlib,json,os
           from pathlib import Path
-          from genshinre.assetindex import (
-              mihoyo_name_hash,parse_asset_index,unwrap_mihoyo_bin_data
-          )
 
-          path="Data/_ExcelBinOutput/QuestExcelConfigData"
-          h=mihoyo_name_hash(path)
-          idx_raw=Path("design-output/0000006f.dat").read_bytes()
-          idx=parse_asset_index(idx_raw)
-          name=idx.name_for_hash(h)
-          ref=idx.block_ref_for_asset(name.sub_asset_id)
-          group=idx.block_groups[ref.block_id]
+          from genshinre.questlegacy import (
+              detect_legacy_quest_xor_key,
+              find_quest_rows,
+              parse_legacy_quest_prefix,
+          )
 
           raw=Path("quest-output/3b87ae83.dat").read_bytes()
-          payload=unwrap_mihoyo_bin_data(raw)
-
-          def uvar(data,pos=0):
-              value=0; shift=0; start=pos
-              while True:
-                  if pos>=len(data): raise EOFError(start)
-                  b=data[pos];pos+=1
-                  value|=(b&0x7f)<<shift
-                  if not b&0x80:return value,pos-start
-                  shift+=7
-                  if shift>=64: raise ValueError("wide uvar")
-          uv,n=uvar(payload)
-          zz=(-(uv&1) ^ (uv>>1))
-
-          out={
-              "version":os.environ["VERSION"],
-              "path":path,
-              "hash":f"0x{h:010X}",
-              "exported_name":name.exported_name,
-              "sub_asset_id":name.sub_asset_id,
-              "block_id":ref.block_id,
-              "group_id":group,
-              "unknown0":ref.unknown0,
-              "unknown1":ref.unknown1,
-              "raw_size":len(raw),
-              "raw_sha256":hashlib.sha256(raw).hexdigest(),
-              "payload_size":len(payload),
-              "payload_sha256":hashlib.sha256(payload).hexdigest(),
-              "head64":payload[:64].hex(),
-              "leading_uvar":uv,
-              "leading_uvar_bytes":n,
-              "zigzag_i32_interpretation":zz,
-          }
-          print(json.dumps(out,ensure_ascii=False,indent=2))
-          Path("quest-native-fingerprint.json").write_text(
-              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
-          )
-
-          if name.exported_name.lower()!="3b87ae83":
-              raise SystemExit(f"unexpected exported name {name.exported_name}")
-          if ref.block_id != 25539185 or group != 0:
+          expected_size=int(os.environ["EXPECTED_RAW_SIZE"])
+          expected_sha=os.environ["EXPECTED_RAW_SHA256"]
+          digest=hashlib.sha256(raw).hexdigest()
+          if len(raw)!=expected_size or digest!=expected_sha:
               raise SystemExit(
-                  f"unexpected historical QuestExcel route block={ref.block_id} group={group}"
+                  f"raw identity mismatch size={len(raw)} sha256={digest}"
               )
+
+          key,row_count=detect_legacy_quest_xor_key(raw,probe_rows=100)
+          expected_key=int(os.environ["EXPECTED_XOR_KEY"],0)
+          expected_count=int(os.environ["EXPECTED_ROW_COUNT"])
+          if (key,row_count)!=(expected_key,expected_count):
+              raise SystemExit(
+                  f"wire fingerprint mismatch key=0x{key:02X} count={row_count}"
+              )
+
+          prefix=parse_legacy_quest_prefix(raw,xor_key=key,max_rows=100)
+          quest351=find_quest_rows(prefix,main_id=351)
+          expected_sub_ids={35100,35101,35102,35103,35104,35105,35106,35107}
+          got_sub_ids={int(row.fields["sub_id"]) for row in quest351}
+          if got_sub_ids!=expected_sub_ids:
+              raise SystemExit(
+                  f"Quest 351 row set mismatch: {sorted(got_sub_ids)}"
+              )
+
+          bad=[
+              row.fields["sub_id"]
+              for row in quest351
+              if "accept_cond" in row.fields or "accept_cond_comb" in row.fields
+          ]
+          if bad:
+              raise SystemExit(f"native Quest 351 unexpectedly has acceptCond: {bad}")
+
+          result={
+              "version":os.environ["VERSION"],
+              "raw_size":len(raw),
+              "raw_sha256":digest,
+              "xor_key":f"0x{key:02X}",
+              "row_count":row_count,
+              "prefix_rows":len(prefix.rows),
+              "prefix_consumed":prefix.consumed,
+              "quest_351":[
+                  {
+                      "row_index":row.index,
+                      "start":row.start,
+                      "end":row.end,
+                      **row.fields,
+                  }
+                  for row in quest351
+              ],
+              "quest_351_has_accept_cond":False,
+          }
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          Path("quest-351-native.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
           PY
 
       - name: Upload evidence
@@ -288,10 +281,8 @@ jobs:
           name: quest-legacy-native-${{ matrix.version }}
           path: |
             package-index-summary.txt
-            old-design-extract.txt
             old-quest-extract.txt
-            quest-native-fingerprint.txt
-            quest-native-fingerprint.json
-            design-output/0000006f.dat
+            quest-351-native.txt
+            quest-351-native.json
             quest-output/3b87ae83.dat
-          if-no-files-found: warn
+          if-no-files-found: error
