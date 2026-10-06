@@ -1793,6 +1793,136 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace Quest ID to binary blob index layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x9F891F0 0xE0 \
+            --expected-sha256 "$expected_sha" \
+            --label "ODJJEFFIPFA.HGBAJLEGHGA(uint32,uint64)" \
+            --output quest-id-to-handle.json \
+            > quest-id-to-handle.txt
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x9F88FF0 0x200 \
+            --expected-sha256 "$expected_sha" \
+            --label "ODJJEFFIPFA.FJODBAOBJLJ(uint32,bool)" \
+            --output quest-id-availability.json \
+            > quest-id-availability.txt
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x9F93B30 0x240 \
+            --expected-sha256 "$expected_sha" \
+            --label "ODJJEFFIPFA.HJCHCFPHHGB(uint32)" \
+            --output quest-id-cache-lookup.json \
+            > quest-id-cache-lookup.txt
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x10175A00 0x160 \
+            --expected-sha256 "$expected_sha" \
+            --label "PMOALIJHONP.GCJPJCKPGLI(uint64,int32,int32)" \
+            --output quest-handle-to-reader.json \
+            > quest-handle-to-reader.txt
+
+          python - <<'PY' | tee quest-index-layer-summary.txt
+          import bisect
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          files = {
+              "id_to_handle": "quest-id-to-handle.json",
+              "id_availability": "quest-id-availability.json",
+              "id_cache_lookup": "quest-id-cache-lookup.json",
+              "handle_to_reader": "quest-handle-to-reader.json",
+          }
+
+          with (ROOT / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (ROOT / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          by_rva = {}
+          starts = []
+          for m in methods:
+              text = (m.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 0)
+              except ValueError:
+                  continue
+              by_rva.setdefault(rva, []).append(m)
+              starts.append(rva)
+          starts = sorted(set(starts))
+
+          def owner(rva):
+              pos = bisect.bisect_right(starts, rva) - 1
+              if pos < 0:
+                  return None
+              start = starts[pos]
+              end = starts[pos + 1] if pos + 1 < len(starts) else start + 0x10000
+              if not (start <= rva < end):
+                  return None
+              rows = by_rva[start]
+              return {
+                  "start_rva": f"0x{start:X}",
+                  "end_rva": f"0x{end:X}",
+                  "methods": rows,
+                  "owner_types": [
+                      type_by_tdi.get(int(x["type_definition_index"]), {})
+                      for x in rows
+                  ],
+              }
+
+          report = {}
+          for label, path in files.items():
+              obj = json.loads(Path(path).read_text(encoding="utf-8"))
+              base = int(obj["image_base"], 16)
+              calls = []
+              rip = []
+              mem = []
+              for x in obj["instructions"]:
+                  op = x["op_str"]
+                  if x["mnemonic"] in {"call", "jmp"}:
+                      m = re.fullmatch(r"0x([0-9a-fA-F]+)", op)
+                      if m:
+                          trva = int(m.group(1), 16) - base
+                          calls.append({
+                              "site_rva": x["rva"],
+                              "target_rva": f"0x{trva:X}",
+                              "owner": owner(trva),
+                          })
+                  if "rip " in op.lower() or "[rip " in op.lower():
+                      rip.append(x)
+                  if "[" in op and any(reg in op.lower() for reg in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi")):
+                      mem.append(x)
+
+              report[label] = {
+                  "calls": calls,
+                  "rip_accesses": rip,
+                  "memory_accesses": mem,
+              }
+              print("SECTION", label)
+              for item in calls:
+                  print("CALL", json.dumps(item, ensure_ascii=False, sort_keys=True))
+              for item in mem:
+                  print("MEM", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-index-layer-summary.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1820,6 +1950,11 @@ jobs:
           test -s quest-random-main-reader.json
           test -s quest-afio-init-by-id.json
           test -s quest-afio-id-summary.json
+          test -s quest-id-to-handle.json
+          test -s quest-id-availability.json
+          test -s quest-id-cache-lookup.json
+          test -s quest-handle-to-reader.json
+          test -s quest-index-layer-summary.json
           test -s quest-fnj-reader.json
           test -s quest-fnj-side-reader.json
           test -s quest-fnj-reader-calls.json
@@ -1877,6 +2012,16 @@ jobs:
             quest-main-wrapper-ctor.json
             quest-afio-id-summary.txt
             quest-afio-id-summary.json
+            quest-id-to-handle.txt
+            quest-id-to-handle.json
+            quest-id-availability.txt
+            quest-id-availability.json
+            quest-id-cache-lookup.txt
+            quest-id-cache-lookup.json
+            quest-handle-to-reader.txt
+            quest-handle-to-reader.json
+            quest-index-layer-summary.txt
+            quest-index-layer-summary.json
             quest-fnj-reader.txt
             quest-fnj-reader.json
             quest-fnj-side-reader.txt
