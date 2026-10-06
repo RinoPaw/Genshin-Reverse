@@ -310,6 +310,137 @@ jobs:
               raise SystemExit("no exact historical Quest row candidate")
           PY
 
+      - name: Disassemble exact historical Quest row readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-row-reader.txt
+          import bisect,json,re
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          doc=json.loads(Path("quest-legacy-28-row-pattern.json").read_text())
+          strong=doc["strong"]
+          if len(strong)!=1:
+              raise SystemExit(f"expected one strong row candidate, got {len(strong)}")
+          row=strong[0]
+          typ=row["declaration"]["name"]
+
+          # Pick the native implementations, not the tiny XID stubs.  The
+          # instance bool(reader,int) is the row reader; static out T[] is the
+          # array/container reader.
+          inst=[]
+          arrays=[]
+          singles=[]
+          for m in row["methods"]:
+              sig=m["signature"]
+              if "public virtual bool" in sig and "BCMAGEONPDD" in sig:
+                  inst.append(m)
+              if "public static bool" in sig and "BCMAGEONPDD" in sig and f"out {typ}[]" in sig:
+                  arrays.append(m)
+              if "public static bool" in sig and "BCMAGEONPDD" in sig and f"out {typ} " in sig:
+                  singles.append(m)
+
+          def native(ms):
+              if not ms:
+                  return None
+              # XID stubs in this build sit near 0x0059xxxx; real bodies are
+              # much larger and also contain the field parsing logic.
+              return max(ms,key=lambda x:x["rva"])
+
+          picks={
+              "row":native(inst),
+              "array":native(arrays),
+              "single":native(singles),
+          }
+          print("TYPE",typ)
+          print("PICKS",{k:(hex(v["rva"]) if v else None) for k,v in picks.items()})
+
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in runtime]
+          def containing(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0:
+                  a,b=runtime[i]
+                  if a<=rva<b:
+                      return a,b
+              return None
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report={}
+          field_offsets={int(k):v for k,v in row["fields"].items()}
+
+          for label,m in picks.items():
+              if not m:
+                  continue
+              rva=m["rva"]
+              bounds=containing(rva)
+              if not bounds:
+                  print(label,"no pdata bounds",hex(rva))
+                  continue
+              a,b=bounds
+              print(f"\n===== {label} rva=0x{rva:X} bounds=0x{a:X}-0x{b:X} size=0x{b-a:X} =====")
+              rows=[]
+              for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                  item={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                      item["call_target_rva"]=ins.operands[0].imm-base
+                  mem=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_MEM:
+                          mem.append({
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale":op.mem.scale,
+                              "disp":op.mem.disp,
+                              "size":op.size,
+                          })
+                  if mem:
+                      item["mem"]=mem
+                  rows.append(item)
+                  tags=[]
+                  if "call_target_rva" in item:
+                      tags.append(f"CALL->0x{item['call_target_rva']:X}")
+                  for mm in mem:
+                      if mm["disp"] in field_offsets and mm["base"] not in ("rsp","rbp","rip",None):
+                          f=field_offsets[mm["disp"]]
+                          tags.append(f"FIELD+0x{mm['disp']:X}:{f['type']}:{f['name']}")
+                  suffix=("  <-- "+" | ".join(tags)) if tags else ""
+                  print(f"0x{item['rva']:X} {item['mnemonic']:<8} {item['op_str']}{suffix}")
+              report[label]={
+                  "metadata_method":m,
+                  "begin_rva":a,
+                  "end_rva":b,
+                  "instructions":rows,
+              }
+
+          Path("quest-legacy-28-row-reader.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if "row" not in report:
+              raise SystemExit("row reader disassembly missing")
+          PY
+
       - name: Upload pattern evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -319,4 +450,6 @@ jobs:
             quest-legacy-28-pattern-dumper.txt
             quest-legacy-28-row-pattern.txt
             quest-legacy-28-row-pattern.json
+            quest-legacy-28-row-reader.txt
+            quest-legacy-28-row-reader.json
           if-no-files-found: warn
