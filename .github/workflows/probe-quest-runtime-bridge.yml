@@ -132,10 +132,128 @@ jobs:
           )
           PY
 
+      - name: Find GPC source-to-runtime bridge candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-gpc-bridge-candidates.txt
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS = ("GPCFGOEJFJK", "FNJLMNMEKLN", "AFIOOHMJHDM", "LAIMPNDEFCL")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          methods_by_tdi = defaultdict(list)
+          fields_by_tdi = defaultdict(list)
+          for r in methods:
+              methods_by_tdi[int(r["type_definition_index"])].append(r)
+          for r in fields:
+              fields_by_tdi[int(r["type_definition_index"])].append(r)
+
+          mentions = []
+          owner_tdis = set()
+          for m in methods:
+              sig = " ".join([
+                  str(m.get("return_type", "")),
+                  str(m.get("parameter_types", "")),
+              ])
+              if "GPCFGOEJFJK" not in sig:
+                  continue
+              tdi = int(m["type_definition_index"])
+              owner_tdis.add(tdi)
+              mentions.append({
+                  "method": m,
+                  "owner": type_by_tdi.get(tdi, {}),
+                  "target_hits": [x for x in TARGETS if x in sig],
+              })
+
+          owners = []
+          for tdi in sorted(owner_tdis):
+              owned = methods_by_tdi[tdi]
+              cross = []
+              for m in owned:
+                  sig = " ".join([
+                      str(m.get("return_type", "")),
+                      str(m.get("parameter_types", "")),
+                  ])
+                  hits = [x for x in TARGETS if x in sig]
+                  if hits:
+                      cross.append({"method": m, "target_hits": hits})
+              owners.append({
+                  "owner": type_by_tdi.get(tdi, {}),
+                  "fields": fields_by_tdi.get(tdi, []),
+                  "cross_methods": cross,
+              })
+
+          # Also preserve GPC's own methods, because a conversion may be an
+          # instance method whose only explicit parameter is the destination.
+          gpc_tdi = 82662
+          result = {
+              "signature_mentions": mentions,
+              "owners": owners,
+              "gpc_type": type_by_tdi[gpc_tdi],
+              "gpc_fields": fields_by_tdi[gpc_tdi],
+              "gpc_methods": methods_by_tdi[gpc_tdi],
+          }
+          print("signature_mentions=", len(mentions))
+          for x in mentions:
+              print("MENTION", json.dumps(x, ensure_ascii=False, sort_keys=True))
+          print("owners=", len(owners))
+          for x in owners:
+              print("OWNER", json.dumps({
+                  "owner": x["owner"],
+                  "cross_methods": x["cross_methods"],
+              }, ensure_ascii=False, sort_keys=True))
+          print("GPC_METHODS")
+          for m in methods_by_tdi[gpc_tdi]:
+              print(json.dumps(m, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-gpc-bridge-candidates.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-gpc-bridge-disasm-plan.txt
+          import json
+          from pathlib import Path
+          d = json.loads(Path("quest-gpc-bridge-candidates.json").read_text())
+          rows = []
+          for x in d["signature_mentions"]:
+              m=x["method"]
+              r=(m.get("rva") or "").strip()
+              if not r:
+                  continue
+              rows.append({
+                  "label": f'{m.get("type_name")}.{m.get("method_name")}',
+                  "rva": r,
+                  "parameter_types": m.get("parameter_types"),
+                  "return_type": m.get("return_type"),
+                  "target_hits": x.get("target_hits"),
+              })
+          # Keep exact-scope candidates only; a second step can disassemble the
+          # handful that actually bridge GPC to the established runtime types.
+          print(json.dumps(rows, ensure_ascii=False, indent=2))
+          Path("quest-gpc-bridge-disasm-plan.json").write_text(
+              json.dumps(rows, ensure_ascii=False, indent=2) + "\n"
+          )
+          PY
       - name: Assert evidence
         run: |
           test -s quest-runtime-bridge.json
           test -s quest-gpc-runtime-types.json
+          test -s quest-gpc-bridge-candidates.json
+          test -s quest-gpc-bridge-disasm-plan.json
 
       - name: Upload focused evidence
         if: always()
@@ -147,4 +265,8 @@ jobs:
             quest-runtime-bridge.json
             quest-gpc-runtime-types.txt
             quest-gpc-runtime-types.json
+            quest-gpc-bridge-candidates.txt
+            quest-gpc-bridge-candidates.json
+            quest-gpc-bridge-disasm-plan.txt
+            quest-gpc-bridge-disasm-plan.json
           if-no-files-found: error
