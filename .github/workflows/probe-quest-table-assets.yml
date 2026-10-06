@@ -510,6 +510,7 @@ jobs:
             asset-chain-summary.txt
             quest-animestudio.txt
             quest-payload-summary.txt
+            quest-output/MiHoYoBinData/3b87ae83.dat
             quest-outer-framing.txt
             quest-outer-framing.json
             quest-row-target-scan.txt
