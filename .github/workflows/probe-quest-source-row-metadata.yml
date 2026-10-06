@@ -1,0 +1,138 @@
+name: Probe 7.1 Quest source-row metadata
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-source-row-metadata.yml"
+
+concurrency:
+  group: probe-quest-source-row-metadata-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Rank Quest-shaped binary row types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-source-row-metadata.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+
+          def read(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi=defaultdict(list)
+          methods_by_tdi=defaultdict(list)
+          for x in fields:
+              fields_by_tdi[int(x["type_definition_index"])].append(x)
+          for x in methods:
+              methods_by_tdi[int(x["type_definition_index"])].append(x)
+
+          quest_types={
+              "QuestShowType":8,
+              "ShowQuestGuideType":10,
+              "QuestExtraShowType":6,
+              "QuestType":8,
+              "PCBNKHFKLHI":12,
+              "KAABNOHKKEP":8,
+              "OOPFBIEAILL":6,
+              "KPHLFFOELCG":6,
+          }
+          quest_field_names={
+              "_acceptCond":20,
+              "_acceptCondComb":20,
+              "_beginExec":20,
+              "_finishCond":8,
+              "_failCond":8,
+              "_finishExec":8,
+              "_failExec":8,
+              "_mainId":8,
+              "_subId":8,
+              "_order":5,
+          }
+
+          rows=[]
+          for tdi,t in type_by_tdi.items():
+              fs=fields_by_tdi.get(tdi,[])
+              ms=methods_by_tdi.get(tdi,[])
+              readers=[
+                  m for m in ms
+                  if "FNIAHJGHFAK" in (m.get("parameter_types") or "")
+                  and (m.get("method_name") in ("GMENPOPMKAA","FromBinaryInner","FromBinary","OHPBNHHCBLB")
+                       or int(m.get("parameter_count") or 0) in (1,2))
+              ]
+              if not readers:
+                  continue
+              score=0
+              why=[]
+              for f in fs:
+                  ft=f.get("field_type") or ""
+                  fn=f.get("field_name") or ""
+                  if ft in quest_types:
+                      score+=quest_types[ft]
+                      why.append(f"type:{ft}")
+                  if fn in quest_field_names:
+                      score+=quest_field_names[fn]
+                      why.append(f"name:{fn}")
+                  if ft=="kind_0x1D":
+                      score+=2
+              n=len(fs)
+              if 20 <= n <= 45:
+                  score+=5
+              if n in (28,35):
+                  score+=4
+              if score < 12:
+                  continue
+              rows.append({
+                  "score":score,
+                  "type":t,
+                  "field_count":n,
+                  "why":sorted(set(why)),
+                  "fields":fs,
+                  "readers":readers,
+              })
+
+          rows.sort(key=lambda x:(-x["score"],abs(x["field_count"]-35),int(x["type"]["type_definition_index"])))
+          out={"candidate_count":len(rows),"candidates":rows[:120]}
+          print("CANDIDATES",len(rows))
+          for x in rows[:80]:
+              print("\n===",x["score"],x["type"]["type_name"],"tdi",x["type"]["type_definition_index"],"fields",x["field_count"],"===")
+              print("WHY",x["why"])
+              for f in x["fields"]:
+                  print("FIELD",f["field_name"],f["field_type"],f["field_type_index"])
+              for m in x["readers"]:
+                  print("READER",m["method_name"],m["rva"],m["parameter_types"])
+          Path("quest-source-row-metadata.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-source-row-metadata
+          path: |
+            quest-source-row-metadata.txt
+            quest-source-row-metadata.json
+          if-no-files-found: error
