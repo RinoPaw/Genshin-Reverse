@@ -347,14 +347,17 @@ jobs:
         run: |
           set -euo pipefail
 
+          # FNIAHJGHFAK.AAPDIPLACAE was already isolated by
+          # probe-quest-bin-reader.yml. Keep this probe focused on the
+          # ResourceIdentifier -> zip/block path and avoid rescanning the large
+          # refill caller surface.
           python tools/trace_native_call_edges.py \
             inputs/7.1.0-global/GenshinImpact.exe \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             quest-bin-zip-path.json \
             --focus common-load-bin-zip:0x6D8CF60 \
             --focus provider-load-bin-zip-resource-id:0x7012E30 \
-            --focus fnia-refill:0x1269BFC0 \
-            --max-body 0x10000 \
+            --max-body 0x3000 \
             | tee quest-bin-zip-path.txt
 
           python - <<'PY' | tee quest-bin-zip-types.txt
