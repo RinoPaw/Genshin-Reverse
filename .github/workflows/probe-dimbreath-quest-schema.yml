@@ -1,0 +1,178 @@
+name: Audit Dimbreath 7.1 QuestExcel semantic columns
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-dimbreath-quest-schema.yml"
+
+concurrency:
+  group: probe-dimbreath-quest-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact Dimbreath 7.1 QuestExcel
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout             https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set             'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout             792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Classify values by semantic shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee dimbreath-quest-schema.txt
+          import collections
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          rows=json.loads(path.read_text(encoding="utf-8"))
+
+          def enum_prefix(value):
+              if not isinstance(value,str):
+                  return None
+              for prefix in (
+                  "QUEST_COND_","QUEST_CONTENT_","QUEST_EXEC_","QUEST_GUIDE_",
+                  "LOGIC_","BAN_","QUEST_SHOW_",
+              ):
+                  if value.startswith(prefix):
+                      return prefix
+              return None
+
+          def walk(value, out):
+              if isinstance(value,dict):
+                  t=value.get("type")
+                  p=enum_prefix(t)
+                  if p:
+                      out[p]+=1
+                  for v in value.values():
+                      walk(v,out)
+              elif isinstance(value,list):
+                  for v in value:
+                      walk(v,out)
+              elif isinstance(value,str):
+                  p=enum_prefix(value)
+                  if p:
+                      out[p]+=1
+
+          by_field={}
+          all_keys=sorted({k for row in rows for k in row})
+          for key in all_keys:
+              present=0
+              nulls=0
+              types=collections.Counter()
+              prefixes=collections.Counter()
+              list_lengths=collections.Counter()
+              object_keys=collections.Counter()
+              samples=[]
+              for row in rows:
+                  if key not in row:
+                      continue
+                  present+=1
+                  value=row[key]
+                  if value is None:
+                      nulls+=1
+                      types["null"]+=1
+                      continue
+                  if isinstance(value,bool):
+                      types["bool"]+=1
+                  elif isinstance(value,int):
+                      types["int"]+=1
+                  elif isinstance(value,float):
+                      types["float"]+=1
+                  elif isinstance(value,str):
+                      types["str"]+=1
+                  elif isinstance(value,list):
+                      types["list"]+=1
+                      list_lengths[len(value)]+=1
+                  elif isinstance(value,dict):
+                      types["dict"]+=1
+                      object_keys.update(value.keys())
+                  else:
+                      types[type(value).__name__]+=1
+
+                  walk(value,prefixes)
+                  if len(samples)<8 and (
+                      prefixes or isinstance(value,(dict,list))
+                  ):
+                      samples.append(value)
+
+              by_field[key]={
+                  "present":present,
+                  "nulls":nulls,
+                  "types":dict(types),
+                  "enum_prefix_counts":dict(prefixes),
+                  "list_lengths":dict(list_lengths.most_common(12)),
+                  "object_keys":dict(object_keys.most_common(20)),
+                  "samples":samples,
+              }
+
+          semantic_fields={}
+          for key,info in by_field.items():
+              if any(info["enum_prefix_counts"].get(p,0) for p in (
+                  "QUEST_COND_","QUEST_CONTENT_","QUEST_EXEC_","QUEST_GUIDE_"
+              )):
+                  semantic_fields[key]=info
+
+          q351=[
+              row for row in rows
+              if row.get("mainId")==351
+          ]
+          q351.sort(key=lambda x:x.get("order",1<<30))
+
+          print("rows",len(rows))
+          print("sha256",hashlib.sha256(path.read_bytes()).hexdigest())
+          print("\n=== semantic fields ===")
+          for key,info in semantic_fields.items():
+              print("\nFIELD",key)
+              print(json.dumps({
+                  k:v for k,v in info.items() if k!="samples"
+              },ensure_ascii=False,indent=2))
+              print("SAMPLES",json.dumps(info["samples"][:5],ensure_ascii=False))
+
+          print("\n=== Quest 351 full rows ===")
+          print(json.dumps(q351,ensure_ascii=False,indent=2))
+
+          report={
+              "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+              "row_count":len(rows),
+              "sha256":hashlib.sha256(path.read_bytes()).hexdigest(),
+              "all_fields":by_field,
+              "semantic_fields":semantic_fields,
+              "quest351":q351,
+          }
+          Path("dimbreath-quest-schema.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: dimbreath-quest-schema
+          path: |
+            dimbreath-quest-schema.txt
+            dimbreath-quest-schema.json
+          if-no-files-found: error
