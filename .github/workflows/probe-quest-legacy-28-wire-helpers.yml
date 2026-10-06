@@ -170,6 +170,62 @@ jobs:
           )
           PY
 
+      - name: Disassemble ByteArrayEncode varint codec without pdata bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-varint-codec.txt
+          import json
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          # DENJNOIAKLA == ByteArrayEncode:
+          #   JJBOJNOABCD(ulong) == FromNumber
+          #   LJPOPGDONEC()      == ToNumber
+          targets={
+              "from_number":(0x1198C70,0x140),
+              "to_number":(0x1198DB0,0x180),
+          }
+          out={}
+          for label,(rva,size) in targets.items():
+              rows=[]
+              print(f"\n===== {label} 0x{rva:X} size=0x{size:X} =====")
+              for ins in md.disasm(pe.get_data(rva,size),base+rva):
+                  x={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic in {"call","jmp"}
+                      and ins.operands
+                      and ins.operands[0].type==X86_OP_IMM
+                  ):
+                      x["target_rva"]=ins.operands[0].imm-base
+                  rows.append(x)
+                  tail=(
+                      f" ->0x{x['target_rva']:X}"
+                      if "target_rva" in x else ""
+                  )
+                  print(
+                      f"0x{x['rva']:X} {x['bytes']:<24} "
+                      f"{x['mnemonic']:<8} {x['op_str']}{tail}"
+                  )
+              out[label]=rows
+
+          Path("quest-legacy-28-varint-codec.json").write_text(
+              json.dumps(out,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
       - name: Upload helper evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -178,4 +234,6 @@ jobs:
           path: |
             quest-legacy-28-wire-helpers.txt
             quest-legacy-28-wire-helpers.json
+            quest-legacy-28-varint-codec.txt
+            quest-legacy-28-varint-codec.json
           if-no-files-found: warn
