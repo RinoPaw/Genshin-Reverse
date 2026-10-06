@@ -1,0 +1,322 @@
+name: Probe 2.8 QuestExcel exact row pattern
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-row-pattern.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-row-pattern-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 2.8.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          out='inputs/2.8.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(172337920,"48808b351b7900d0104e73c0b71f81d4cc6ffc2c813323d4dcdb756414dc3394"),
+              "global-metadata.dat":(48012356,"8bc2cee2a2c55a2a0fc224e414c2c139e06a116860b4e758cc5a00226bc4de85"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/2.8.0-global")/name).read_bytes()
+              assert len(raw)==size and hashlib.sha256(raw).hexdigest()==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 2.8 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump-28"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/2.8.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-pattern-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Recover enum aliases and exact historical Quest row
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-row-pattern.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump-28/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+
+          type_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+).*?TypeDefIndex:\s*(\d+)"
+          )
+          field_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal).*?\s+"
+              r"([^\s]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
+          )
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+
+          blocks=[]
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              decl=None
+              fields={}
+              for rel,line in enumerate(block):
+                  if decl is None:
+                      m=type_rx.search(line)
+                      if m:
+                          decl={
+                              "name":m.group(1),
+                              "typedef_index":int(m.group(2)),
+                              "line":a+rel+1,
+                              "text":line.strip(),
+                          }
+                  fm=field_rx.search(line)
+                  if fm:
+                      fields[int(fm.group(3),16)]={
+                          "type":fm.group(1),
+                          "name":fm.group(2),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      }
+              if decl:
+                  blocks.append((a,b,block,decl,fields))
+
+          # Named RandomQuestExcelConfig survives and gives the build-specific
+          # obfuscated enum/class aliases used by ordinary Quest rows.
+          randoms=[x for x in blocks if x[3]["name"]=="RandomQuestExcelConfig"]
+          if len(randoms)!=1:
+              raise SystemExit(f"expected one RandomQuestExcelConfig, got {len(randoms)}")
+          _,_,rblock,rdecl,rfields=randoms[0]
+
+          by_name={f["name"]:f for f in rfields.values()}
+          needed={
+              "logic":"_acceptCondComb",
+              "guide":"_guide",
+              "ban":"_banType",
+          }
+          aliases={}
+          for k,n in needed.items():
+              if n not in by_name:
+                  raise SystemExit(f"RandomQuest field missing: {n}")
+              aliases[k]=by_name[n]["type"]
+
+          print("ALIASES",aliases)
+          print("RANDOM_QUEST",rdecl)
+          for off in sorted(rfields):
+              f=rfields[off]
+              if off<=0xB0:
+                  print(f"RQ +0x{off:X} {f['type']} {f['name']}")
+
+          exact={
+              0x10:"uint",0x14:"uint",0x18:"int",0x1C:"uint",
+              0x20:"bool",0x24:"uint",0x28:"uint",0x2C:"uint",
+              0x30:"QuestShowType",0x34:aliases["ban"],
+              0x38:aliases["logic"],0x48:aliases["logic"],0x58:aliases["logic"],
+              0x68:aliases["guide"],0x70:"ShowQuestGuideType",
+              0x74:"bool",0x75:"bool",0x78:"QuestShowType",0x7C:"bool",
+              0xA8:"uint",
+          }
+          arrays={0x40,0x50,0x60,0x80,0x88,0x90,0x98,0xA0,0xB0,0xB8}
+
+          rows=[]
+          for a,b,block,decl,fields in blocks:
+              score=0
+              exact_hits=[]
+              misses=[]
+              for off,typ in exact.items():
+                  got=fields.get(off,{}).get("type")
+                  if got==typ:
+                      exact_hits.append(off)
+                      score+=150
+                  elif got is not None:
+                      misses.append({"offset":off,"expected":typ,"got":got})
+                      score-=60
+
+              array_hits=[]
+              for off in arrays:
+                  got=fields.get(off,{}).get("type","")
+                  if got.endswith("[]"):
+                      array_hits.append(off)
+                      score+=90
+                  elif got:
+                      score-=30
+
+              prefix_ok=all(
+                  fields.get(o,{}).get("type")==t
+                  for o,t in {
+                      0x10:"uint",0x14:"uint",0x18:"int",0x1C:"uint",
+                      0x20:"bool",0x24:"uint",0x28:"uint",0x2C:"uint",
+                  }.items()
+              )
+              enum_core=all(
+                  fields.get(o,{}).get("type")==t
+                  for o,t in {
+                      0x30:"QuestShowType",0x34:aliases["ban"],
+                      0x38:aliases["logic"],0x48:aliases["logic"],0x58:aliases["logic"],
+                      0x68:aliases["guide"],0x70:"ShowQuestGuideType",
+                      0x78:"QuestShowType",
+                  }.items()
+              )
+              if prefix_ok:
+                  score+=1000
+              if enum_core:
+                  score+=1600
+
+              if score<1000:
+                  continue
+
+              methods=[]
+              for rel,line in enumerate(block):
+                  rm=rva_rx.search(line)
+                  if not rm:
+                      continue
+                  rva=int(rm.group(1),16)
+                  sig=None
+                  sig_line=None
+                  for k in range(rel+1,min(len(block),rel+8)):
+                      q=block[k].strip()
+                      if q and not q.startswith("//") and "(" in q and ")" in q:
+                          sig=q
+                          sig_line=a+k+1
+                          break
+                  if sig:
+                      methods.append({
+                          "rva":rva,
+                          "line":sig_line,
+                          "signature":sig,
+                      })
+
+              rows.append({
+                  "score":score,
+                  "prefix_ok":prefix_ok,
+                  "enum_core":enum_core,
+                  "declaration":decl,
+                  "exact_hits":exact_hits,
+                  "array_hits":array_hits,
+                  "misses":misses,
+                  "fields":fields,
+                  "methods":methods,
+              })
+
+          rows.sort(key=lambda x:(-x["score"],x["declaration"]["line"]))
+          print("\nCANDIDATES",len(rows))
+          for rank,x in enumerate(rows[:30],1):
+              d=x["declaration"]
+              print(
+                  f"\n=== RANK {rank:02d} score={x['score']} "
+                  f"type={d['name']} TypeDefIndex={d['typedef_index']} "
+                  f"prefix={x['prefix_ok']} enum_core={x['enum_core']} ==="
+              )
+              print("EXACT",",".join(hex(v) for v in x["exact_hits"]))
+              print("ARRAYS",",".join(hex(v) for v in x["array_hits"]))
+              print("MISSES",x["misses"])
+              for off in sorted(x["fields"]):
+                  if off<=0xC0:
+                      f=x["fields"][off]
+                      print(f"FIELD +0x{off:X} {f['type']} {f['name']}")
+              print("METHODS")
+              for m in x["methods"]:
+                  sig=m["signature"]
+                  if "OLCLOPLLAGP" in sig or "FromBinary" in sig:
+                      print(f"  RVA=0x{m['rva']:X} L{m['line']} {sig}")
+
+          strong=[x for x in rows if x["prefix_ok"] and x["enum_core"]]
+          print("\nSTRONG_CANDIDATES",len(strong))
+          for x in strong:
+              print(x["declaration"])
+
+          Path("quest-legacy-28-row-pattern.json").write_text(
+              json.dumps({
+                  "aliases":aliases,
+                  "random_quest":rdecl,
+                  "candidates":rows[:100],
+                  "strong":strong,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not strong:
+              raise SystemExit("no exact historical Quest row candidate")
+          PY
+
+      - name: Upload pattern evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-row-pattern
+          path: |
+            quest-legacy-28-pattern-dumper.txt
+            quest-legacy-28-row-pattern.txt
+            quest-legacy-28-row-pattern.json
+          if-no-files-found: warn
