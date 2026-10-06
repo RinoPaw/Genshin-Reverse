@@ -235,6 +235,53 @@ The ordinary row exposes no equivalent direct `acceptCond` or `beginExec` object
 slot among these quest condition/execution fields. This materially strengthens the conclusion
 that legacy public QuestExcel schemas cannot be projected onto the 7.1 ordinary row.
 
+### Full/brief runtime index binding
+
+Exact 7.1 native bootstrap and lookup evidence separates the full and brief
+MainQuest binary indexes:
+
+```text
+Data/_BinOutput/IndexDic/MainQuestIndex
+  string literal index 64807
+  usage slot RVA 0x5A57B98
+  LAABEAMHPJG bootstrap A @ 0xFCBBB40
+  -> ODJJEFFIPFA static +0x31350
+  -> ODJJEFFIPFA.LFDEMLPDDFL(uint32,uint64) @ 0x9F92800
+  -> full loader LDJGPDBKIEO(uint32,Action,bool) @ 0x9F9A130
+  -> AFIOOHMJHDM
+
+Data/_BinOutput/IndexDic/MainQuestBriefIndex
+  string literal index 64809
+  usage slot RVA 0x5A57BA8
+  LAABEAMHPJG bootstrap @ 0xFCBC530
+  -> ODJJEFFIPFA static +0x312E0
+  -> ODJJEFFIPFA.HGBAJLEGHGA(uint32,uint64) @ 0x9F891F0
+  -> brief loader PFPFCHBANIH(uint32) @ 0x9F88D40
+  -> FNJLMNMEKLN
+```
+
+The current 7.1 string-literal usage table satisfies
+`slot_rva = 0x59D9260 + literal_index * 8` for these adjacent protected
+literals, which independently binds the bootstrap slots to the recovered resource
+names.
+
+Do not use the brief `+0x312E0` path as the full MainQuest source. The full
+351 resource lookup must follow `MainQuestIndex -> +0x31350 -> AFIOOHMJHDM`.
+
+The native ordinary condition/exec array readers also recover their count
+transforms:
+
+```text
+QuestExec[]:
+  count = raw_u32 + 0xB0F7C9F4              (mod 2^32)
+
+QuestContent[]:
+  count = (raw_u32 + 0x9278C6C1) XOR 0x415C14AA
+```
+
+Each array then allocates exactly `count` elements and calls the corresponding
+scalar `GMENPOPMKAA(FNIAHJGHFAK)` reader for every element.
+
 The remaining #8 proof step is to bind this ordinary-row deserializer to
 `Data/_ExcelBinOutput/QuestExcelConfigData` and decode the exact 2,824,188-byte payload
 with full consumption or an equally strong invariant.
