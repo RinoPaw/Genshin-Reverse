@@ -1004,6 +1004,109 @@ jobs:
           )
           PY
 
+      - name: Resolve ResourceIndex asset-location write path
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-resource-index-writepath.json \
+            --focus add-asset-location:0x71071B0 \
+            --focus set-asset-count:0x71070A0 \
+            --focus get-path-hash:0x701C920 \
+            --max-body 0x10000 \
+            | tee quest-resource-index-writepath.txt
+
+          python - <<'PY' | tee quest-resource-index-field-runtime.txt
+          import csv, json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          with (ROOT/"fields.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              fields=list(csv.DictReader(f))
+          with (ROOT/"types.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              types=list(csv.DictReader(f))
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          targets=[
+              x for x in fields
+              if int(x["type_definition_index"])==11049
+              and x["field_name"] in {"_assetLocationMap","_useNativeConfig"}
+          ]
+          report=[]
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              def raw_index(idx):
+                  raw=image.read_rva(type_array_va+idx*ENTRY_SIZE-base,ENTRY_SIZE)
+                  if len(raw)!=ENTRY_SIZE or not is_valid_type_entry(raw):
+                      raise AssertionError(idx)
+                  return raw
+              def describe(raw,depth=0):
+                  d=decode_type_entry(raw)
+                  kind=int(d["kind"])
+                  out={
+                      "kind":kind,
+                      "kind_name":d["kind_name"],
+                      "data_u32":int(d["data_u32"]),
+                      "data_u64":f"0x{int.from_bytes(raw[:8],'little'):X}",
+                      "raw":raw.hex(),
+                  }
+                  if kind in (0x11,0x12):
+                      tdi=int(d["data_u32"])
+                      out["type_definition_index"]=tdi
+                      out["type_definition"]=type_by_tdi.get(tdi,{})
+                  return out
+              for fld in targets:
+                  idx=int(fld["field_type_index"])
+                  item={"field":fld,"runtime_type_index":idx,"runtime_type":describe(raw_index(idx))}
+                  report.append(item)
+                  print(json.dumps(item,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-resource-index-field-runtime.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-resource-index-writepath-summary.txt
+          import json
+          from pathlib import Path
+          data=json.loads(Path("quest-resource-index-writepath.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in data["focus"].items():
+              ins=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if m in {"call","jmp","mov","movzx","movsxd","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror","neg","cmov","cmovs"}:
+                      ins.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "instructions":ins,
+              }
+              print("\n###",label)
+              for x in ins:
+                  print(x.get("rva"),x.get("mnemonic"),x.get("op_str"))
+          Path("quest-resource-index-writepath-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -1042,6 +1145,12 @@ jobs:
             quest-resource-identifier-schema.json
             quest-resource-identifier-summary.txt
             quest-resource-identifier-summary.json
+            quest-resource-index-writepath.txt
+            quest-resource-index-writepath.json
+            quest-resource-index-field-runtime.txt
+            quest-resource-index-field-runtime.json
+            quest-resource-index-writepath-summary.txt
+            quest-resource-index-writepath-summary.json
             quest-resource-identifier-accessors.txt
             quest-resource-identifier-accessors.json
             quest-resource-index-schema.txt
