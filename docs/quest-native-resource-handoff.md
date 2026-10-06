@@ -284,6 +284,92 @@ No direct ordinary `acceptCond` / `beginExec` object-array slot is present in th
 The next decisive #8 step is now narrower: bind `LAIMPNDEFCL.GMENPOPMKAA` to the exact
 `Data/_ExcelBinOutput/QuestExcelConfigData` loader/table path, then establish table/row framing and decode the 2,824,188-byte payload with full consumption or an equally strong invariant.
 
+#### Runtime Quest binary index and per-ID slices — exact native chain
+
+Subsequent exact-sample probes show that the client does **not** deserialize the
+2,824,188-byte QuestExcel payload directly as an `FNJLMNMEKLN[]` table.
+
+The runtime Quest path has a separate binary index layer:
+
+```text
+ODJJEFFIPFA.HGBAJLEGHGA(uint32,uint64) @ 0x9F891F0
+  quest/main id
+  -> static index slot +0x312E0
+  -> search by id
+  -> 24-byte runtime index entry
+  -> first qword = uint64 binary handle
+
+PMOALIJHONP.GCJPJCKPGLI(uint64,int32,int32) @ 0x10175A00
+  handle
+  -> CommonMiscs / Runtime LoadBinData
+  -> FNIAHJGHFAK reader
+
+ODJJEFFIPFA.PFPFCHBANIH(uint32) @ 0x9F88D40
+  -> new FNJLMNMEKLN
+  -> FNJLMNMEKLN.GMENPOPMKAA(reader) @ 0x1269C5F0
+  -> ODJJEFFIPFA.BECFLOFNBMM
+  -> FNJLMNMEKLN.KICDJCPGADJ(AFIOOHMJHDM) @ 0x1269C4A0
+  -> AFIOOHMJHDM runtime expansion
+```
+
+The direction of `KICDJCPGADJ` is **FNJ -> AFIO**. Earlier exploratory notes that
+read it in the opposite direction are superseded.
+
+The `+0x312E0` index is loaded at startup from a separate named binary resource:
+
+```text
+LAABEAMHPJG.CENGFAOEHNH @ 0xFCBC530
+  -> PMOALIJHONP.GCJPJCKPGLI(string,0,0)
+  -> LDABEPAGBGK.GMENPOPMKAA(reader, generic-inst)
+  -> static ODJJEFFIPFA +0x312E0
+```
+
+The exact specialized `LDABEPAGBGK` reader at `0x77F7860` recovers the
+serialized index format:
+
+```text
+encoded_count : u32
+count = (encoded_count XOR 0x5785D208) + 0x0A34766E
+
+repeat count times:
+    encoded_id     : u32
+    encoded_handle : u64
+
+    id     = encoded_id XOR 0x92C938B5
+    handle = encoded_handle + 0x2B6567EA
+```
+
+The decoded pairs are inserted into the runtime ID -> uint64 handle container.
+This matches the later 24-byte runtime search entries and the handle-based
+`LoadBinData` path.
+
+This index resource is a **different resource layer** from the exact
+`Data/_ExcelBinOutput/QuestExcelConfigData` asset. Applying the index decoder
+to the QuestExcel payload's first four bytes produces an impossible count, so do
+not interpret the QuestExcel leading `7473` as this index count without a
+separate direct linkage.
+
+Current source-authority model:
+
+```text
+QuestExcelConfigData raw asset
+    [exact extraction confirmed; native projection still unresolved]
+
+separate Quest binary index resource
+    id -> uint64 handle
+        -> per-id binary slice
+        -> FNJ compact config
+        -> AFIO runtime expansion
+        -> LAIMPNDEFCL[] ordinary subquests
+```
+
+A second source-shaped native type, `GPCFGOEJFJK` (typeDefinition 82662), has
+36 fields and shares many exact obfuscated field names with `FNJLMNMEKLN`,
+while also retaining extra strings/arrays. It has its own binary reader at
+`0xCAB9080`. This is now the strongest candidate for an intermediate
+source/runtime projection layer; its exact relation to QuestExcel/FNJ/AFIO is
+being traced and is **UNRESOLVED**.
+
 Do not infer current field order from public JSON or historical class layouts.
 
 ### Resume here
@@ -295,16 +381,17 @@ Do not infer current field order from public JSON or historical class layouts.
 2. Treat AstaPS current QuestExcel as a mixed legacy/synthetic resource, not a 7.1 native dump.
 3. Treat Dimbreath same-version Excel public field names as schema-drifted until native mappings validate them.
 4. Reuse `LAIMPNDEFCL` typeDefinition 17589 and deserializer `0x9C15DF0`.
-5. Bind that deserializer to the exact QuestExcel asset/table loader.
-6. Treat `+0x10 failExec / +0x18 failCond / +0x20 finishCond / +0x58 finishExec` as solved; do not reopen them without contradictory exact evidence.
-7. Recover table/row framing and decode representative rows from the exact 2,824,188-byte payload with complete consumption.
-8. Compare direct decode against:
+5. Keep the exact QuestExcel raw asset and the separate runtime ID->handle binary-index resource distinct until a projection bridge is proven.
+6. Trace the strongest current bridge candidate `GPCFGOEJFJK` to FNJ/AFIO/LAIMPNDEFCL or to the QuestExcel loader.
+7. Treat `+0x10 failExec / +0x18 failCond / +0x20 finishCond / +0x58 finishExec` as solved; do not reopen them without contradictory exact evidence.
+8. Recover QuestExcel table/row framing and decode representative rows from the exact 2,824,188-byte payload with complete consumption.
+9. Compare direct decode against:
    - current same-version BinOutput;
    - Dimbreath public Excel;
    - AstaPS mixed QuestExcel;
    - historical controls only where version-valid.
-9. Promote #8 to CONFIRMED only after that direct-decode gate.
-10. Do not mutate AstaPS-Resource prerequisites from public JSON alone.
+10. Promote #8 to CONFIRMED only after that direct-decode gate.
+11. Do not mutate AstaPS-Resource prerequisites from public JSON alone.
 
 ### Known dead ends / do not repeat
 
