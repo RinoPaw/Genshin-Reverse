@@ -1,0 +1,254 @@
+name: Validate Dimbreath 7.1 QuestExcel against native wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-dimbreath-native-wire.yml"
+
+concurrency:
+  group: probe-dimbreath-native-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel native object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact Dimbreath 7.1 QuestExcel
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout \
+            792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Validate scalar columns against native row anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee dimbreath-native-wire.txt
+          import collections
+          import hashlib
+          import json
+          import struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          AGD=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY=0xB1571A55
+
+          raw=RAW.read_bytes()
+          size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+size]
+          rows=json.loads(AGD.read_text(encoding="utf-8"))
+          if len(rows)!=17814:
+              raise SystemExit(f"unexpected AGD rows {len(rows)}")
+
+          # Bind every row only by the independently recovered subId transform.
+          enc_to_rows=collections.defaultdict(list)
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  enc_to_rows[(sid^SUBID_KEY)&0xffffffff].append((ordinal,sid))
+
+          wanted=set(enc_to_rows)
+          hits=collections.defaultdict(list)
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in wanted:
+                  hits[u].append(pos)
+
+          anchors={}
+          for enc,items in enc_to_rows.items():
+              if len(items)==1 and len(hits[enc])==1:
+                  ordinal,sid=items[0]
+                  anchors[ordinal]=(sid,hits[enc][0])
+
+          # Require adjacent Dimbreath rows with unique monotonic anchors. The
+          # interval [current subId anchor, next subId anchor) stays inside the
+          # current native row after the subId field.
+          spans=[]
+          for ordinal,row in enumerate(rows[:-1]):
+              a=anchors.get(ordinal)
+              b=anchors.get(ordinal+1)
+              if not a or not b or b[1] <= a[1]:
+                  continue
+              gap=b[1]-a[1]
+              if 4 <= gap <= 4096:
+                  spans.append((ordinal,row,a[1],b[1]))
+
+          print("rows",len(rows))
+          print("unique_subid_anchors",len(anchors))
+          print("adjacent_native_spans",len(spans))
+
+          # For each scalar field, rank one global fixed-width transform that
+          # occurs somewhere after subId in each row. This does not assume a
+          # byte offset because optional fields shift later payload positions.
+          fields=[
+              "mainId","order","failParent","stepDescTextMapHash",
+              "guideTipsTextMapHash","subIdSet",
+          ]
+
+          def rank(field,width):
+              mask=(1<<(8*width))-1
+              xor=collections.Counter()
+              sub=collections.Counter()
+              add=collections.Counter()
+              eligible=0
+              for ordinal,row,a,b in spans:
+                  v=row.get(field)
+                  if not isinstance(v,int):
+                      continue
+                  v &= mask
+                  eligible+=1
+                  local_x=set(); local_s=set(); local_a=set()
+                  data=payload[a:b]
+                  for off in range(0,max(0,len(data)-width+1)):
+                      u=int.from_bytes(data[off:off+width],"little")
+                      local_x.add(u^v)
+                      local_s.add((u-v)&mask)
+                      local_a.add((u+v)&mask)
+                  xor.update(local_x)
+                  sub.update(local_s)
+                  add.update(local_a)
+
+              def best(counter):
+                  return [
+                      {
+                          "key":f"0x{k:0{width*2}X}",
+                          "support":n,
+                          "eligible":eligible,
+                          "ratio":n/eligible if eligible else 0,
+                      }
+                      for k,n in counter.most_common(20)
+                  ]
+              return {
+                  "field":field,
+                  "width":width,
+                  "eligible":eligible,
+                  "xor":best(xor),
+                  "raw_minus_value":best(sub),
+                  "raw_plus_value":best(add),
+              }
+
+          transforms=[]
+          for f in fields:
+              for w in (4,2,1):
+                  transforms.append(rank(f,w))
+
+          # Per-row direct checks for the known subId transform.
+          subid_checks=[]
+          for ordinal,(sid,pos) in sorted(anchors.items())[:200]:
+              raw_u=struct.unpack_from("<I",payload,pos)[0]
+              subid_checks.append({
+                  "ordinal":ordinal,"subId":sid,"pos":pos,
+                  "raw":f"0x{raw_u:08X}",
+                  "decoded":raw_u^SUBID_KEY,
+              })
+
+          # Quest 351 native windows and all Dimbreath fields, for manual
+          # inspection after scalar validation.
+          q351=[]
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if not isinstance(sid,int) or not 35100<=sid<=35107:
+                  continue
+              anchor=anchors.get(ordinal)
+              if not anchor:
+                  continue
+              next_anchor=anchors.get(ordinal+1)
+              prev_anchor=anchors.get(ordinal-1)
+              pos=anchor[1]
+              lo=(prev_anchor[1]+4 if prev_anchor else max(0,pos-64))
+              hi=(next_anchor[1] if next_anchor else min(len(payload),pos+256))
+              q351.append({
+                  "ordinal":ordinal,
+                  "subId":sid,
+                  "anchor":pos,
+                  "window_lo":lo,
+                  "window_hi":hi,
+                  "window_hex":payload[lo:hi].hex(),
+                  "row":row,
+              })
+          q351.sort(key=lambda x:x["anchor"])
+
+          out={
+              "native":{
+                  "sha256":hashlib.sha256(raw).hexdigest(),
+                  "payload_sha256":hashlib.sha256(payload).hexdigest(),
+              },
+              "agd":{
+                  "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+                  "sha256":hashlib.sha256(AGD.read_bytes()).hexdigest(),
+                  "rows":len(rows),
+              },
+              "subId_key":f"0x{SUBID_KEY:08X}",
+              "unique_subid_anchors":len(anchors),
+              "adjacent_native_spans":len(spans),
+              "transforms":transforms,
+              "subid_checks":subid_checks,
+              "quest351":q351,
+          }
+          print("\n=== transform leaders ===")
+          for x in transforms:
+              leaders=[]
+              for kind in ("xor","raw_minus_value","raw_plus_value"):
+                  if x[kind]:
+                      leaders.append((kind,x[kind][0]))
+              print(x["field"],"w",x["width"],leaders)
+          print("\n=== Quest 351 ===")
+          for x in q351:
+              print(json.dumps({
+                  "ordinal":x["ordinal"],"subId":x["subId"],"anchor":x["anchor"],
+                  "window_len":x["window_hi"]-x["window_lo"],
+                  "row":x["row"],
+              },ensure_ascii=False))
+
+          Path("dimbreath-native-wire.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          # At minimum Dimbreath row identity must map strongly to native bytes.
+          if len(anchors) < 17000:
+              raise SystemExit(f"too few unique subId anchors: {len(anchors)}")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: dimbreath-native-wire
+          path: |
+            dimbreath-native-wire.txt
+            dimbreath-native-wire.json
+          if-no-files-found: error
