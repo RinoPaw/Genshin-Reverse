@@ -158,7 +158,7 @@ jobs:
 
           path="Data/_ExcelBinOutput/QuestExcelConfigData"
           h=mihoyo_name_hash(path)
-          exported=f"{h & 0xffffffff:08x}"
+          exported=f"{h >> 8:08x}"
           target=Path("quest-output")/(exported+".dat")
           print("path",path)
           print("hash",f"0x{h:010X}")
