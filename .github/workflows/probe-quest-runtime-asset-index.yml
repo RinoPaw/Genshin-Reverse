@@ -445,6 +445,43 @@ jobs:
           Path('runtime-asset-index-underlying-primitives.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+      - name: Trace primary asset_index bootstrap and map comparer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            runtime-asset-index-bootstrap.json \
+            --focus provider-load-index:0x7012410 \
+            --focus resource-index-ctor:0x71062F0 \
+            --focus binary-reader-path-ctor:0x6C63B70 \
+            --max-body 0x10000 \
+            | tee runtime-asset-index-bootstrap.txt
+
+          python - <<'PY' | tee runtime-asset-index-bootstrap-summary.txt
+          import json
+          from pathlib import Path
+          data=json.loads(Path('runtime-asset-index-bootstrap.json').read_text(encoding='utf-8'))
+          out={}
+          for label,item in data['focus'].items():
+              keep=[]
+              for x in item.get('disassembly',[]):
+                  m=x.get('mnemonic','')
+                  op=x.get('op_str','').lower()
+                  if m in {'call','jmp','mov','lea','cmp','test','xor','and','or','shl','shr','sar','add','sub'}:
+                      keep.append(x)
+              out[label]={
+                  'owner':item.get('owner'),
+                  'direct_callers':item.get('direct_callers',[]),
+                  'direct_edges':item.get('direct_edges',[]),
+                  'interesting':keep,
+              }
+              print('\n###',label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+          Path('runtime-asset-index-bootstrap-summary.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -496,4 +533,8 @@ jobs:
             runtime-asset-index-manifest-hits.json
             runtime-asset-index-deserialize-callers.txt
             runtime-asset-index-deserialize-callers.json
+            runtime-asset-index-bootstrap.txt
+            runtime-asset-index-bootstrap.json
+            runtime-asset-index-bootstrap-summary.txt
+            runtime-asset-index-bootstrap-summary.json
           if-no-files-found: error
