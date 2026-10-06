@@ -1,0 +1,205 @@
+name: Probe 7.1 Quest Excel parser family
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-excel-parser-family.yml"
+
+concurrency:
+  group: probe-quest-excel-parser-family-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Scan generated Excel table parser family
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-parser-family.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM,X86_OP_REG
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          ROOT=Path('versions/7.1.0-global/windows-x64/metadata')
+          require_sha256(EXE,PROFILE_71.exe_sha256,label='executable')
+          QUEST_RAW=0x40233AB1
+          MASK32=0xffffffff
+          BASE=0x140000000
+          KNOWN={
+              0xF955AF0:'MainQuestExcelConfigData',
+              0x9623050:'RandomQuestExcelConfigData',
+              0x7B73030:'RandomMainQuestExcelConfigData',
+          }
+
+          with (ROOT/'methods.csv').open('r',encoding='utf-8-sig',newline='') as fh:
+              methods=list(csv.DictReader(fh))
+          rows=[]
+          for m in methods:
+              try:r=int(m.get('rva') or '0',0)
+              except ValueError:continue
+              if r:rows.append((r,m))
+          rows.sort(key=lambda x:x[0]); starts=[r for r,_ in rows]
+          by={}
+          for r,m in rows:by.setdefault(r,[]).append(m)
+
+          def canon(n):
+              n=n.lower()
+              d={'rax':'a','eax':'a','ax':'a','al':'a','rbx':'b','ebx':'b','bx':'b','bl':'b',
+                 'rcx':'c','ecx':'c','cx':'c','cl':'c','rdx':'d','edx':'d','dx':'d','dl':'d',
+                 'rsi':'si','esi':'si','sil':'si','rdi':'di','edi':'di','dil':'di',
+                 'rbp':'bp','ebp':'bp','bpl':'bp','rsp':'sp','esp':'sp','spl':'sp'}
+              if n in d:return d[n]
+              if n.startswith('r'):
+                  z=n[1:].rstrip('dwb')
+                  if z.isdigit():return 'r'+z
+              return n
+
+          def rn(ins,op):return canon(ins.reg_name(op.reg) or '')
+          def is_stream4(op):
+              if op.type!=X86_OP_MEM or op.size!=4:return False
+              m=op.mem
+              return m.disp==0x20 and m.base!=0 and m.index!=0 and m.scale==1
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+          out=[]
+          with PEImage(EXE) as image:
+              for pos,(r,m) in enumerate(rows):
+                  if 'FNIAHJGHFAK' not in (m.get('parameter_types') or ''):
+                      continue
+                  i=bisect.bisect_right(starts,r)
+                  end=starts[i] if i<len(starts) else r+0x400
+                  size=end-r
+                  if size<0x100 or size>0x500:
+                      continue
+                  ins=list(md.disasm(image.read_rva(r,size),BASE+r))
+                  if not ins:continue
+                  has_ensure=False; allocs=0; has_virtual=False; back=[]
+                  for x in ins:
+                      ops=x.operands
+                      if x.mnemonic=='call':
+                          if ops and ops[0].type==X86_OP_IMM:
+                              tr=ops[0].imm-BASE if ops[0].imm>=BASE else ops[0].imm
+                              if tr==0x1269BFC0:has_ensure=True
+                              if tr==0x529A10:allocs+=1
+                          if '+ 0xf0]' in x.op_str.lower() or '+0xf0]' in x.op_str.lower():
+                              has_virtual=True
+                      if x.mnemonic.startswith('j') and ops and ops[0].type==X86_OP_IMM:
+                          tr=ops[0].imm-BASE if ops[0].imm>=BASE else ops[0].imm
+                          if tr < x.address-BASE:back.append((x.address-BASE,tr,x.mnemonic))
+                  if not(has_ensure and allocs>=2 and has_virtual and back):
+                      continue
+
+                  vals={}; count_hits=[]
+                  for ix,x in enumerate(ins[:90]):
+                      ops=x.operands
+                      # plain constants / copies
+                      if x.mnemonic in ('mov','movabs') and len(ops)==2 and ops[0].type==X86_OP_REG:
+                          dst=rn(x,ops[0])
+                          if ops[1].type==X86_OP_IMM:
+                              vals[dst]=(ops[1].imm&MASK32,hex(ops[1].imm&MASK32),False)
+                              continue
+                          if ops[1].type==X86_OP_REG:
+                              src=rn(x,ops[1])
+                              if src in vals:vals[dst]=vals[src]
+                              else:vals.pop(dst,None)
+                              continue
+
+                      # stream source
+                      if len(ops)==2 and ops[0].type==X86_OP_REG and is_stream4(ops[1]):
+                          dst=rn(x,ops[0]); before=vals.get(dst)
+                          if x.mnemonic=='mov': vals[dst]=(QUEST_RAW,'raw',True)
+                          elif x.mnemonic in ('add','xor','sub') and before:
+                              a,e,d=before
+                              v=((a+QUEST_RAW) if x.mnemonic=='add' else
+                                 (a^QUEST_RAW) if x.mnemonic=='xor' else (a-QUEST_RAW)) & MASK32
+                              vals[dst]=(v,f'({e} {x.mnemonic} raw)',True)
+                          else: vals.pop(dst,None)
+
+                      if x.mnemonic in ('add','xor','sub') and len(ops)==2 and ops[0].type==X86_OP_REG:
+                          dst=rn(x,ops[0])
+                          if dst in vals:
+                              a,e,d=vals[dst]; b=None;be=None;bd=False
+                              if ops[1].type==X86_OP_IMM:
+                                  b=ops[1].imm&MASK32;be=hex(b)
+                              elif ops[1].type==X86_OP_REG:
+                                  src=rn(x,ops[1])
+                                  if src in vals:b,be,bd=vals[src]
+                              if b is not None:
+                                  v=((a+b) if x.mnemonic=='add' else
+                                     (a^b) if x.mnemonic=='xor' else (a-b)) & MASK32
+                                  vals[dst]=(v,f'({e} {x.mnemonic} {be})',d or bd)
+                      if x.mnemonic=='lea' and len(ops)==2 and ops[0].type==X86_OP_REG and ops[1].type==X86_OP_MEM:
+                          mm=ops[1].mem;dst=rn(x,ops[0])
+                          if mm.base and mm.index==0:
+                              src=canon(x.reg_name(mm.base) or '')
+                              if src in vals:
+                                  a,e,d=vals[src];vals[dst]=((a+mm.disp)&MASK32,f'({e} add {hex(mm.disp&MASK32)})',d)
+
+                      for reg,(v,e,d) in vals.items():
+                          if d:
+                              sv=v if v<0x80000000 else v-0x100000000
+                              if 0 < sv <= 1000000:
+                                  hit=(ix,x.address-BASE,reg,v,sv,e)
+                                  if hit not in count_hits:count_hits.append(hit)
+
+                  # Keep only first plausible decoded value for each expression/value pair.
+                  uniq=[];seen=set()
+                  for h in count_hits:
+                      key=(h[3],h[5])
+                      if key in seen:continue
+                      seen.add(key);uniq.append(h)
+
+                  key_offsets=[]
+                  for ix,x in enumerate(ins):
+                      if x.mnemonic=='call' and ('+ 0xf0]' in x.op_str.lower() or '+0xf0]' in x.op_str.lower()):
+                          for y in ins[ix+1:ix+25]:
+                              if y.mnemonic=='mov' and len(y.operands)==2 and y.operands[1].type==X86_OP_MEM and y.operands[1].size==4:
+                                  mm=y.operands[1].mem
+                                  if mm.index==0 and 0x10<=mm.disp<=0x200:
+                                      key_offsets.append({'rva':f'0x{y.address-BASE:X}','op':y.op_str,'offset':mm.disp})
+                          break
+
+                  item={
+                      'rva':f'0x{r:X}','known':KNOWN.get(r),'method':m,'size':size,
+                      'alloc_calls':allocs,'backward_branches':[{'site':f'0x{a:X}','target':f'0x{b:X}','mnemonic':mn} for a,b,mn in back],
+                      'count_candidates':[{'site_rva':f'0x{a:X}','u32':v,'signed':sv,'hex':f'0x{v:08X}','expr':e} for _,a,_,v,sv,e in uniq],
+                      'key_offsets':key_offsets[:8],
+                  }
+                  out.append(item)
+
+          out.sort(key=lambda x:int(x['rva'],16))
+          report={'quest_payload_first_u32':'0x40233AB1','parser_family_count':len(out),'parsers':out}
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path('quest-excel-parser-family.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-excel-parser-family
+          path: |
+            quest-excel-parser-family.txt
+            quest-excel-parser-family.json
+          if-no-files-found: error
