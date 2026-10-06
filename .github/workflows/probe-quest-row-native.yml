@@ -1481,6 +1481,123 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Cross-map AFIO runtime fields to named RandomMainQuest fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-main-wrapper-field-map.txt
+          import bisect
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          JEFO_TDI = 75872
+          RANDOM_MAIN_TDI = 19426
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods = read_csv("methods.csv")
+          fields = read_csv("fields.csv")
+          methods_by_tdi = {}
+          fields_by_tdi = {}
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          all_starts = sorted({
+              int(r["rva"], 0)
+              for r in methods
+              if (r.get("rva") or "").strip()
+          })
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          report = {
+              "random_main_fields": fields_by_tdi[RANDOM_MAIN_TDI],
+              "dual_branch_methods": [],
+          }
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              for m in methods_by_tdi[JEFO_TDI]:
+                  text = (m.get("rva") or "").strip()
+                  if not text:
+                      continue
+                  start = int(text, 0)
+                  pos = bisect.bisect_right(all_starts, start)
+                  end = all_starts[pos] if pos < len(all_starts) else start + 0x800
+                  if end <= start or end - start > 0x2000:
+                      end = start + 0x800
+                  insns = [
+                      {
+                          "rva": f"0x{ins.address-base:X}",
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                      }
+                      for ins in md.disasm(image.read_rva(start, end-start), base+start)
+                  ]
+
+                  has_ordinary_slot = any(
+                      re.search(r"qword ptr \[[^\]]+ \+ 8\]", x["op_str"].lower())
+                      for x in insns
+                  )
+                  has_random_slot = any(
+                      re.search(r"qword ptr \[[^\]]+ \+ 0x10\]", x["op_str"].lower())
+                      for x in insns
+                  )
+                  if not (has_ordinary_slot and has_random_slot):
+                      continue
+
+                  # Collect all small nested offsets. Manual inspection of these
+                  # methods gives exact ordinary AFIO <-> named RandomMain pairs.
+                  nested = []
+                  for x in insns:
+                      for match in re.finditer(
+                          r"\[[a-z0-9]+ \+ (0x[0-9a-f]+|[0-9]+)\]",
+                          x["op_str"].lower(),
+                      ):
+                          off = int(match.group(1), 0)
+                          if off <= 0x200:
+                              nested.append({
+                                  "offset": f"0x{off:X}",
+                                  "rva": x["rva"],
+                                  "mnemonic": x["mnemonic"],
+                                  "op_str": x["op_str"],
+                              })
+
+                  item = {
+                      "method": m,
+                      "nested_accesses": nested,
+                      "instructions": insns,
+                  }
+                  report["dual_branch_methods"].append(item)
+                  print("DUAL", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-main-wrapper-field-map.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x9123370 0xE50 \
+            --expected-sha256 "$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')" \
+            --label "RandomMainQuestExcelConfig.FromBinaryInner(reader)" \
+            --output quest-random-main-reader.json \
+            > quest-random-main-reader.txt
       - name: Assert evidence
         shell: bash
         run: |
@@ -1501,6 +1618,8 @@ jobs:
           test -s quest-becfl-summary.json
           test -s quest-main-id-cardinality.json
           test -s quest-random-main-control.json
+          test -s quest-main-wrapper-field-map.json
+          test -s quest-random-main-reader.json
           test -s quest-fnj-reader.json
           test -s quest-fnj-side-reader.json
           test -s quest-fnj-reader-calls.json
@@ -1542,6 +1661,10 @@ jobs:
             quest-main-id-cardinality.json
             quest-random-main-control.txt
             quest-random-main-control.json
+            quest-main-wrapper-field-map.txt
+            quest-main-wrapper-field-map.json
+            quest-random-main-reader.txt
+            quest-random-main-reader.json
             quest-fnj-reader.txt
             quest-fnj-reader.json
             quest-fnj-side-reader.txt
