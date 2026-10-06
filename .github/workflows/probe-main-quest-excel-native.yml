@@ -813,13 +813,15 @@ jobs:
           exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
           root = Path('versions/7.1.0-global/windows-x64/metadata')
 
+          QUEST_COND_ARRAY_OUTER = 0x115828F0
           QUEST_COND_ARRAY_INNER = 0x11582950
           QUEST_COND_SCALAR_INNER = 0x115825D0
-          QUEST_COND_FROM_BINARY = 0x11582570
+          QUEST_COND_SCALAR_OUTER = 0x11582570
           TARGETS = {
+              QUEST_COND_ARRAY_OUTER: 'QuestCond.FromBinary(reader, kind_0x1D)',
               QUEST_COND_ARRAY_INNER: 'QuestCond.FromBinaryInner(reader, kind_0x1D)',
               QUEST_COND_SCALAR_INNER: 'QuestCond.FromBinaryInner(reader)',
-              QUEST_COND_FROM_BINARY: 'QuestCond.FromBinary(reader)',
+              QUEST_COND_SCALAR_OUTER: 'QuestCond.FromBinary(reader)',
           }
 
           def read_csv(name):
@@ -942,6 +944,10 @@ jobs:
                   owner_fields = fields_by_owner[owner]
                   owner_methods = methods_by_owner[owner]
                   score = 0
+                  score += 140 * sum(
+                      1 for h in hits
+                      if h['target_rva'] == f'0x{QUEST_COND_ARRAY_OUTER:X}'
+                  )
                   score += 100 * sum(
                       1 for h in hits
                       if h['target_rva'] == f'0x{QUEST_COND_ARRAY_INNER:X}'
