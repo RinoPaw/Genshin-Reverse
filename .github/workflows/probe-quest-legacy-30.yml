@@ -77,14 +77,21 @@ jobs:
           with open_zip() as rz:
               names = rz.namelist()
           exe = [n for n in names if n.lower().endswith("/genshinimpact.exe") or n.lower()=="genshinimpact.exe"]
-          meta = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
+          meta_all = [n for n in names if n.lower().endswith("/global-metadata.dat") or n.lower()=="global-metadata.dat"]
+          meta = [
+              n for n in meta_all
+              if n.replace("\\","/").lower().endswith(
+                  "/managed/metadata/global-metadata.dat"
+              )
+          ]
           print("zip_entries", len(names))
           print("exe_matches", exe)
-          print("metadata_matches", meta)
+          print("metadata_matches", meta_all)
+          print("selected_metadata", meta)
           if len(exe) != 1:
               raise SystemExit(f"expected one GenshinImpact.exe, got {exe}")
           if len(meta) != 1:
-              raise SystemExit(f"expected one global-metadata.dat, got {meta}")
+              raise SystemExit(f"expected one Managed/Metadata/global-metadata.dat, got {meta}")
 
           for src_name, dst_name in ((exe[0], "GenshinImpact.exe"), (meta[0], "global-metadata.dat")):
               dst = out / dst_name
