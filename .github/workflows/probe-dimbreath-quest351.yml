@@ -1,0 +1,138 @@
+name: Compare Dimbreath 7.1 QuestExcel with AstaPS
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-dimbreath-quest351.yml"
+
+concurrency:
+  group: probe-dimbreath-quest351-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact Dimbreath 7.1 and initial AstaPS QuestExcel
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf /tmp/agd /tmp/astaps
+
+          git clone --filter=blob:none --no-checkout             https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set             'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout             792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+          git clone --filter=blob:none --no-checkout             https://github.com/MeChen618/AstaPS-Resource.git /tmp/astaps
+          git -C /tmp/astaps sparse-checkout init --no-cone
+          git -C /tmp/astaps sparse-checkout set             'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/astaps checkout             8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/astaps/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Compare exact files and Quest 351
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee dimbreath-quest351.txt
+          import hashlib
+          import json
+          from pathlib import Path
+
+          agd_path=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          asta_path=Path("/tmp/astaps/ExcelBinOutput/QuestExcelConfigData.json")
+          agd=json.loads(agd_path.read_text(encoding="utf-8"))
+          asta=json.loads(asta_path.read_text(encoding="utf-8"))
+
+          def q351(rows):
+              out=[]
+              for row in rows:
+                  if row.get("mainId") != 351:
+                      continue
+                  out.append({
+                      "subId":row.get("subId"),
+                      "mainId":row.get("mainId"),
+                      "order":row.get("order"),
+                      "acceptCondComb":row.get("acceptCondComb"),
+                      "acceptCond":row.get("acceptCond"),
+                      "beginExec":row.get("beginExec"),
+                      "finishCond":row.get("finishCond"),
+                      "failCond":row.get("failCond"),
+                      "finishExec":row.get("finishExec"),
+                      "failExec":row.get("failExec"),
+                  })
+              out.sort(key=lambda x:(x["order"] if isinstance(x["order"],int) else 1<<30,x["subId"]))
+              return out
+
+          a351=q351(agd)
+          s351=q351(asta)
+
+          agd_by_sid={x.get("subId"):x for x in agd if isinstance(x.get("subId"),int)}
+          asta_by_sid={x.get("subId"):x for x in asta if isinstance(x.get("subId"),int)}
+          common=set(agd_by_sid)&set(asta_by_sid)
+
+          fields=[
+              "mainId","order","subIdSet","isMpBlock","descTextMapHash",
+              "stepDescTextMapHash","guideTipsTextMapHash","showType","banType",
+              "acceptCondComb","acceptCond","finishCondComb","finishCond",
+              "failCondComb","failCond","guide","showGuide","finishParent",
+              "failParent","failParentShow","isRewind","finishExec","failExec",
+              "beginExec","exclusiveNpcList","sharedNpcList",
+              "exclusiveNpcPriority","trialAvatarList","exclusivePlaceList",
+          ]
+          field_equal={}
+          for f in fields:
+              n=sum(agd_by_sid[s].get(f)==asta_by_sid[s].get(f) for s in common)
+              field_equal[f]={"equal":n,"eligible":len(common),"ratio":n/len(common) if common else 0}
+
+          report={
+              "dimbreath":{
+                  "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+                  "version_commit_message":"CNRELWin7.1.0_R48379043_S48511369_D48533839",
+                  "row_count":len(agd),
+                  "sha256":hashlib.sha256(agd_path.read_bytes()).hexdigest(),
+                  "quest351":a351,
+              },
+              "astaps_initial":{
+                  "commit":"8c85a82f37341a422002a0352c89a142c4017e53",
+                  "row_count":len(asta),
+                  "sha256":hashlib.sha256(asta_path.read_bytes()).hexdigest(),
+                  "quest351":s351,
+              },
+              "byte_identical":agd_path.read_bytes()==asta_path.read_bytes(),
+              "common_subIds":len(common),
+              "only_dimbreath":len(set(agd_by_sid)-set(asta_by_sid)),
+              "only_astaps":len(set(asta_by_sid)-set(agd_by_sid)),
+              "field_equality_on_common_subIds":field_equal,
+              "quest351_equal":a351==s351,
+          }
+
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("dimbreath-quest351.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: dimbreath-quest351
+          path: |
+            dimbreath-quest351.txt
+            dimbreath-quest351.json
+          if-no-files-found: error
