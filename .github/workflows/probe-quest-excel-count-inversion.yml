@@ -1,0 +1,187 @@
+name: Identify QuestExcel loader by inverted row count
+
+on:
+  push:
+    branches: [probe/quest-blb3-binoutput]
+    paths: [".github/workflows/probe-quest-excel-count-inversion.yml"]
+
+concurrency:
+  group: probe-quest-excel-count-inversion-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . capstone zstandard
+      - run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Download exact QuestExcel object
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          mkdir -p evidence/q71
+          gh run download 37440823447 --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+      - name: Invert generated table count readers
+        shell: bash
+        run: |
+          python - <<'PY' | tee quest-excel-count-inversion.txt
+          import bisect,csv,json,struct
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM,X86_OP_REG
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          BASE=0x140000000; MASK=0xffffffff
+          ENSURE=0x1269BFC0; OBJNEW=0x529A10
+          TARGETS=(17814,17812)
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          with (META/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+            methods=list(csv.DictReader(f))
+          rows=[]
+          for m in methods:
+            try:r=int(m.get("rva") or "0",0)
+            except:continue
+            if r:rows.append((r,m))
+          rows.sort(); starts=[r for r,_ in rows]
+
+          raw=RAW.read_bytes(); n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n!=len(raw)-4: raise SystemExit("wrapper mismatch")
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          def canon(ins,reg):
+            n=(ins.reg_name(reg) or "").lower()
+            d={"rax":"a","eax":"a","ax":"a","al":"a","rbx":"b","ebx":"b","bx":"b","bl":"b",
+               "rcx":"c","ecx":"c","cx":"c","cl":"c","rdx":"d","edx":"d","dx":"d","dl":"d",
+               "rsi":"si","esi":"si","sil":"si","rdi":"di","edi":"di","dil":"di","rbp":"bp","ebp":"bp","bpl":"bp"}
+            if n in d:return d[n]
+            if n.startswith("r"):
+              z=n[1:].rstrip("dwb")
+              if z.isdigit():return "r"+z
+            return n
+          def tr(ins):
+            if ins.mnemonic not in ("call","jmp") or not ins.operands or ins.operands[0].type!=X86_OP_IMM:return None
+            v=int(ins.operands[0].imm);return v-BASE if v>=BASE else v
+          def stream4(op):
+            return op.type==X86_OP_MEM and op.size==4 and op.mem.disp==0x20 and op.mem.base and op.mem.index and op.mem.scale==1
+          def imm_before(ins,k,reg,lim=24):
+            for j in range(k-1,max(-1,k-lim),-1):
+              x=ins[j]
+              if x.mnemonic in ("mov","movabs") and len(x.operands)==2 and x.operands[0].type==X86_OP_REG and canon(x,x.operands[0].reg)==reg and x.operands[1].type==X86_OP_IMM:
+                return int(x.operands[1].imm)&MASK
+            return None
+          def invert(y,init,ops):
+            x=y&MASK
+            for op,c in reversed(ops):
+              c&=MASK
+              if op=="add":x=(x-c)&MASK
+              elif op=="sub":x=(x+c)&MASK
+              elif op=="xor":x^=c
+              else:return None
+            kind,c=init
+            c&=MASK
+            if kind=="raw":return x
+            if kind=="add":return (x-c)&MASK
+            if kind=="xor":return x^c
+            if kind=="const-sub-raw":return (c-x)&MASK
+            return None
+
+          matches=[]; parsed=0
+          with PEImage(EXE) as image:
+            base=image.image_base
+            for pos,(rva,m) in enumerate(rows):
+              if m.get("method_name")!="GMENPOPMKAA" or m.get("parameter_types")!='["FNIAHJGHFAK"]':continue
+              i=bisect.bisect_right(starts,rva);end=starts[i] if i<len(starts) else rva+0x600
+              size=end-rva
+              if size<0x100 or size>0x700:continue
+              ins=list(md.disasm(image.read_rva(rva,size),base+rva))
+              if not any(tr(x)==ENSURE for x in ins):continue
+              if sum(1 for x in ins if tr(x)==OBJNEW)<2:continue
+              if not any(x.mnemonic in ("call","jmp") and ("+ 0xf0]" in x.op_str.lower() or "+0xf0]" in x.op_str.lower()) for x in ins):continue
+              # first 4-byte stream read after first Ensure
+              eidx=next((j for j,x in enumerate(ins) if tr(x)==ENSURE),None)
+              found=None
+              for k in range(eidx+1,min(len(ins),eidx+35)):
+                x=ins[k]
+                if len(x.operands)!=2 or x.operands[0].type!=X86_OP_REG or not stream4(x.operands[1]):continue
+                reg=canon(x,x.operands[0].reg)
+                if x.mnemonic=="mov": init=("raw",0)
+                elif x.mnemonic in ("add","xor"):
+                  c=imm_before(ins,k,reg)
+                  if c is None:continue
+                  init=(x.mnemonic,c)
+                elif x.mnemonic=="sub":
+                  c=imm_before(ins,k,reg)
+                  if c is None:continue
+                  init=("const-sub-raw",c)
+                else:continue
+                ops=[]
+                for z in ins[k+1:min(len(ins),k+24)]:
+                  if z.mnemonic=="call":break
+                  if len(z.operands)>=1 and z.operands[0].type==X86_OP_REG and canon(z,z.operands[0].reg)==reg:
+                    if len(z.operands)==2 and z.operands[1].type==X86_OP_IMM and z.mnemonic in ("add","sub","xor"):
+                      ops.append((z.mnemonic,int(z.operands[1].imm)&MASK))
+                    elif z.mnemonic=="lea" and len(z.operands)==2 and z.operands[1].type==X86_OP_MEM:
+                      mm=z.operands[1].mem
+                      if mm.base and not mm.index and canon(z,mm.base)==reg and mm.disp:
+                        ops.append(("add",int(mm.disp)&MASK))
+                found=(init,ops,k)
+                break
+              if not found:continue
+              parsed+=1;init,ops,k=found
+              keyoff=None
+              for j,x in enumerate(ins):
+                if x.mnemonic in ("call","jmp") and ("+ 0xf0]" in x.op_str.lower() or "+0xf0]" in x.op_str.lower()):
+                  for z in ins[j+1:j+25]:
+                    if z.mnemonic=="mov" and len(z.operands)==2 and z.operands[1].type==X86_OP_MEM and z.operands[1].size==4 and z.operands[1].mem.index==0:
+                      d=z.operands[1].mem.disp
+                      if 0x10<=d<=0x200:keyoff=d;break
+                  break
+              for target in TARGETS:
+                enc=invert(target,init,ops)
+                if enc is None:continue
+                pat=struct.pack("<I",enc);poses=[];s=0
+                while True:
+                  p=payload.find(pat,s)
+                  if p<0:break
+                  poses.append(p);s=p+1
+                  if len(poses)>=50:break
+                if poses:
+                  matches.append({
+                    "target_count":target,"rva":f"0x{rva:X}","type":m.get("type_name"),
+                    "tdi":m.get("type_definition_index"),"method_size":size,
+                    "init":init,"ops":ops,"encoded":f"0x{enc:08X}",
+                    "positions":poses,"key_offset":keyoff,
+                  })
+
+          matches.sort(key=lambda x:(x["target_count"]!=17814,min(x["positions"]),len(x["positions"]),x["rva"]))
+          print("payload_size",len(payload),"parsers_with_invertible_count",parsed,"matches",len(matches))
+          for x in matches[:300]:print(json.dumps(x,ensure_ascii=False))
+          Path("quest-excel-count-inversion.json").write_text(
+            json.dumps({"payload_size":len(payload),"parsed":parsed,"matches":matches},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: quest-excel-count-inversion
+          path: |
+            quest-excel-count-inversion.txt
+            quest-excel-count-inversion.json
+          if-no-files-found: error
