@@ -154,6 +154,85 @@ jobs:
           if value != 7473:
               raise SystemExit(f'unexpected leading uvarint: {value}')
           PY
+      - name: Test exact QuestExcel outer length framing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-outer-framing.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          raw = Path('quest-output/MiHoYoBinData/3b87ae83.dat').read_bytes()
+          payload = unwrap_mihoyo_bin_data(raw)
+
+          def read_uvarint(data, pos):
+              value = 0
+              shift = 0
+              start = pos
+              while pos < len(data):
+                  b = data[pos]
+                  pos += 1
+                  value |= (b & 0x7F) << shift
+                  if not (b & 0x80):
+                      return value, pos, pos - start
+                  shift += 7
+                  if shift >= 64:
+                      raise ValueError(f'uvarint too wide at offset {start}')
+              raise EOFError(f'truncated uvarint at offset {start}')
+
+          count, pos, count_bytes = read_uvarint(payload, 0)
+          result = {
+              'payload_size': len(payload),
+              'count': count,
+              'count_prefix_bytes': count_bytes,
+              'candidate': 'uvarint_count_then_uvarint_length_records',
+              'records': [],
+              'parsed_records': 0,
+              'final_offset': None,
+              'exact_consumption': False,
+              'error': None,
+          }
+
+          try:
+              for index in range(count):
+                  prefix_offset = pos
+                  size, data_offset, prefix_bytes = read_uvarint(payload, pos)
+                  end = data_offset + size
+                  if end > len(payload):
+                      raise ValueError(
+                          f'record {index}: size {size} at {prefix_offset} '
+                          f'ends at {end} beyond payload {len(payload)}'
+                      )
+                  if index < 16 or index >= max(0, count - 4):
+                      result['records'].append({
+                          'index': index,
+                          'prefix_offset': prefix_offset,
+                          'prefix_bytes': prefix_bytes,
+                          'size': size,
+                          'data_offset': data_offset,
+                          'end_offset': end,
+                          'head_hex': payload[data_offset:min(end, data_offset + 16)].hex(),
+                      })
+                  pos = end
+                  result['parsed_records'] = index + 1
+              result['final_offset'] = pos
+              result['exact_consumption'] = pos == len(payload)
+          except Exception as exc:
+              result['final_offset'] = pos
+              result['error'] = f'{type(exc).__name__}: {exc}'
+
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          Path('quest-outer-framing.json').write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+
+          # This step is an evidence test, not an assertion that this candidate
+          # framing is correct. The result itself decides whether the hypothesis
+          # survives.
+          PY
       - name: Locate representative Quest rows and decode acceptCond candidates
         shell: bash
         run: |
@@ -431,6 +510,8 @@ jobs:
             asset-chain-summary.txt
             quest-animestudio.txt
             quest-payload-summary.txt
+            quest-outer-framing.txt
+            quest-outer-framing.json
             quest-row-target-scan.txt
             quest-row-target-scan.json
           if-no-files-found: warn
