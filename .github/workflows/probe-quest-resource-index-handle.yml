@@ -255,11 +255,101 @@ jobs:
           )
           PY
 
+      - name: Trace ResourceIndex asset-location construction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-resource-index-construction.json \
+            --focus add-asset-location:0x71071B0 \
+            --focus set-asset-count:0x71070A0 \
+            --focus post-process:0x710AE00 \
+            --max-body 0x10000 \
+            | tee quest-resource-index-construction.txt
+
+          python - <<'PY' | tee quest-bundle-content-schema.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          targets=[]
+          for typ in types:
+              if typ.get("type_name") in {"BundleContent","ResourceIndex","ResourceIdentifier"}:
+                  targets.append(int(typ["type_definition_index"]))
+
+          report={}
+          for tdi in sorted(set(targets)):
+              item={
+                  "type":type_by_tdi[tdi],
+                  "fields":[x for x in fields if int(x["type_definition_index"])==tdi],
+                  "methods":[x for x in methods if int(x["type_definition_index"])==tdi],
+              }
+              report[str(tdi)]=item
+              print("TYPE",tdi,json.dumps(item,ensure_ascii=False,indent=2))
+
+          Path("quest-bundle-content-schema.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-resource-index-construction-summary.txt
+          import json
+          from pathlib import Path
+          d=json.loads(Path("quest-resource-index-construction.json").read_text(encoding="utf-8"))
+          out={}
+          for label,item in d["focus"].items():
+              keep=[]
+              for x in item.get("disassembly",[]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","jmp","mov","movzx","movsxd","lea","cmp","test","and","or","xor","add","sub","imul","mul","shr","shl","sar","rol","ror","neg","cmovg","cmovs"}
+                      and (
+                          m in {"call","jmp"}
+                          or any(reg in op for reg in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi","r10","r11","r12","r13","r14","r15"))
+                      )
+                  ):
+                      keep.append(x)
+              out[label]={
+                  "owner":item.get("owner"),
+                  "direct_edges":item.get("direct_edges",[]),
+                  "direct_callers":item.get("direct_callers",[]),
+                  "interesting":keep,
+              }
+              print("\n###",label)
+              print(json.dumps(out[label],ensure_ascii=False,indent=2))
+
+          out["anchor_351"]={
+              "handle_dec":1493294957662636073,
+              "handle_hex":"0x14B93FDA285D0829",
+              "derived_handle_bits_8_39_hex":"0xDA285D08",
+          }
+          Path("quest-resource-index-construction-summary.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         run: |
           test -s quest-resource-index-handle.json
           test -s quest-resource-index-types.json
           test -s quest-resource-index-summary.json
+          test -s quest-resource-index-construction.json
+          test -s quest-bundle-content-schema.json
+          test -s quest-resource-index-construction-summary.json
           test -s quest-resource-index-writer.json
           test -s quest-bundle-content-types.json
           test -s quest-resource-index-writer-summary.json
@@ -275,6 +365,12 @@ jobs:
             quest-resource-index-types.json
             quest-resource-index-summary.txt
             quest-resource-index-summary.json
+            quest-resource-index-construction.txt
+            quest-resource-index-construction.json
+            quest-bundle-content-schema.txt
+            quest-bundle-content-schema.json
+            quest-resource-index-construction-summary.txt
+            quest-resource-index-construction-summary.json
             quest-resource-index-writer.txt
             quest-resource-index-writer.json
             quest-bundle-content-types.txt
