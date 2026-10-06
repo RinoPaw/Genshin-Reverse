@@ -94,26 +94,34 @@ jobs:
                   ordinal,sid=items[0]
                   anchors[ordinal]=(sid,hits[enc][0])
 
-          # Require adjacent Dimbreath rows with unique monotonic anchors. The
-          # interval [current subId anchor, next subId anchor) stays inside the
-          # current native row after the subId field.
+          # Native row framing recovered from Quest 351:
+          #
+          #   row[N].start = subId_anchor[N-1] + 4
+          #   row[N].end   = subId_anchor[N] + 4
+          #
+          # i.e. subId is the final 4-byte scalar in the row. Use only
+          # consecutive Dimbreath ordinals with unique monotonic anchors.
           spans=[]
-          for ordinal,row in enumerate(rows[:-1]):
-              a=anchors.get(ordinal)
-              b=anchors.get(ordinal+1)
-              if not a or not b or b[1] <= a[1]:
+          for ordinal,row in enumerate(rows):
+              if ordinal == 0:
                   continue
-              gap=b[1]-a[1]
-              if 4 <= gap <= 4096:
-                  spans.append((ordinal,row,a[1],b[1]))
+              prev=anchors.get(ordinal-1)
+              cur=anchors.get(ordinal)
+              if not prev or not cur or cur[1] <= prev[1]:
+                  continue
+              start=prev[1]+4
+              end=cur[1]+4
+              gap=end-start
+              if 8 <= gap <= 4096:
+                  spans.append((ordinal,row,start,end))
 
           print("rows",len(rows))
           print("unique_subid_anchors",len(anchors))
           print("adjacent_native_spans",len(spans))
 
           # For each scalar field, rank one global fixed-width transform that
-          # occurs somewhere after subId in each row. This does not assume a
-          # byte offset because optional fields shift later payload positions.
+          # occurs somewhere inside the exact row. Then separately rank
+          # fixed row-relative offsets to recover stable columns.
           fields=[
               "mainId","order","failParent","stepDescTextMapHash",
               "guideTipsTextMapHash","subIdSet",
@@ -166,6 +174,51 @@ jobs:
               for w in (4,2,1):
                   transforms.append(rank(f,w))
 
+          def rank_fixed_offsets(field,width=4,max_off=96):
+              mask=(1<<(8*width))-1
+              eligible_rows=[
+                  (ordinal,row,a,b)
+                  for ordinal,row,a,b in spans
+                  if isinstance(row.get(field),int)
+              ]
+              out=[]
+              for off in range(max_off+1):
+                  triplets={
+                      "xor":collections.Counter(),
+                      "raw_minus_value":collections.Counter(),
+                      "raw_plus_value":collections.Counter(),
+                  }
+                  eligible=0
+                  for ordinal,row,a,b in eligible_rows:
+                      if a+off+width > b:
+                          continue
+                      eligible+=1
+                      v=row[field]&mask
+                      u=int.from_bytes(payload[a+off:a+off+width],"little")
+                      triplets["xor"][u^v]+=1
+                      triplets["raw_minus_value"][(u-v)&mask]+=1
+                      triplets["raw_plus_value"][(u+v)&mask]+=1
+                  for kind,counter in triplets.items():
+                      if not counter or not eligible:
+                          continue
+                      k,n=counter.most_common(1)[0]
+                      out.append({
+                          "field":field,
+                          "width":width,
+                          "offset":off,
+                          "kind":kind,
+                          "key":f"0x{k:0{width*2}X}",
+                          "support":n,
+                          "eligible":eligible,
+                          "ratio":n/eligible,
+                      })
+              out.sort(key=lambda x:(-x["ratio"],-x["support"],x["offset"],x["kind"]))
+              return out[:30]
+
+          fixed_offsets={}
+          for f in fields:
+              fixed_offsets[f]=rank_fixed_offsets(f,4)
+
           # Per-row direct checks for the known subId transform.
           subid_checks=[]
           for ordinal,(sid,pos) in sorted(anchors.items())[:200]:
@@ -216,6 +269,7 @@ jobs:
               "unique_subid_anchors":len(anchors),
               "adjacent_native_spans":len(spans),
               "transforms":transforms,
+              "fixed_offsets":fixed_offsets,
               "subid_checks":subid_checks,
               "quest351":q351,
           }
@@ -226,6 +280,9 @@ jobs:
                   if x[kind]:
                       leaders.append((kind,x[kind][0]))
               print(x["field"],"w",x["width"],leaders)
+          print("\n=== fixed offset leaders ===")
+          for f,items in fixed_offsets.items():
+              print(f,items[:8])
           print("\n=== Quest 351 ===")
           for x in q351:
               print(json.dumps({
