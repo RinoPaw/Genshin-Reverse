@@ -518,6 +518,96 @@ jobs:
           Path('runtime-asset-index-base-schema.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+      - name: Locate primary asset_index string slot xrefs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee runtime-asset-index-primary-xrefs.txt
+          import bisect,csv,json,struct
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          ROOT=Path('versions/7.1.0-global/windows-x64/metadata')
+          require_sha256(EXE,PROFILE_71.exe_sha256,label='executable')
+
+          # Protected string literal recovery gives index 15346 for exact
+          # literal 'asset_index'. Current 7.1 string-literal usage slots
+          # follow slot_rva = 0x59D9260 + index*8 (validated against the
+          # adjacent MainQuestIndex/MainQuestBriefIndex slots).
+          literal_index=15346
+          slot_rva=0x59D9260 + literal_index*8
+
+          with (ROOT/'methods.csv').open('r',encoding='utf-8-sig',newline='') as fh:
+              methods=list(csv.DictReader(fh))
+          starts=[]; by={}
+          for row in methods:
+              s=(row.get('rva') or '').strip()
+              if not s: continue
+              try: r=int(s,0)
+              except ValueError: continue
+              starts.append(r); by.setdefault(r,[]).append(row)
+          starts=sorted(set(starts))
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0: return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not (s<=rva<e): return None
+              return {'start_rva':f'0x{s:X}','end_rva':f'0x{e:X}','methods':by[s]}
+
+          # Common 7-byte RIP-relative MOV/LEA forms used for static
+          # string-literal slots. This avoids a full-image disassembly.
+          prefixes=(
+              b'\x48\x8b\x05', b'\x48\x8b\x0d', b'\x48\x8b\x15',
+              b'\x48\x8b\x1d', b'\x48\x8b\x25', b'\x48\x8b\x2d',
+              b'\x48\x8b\x35', b'\x48\x8b\x3d',
+              b'\x4c\x8b\x05', b'\x4c\x8b\x0d', b'\x4c\x8b\x15',
+              b'\x4c\x8b\x1d', b'\x4c\x8d\x05', b'\x4c\x8d\x0d',
+              b'\x48\x8d\x05', b'\x48\x8d\x0d', b'\x48\x8d\x15',
+          )
+          hits=[]
+          with PEImage(EXE) as image:
+              base=image.image_base
+              target_va=base+slot_rva
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  for off in range(0,max(0,len(blob)-7)):
+                      if blob[off:off+3] not in prefixes:
+                          continue
+                      disp=struct.unpack_from('<i',blob,off+3)[0]
+                      rva=sec.virtual_address+off
+                      resolved=base+rva+7+disp
+                      if resolved!=target_va:
+                          continue
+                      hits.append({'rva':rva,'section':sec.name,'bytes':blob[off:off+7].hex(),'owner':owner(rva)})
+
+              md=Cs(CS_ARCH_X86,CS_MODE_64)
+              report={'literal':'asset_index','literal_index':literal_index,'slot_rva':f'0x{slot_rva:X}','hits':hits,'owners':[]}
+              seen=set()
+              for h in hits:
+                  ow=h['owner']
+                  if not ow: continue
+                  s=int(ow['start_rva'],16); e=int(ow['end_rva'],16)
+                  if s in seen: continue
+                  seen.add(s)
+                  size=min(e-s,0x2000)
+                  body=image.read_rva(s,size)
+                  ins=[{'rva':f'0x{x.address-base:X}','mnemonic':x.mnemonic,'op_str':x.op_str} for x in md.disasm(body,base+s)]
+                  report['owners'].append({'owner':ow,'instructions':ins})
+
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path('runtime-asset-index-primary-xrefs.json').write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          if not hits:
+              raise SystemExit('no executable xrefs to primary asset_index string slot')
+          PY
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -573,6 +663,8 @@ jobs:
             runtime-asset-index-bootstrap.json
             runtime-asset-index-bootstrap-summary.txt
             runtime-asset-index-bootstrap-summary.json
+            runtime-asset-index-primary-xrefs.txt
+            runtime-asset-index-primary-xrefs.json
             runtime-asset-index-base-ctor.txt
             runtime-asset-index-base-ctor.json
             runtime-asset-index-base-ctor-calls.txt
