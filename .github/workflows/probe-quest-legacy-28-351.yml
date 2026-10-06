@@ -226,27 +226,67 @@ jobs:
               json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
           )
 
-          expected={
-              35100:(35104,3),
-              35107:(35100,3),
-              35101:(35107,3),
-              35106:(35101,3),
-              35105:(35106,3),
-              35103:(35105,3),
-              35102:(35103,3),
-          }
           by_sid={x["subId"]:x for x in rows}
           if set(by_sid)!={35100,35101,35102,35103,35104,35105,35106,35107}:
               raise SystemExit(f"Quest 351 incomplete: {sorted(by_sid)}")
-          if by_sid[35104]["acceptCond"] not in (None,[]):
-              raise SystemExit("35104 unexpectedly has prerequisite")
-          for sid,(prev,state) in expected.items():
-              cond=by_sid[sid]["acceptCond"]
-              if not cond:
-                  raise SystemExit(f"{sid}: missing acceptCond")
-              params=cond[0].get("param")
-              if params[:2] != [prev,state]:
-                  raise SystemExit(f"{sid}: unexpected prerequisite {cond}")
+
+          def compact(sid):
+              return [
+                  (x.get("type"),x.get("param"))
+                  for x in (by_sid[sid].get("acceptCond") or [])
+              ]
+
+          expected={
+              35104:[
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35100:[
+                  (1,[35104,3,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35107:[
+                  (1,[35100,3,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35101:[
+                  (1,[35100,3,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35106:[
+                  (1,[35101,3,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35105:[
+                  (1,[35106,3,0]),
+                  (None,[0,0,0]),
+                  (None,[0,0,0]),
+              ],
+              35103:[
+                  (1,[35106,3,0]),
+                  (2,[35105,3,0]),
+                  (2,[35105,3,0]),
+              ],
+              35102:[
+                  (1,[35103,3,0]),
+                  (1,[35105,3,0]),
+                  (1,[35105,3,0]),
+              ],
+          }
+          for sid,want in expected.items():
+              got=compact(sid)
+              if got != want:
+                  raise SystemExit(f"{sid}: unexpected native acceptCond {got}")
+
+          if by_sid[35103]["acceptCondComb"] != 1:
+              raise SystemExit("35103: expected native LOGIC_AND enum value 1")
+          if by_sid[35102]["acceptCondComb"] != 2:
+              raise SystemExit("35102: expected native LOGIC_OR enum value 2")
           PY
 
       - name: Upload evidence
