@@ -1,0 +1,236 @@
+name: Probe 3.0 QuestExcel TypeDefIndex alignment
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-typedef.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-typedef-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+            "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+            "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/3.0.0-global")/name).read_bytes()
+              assert len(raw)==size and hashlib.sha256(raw).hexdigest()==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+            "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+            "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-typedef-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Extract WorldReverse TypeDefIndex anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-typedef.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+          targets={
+              14890:"QuestExcelConfigLoader",
+              15969:"QuestExcelConfig",
+          }
+          type_rx=re.compile(r"TypeDefIndex:\s*(\d+)")
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          field_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal).*?\s+"
+              r"([A-Za-z_][A-Za-z0-9_]*)\s*;\s*//\s*0x([0-9A-Fa-f]+)"
+          )
+
+          hits={}
+          for i,line in enumerate(lines):
+              m=type_rx.search(line)
+              if not m or int(m.group(1)) not in targets:
+                  continue
+              idx=int(m.group(1))
+              # The type declaration itself contains TypeDefIndex in Il2CppDumper output.
+              start=i
+              while start>0 and not lines[start].startswith("// Namespace:"):
+                  start-=1
+              end=i+1
+              while end<len(lines) and not lines[end].startswith("// Namespace:"):
+                  end+=1
+              block=lines[start:end]
+
+              fields=[]
+              methods=[]
+              for rel,s in enumerate(block):
+                  fm=field_rx.search(s)
+                  if fm:
+                      fields.append({
+                          "line":start+rel+1,
+                          "name":fm.group(1),
+                          "offset":int(fm.group(2),16),
+                          "text":s.strip(),
+                      })
+                  rm=rva_rx.search(s)
+                  if rm:
+                      rva=int(rm.group(1),16)
+                      sig=None
+                      sig_line=None
+                      for k in range(rel+1,min(len(block),rel+8)):
+                          q=block[k].strip()
+                          if q and not q.startswith("//") and "(" in q and ")" in q:
+                              sig=q
+                              sig_line=start+k+1
+                              break
+                      methods.append({
+                          "rva":rva,
+                          "comment_line":start+rel+1,
+                          "signature_line":sig_line,
+                          "signature":sig,
+                      })
+
+              row={
+                  "expected_name":targets[idx],
+                  "typedef_index":idx,
+                  "namespace_line":start+1,
+                  "declaration_line":i+1,
+                  "declaration":line.strip(),
+                  "fields":fields,
+                  "methods":methods,
+                  "block":block,
+              }
+              hits.setdefault(idx,[]).append(row)
+
+          print("dump lines",len(lines))
+          for idx,name in targets.items():
+              xs=hits.get(idx,[])
+              print(f"\n=== TypeDefIndex {idx} expected {name} hits={len(xs)} ===")
+              for x in xs:
+                  print("DECL",x["declaration"])
+                  print("FIELDS")
+                  for f in x["fields"]:
+                      print(f"  +0x{f['offset']:X} {f['text']}")
+                  print("METHODS")
+                  for m in x["methods"]:
+                      print(f"  RVA=0x{m['rva']:X} L{m['signature_line']} {m['signature']}")
+
+          # Score exact row index against the known historical Quest layout.
+          expected_offsets={
+              0x10,0x14,0x18,0x1C,0x20,0x24,0x28,0x2C,0x30,0x34,
+              0x38,0x40,0x48,0x50,0x58,0x60,0x68,0x70,0x74,0x75,
+              0x78,0x7C,0x80,0x88,0x90,0x98,0xA0,0xA8,0xB0,0xB8,
+          }
+          for x in hits.get(15969,[]):
+              got={f["offset"] for f in x["fields"]}
+              x["expected_offset_hits"]=sorted(got & expected_offsets)
+              x["expected_offset_missing"]=sorted(expected_offsets-got)
+              print(
+                  "ROW_LAYOUT_MATCH",
+                  len(x["expected_offset_hits"]),
+                  "/",
+                  len(expected_offsets),
+                  "missing",
+                  [hex(v) for v in x["expected_offset_missing"]],
+              )
+
+          Path("quest-legacy-30-typedef.json").write_text(
+              json.dumps({
+                  "targets":targets,
+                  "hits":hits,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          missing=[idx for idx in targets if not hits.get(idx)]
+          if missing:
+              raise SystemExit("missing TypeDefIndex: "+",".join(map(str,missing)))
+          PY
+
+      - name: Upload TypeDefIndex evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-typedef
+          path: |
+            quest-legacy-30-typedef-dumper.txt
+            quest-legacy-30-typedef.txt
+            quest-legacy-30-typedef.json
+          if-no-files-found: warn
