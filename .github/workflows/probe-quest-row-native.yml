@@ -1991,6 +1991,152 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace Quest binary index initialization and handle semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-bin-loader-native.json \
+            --focus load-bin-data-zip:0x6D8CF60 \
+            --focus load-bin-data:0x6D873C0 \
+            --max-body 0x10000 \
+            | tee quest-bin-loader-native.txt
+
+          python - <<'PY' | tee quest-index-slot-xrefs.txt
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          SLOTS = {
+              0x312C8: "quest_handle_index_peer",
+              0x312E0: "fnj_id_to_uint64_handle",
+              0x31318: "afio_runtime_store_peer",
+              0x31370: "decoded_main_quest_cache",
+          }
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          with (ROOT / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (ROOT / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+
+          by_rva = {}
+          starts = []
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 0)
+              except ValueError:
+                  continue
+              by_rva.setdefault(rva, []).append(row)
+              starts.append(rva)
+          starts = sorted(set(starts))
+
+          def owner(rva):
+              pos = bisect.bisect_right(starts, rva) - 1
+              if pos < 0:
+                  return None
+              start = starts[pos]
+              end = starts[pos + 1] if pos + 1 < len(starts) else start + 0x10000
+              if not (start <= rva < end):
+                  return None
+              rows = by_rva[start]
+              return {
+                  "start_rva": f"0x{start:X}",
+                  "end_rva": f"0x{end:X}",
+                  "methods": rows,
+                  "owner_types": [
+                      type_by_tdi.get(int(x["type_definition_index"]), {})
+                      for x in rows
+                  ],
+              }
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          result = []
+
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  # Scan executable/code-like content only; mapping through metadata
+                  # discards non-method false positives.
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for slot, label in SLOTS.items():
+                      pat = slot.to_bytes(4, "little")
+                      pos = 0
+                      while True:
+                          pos = blob.find(pat, pos)
+                          if pos < 0:
+                              break
+                          hit_rva = sec.virtual_address + pos
+                          own = owner(hit_rva)
+                          if own is not None:
+                              start = int(own["start_rva"], 16)
+                              end = int(own["end_rva"], 16)
+                              size = min(max(1, end - start), 0x10000)
+                              code = image.read_rva(start, size)
+                              insns = [
+                                  {
+                                      "rva": f"0x{ins.address - image.image_base:X}",
+                                      "mnemonic": ins.mnemonic,
+                                      "op_str": ins.op_str,
+                                  }
+                                  for ins in md.disasm(code, image.image_base + start)
+                              ]
+                              exact = [
+                                  x for x in insns
+                                  if f"0x{slot:x}" in x["op_str"].lower()
+                              ]
+                              item = {
+                                  "slot": f"0x{slot:X}",
+                                  "label": label,
+                                  "raw_hit_rva": f"0x{hit_rva:X}",
+                                  "owner": own,
+                                  "exact_instructions": exact,
+                              }
+                              result.append(item)
+                              print(json.dumps(item, ensure_ascii=False, sort_keys=True))
+                          pos += 1
+
+          # de-duplicate repeated immediate-byte hits inside the same method/slot.
+          uniq = {}
+          for item in result:
+              key = (item["slot"], item["owner"]["start_rva"])
+              if key not in uniq:
+                  uniq[key] = item
+              else:
+                  seen = {
+                      (x["rva"], x["mnemonic"], x["op_str"])
+                      for x in uniq[key]["exact_instructions"]
+                  }
+                  for x in item["exact_instructions"]:
+                      k = (x["rva"], x["mnemonic"], x["op_str"])
+                      if k not in seen:
+                          uniq[key]["exact_instructions"].append(x)
+                          seen.add(k)
+
+          final = list(uniq.values())
+          Path("quest-index-slot-xrefs.json").write_text(
+              json.dumps(final, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print("UNIQUE_METHOD_SLOT_XREFS", len(final))
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -2015,6 +2161,8 @@ jobs:
           test -s quest-fnj-field-types.json
           test -s quest-binary-slice-index.json
           test -s quest-binary-slice-index-summary.json
+          test -s quest-bin-loader-native.json
+          test -s quest-index-slot-xrefs.json
           test -s quest-random-main-control.json
           test -s quest-main-wrapper-field-map.json
           test -s quest-random-main-reader.json
@@ -2074,6 +2222,10 @@ jobs:
             quest-binary-slice-index.json
             quest-binary-slice-index-summary.txt
             quest-binary-slice-index-summary.json
+            quest-bin-loader-native.txt
+            quest-bin-loader-native.json
+            quest-index-slot-xrefs.txt
+            quest-index-slot-xrefs.json
             quest-random-main-control.txt
             quest-random-main-control.json
             quest-main-wrapper-field-map.txt
