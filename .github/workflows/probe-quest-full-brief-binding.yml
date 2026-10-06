@@ -1,0 +1,133 @@
+name: Probe 7.1 Quest full/brief loader binding
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-full-brief-binding.yml"
+
+concurrency:
+  group: probe-quest-full-brief-binding-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Disassemble full and brief handle lookup paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x9F92800 0x180 \
+            --expected-sha256 "$sha" --label "ODJJEFFIPFA.LFDEMLPDDFL(uint32,uint64)" \
+            --output quest-full-lookup.json > quest-full-lookup.txt
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x9F891F0 0x180 \
+            --expected-sha256 "$sha" --label "ODJJEFFIPFA.HGBAJLEGHGA(uint32,uint64)" \
+            --output quest-brief-lookup.json > quest-brief-lookup.txt
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x9F9A130 0x420 \
+            --expected-sha256 "$sha" --label "ODJJEFFIPFA.LDJGPDBKIEO(uint32,Action,bool)" \
+            --output quest-full-loader.json > quest-full-loader.txt
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x9F88D40 0x420 \
+            --expected-sha256 "$sha" --label "ODJJEFFIPFA.PFPFCHBANIH(uint32)" \
+            --output quest-brief-loader.json > quest-brief-loader.txt
+
+      - name: Summarize static-field and direct-call evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-full-brief-binding.txt
+          import csv,json,re
+          from pathlib import Path
+
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (root/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              methods=list(csv.DictReader(f))
+          with (root/"types.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              types=list(csv.DictReader(f))
+          tb={int(x["type_definition_index"]):x for x in types}
+          by_rva={}
+          for m in methods:
+              s=(m.get("rva") or "").strip()
+              if not s: continue
+              try: by_rva.setdefault(int(s,0),[]).append(m)
+              except ValueError: pass
+
+          files=[
+              ("full_lookup","quest-full-lookup.json"),
+              ("brief_lookup","quest-brief-lookup.json"),
+              ("full_loader","quest-full-loader.json"),
+              ("brief_loader","quest-brief-loader.json"),
+          ]
+          out={}
+          for label,fn in files:
+              d=json.loads(Path(fn).read_text(encoding="utf-8"))
+              base=int(d["image_base"],16)
+              rows=[]
+              for x in d["instructions"]:
+                  item={
+                      "rva":x["rva"],
+                      "mnemonic":x["mnemonic"],
+                      "op_str":x["op_str"],
+                  }
+                  if x["mnemonic"] in {"call","jmp"}:
+                      mm=re.fullmatch(r"0x([0-9a-fA-F]+)",x["op_str"])
+                      if mm:
+                          va=int(mm.group(1),16)
+                          rva=va-base if va>=base else va
+                          item["target_rva"]=f"0x{rva:X}"
+                          item["metadata"]=by_rva.get(rva,[])
+                          item["owners"]=[tb.get(int(m["type_definition_index"]),{}) for m in item["metadata"]]
+                  op=x["op_str"].lower()
+                  if (
+                      x["mnemonic"] in {"call","jmp","mov","lea","cmp","test","and","or","xor","add","sub","shr","shl"}
+                      and (
+                          x["mnemonic"] in {"call","jmp"}
+                          or "rip" in op
+                          or any(r in op for r in ("rcx","rdx","r8","r9","rax","rbx","rsi","rdi","r12","r13","r14","r15"))
+                      )
+                  ):
+                      rows.append(item)
+              out[label]=rows
+              print("\n###",label)
+              for row in rows:
+                  print(json.dumps(row,ensure_ascii=False,sort_keys=True))
+
+          Path("quest-full-brief-binding.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload focused evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-full-brief-binding
+          path: |
+            quest-full-lookup.txt
+            quest-full-lookup.json
+            quest-brief-lookup.txt
+            quest-brief-lookup.json
+            quest-full-loader.txt
+            quest-full-loader.json
+            quest-brief-loader.txt
+            quest-brief-loader.json
+            quest-full-brief-binding.txt
+            quest-full-brief-binding.json
+          if-no-files-found: error
