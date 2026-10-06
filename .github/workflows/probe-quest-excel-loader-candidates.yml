@@ -1,0 +1,268 @@
+name: Probe 7.1 QuestExcel loader candidates
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-excel-loader-candidates.yml"
+      - "genshinre/nativeprofile.py"
+      - "genshinre/pe.py"
+
+concurrency:
+  group: probe-quest-excel-loader-candidates-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone
+      - name: Fetch exact pinned global 7.1 executable sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Scan table-loader count transforms against QuestExcel payload head
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-loader-candidates.txt
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_OP_REG
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          QUEST_RAW_U32 = 0x40233AB1
+          REFILL_RVA = 0x1269BFC0
+          OBJECT_NEW_RVA = 0x529A10
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          for r in fields:
+              fields_by_tdi.setdefault(int(r["type_definition_index"]), []).append(r)
+
+          method_rows = []
+          for r in methods:
+              try:
+                  rva = int(r["rva"], 0)
+              except Exception:
+                  continue
+              method_rows.append((rva, r))
+          method_rows.sort(key=lambda x: x[0])
+          starts = [x[0] for x in method_rows]
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def canon(ins, reg):
+              n = (ins.reg_name(reg) or "").lower()
+              aliases = {
+                  "rax":"a","eax":"a","ax":"a","al":"a",
+                  "rbx":"b","ebx":"b","bx":"b","bl":"b",
+                  "rcx":"c","ecx":"c","cx":"c","cl":"c",
+                  "rdx":"d","edx":"d","dx":"d","dl":"d",
+                  "rsi":"si","esi":"si","si":"si","sil":"si",
+                  "rdi":"di","edi":"di","di":"di","dil":"di",
+                  "rbp":"bp","ebp":"bp","bp":"bp","bpl":"bp",
+              }
+              if n in aliases:
+                  return aliases[n]
+              if n.startswith("r"):
+                  z=n[1:].rstrip("dwb")
+                  if z.isdigit(): return "r"+z
+              return n
+
+          def direct_target(ins, base):
+              if ins.mnemonic not in ("call","jmp") or not ins.operands:
+                  return None
+              op=ins.operands[0]
+              if op.type != X86_OP_IMM:
+                  return None
+              return int(op.imm-base)
+
+          def mem_is_stream(op):
+              return (
+                  op.type == X86_OP_MEM
+                  and op.size == 4
+                  and op.mem.disp == 0x20
+                  and op.mem.base != 0
+                  and op.mem.index != 0
+                  and op.mem.scale == 1
+              )
+
+          def imm_loaded_before(insns, k, reg_name, limit=12):
+              for j in range(k-1, max(-1,k-limit), -1):
+                  x=insns[j]
+                  if x.mnemonic in ("mov","movabs") and len(x.operands)==2:
+                      a,b=x.operands
+                      if a.type==X86_OP_REG and canon(x,a.reg)==reg_name and b.type==X86_OP_IMM:
+                          return int(b.imm) & 0xffffffff
+              return None
+
+          def eval_head(insns, base):
+              # Return every plausible expression derived from the first direct
+              # 4-byte stream read after Ensure(4).
+              refill_sites = [
+                  i for i,x in enumerate(insns)
+                  if direct_target(x,base)==REFILL_RVA
+              ]
+              out=[]
+              for ri in refill_sites[:2]:
+                  for k in range(ri+1, min(len(insns),ri+28)):
+                      x=insns[k]
+                      if len(x.operands)!=2:
+                          continue
+                      a,b=x.operands
+                      reg=None
+                      value=None
+                      expr=[]
+                      if a.type==X86_OP_REG and mem_is_stream(b):
+                          reg=canon(x,a.reg)
+                          raw=QUEST_RAW_U32
+                          if x.mnemonic=="mov":
+                              value=raw; expr=[["raw"]]
+                          elif x.mnemonic in ("add","xor","sub"):
+                              c=imm_loaded_before(insns,k,reg)
+                              if c is None: continue
+                              if x.mnemonic=="add": value=(c+raw)&0xffffffff
+                              elif x.mnemonic=="xor": value=(c^raw)&0xffffffff
+                              else: value=(c-raw)&0xffffffff
+                              expr=[["const",c],[x.mnemonic,"raw"]]
+                          else:
+                              continue
+                      elif mem_is_stream(a) and b.type==X86_OP_REG:
+                          continue
+                      else:
+                          continue
+
+                      # Follow simple arithmetic on the same register until an
+                      # allocation/call boundary. This covers current 7.1
+                      # loader shapes such as raw+K and (raw^K1)+K2.
+                      for j in range(k+1,min(len(insns),k+18)):
+                          y=insns[j]
+                          tgt=direct_target(y,base)
+                          if tgt==OBJECT_NEW_RVA:
+                              break
+                          if y.mnemonic=="call":
+                              continue
+                          if len(y.operands)>=1 and y.operands[0].type==X86_OP_REG:
+                              dst=canon(y,y.operands[0].reg)
+                              if dst != reg:
+                                  continue
+                              if len(y.operands)==2 and y.operands[1].type==X86_OP_IMM and y.mnemonic in ("add","sub","xor"):
+                                  imm=int(y.operands[1].imm)&0xffffffff
+                                  if y.mnemonic=="add": value=(value+imm)&0xffffffff
+                                  elif y.mnemonic=="sub": value=(value-imm)&0xffffffff
+                                  else: value=(value^imm)&0xffffffff
+                                  expr.append([y.mnemonic,imm])
+                              elif y.mnemonic=="lea" and len(y.operands)==2 and y.operands[1].type==X86_OP_MEM:
+                                  m=y.operands[1].mem
+                                  if m.index==0 and m.base and canon(y,m.base)==reg and m.disp:
+                                      value=(value+int(m.disp))&0xffffffff
+                                      expr.append(["add",int(m.disp)&0xffffffff])
+                      out.append({
+                          "refill_site": f"0x{insns[ri].address-base:X}",
+                          "read_site": f"0x{x.address-base:X}",
+                          "reg": reg,
+                          "count": value,
+                          "count_hex": f"0x{value:08X}",
+                          "expr": expr,
+                      })
+                      break
+              return out
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              candidates=[]
+              for idx,(rva,row) in enumerate(method_rows):
+                  if row.get("method_name")!="GMENPOPMKAA":
+                      continue
+                  if row.get("parameter_types")!='["FNIAHJGHFAK"]':
+                      continue
+                  end = method_rows[idx+1][0] if idx+1 < len(method_rows) else rva+0x1000
+                  size=end-rva
+                  if size < 0x80 or size > 0x900:
+                      continue
+                  blob=image.read_rva(rva,min(size,0x900))
+                  insns=list(md.disasm(blob,base+rva))
+                  if not any(direct_target(x,base)==REFILL_RVA for x in insns):
+                      continue
+                  exprs=eval_head(insns,base)
+                  if not exprs:
+                      continue
+                  tdi=int(row["type_definition_index"])
+                  t=type_by_tdi.get(tdi,{})
+                  flds=fields_by_tdi.get(tdi,[])
+                  for e in exprs:
+                      n=int(e["count"])
+                      if not (1 <= n <= 100000):
+                          continue
+                      score=0
+                      if 5000 <= n <= 40000: score += 20
+                      if n in (7473,17814,25261,33217): score += 80
+                      if int(t.get("field_count") or 0)==2: score += 15
+                      if any(x.get("field_type")=="kind_0x15" for x in flds): score += 15
+                      candidates.append({
+                          "score":score,
+                          "loader":row,
+                          "type":t,
+                          "fields":flds,
+                          "method_size":size,
+                          **e,
+                      })
+
+              candidates.sort(key=lambda x:(-x["score"],abs(int(x["count"])-17814),int(x["loader"]["rva"],0)))
+              report={
+                  "quest_payload_first_u32":f"0x{QUEST_RAW_U32:08X}",
+                  "candidate_count":len(candidates),
+                  "candidates":candidates[:200],
+              }
+              print("QUEST_RAW_U32",report["quest_payload_first_u32"])
+              print("CANDIDATES",len(candidates))
+              for x in candidates[:80]:
+                  print(json.dumps({
+                      "score":x["score"],
+                      "count":x["count"],
+                      "expr":x["expr"],
+                      "loader_rva":x["loader"]["rva"],
+                      "loader_type":x["loader"]["type_name"],
+                      "tdi":x["loader"]["type_definition_index"],
+                      "owner_field_count":x["type"].get("field_count"),
+                      "fields":[(f.get("field_name"),f.get("field_type"),f.get("field_type_index")) for f in x["fields"]],
+                      "method_size":x["method_size"],
+                  },ensure_ascii=False))
+              Path("quest-excel-loader-candidates.json").write_text(
+                  json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+                  encoding="utf-8",
+              )
+          PY
+      - name: Upload focused evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-excel-loader-candidates
+          path: |
+            quest-excel-loader-candidates.txt
+            quest-excel-loader-candidates.json
