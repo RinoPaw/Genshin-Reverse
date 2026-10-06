@@ -181,6 +181,128 @@ jobs:
           )
           PY
 
+      - name: Extract exact 2.8 QuestExcel class and FromBinary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pefile capstone
+          python - <<'PY' | tee quest-legacy-28-reader.txt
+          import bisect,json,re
+          from pathlib import Path
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          lines=Path("genshin-dump-28/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+          decl_rx=re.compile(r"\bclass\s+QuestExcelConfig\b")
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          starts=[i for i,x in enumerate(lines) if decl_rx.search(x)]
+          print("CLASS_MATCHES",len(starts))
+
+          class_rows=[]
+          reader_rvas=[]
+          for start in starts:
+              a=start
+              while a>0 and not lines[a].startswith("// Namespace:"):
+                  a-=1
+              b=start+1
+              while b<len(lines) and not lines[b].startswith("// Namespace:"):
+                  b+=1
+              block=lines[a:b]
+              print("\n===== QuestExcelConfig block =====")
+              for x in block:
+                  print(x)
+
+              methods=[]
+              for rel,line in enumerate(block):
+                  if "FromBinary" not in line or "(" not in line:
+                      continue
+                  rvas=[]
+                  for k in range(max(0,rel-6),rel+2):
+                      m=rva_rx.search(block[k])
+                      if m:
+                          rvas.append(int(m.group(1),16))
+                  print("FROM_BINARY",line.strip(),"RVAS",[hex(x) for x in rvas])
+                  methods.append({"signature":line.strip(),"rvas":rvas})
+                  reader_rvas.extend(rvas)
+
+              class_rows.append({
+                  "declaration_line":start+1,
+                  "block":block,
+                  "methods":methods,
+              })
+
+          pe=pefile.PE("inputs/2.8.0-global/UserAssembly.dll",fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+          begins=[a for a,b in runtime]
+          def containing(rva):
+              i=bisect.bisect_right(begins,rva)-1
+              if i>=0 and runtime[i][0]<=rva<runtime[i][1]:
+                  return runtime[i]
+              return None
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          funcs=[]
+          for rva in sorted(set(reader_rvas)):
+              bounds=containing(rva)
+              print(f"\n===== reader anchor 0x{rva:X} bounds={bounds} =====")
+              if not bounds:
+                  continue
+              a,b=bounds
+              insns=[]
+              for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                  row={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                      row["call_target_rva"]=ins.operands[0].imm-base
+                  mem=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_MEM:
+                          mem.append({
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale":op.mem.scale,
+                              "disp":op.mem.disp,
+                          })
+                  if mem:
+                      row["mem"]=mem
+                  insns.append(row)
+                  print(f"0x{row['rva']:X} {row['mnemonic']:<8} {row['op_str']}")
+              funcs.append({
+                  "anchor_rva":rva,
+                  "bounds":bounds,
+                  "instructions":insns,
+              })
+
+          Path("quest-legacy-28-reader.json").write_text(
+              json.dumps({
+                  "classes":class_rows,
+                  "reader_rvas":sorted(set(reader_rvas)),
+                  "functions":funcs,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not class_rows:
+              raise SystemExit("exact QuestExcelConfig class not found")
+          if not reader_rvas:
+              raise SystemExit("QuestExcelConfig FromBinary RVA not found")
+          PY
+
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -191,4 +313,6 @@ jobs:
             quest-legacy-28-dumper.txt
             quest-legacy-28-presence.txt
             quest-legacy-28-presence.json
+            quest-legacy-28-reader.txt
+            quest-legacy-28-reader.json
           if-no-files-found: warn
