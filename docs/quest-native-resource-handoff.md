@@ -315,14 +315,39 @@ ODJJEFFIPFA.PFPFCHBANIH(uint32) @ 0x9F88D40
 The direction of `KICDJCPGADJ` is **FNJ -> AFIO**. Earlier exploratory notes that
 read it in the opposite direction are superseded.
 
-The `+0x312E0` index is loaded at startup from a separate named binary resource:
+The full and brief indexes are separate native resources and must not be
+conflated:
 
 ```text
-LAABEAMHPJG.CENGFAOEHNH @ 0xFCBC530
+Data/_BinOutput/IndexDic/MainQuestIndex
+  literal index 64807
+  string usage slot RVA 0x5A57B98
+  LAABEAMHPJG bootstrap A @ 0xFCBBB40
+  -> static ODJJEFFIPFA +0x31350
+  -> LFDEMLPDDFL(uint32,uint64) @ 0x9F92800
+  -> LDJGPDBKIEO(uint32,Action,bool) @ 0x9F9A130
+  -> AFIOOHMJHDM full config
+
+Data/_BinOutput/IndexDic/MainQuestBriefIndex
+  literal index 64809
+  string usage slot RVA 0x5A57BA8
+  LAABEAMHPJG bootstrap @ 0xFCBC530
   -> PMOALIJHONP.GCJPJCKPGLI(string,0,0)
   -> LDABEPAGBGK.GMENPOPMKAA(reader, generic-inst)
   -> static ODJJEFFIPFA +0x312E0
+  -> HGBAJLEGHGA(uint32,uint64) @ 0x9F891F0
+  -> PFPFCHBANIH(uint32) @ 0x9F88D40
+  -> FNJLMNMEKLN brief config
 ```
+
+The recovered protected-string usage table satisfies
+`slot_rva = 0x59D9260 + literal_index * 8` for these adjacent literals, so
+the resource-name-to-static-slot binding is exact. Earlier notes that treated
+`+0x312E0` as the full MainQuest index are superseded.
+
+For quest 351, continue the full-data path through `MainQuestIndex/+0x31350`,
+not the brief `+0x312E0` path.
+
 
 The exact specialized `LDABEPAGBGK` reader at `0x77F7860` recovers the
 serialized index format:
@@ -371,6 +396,19 @@ source/runtime projection layer; its exact relation to QuestExcel/FNJ/AFIO is
 being traced and is **UNRESOLVED**.
 
 Do not infer current field order from public JSON or historical class layouts.
+
+The exact ordinary-array readers additionally recover the current count transforms:
+
+```text
+KIMCPAKMJMH[] / QuestExec[]:
+  count = raw_u32 + 0xB0F7C9F4                  (mod 2^32)
+
+JPGNLOPMNHN[] / QuestContent[]:
+  count = (raw_u32 + 0x9278C6C1) XOR 0x415C14AA
+```
+
+Both readers then deserialize exactly `count` scalar elements. Preserve these
+transforms when implementing the direct 351 decoder.
 
 ### Resume here
 
