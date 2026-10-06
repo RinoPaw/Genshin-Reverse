@@ -1,632 +1,388 @@
 # Quest native-resource research handoff
 
-Checkpoint: 2026-10-06 18:28 +08:00
+Checkpoint: 2026-10-06
 
-This is the authoritative resumable handoff for the current Quest investigation.
-It supersedes earlier notes in this file where they conflict with the conclusions below.
+This file is the authoritative resumable handoff for the current Quest investigation.
+Refetch the branch head before editing because focused probes may still advance it.
 
-## Working branch / CI
+## Working branch
 
 - Repository: `RinoPaw/Genshin-Reverse`
 - Branch: `probe/quest-blb3-binoutput`
-- Current head: `0b5f86392410ad67694907e5594f812daca033ff`
-- Head message: `ci: verify legacy QuestExcel via 3.0 UserAssembly`
-- Required CI at this checkpoint:
-  - total CI #1082 / run `37450023931`: SUCCESS
-  - focused `Probe 3.0 legacy QuestExcel binary reader` #4 / run `37450024126`: SUCCESS
-- Latest 3.0 artifact:
-  - name: `quest-legacy-30`
-  - artifact id: `11406805727`
-  - digest: `sha256:be844250454ee20083c97103bc49fabd95aa0d0198340eeedb834b9ef23bdaca`
+- Last fully green provenance checkpoint:
+  - head `10e14fd65923a9504b37a256ecbfc7a4a8dc0036`
+  - CI #1150 / run `37480736397`: SUCCESS
+  - `Compare native and AstaPS Quest 351 provenance` #2 / run `37480736548`: SUCCESS
+  - artifact `quest-351-provenance` id `11420239191`
+- A later focused 7.1 subId-transform probe may be running; inspect current branch/runs before resuming.
 
-Durable Quest analysis:
+Durable analysis:
 - `versions/7.1.0-global/windows-x64/analyses/quest-extraction/README.md`
-- `versions/7.1.0-global/windows-x64/analyses/quest-extraction/representative-comparison.json`
 
-Do not restart the old XMF/ctable/block-order guessing work.
+## Executive verdict
 
----
+The **AstaPS Quest 351 prerequisite-chain provenance is CONFIRMED downstream
+synthesis/materialization**.
 
-## Executive state
+The exact 7.1 legacy `Data/_ExcelBinOutput/QuestExcelConfigData` row wire is still
+unresolved. That remaining format problem is independent and no longer blocks the
+AstaPS provenance verdict.
 
-Issue #8 is now split into three resource generations/layers:
-
-1. **Current 7.1 runtime MainQuest/BinOutput path** — essentially solved for representative fields.
-2. **Current 7.1 MainQuestExcel source table** — row type is now bound to `GPCFGOEJFJK`; schema relationship to runtime AFIO is strongly constrained.
-3. **Legacy `QuestExcelConfigData` asset** — exact 7.1 asset extraction is solved, but its legacy table/row decoder is still unresolved. Historical 3.0 now provides a direct named decoder anchor.
-
-AstaPS's current `QuestExcelConfigData.json` remains classified as a mixed legacy/synthetic resource, not an exact 7.1 native dump.
+Do not revert to the old assumption that exact 7.1 legacy-table decoding is required
+before classifying the AstaPS 351 chain.
 
 ---
 
-## 1. Exact 7.1 legacy QuestExcel asset — extraction CONFIRMED
+## 1. Current 7.1 runtime Quest path — CONFIRMED
 
-Exact chain:
-
-```text
-Data/_ExcelBinOutput/QuestExcelConfigData
-  -> MiHoYo 40-bit name hash 0x3B87AE8396
-  -> design index 31049741.blk
-  -> Raw design-index object MiHoYoBinData/0000006f.dat
-  -> sub_asset_id 178
-  -> block_id 25539185
-  -> group_id 0
-  -> AssetBundles/blocks/00/25539185.blk
-  -> Raw MiHoYoBinData/3b87ae83.dat
-  -> payload
-```
-
-Pinned values:
-
-- raw object: 2,824,192 bytes
-- MiHoYoBinData payload: 2,824,188 bytes
-- first four payload bytes: `b1 3a 23 40` = `0x40233AB1` little-endian
-
-### Important framing correction
-
-Earlier exploratory notes treated `b1 3a` as unsigned varint `7473`, then interpreted
-the next byte `0x23` as a possible 35-byte presence bitmap length.
-
-That is **not a promoted framing result**.
-
-The 7.0 peer reverse work and current 7.1 Quest Excel loaders show the native ExcelBin
-family uses:
-
-```text
-u32 encoded_count
-row[0]
-row[1]
-...
-```
-
-with build/type-specific arithmetic on the u32 count.
-
-Therefore:
-
-- `7473` remains only an observed alternative interpretation of the prefix bytes;
-- do not use it as a row count;
-- do not use `0x23` as a proven bitmap length;
-- the legacy `QuestExcelConfigData` count transform still needs its own exact loader.
-
-A scan for a one-step `add/xor` transform from `0x40233AB1` to plausible historic row
-counts produced no direct hit. The legacy loader is either multi-step, no longer directly
-referenced in 7.1, or uses a different parser generation.
-
----
-
-## 2. Current 7.1 MainQuest binary runtime path — CONFIRMED
-
-### Full vs brief indexes
-
-Do not conflate them.
+Full current path:
 
 ```text
 Data/_BinOutput/IndexDic/MainQuestIndex
-  literal index 64807
-  string slot RVA 0x5A57B98
-  -> static ODJJEFFIPFA +0x31350
-  -> full MainQuest config
-  -> AFIOOHMJHDM
-
-Data/_BinOutput/IndexDic/MainQuestBriefIndex
-  literal index 64809
-  string slot RVA 0x5A57BA8
-  -> static ODJJEFFIPFA +0x312E0
-  -> brief config
-  -> FNJLMNMEKLN
-```
-
-The index wire format is exact:
-
-```text
-encoded_count : u32
-count = (encoded_count XOR 0x5785D208) + 0x0A34766E
-
-repeat count:
-    encoded_id     : u32
-    encoded_handle : u64
-
-    id     = encoded_id XOR 0x92C938B5
-    handle = encoded_handle + 0x2B6567EA
-```
-
-Both current indexes decode to 4,417 unique main-quest IDs and consume their payloads exactly.
-
-### Full quest 351 path
-
-```text
-mainId 351
- -> MainQuestIndex
+ -> ODJJEFFIPFA static +0x31350
+ -> mainId 351
  -> handle 0x14B93FDA285D0829
  -> Data/_BinOutput/Quest/351
- -> block 24230448
- -> payload 920 bytes
- -> AFIOOHMJHDM.GMENPOPMKAA @ 0x10409D40
+ -> AFIOOHMJHDM
  -> LAIMPNDEFCL[8]
 ```
 
-Ordinary-row count at payload offset `0x3B`:
+Quest 351 payload is 920 bytes and is completely consumed.
+
+Exact current semantics include:
 
 ```text
-count = raw_u32 XOR 0xA74F0ACB = 8
-```
-
-Exact row starts:
-
-```text
-35100  0x03F
-35101  0x0A9
-35102  0x136
-35103  0x196
-35104  0x1F8
-35105  0x24F
-35106  0x2B2
-35107  0x327
-row-array end 0x384
-```
-
-The remaining AFIO outer fields consume through `0x398`; there are zero unexplained trailing bytes.
-
----
-
-## 3. Current ordinary Quest row `LAIMPNDEFCL` — solved core fields
-
-Type:
-
-- `LAIMPNDEFCL`
-- typeDefinition 17589
-- scalar reader: `GMENPOPMKAA(FNIAHJGHFAK) @ 0x9C15DF0`
-
-Exact semantic mappings:
-
-```text
-+0x10 = failExec
-+0x18 = failCond
-+0x20 = finishCond
-+0x58 = finishExec
-
-+0x70 = mainId
-+0x74 = subId / quest config id
-+0xA8 = order
-```
-
-Element families:
-
-```text
-KIMCPAKMJMH[]  = QuestExec entries
-JPGNLOPMNHN[]  = QUEST_CONTENT_* condition entries
-```
-
-Current count transforms:
-
-```text
-QuestExec[]:
-  count = raw_u32 + 0xB0F7C9F4
-
-QuestContent[]:
-  count = (raw_u32 + 0x9278C6C1) XOR 0x415C14AA
-```
-
-Representative nested families already identified:
-
-```text
-HINHMGGLBBM : OOPFBIEAILL      guide family
-BIHKOLLEDPE : KPHLFFOELCG      guideHint family
-KIILAIEPKIA : KAABNOHKKEP      banType family
-MDLABCMFLMH : ShowQuestGuideType
-```
-
-Do not reopen the four finish/fail array mappings without contradictory exact evidence.
-
----
-
-## 4. Direct native 351 semantics — CONFIRMED
-
-Exact binary decode:
-
-```text
-35100.finishCond
-  FINISH_PLOT [35100,0]
-  TRIGGER_FIRE [1053,0]
-
 35101.failCond
   QUEST_CONTENT_TEAM_DEAD [0,0]
 
 35101.failExec
   QUEST_EXEC_ROLLBACK_QUEST ["35100"]
-
-35101.finishCond
-  TRIGGER_FIRE [1100,0]
-
-35102.finishCond
-  TRIGGER_FIRE [1017,0]
-
-35103.finishCond
-  TRIGGER_FIRE [1016,0]
-
-35104.finishCond
-  FINISH_PLOT [35104,0]
-
-35105.finishCond
-  TRIGGER_FIRE [1016,0]
-
-35106.finishExec
-  LOCK_POINT ["3","1720"]
-
-35106.finishCond
-  UNLOCK_TRANS_POINT [3,6]
-
-35107.finishExec
-  REFRESH_GROUP_SUITE ["3","133003429,1"]
-
-35107.finishCond
-  TRIGGER_FIRE [1101,0]
 ```
 
-The string parameter `"35100"` is decoded from native encoded bytes; it is not copied
-from public JSON.
+The ordinary row `LAIMPNDEFCL` carries current finish/fail condition and exec arrays.
+No direct old-style ordinary `acceptCond` / `beginExec` slot has been identified.
 
-This validates same-version `BinOutput/Quest/351.json` for these tested runtime fields.
+Current `MainQuestExcelConfigData` is bound to `GPCFGOEJFJK`; its row shape also does
+not expose the historical ordinary-Quest prerequisite object-array family.
 
-Representative full payloads for main quests 375, 376 and 388 have also been exported for
-cross-checking.
+Keep `RandomQuestExcelConfig` separate. It still has named `_acceptCond`,
+`_acceptCondComb`, and `_beginExec`, but it is a different table.
 
 ---
 
-## 5. Current 7.1 MainQuestExcel row type — NEW CONFIRMED BINDING
+## 2. Exact 7.1 legacy QuestExcel asset — extraction CONFIRMED, row wire unresolved
 
-This is the most important update after the previous handoff.
-
-Current path:
+Exact asset chain:
 
 ```text
-Data/_ExcelBinOutput/MainQuestExcelConfigData
- -> HBGNNDLNDMA.GMENPOPMKAA(FNIAHJGHFAK) @ 0xF955AF0
- -> row type slot 0x57E31B8
+Data/_ExcelBinOutput/QuestExcelConfigData
+ -> MiHoYo hash 0x3B87AE8396
+ -> design index 31049741.blk
+ -> MiHoYoBinData/0000006f.dat
+ -> sub_asset_id 178
+ -> block_id 25539185
+ -> group_id 0
+ -> MiHoYoBinData/3b87ae83.dat
 ```
 
-The same row type slot `0x57E31B8` is referenced by:
+Pinned values:
 
 ```text
-GPCFGOEJFJK.CDJEHCCCFME @ 0xCABAC90
+raw size       2,824,192
+payload size   2,824,188
+raw sha256     f068fc7f5dc0a0560ef0b145cdca14ee12910d0a3bc25a6332e2546f37650c87
+payload sha256 07ab4816ee1eaa68fefd636b92dcfa923fe58a15731d18de0c0fb26863791fe5
 ```
 
-and the GPC binary row reader is:
+Corrections:
+
+- `7473` is only an alternative uvarint interpretation of the leading bytes. Do not call it row count.
+- `0x23` is not a proven bitmap length.
+- Do not force the 2.8/3.x wire onto 7.1.
+
+Known 7.1 native `subId` anchor observation:
 
 ```text
-GPCFGOEJFJK.GMENPOPMKAA(FNIAHJGHFAK) @ 0xCAB9080
-typeDefinition 82662
-36 fields
+encoded_u32 = subId XOR 0xB1571A55
+
+35104 @ 2056
+35100 @ 2128
+35107 @ 2188
+35101 @ 2270
+35106 @ 2351
+35105 @ 2433
+35103 @ 2519
+35102 @ 2599
 ```
 
-Therefore `GPCFGOEJFJK` is no longer merely a speculative Quest-shaped peer:
-it is the strongest exact binding for the **current 7.1 MainQuestExcel row type**.
+A current devkit-wide schema scan tested 13,411 reader methods / 262 plausible candidates.
+No candidate consumed all eight Quest 351 windows exactly. Treat this as evidence of a
+different 7.1 wire generation, not as proof of any particular field absence.
 
-The current MainQuestExcel container:
-
-```text
-HBGNNDLNDMA
-  field PAAGPEHCJFI : generic collection
-  field PBLMHNBIAJL : bool
-```
-
-Current loader head uses the standard ExcelBin family shape: encoded u32 count, allocation,
-then row construction/deserialization.
-
-### GPC relation to runtime AFIO/FNJ
-
-GPC shares:
-
-- 31 field names with `AFIOOHMJHDM`;
-- 15 field names with `FNJLMNMEKLN`.
-
-GPC-only relative to AFIO is only five scalar fields:
-
-```text
-BBHPAJDLCOK : uint32
-DBCBJAEKPAN : bool
-JMJKAOLFPCG : uint32
-KLMMPLDJAHJ : uint32
-OLDEPAOFOKH : uint32
-```
-
-AFIO has runtime-only/additional container fields such as the ordinary `LAIMPNDEFCL[]`
-array and other collections.
-
-This makes the current relation approximately:
-
-```text
-MainQuestExcelConfigData
- -> GPCFGOEJFJK source row
- -> current runtime projection / expansion
- -> AFIOOHMJHDM
- -> LAIMPNDEFCL[]
-```
-
-The exact conversion method between GPC and AFIO still needs a final direct method-level
-binding, but the type-slot and field-overlap evidence is now strong.
-
-### Consequence for legacy prerequisite fields
-
-The current GPC row does **not** expose a RandomQuest-style named/object-array family for:
-
-```text
-acceptCond
-acceptCondComb
-beginExec
-```
-
-Its five GPC-only fields relative to AFIO are scalars only.
-
-This strongly supports the conclusion that the historical ordinary-Quest prerequisite
-schema is not part of the current 7.1 MainQuestExcel row in the old form.
-
-Do not project `RandomQuestExcelConfig` onto GPC or LAIMPNDEFCL.
+A JSON-presence correlation probe also exists, but it is not decisive because many
+AstaPS fields are always materialized as empty/default values and therefore correlate
+spuriously.
 
 ---
 
-## 6. Named RandomQuest control — keep separate
+## 3. Historical native QuestExcel — decisive provenance evidence
 
-`RandomQuestExcelConfig` remains useful as a named schema control.
+### 2.8 official client
 
-Current 7.1 named fields include:
-
-```text
-_beginExec
-_acceptCond
-_acceptCondComb
-_failExec
-_failCond
-_finishExec
-_finishCond
-_finishCondComb
-_failCondComb
-_mainId
-_subId
-_order
-...
-```
-
-It is a different row type.
-
-The source-row metadata ranking correctly puts it first because the names survive; that
-does not make it the ordinary/story Quest row.
-
----
-
-## 7. Legacy QuestExcel historical trace — NEW direction
-
-The current 7.1 executable no longer exposes a clear literal
-`Data/_ExcelBinOutput/QuestExcelConfigData`.
-
-To recover the legacy asset schema, the investigation moved backward through exact official
-client samples.
-
-### 6.7 control
-
-Recovered protected literals include:
+Exact historical asset:
 
 ```text
-Data/_ExcelBinOutput/MainQuestExcelConfigData
-Data/_ExcelBinOutput/RandomQuestExcelConfigData
-Data/_ExcelBinOutput/RandomMainQuestExcelConfigData
-acceptCond
-acceptCondComb
-beginExec
+raw size      3,830,872
+raw sha256    d11516d19a77e38c41f3b88aabc6fb6fe1277a57798633a96bc9da17e1df9877
+XOR key       0x98
+row count     12,158
+full consume  YES
 ```
 
-but no direct recovered `QuestExcelConfigData` path binding.
+Quest 351 still carries historical prerequisites, but the graph is not a simple chain:
 
-The surviving prerequisite-name literals alone are not proof of ordinary Quest ownership,
-because RandomQuest still uses them.
+```text
+35100 <- 35104
+35107 <- 35100
+35101 <- 35100
+35106 <- 35101
+35105 <- 35106
+
+35103:
+  STATE_EQUAL     35106
+  STATE_NOT_EQUAL 35105
+
+35102:
+  STATE_EQUAL 35103
+  STATE_EQUAL 35105
+  OR-style combination
+```
+
+### 3.2 official client
+
+```text
+raw sha256 891d83000eb3eb7382d7781bff12213b55159e7053c22312857a371fa4243c36
+XOR key    0x93
+row count  15,818
+```
+
+All eight Quest 351 rows decode cleanly with the historical QuestExcel schema.
+**None has `acceptCond`.**
+
+### 3.4 official client
+
+```text
+raw sha256 c034b6ea8714f04d3c3ea8e31e3a944969ecef4fa804156ff046ffd516beaa64
+XOR key    0x95
+row count  16,727
+```
+
+Again, all eight Quest 351 rows have no `acceptCond`.
+
+Therefore the historical 351 prerequisites were already absent from official client
+QuestExcel by 3.2.
 
 ### 4.2 control
 
-Exact 4.2 UserAssembly/global-metadata samples were obtained, but the existing literal
-recovery logic encounters a newer/unsupported metadata-obfuscation generation for that
-sample. Raw-name scans did not provide a decisive legacy QuestExcel binding.
-
-Do not spend more time forcing the current stringliteral decoder onto 4.2 unless needed;
-3.0 is currently the cleaner historical anchor.
-
-### 3.0 exact historical anchor — SUCCESS
-
-Official 3.0 ScatteredFiles sample:
+4.2 still matches the old single-byte-XOR wire family:
 
 ```text
-UserAssembly.dll
-  size   177601560
-  sha256 b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b
-
-global-metadata.dat
-  size   49356392
-  sha256 efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a
+raw sha256 dce6d2b614fc2d5ee69e24c826ee8a1505490ca3911a4438d04e81c565ccad1a
+XOR key    0x94
+row count  21,443
 ```
 
-Direct named functions:
+Full 351 decode is not necessary for the provenance verdict because 3.2 and 3.4 already
+establish removal.
+
+5.0+ no longer matches this old single-byte-XOR family.
+
+---
+
+## 4. Community resource materialization — direct tooling evidence
+
+Pinned repository:
+`233-Jerry/Grasscutter-Resources@46d2b65b40f2897edc0c0b3ef235e733e6dde6c4`
+
+Its README explicitly describes QuestExcel as modified/incomplete for 3.0+.
+
+### QuestGC.js
+
+`Tool/QuestGC.js` loads newer quest data and `QuestExcelConfigData_2.8.json`.
+For any subquest found in 2.8 it explicitly copies forward:
 
 ```text
-QuestExcelConfigLoader.FILE_LOCATION
-  RVA 0x10FC970
-
-QuestExcelConfigLoader.FromBinary(ByteArray)
-  RVA 0x10FD580
-
-QuestExcelConfig.FromBinary(ByteArray)
-  RVA 0x3AF9E10
+acceptCond
+finishCond
+failCond
+guide
+finishExec
+failExec
+beginExec
 ```
 
-The exact 3.0 row reader accesses the known legacy layout containing:
+This is direct evidence that community resource generation deliberately grafted old
+2.8 quest logic onto newer resources.
+
+### MergeQuests.js
+
+`Tool/MergeQuests.js` uses a materialized
+`QuestExcelConfigData (3.2).json` as the baseline for old quests and writes merged
+`BinOutput/Quest/*.json`.
+
+This explains why public files named `BinOutput/Quest/351.json` may contain old
+prerequisite data even though exact official 3.2/3.4 native QuestExcel does not.
+
+Do not use public directory names as proof that a row came directly from the client.
+
+---
+
+## 5. AstaPS initial QuestExcel — synthetic linearization
+
+Initial AstaPS QuestExcel commit:
+
+`8c85a82f37341a422002a0352c89a142c4017e53`
+(`Add ExcelBinOutput part 3 of 5`)
+
+Pinned initial resource:
 
 ```text
-+0x10 subId
-+0x14 mainId
-+0x18 order
-+0x38 acceptCondComb
-+0x40 acceptCond
-+0x48 finishCondComb
-+0x50 finishCond
-+0x58 failCondComb
-+0x60 failCond
-+0x68 guide
-+0x70 showGuide
-+0x74 finishParent
-+0x75 failParent
-+0x78 failParentShow
-+0x7C isRewind
-+0x80 finishExec
-+0x88 failExec
-+0x90 beginExec
-+0x98 exclusiveNpcList
-...
+row count  25,261
+git blob   a87df6727a01910ac193fcf852ac704d33668c68
+sha256     456f85fe1587c67521218e88a1a2f53b631eb78f63fa1fa87f056df558e5bcca
 ```
 
-Important evidence level:
+Quest 351 contains:
 
-- these offsets are the known 3.0 legacy class layout used by the probe;
-- the exact 3.0 `QuestExcelConfig.FromBinary` machine code accesses those offsets;
-- this is a strong historical control;
-- do **not** copy its constants/field order into 7.1 without proving binary-format continuity.
+```text
+35104 <- [0,3]
+35100 <- [35104,3]
+35107 <- [35100,3]
+35101 <- [35107,3]
+35106 <- [35101,3]
+35105 <- [35106,3]
+35103 <- [35105,3]
+35102 <- [35103,3]
+```
 
-This is currently the shortest path to reconstruct the legacy QuestExcel wire schema.
+This is pure previous-row/order linearization.
 
----
+It differs from exact native 2.8:
+- native 2.8 has `35101 <- 35100`, not 35107;
+- native 2.8 preserves branch logic for 35103 and 35102.
 
-## 8. AstaPS / public-resource root cause status
+Therefore AstaPS's chain cannot be classified as an unmodified 2.8 carry-forward.
 
-### AstaPS QuestExcel
-
-Current AstaPS `QuestExcelConfigData.json`:
-
-- 33,217 rows;
-- 35100..35107 contain the old synthetic/legacy `QUEST_COND_STATE_EQUAL` chain;
-- upstream PR #9 appended 7,956 missing rows from BinOutput and synthesized prerequisites for
-  newly appended rows because BinOutput lacks `acceptCond/beginExec`;
-- existing 351 rows predate that augmentation.
-
-Classification remains:
-
-**HIGH_CONFIDENCE legacy resource / materialization contamination.**
-
-### Same-version BinOutput
-
-Same-version Dimbreath and AstaPS `BinOutput/Quest/351.json` agree with the directly decoded
-native 351 payload on tested core fields.
-
-### Dimbreath public QuestExcel
-
-Public field labels are schema-misaligned. Examples already established:
-
-- guide-shaped value published under `acceptCondComb`;
-- `failParent` carrying the value matching `descTextMapHash`;
-- `failCondComb = QUEST_HIDDEN` where the value belongs to show-type semantics.
-
-Use it only as a byte/value cross-check, not as a field-name oracle.
+The 351 rows are already present in the initial AstaPS resource and remain unchanged
+through PR #9.
 
 ---
 
-## 9. What remains for #8
+## 6. AstaPS-Resource PR #9 documents the existing heuristic
 
-The runtime side is nearly closed. The remaining decisive question is the **legacy
-`QuestExcelConfigData` asset** shipped in 7.1.
+PR #9 / merge `7465e29b2d58058ab9973187c112abf2717ada03` says:
 
-Need to establish:
+- 7,956 missing BinOutput subquests were appended;
+- BinOutput lacked `acceptCond` / `beginExec`;
+- new first rows get `QUEST_COND_STATE_EQUAL [0,3]`;
+- each later row gets `QUEST_COND_STATE_EQUAL [previous step,3]`;
+- this follows the **"convention of the existing rows"**.
 
-1. exact legacy table count transform for the 2,824,188-byte payload;
-2. exact legacy row framing/deserializer;
-3. decode only the high-value fields first:
-   - `subId`
-   - `mainId`
-   - `acceptCond`
-   - `acceptCondComb`
-   - `beginExec`
-4. locate 35100..35107 in that exact 7.1 legacy payload;
-5. determine whether the old prerequisite chain is physically present in the shipped legacy
-   asset or was introduced by later public/downstream materialization;
-6. verify complete consumption or an equally strong structural invariant.
+This is the same shape already visible in initial Quest 351.
 
-Only after this should issue #8 be promoted to CONFIRMED and AstaPS resources be repaired.
+Important distinction:
+
+- PR #9 did **not** create the 351 chain;
+- it documents and reuses the pre-existing synthetic convention.
 
 ---
 
-## 10. Resume here — shortest next path
+## 7. Provenance verdict
 
-1. Stay on `probe/quest-blb3-binoutput`; refetch current head before editing.
-2. Use the successful 3.0 exact named anchor:
-   - loader `0x10FD580`
-   - row reader `0x3AF9E10`
-3. Recover the **3.0 table count transform and row mask/field transforms** mechanically from
-   those methods.
-4. Establish a format fingerprint for the old `QuestExcelConfigData` row:
-   - count width/op sequence;
-   - row mask width/op sequence;
-   - transforms for `subId/mainId`;
-   - array readers for `acceptCond/beginExec`;
-   - combiner scalar.
-5. Search 7.1 for that **instruction/format family**, not for the old names.
-6. If no 7.1 loader exists, test whether the exact 7.1 legacy asset still matches the 3.0
-   wire fingerprint by decoding a small prefix and requiring structural validity.
-7. If it matches, decode the 351 rows and classify the prerequisite chain.
-8. If it does not match, locate the version transition between 3.0 and 7.1; 4.2/6.7 are
-   secondary controls only.
+For AstaPS Quest 351:
 
-Do not broaden back into unrelated Quest fields until these five legacy fields are settled.
+**CONFIRMED downstream synthetic/materialized prerequisite data.**
+
+Evidence chain:
+
+1. exact native 2.8 contains a more complex historical graph;
+2. exact native 3.2 and 3.4 contain no 351 `acceptCond`;
+3. community tooling explicitly carries 2.8 quest logic into newer resource generations;
+4. AstaPS initial 351 is a simplified order-derived graph, not native 2.8;
+5. PR #9 explicitly identifies the same previous-row heuristic as an existing convention.
+
+The exact physical contents of the 7.1 legacy `3b87ae83.dat` rows remain unproven.
+Do not claim that 7.1 physically contains or physically lacks 351 `acceptCond` until the
+7.1 wire is directly decoded.
+
+That unresolved question no longer blocks the AstaPS resource-provenance verdict.
 
 ---
 
-## 11. Known dead ends / corrections
+## 8. Product/resource repair direction
 
-Do not repeat:
+Do not blindly delete every `acceptCond` yet.
 
-- `7473` as a confirmed QuestExcel row count — superseded.
-- `0x23` as a confirmed 35-byte row bitmap — superseded.
-- simple `u32 + K` / `u32 XOR K` matching from 7.1 legacy payload head to public row counts
-  as proof of the loader — no direct hit.
-- RandomQuest layout projected onto ordinary Quest.
-- historical 351 prerequisite edges used as current runtime truth.
-- direct callers of `QuestCond.FromBinary(reader, kind_0x1D) @ 0x115828F0` as the main route.
-- seven anonymous arrays mapped ordinally to the historical seven Quest lists.
-- asset-index trailing words interpreted as byte offset/size.
-- primary/external AssetIndex confusion.
-- `+0x312E0` treated as the full MainQuest index; it is the brief index. Full is `+0x31350`.
-- treating GPC as merely an unbound peer; current row-slot evidence now binds it to
-  `MainQuestExcelConfigData`.
+Before changing AstaPS resources:
+
+1. audit how many initial 25,261 rows use the previous-order synthesis pattern;
+2. separate exact historical conditions from generated previous-order conditions where
+   possible;
+3. determine whether AstaPS runtime still depends on synthetic `acceptCond` for task
+   activation;
+4. use current 7.1 BinOutput/runtime conditions as the authority for current behavior;
+5. repair narrowly first, then generalize only with evidence.
+
+Quest 351 is a strong candidate for removing/replacing the synthetic chain because current
+7.1 native runtime behavior is independently decoded.
 
 ---
 
-## #9 separate track
+## 9. Independent 7.1 wire-research track
 
-Keep #9 separate from #8.
+If continuing exact 7.1 legacy decoding:
 
-Exact 7.1 fresh-born anchor remains:
+1. use current native registration / table container evidence;
+2. do not search by obsolete 3.x field names alone;
+3. use the confirmed `subId` anchors as structural checkpoints;
+4. require exact row-boundary consumption across many consecutive rows;
+5. require full table consumption or an equally strong invariant before assigning field
+   semantics.
+
+Do not use:
+- old 3.x row schema by assumption;
+- AstaPS JSON field presence as a schema oracle;
+- RandomQuest layout as the ordinary Quest layout;
+- anonymous array ordinal mapping.
+
+---
+
+## 10. Separate #9 track
+
+Keep the Return-to-quest-point / born-data issue separate.
+
+Current exact anchor:
 
 ```text
 DoSetPlayerBornDataNotify
 CmdId          22899
 client type    ONKOPMILDMF
 handler owner  LLCGIEDMIIG
-handler        MACAMCMOKOL(ONKOPMILDMF)
+handler        MACAMCMOKOL
 RVA            0x0C227790
 method index   322028
 ```
 
-The direct native 351 evidence now proves:
-
-```text
-35101 TEAM_DEAD -> ROLLBACK_QUEST 35100
-```
-
-but that is still a gameplay rewind mechanism and must not be used by itself to explain the
-persistent Return-to-quest-point UI state.
+`35101 TEAM_DEAD -> ROLLBACK_QUEST 35100` is a gameplay rewind mechanism. It does not,
+by itself, explain persistent Return-to-quest-point UI state.
 
 ---
 
 ## Repository / CI rules
 
 - Keep exact reverse evidence and durable conclusions in `Genshin-Reverse`.
-- Probe workflows may remain on this branch while investigation is active.
-- Do not run heavyweight CI after every exploratory edit.
-- Full CI is mandatory before asking the user to test and before upstream submission.
-- User has asked the assistant to watch CI directly; do not ask the user to report CI status.
+- Exploratory focused probes may stay on this branch.
+- Full CI is mandatory before asking the user to test or before upstream submission.
+- Watch CI directly; do not ask the user to report it.
 - If user testing becomes necessary, provide one complete copy-paste command including
-  remote fetch, branch switch, dependency/build steps, and test/run command.
+  remote fetch, branch switch, build, and run/test commands.
