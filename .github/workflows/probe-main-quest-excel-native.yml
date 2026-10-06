@@ -384,6 +384,223 @@ jobs:
                   encoding='utf-8',
               )
           PY
+      - name: Disassemble prerequisite condition binary readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-cond-binary-reader.txt
+          import csv
+          import json
+          import re
+          from collections import defaultdict
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_MEM, X86_REG_RAX
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          exe = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          root = Path('versions/7.1.0-global/windows-x64/metadata')
+
+          def read_csv(name):
+              with (root / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv('types.csv')
+          fields = read_csv('fields.csv')
+          methods = read_csv('methods.csv')
+          type_by_tdi = {int(row['type_definition_index']): row for row in types}
+          methods_by_rva = defaultdict(list)
+          for row in methods:
+              text = row.get('rva', '').strip()
+              if text:
+                  methods_by_rva[int(text, 16)].append(row)
+
+          random_tdi = 76090
+          quest_tdi = 54128
+          random_fields = [r for r in fields if int(r['type_definition_index']) == random_tdi]
+          quest_fields = [r for r in fields if int(r['type_definition_index']) == quest_tdi]
+
+          def method(tdi, name, parameter_count):
+              rows = [
+                  r for r in methods
+                  if int(r['type_definition_index']) == tdi
+                  and r['method_name'] == name
+                  and int(r['parameter_count']) == parameter_count
+              ]
+              if len(rows) != 1:
+                  raise SystemExit(f'{tdi} {name}/{parameter_count}: expected 1 row, got {len(rows)}')
+              return rows[0]
+
+          random_inner = method(random_tdi, 'FromBinaryInner', 1)
+          quest_inner = method(quest_tdi, 'FromBinaryInner', 1)
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          with PEImage(exe) as image:
+              base = image.image_base
+
+              def read_rva(rva, size):
+                  data = image.read_rva(rva, size)
+                  if len(data) != size:
+                      raise ValueError(f'truncated read rva=0x{rva:X} size={size}')
+                  return data
+
+              def read_va(va, size):
+                  if va < base:
+                      raise ValueError(f'not image VA: 0x{va:X}')
+                  return read_rva(va - base, size)
+
+              def decode_runtime_type(index):
+                  array_va = int.from_bytes(
+                      read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
+                  )
+                  entry = read_va(array_va + index * ENTRY_SIZE, ENTRY_SIZE)
+                  if not is_valid_type_entry(entry):
+                      return {'index': index, 'status': 'invalid'}
+                  decoded = decode_type_entry(entry)
+                  out = {
+                      'index': index,
+                      'kind': decoded['kind_name'],
+                      'data_u64': hex(int.from_bytes(entry[:8], 'little')),
+                  }
+                  if decoded['kind'] in (0x11, 0x12):
+                      tdi = int(decoded['data_u32'])
+                      out['type_definition'] = type_by_tdi.get(tdi, {'type_definition_index': tdi})
+                  elif decoded['kind'] == 0x1D:
+                      target = int.from_bytes(entry[:8], 'little')
+                      nested = read_va(target, ENTRY_SIZE)
+                      if is_valid_type_entry(nested):
+                          nd = decode_type_entry(nested)
+                          elem = {
+                              'kind': nd['kind_name'],
+                              'data_u64': hex(int.from_bytes(nested[:8], 'little')),
+                          }
+                          if nd['kind'] in (0x11, 0x12):
+                              tdi = int(nd['data_u32'])
+                              elem['type_definition'] = type_by_tdi.get(
+                                  tdi, {'type_definition_index': tdi}
+                              )
+                          out['element'] = elem
+                  return out
+
+              print('=== FIELD RUNTIME TYPES ===')
+              field_runtime = {}
+              for owner, rows in (('RandomQuestCond', random_fields), ('QuestCond', quest_fields)):
+                  for row in rows:
+                      idx = int(row['field_type_index'])
+                      info = decode_runtime_type(idx)
+                      field_runtime[f'{owner}.{row["field_name"]}'] = info
+                      print(owner, row['field_name'], json.dumps(info, ensure_ascii=False))
+
+              def find_wrap(type_fragment):
+                  matches = [
+                      row for row in types
+                      if type_fragment in row.get('type_name', '')
+                  ]
+                  if len(matches) != 1:
+                      raise SystemExit(f'{type_fragment}: expected one wrapper type, got {len(matches)}')
+                  return int(matches[0]['type_definition_index'])
+
+              wrapper_specs = {}
+              for owner, fragment in (
+                  ('RandomQuestCond', 'MoleMoleConfigRandomQuestCondWrap'),
+                  ('QuestCond', 'MoleMoleConfigQuestCondWrap'),
+              ):
+                  tdi = find_wrap(fragment)
+                  for prop in ('type', 'param'):
+                      row = method(tdi, f'_g_get_{prop}', 1)
+                      wrapper_specs[f'{owner}.{prop}'] = int(row['rva'], 16)
+
+              def insns(start, end):
+                  blob = read_rva(start, end - start)
+                  return list(md.disasm(blob, base + start))
+
+              def line(insn):
+                  return (
+                      f'0x{insn.address-base:09X}: {insn.bytes.hex():<24} '
+                      f'{insn.mnemonic:<8} {insn.op_str}'
+                  )
+
+              wrapper_offsets = {}
+              print('=== XLUA FIELD GETTERS ===')
+              for name, start in wrapper_specs.items():
+                  body = insns(start, start + 0x180)
+                  offsets = []
+                  print(f'--- {name} @ 0x{start:X} ---')
+                  for insn in body:
+                      print(line(insn))
+                      for op in insn.operands:
+                          if op.type == X86_OP_MEM and op.mem.base == X86_REG_RAX:
+                              if op.mem.disp in (0x10, 0x18):
+                                  offsets.append(op.mem.disp)
+                      if insn.mnemonic == 'ret':
+                          break
+                  wrapper_offsets[name] = sorted(set(offsets))
+                  print('candidate_offsets=', [hex(x) for x in wrapper_offsets[name]])
+                  if len(wrapper_offsets[name]) != 1:
+                      raise SystemExit(f'{name}: could not isolate one +0x10/+0x18 field offset')
+
+              if wrapper_offsets['RandomQuestCond.type'] == wrapper_offsets['RandomQuestCond.param']:
+                  raise SystemExit('RandomQuestCond type/param getters resolved to same field')
+              if wrapper_offsets['QuestCond.type'] == wrapper_offsets['QuestCond.param']:
+                  raise SystemExit('QuestCond type/param getters resolved to same field')
+
+              def dump_reader(label, row, expected_end):
+                  start = int(row['rva'], 16)
+                  body = insns(start, expected_end)
+                  calls = []
+                  print(f'=== {label} 0x{start:X}..0x{expected_end:X} ===')
+                  for insn in body:
+                      print(line(insn))
+                      if insn.mnemonic == 'call' and insn.operands:
+                          op = insn.operands[0]
+                          if op.type == 2:
+                              target = op.imm - base
+                              calls.append({
+                                  'site_rva': hex(insn.address - base),
+                                  'target_rva': hex(target),
+                                  'metadata': methods_by_rva.get(target, []),
+                              })
+                  print('=== direct calls ===')
+                  for call in calls:
+                      print(json.dumps(call, ensure_ascii=False))
+                  return {
+                      'start_rva': hex(start),
+                      'end_rva': hex(expected_end),
+                      'calls': calls,
+                      'bytes': read_rva(start, expected_end - start).hex(),
+                  }
+
+              random_dump = dump_reader(
+                  'RandomQuestCond.FromBinaryInner(reader)',
+                  random_inner,
+                  0xB647AF0,
+              )
+              quest_dump = dump_reader(
+                  'QuestCond.FromBinaryInner(reader)',
+                  quest_inner,
+                  0x11582850,
+              )
+
+              evidence = {
+                  'field_runtime_types': field_runtime,
+                  'wrapper_offsets': {
+                      key: [hex(x) for x in value]
+                      for key, value in wrapper_offsets.items()
+                  },
+                  'random_quest_cond': random_dump,
+                  'quest_cond': quest_dump,
+              }
+              Path('quest-cond-binary-reader.json').write_text(
+                  json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+                  encoding='utf-8',
+              )
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -392,4 +609,6 @@ jobs:
           path: |
             quest-row-prereq-schema.txt
             quest-row-prereq-schema.json
+            quest-cond-binary-reader.txt
+            quest-cond-binary-reader.json
           if-no-files-found: warn
