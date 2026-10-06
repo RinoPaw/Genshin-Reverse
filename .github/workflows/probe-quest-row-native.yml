@@ -1923,6 +1923,74 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace per-id Quest binary slice index
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-binary-slice-index.json \
+            --focus fnj-slice-lookup:0x9F891F0 \
+            --focus fnj-cache-state:0x9F88FF0 \
+            --focus quest-id-gate:0x9F93B30 \
+            --focus afio-slice-lookup:0x9F92800 \
+            --focus afio-source-kind:0x9F95D70 \
+            --focus make-binary-reader:0x10175A00 \
+            --max-body 0x10000 \
+            | tee quest-binary-slice-index.txt
+
+          python - <<'PY' | tee quest-binary-slice-index-summary.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("quest-binary-slice-index.json").read_text(encoding="utf-8"))
+          root = Path("versions/7.1.0-global/windows-x64/metadata")
+
+          with (root / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+
+          report = {}
+          for label, item in data["focus"].items():
+              direct = []
+              for edge in item.get("direct_edges", []):
+                  owner = edge.get("target_owner")
+                  direct.append({
+                      "site_rva": edge.get("site_rva"),
+                      "target_rva": edge.get("target_rva"),
+                      "target_owner": owner,
+                  })
+              report[label] = {
+                  "owner": item.get("owner"),
+                  "direct_edges": direct,
+              }
+              print("FOCUS", label, json.dumps(report[label], ensure_ascii=False, sort_keys=True))
+
+          # Preserve every RIP-relative global access from the six functions.
+          globals_out = []
+          for label, item in data["focus"].items():
+              for ins in item.get("disassembly", []):
+                  if "rip_target_rva" not in ins:
+                      continue
+                  row = {
+                      "focus": label,
+                      "rva": ins.get("rva"),
+                      "mnemonic": ins.get("mnemonic"),
+                      "op_str": ins.get("op_str"),
+                      "rip_target_rva": ins.get("rip_target_rva"),
+                  }
+                  globals_out.append(row)
+                  print("RIP", json.dumps(row, ensure_ascii=False, sort_keys=True))
+
+          out = {"focus": report, "rip_globals": globals_out}
+          Path("quest-binary-slice-index-summary.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -1945,6 +2013,8 @@ jobs:
           test -s quest-fnj-reader-full.json
           test -s quest-fnj-reader-calls.json
           test -s quest-fnj-field-types.json
+          test -s quest-binary-slice-index.json
+          test -s quest-binary-slice-index-summary.json
           test -s quest-random-main-control.json
           test -s quest-main-wrapper-field-map.json
           test -s quest-random-main-reader.json
@@ -2000,6 +2070,10 @@ jobs:
             quest-fnj-reader-calls.json
             quest-fnj-field-types.txt
             quest-fnj-field-types.json
+            quest-binary-slice-index.txt
+            quest-binary-slice-index.json
+            quest-binary-slice-index-summary.txt
+            quest-binary-slice-index-summary.json
             quest-random-main-control.txt
             quest-random-main-control.json
             quest-main-wrapper-field-map.txt
