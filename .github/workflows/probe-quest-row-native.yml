@@ -769,6 +769,200 @@ jobs:
               encoding="utf-8",
           )
           PY
+      - name: Trace candidate ordinary Quest table containers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-row-container-callers.json \
+            --focus container-a:0x10409D40 \
+            --focus container-b:0x1269C5F0 \
+            --max-body 0x8000 \
+            | tee quest-row-container-callers.txt
+
+          python - <<'PY' | tee quest-row-container-types.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET_TDIS = {
+              69000: "AFIOOHMJHDM",
+              85802: "FNJLMNMEKLN",
+          }
+          QUEST_ROW_TDI = 17589
+          QUEST_HASH = 0x3B87AE8396
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          report = {
+              "candidate_types": {},
+              "runtime_type_indices": {},
+              "array_runtime_type_indices": {},
+              "field_owners": [],
+              "metadata_mentions": [],
+              "quest_hash_hits": [],
+          }
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def read_entry(index):
+                  va = type_array_va + index * ENTRY_SIZE
+                  data = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE:
+                      raise ValueError(f"truncated runtime type index {index}")
+                  return data
+
+              def read_entry_va(va):
+                  data = image.read_rva(va - base, ENTRY_SIZE)
+                  if len(data) != ENTRY_SIZE:
+                      raise ValueError(f"truncated runtime type VA 0x{va:X}")
+                  return data
+
+              # Find exact class/value-type runtime entries for the two candidate
+              # containers and the ordinary Quest row itself.
+              wanted_tdis = set(TARGET_TDIS) | {QUEST_ROW_TDI}
+              direct_indices = {tdi: [] for tdi in wanted_tdis}
+              array_indices = {tdi: [] for tdi in wanted_tdis}
+
+              for index in range(PROFILE_71.runtime_type_count):
+                  entry = read_entry(index)
+                  if not is_valid_type_entry(entry):
+                      continue
+                  d = decode_type_entry(entry)
+                  kind = int(d["kind"])
+                  if kind in (0x11, 0x12):
+                      tdi = int(d["data_u32"])
+                      if tdi in direct_indices:
+                          direct_indices[tdi].append(index)
+                  elif kind == 0x1D:
+                      target_va = int.from_bytes(entry[:8], "little")
+                      if target_va < base:
+                          continue
+                      try:
+                          nested = read_entry_va(target_va)
+                      except Exception:
+                          continue
+                      if not is_valid_type_entry(nested):
+                          continue
+                      nd = decode_type_entry(nested)
+                      if int(nd["kind"]) not in (0x11, 0x12):
+                          continue
+                      tdi = int(nd["data_u32"])
+                      if tdi in array_indices:
+                          array_indices[tdi].append(index)
+
+              report["runtime_type_indices"] = {
+                  str(k): v for k, v in direct_indices.items()
+              }
+              report["array_runtime_type_indices"] = {
+                  str(k): v for k, v in array_indices.items()
+              }
+
+              relevant_type_indices = set()
+              for tdi in TARGET_TDIS:
+                  relevant_type_indices.update(direct_indices[tdi])
+                  relevant_type_indices.update(array_indices[tdi])
+
+              # Resolve owners of fields whose runtime field type is one of the
+              # candidate container types or arrays of them.
+              for fld in fields:
+                  fti = int(fld["field_type_index"])
+                  if fti not in relevant_type_indices:
+                      continue
+                  owner_tdi = int(fld["type_definition_index"])
+                  item = {
+                      "field": fld,
+                      "owner_type": type_by_tdi.get(owner_tdi, {}),
+                  }
+                  report["field_owners"].append(item)
+                  print("FIELD_OWNER", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+              # Metadata signatures preserve obfuscated type names, which is enough
+              # to find wrappers/managers that mention either candidate explicitly.
+              target_names = set(TARGET_TDIS.values())
+              for row in methods:
+                  hay = " ".join([
+                      str(row.get("return_type", "")),
+                      str(row.get("parameter_types", "")),
+                  ])
+                  if not any(name in hay for name in target_names):
+                      continue
+                  owner_tdi = int(row["type_definition_index"])
+                  item = {
+                      "method": row,
+                      "owner_type": type_by_tdi.get(owner_tdi, {}),
+                  }
+                  report["metadata_mentions"].append(item)
+                  print("METHOD_MENTION", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+              # Search exact executable bytes for the known QuestExcel 40-bit name
+              # hash in both compact (5-byte) and zero-extended qword forms.
+              patterns = {
+                  "hash40_le": QUEST_HASH.to_bytes(5, "little"),
+                  "hash64_le": QUEST_HASH.to_bytes(8, "little"),
+              }
+              for sec in image.sections:
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for label, pat in patterns.items():
+                      pos = 0
+                      while True:
+                          pos = blob.find(pat, pos)
+                          if pos < 0:
+                              break
+                          item = {
+                              "label": label,
+                              "section": sec.name,
+                              "rva": f"0x{sec.virtual_address + pos:X}",
+                          }
+                          report["quest_hash_hits"].append(item)
+                          print("QUEST_HASH", json.dumps(item, ensure_ascii=False))
+                          pos += 1
+
+          for tdi, name in TARGET_TDIS.items():
+              item = {
+                  "type": type_by_tdi[tdi],
+                  "fields": fields_by_tdi.get(tdi, []),
+                  "methods": methods_by_tdi.get(tdi, []),
+                  "runtime_type_indices": direct_indices[tdi],
+                  "array_runtime_type_indices": array_indices[tdi],
+              }
+              report["candidate_types"][str(tdi)] = item
+              print("CANDIDATE", name, json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-row-container-types.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Assert evidence
         shell: bash
         run: |
@@ -780,6 +974,8 @@ jobs:
           test -s quest-facade-array-map.json
           test -s quest-row-table-binding.json
           test -s quest-row-array-wrapper.json
+          test -s quest-row-container-callers.json
+          test -s quest-row-container-types.json
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -799,4 +995,8 @@ jobs:
             quest-row-table-binding.json
             quest-row-array-wrapper.txt
             quest-row-array-wrapper.json
+            quest-row-container-callers.txt
+            quest-row-container-callers.json
+            quest-row-container-types.txt
+            quest-row-container-types.json
           if-no-files-found: error
