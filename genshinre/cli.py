@@ -159,6 +159,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--region", default="global")
     p.add_argument("--platform", default="windows-x64")
 
+    p = sub.add_parser("quest-decode", help="decode a Genshin 7.1 native Data/_BinOutput/Quest payload")
+    p.add_argument("payload", type=Path)
+    p.add_argument("--output", type=Path)
+    p.add_argument("--debug", action="store_true", help="include consumption and row-boundary metadata")
+
     p = sub.add_parser("research-status", help="summarize machine-readable analysis state and open claims")
     p.add_argument("path", type=Path)
 
@@ -406,6 +411,15 @@ def main() -> None:
         from .scaffold import scaffold
 
         print(scaffold(args.root, args.version, args.region, args.platform))
+    elif args.command == "quest-decode":
+        from .questbin import decode_main_quest
+
+        result = decode_main_quest(args.payload.read_bytes())
+        rendered = json.dumps(result.to_dict(include_debug=args.debug), indent=2, ensure_ascii=False) + "\n"
+        if args.output:
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            print(rendered, end="")
     elif args.command == "research-status":
         from .analysis import research_status
 
