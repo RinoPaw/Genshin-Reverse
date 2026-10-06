@@ -1,0 +1,234 @@
+name: Probe 3.0 historical Quest RVA ownership
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-rva-map.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-rva-map-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" \
+            -o "$out/global-metadata.dat"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+              "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+              "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          root=Path("inputs/3.0.0-global")
+          for name,(size,sha) in expected.items():
+              raw=(root/name).read_bytes()
+              got=hashlib.sha256(raw).hexdigest()
+              print(name,len(raw),got)
+              assert len(raw)==size and got==sha
+          PY
+
+      - name: Build pinned Genshin-aware Il2CppDumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none \
+            https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git \
+            .probe-tools/Il2CppDumper-Genshin
+          git -C .probe-tools/Il2CppDumper-Genshin checkout --detach \
+            731c4022a15b126da993e54a9f7d7e2c8a06c1af
+
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+              "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+              "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+
+          dotnet build \
+            .probe-tools/Il2CppDumper-Genshin/Il2CppDumper/Il2CppDumper.csproj \
+            -c Release --nologo
+
+          app=.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          cfg=json.loads(p.read_text(encoding="utf-8-sig"))
+          cfg["RequireAnyKey"]=False
+          cfg["GenerateDummyDll"]=False
+          cfg["GenerateStruct"]=False
+          cfg["GenerateScript"]=True
+          cfg["DumpMethod"]=True
+          cfg["DumpField"]=True
+          cfg["DumpFieldOffset"]=True
+          cfg["DumpMethodOffset"]=True
+          p.write_text(json.dumps(cfg,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact 3.0 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/Il2CppDumper-Genshin/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-rva-map-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Map historical RVAs to exact 3.0 types and methods
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-rva-map.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+
+          targets={
+              0x10FC970:"WorldReverse QuestExcelConfigLoader.FILE_LOCATION",
+              0x10FD580:"WorldReverse QuestExcelConfigLoader.FromBinary(ByteArray)",
+              0x3AF9E10:"WorldReverse QuestExcelConfig.FromBinary(ByteArray)",
+              0x21634E0:"layout-scan candidate",
+          }
+
+          starts=[i for i,l in enumerate(lines) if l.startswith("// Namespace:")]
+          starts.append(len(lines))
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          type_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+)"
+          )
+
+          found={hex(rva):[] for rva in targets}
+
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              decl=None
+              for rel,line in enumerate(block[:80]):
+                  m=type_rx.search(line)
+                  if m:
+                      decl={
+                          "line":a+rel+1,
+                          "name":m.group(1),
+                          "text":line.strip(),
+                      }
+                      break
+
+              for rel,line in enumerate(block):
+                  rm=rva_rx.search(line)
+                  if not rm:
+                      continue
+                  rva=int(rm.group(1),16)
+                  if rva not in targets:
+                      continue
+
+                  sig=None
+                  sig_line=None
+                  for k in range(rel+1,min(len(block),rel+10)):
+                      s=block[k].strip()
+                      if s and not s.startswith("//"):
+                          sig=s
+                          sig_line=a+k+1
+                          break
+
+                  context=block[max(0,rel-18):min(len(block),rel+20)]
+                  # Include the field section near the type declaration as identity evidence.
+                  head=block[:min(len(block),140)]
+                  item={
+                      "label":targets[rva],
+                      "namespace_line":a+1,
+                      "namespace":lines[a],
+                      "declaration":decl,
+                      "rva_comment_line":a+rel+1,
+                      "signature_line":sig_line,
+                      "signature":sig,
+                      "head":head,
+                      "context":context,
+                  }
+                  found[hex(rva)].append(item)
+
+          for rva,label in targets.items():
+              rows=found[hex(rva)]
+              print(f"\n=== 0x{rva:X} :: {label} :: hits={len(rows)} ===")
+              for x in rows:
+                  print("NAMESPACE",x["namespace_line"],x["namespace"])
+                  print("DECL",x["declaration"])
+                  print("SIGNATURE",x["signature_line"],x["signature"])
+                  print("-- HEAD --")
+                  for s in x["head"]:
+                      print(s)
+                  print("-- CONTEXT --")
+                  for s in x["context"]:
+                      print(s)
+
+          Path("quest-legacy-30-rva-map.json").write_text(
+              json.dumps({
+                  "dump_line_count":len(lines),
+                  "targets":{hex(k):v for k,v in targets.items()},
+                  "found":found,
+              },ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          missing=[hex(rva) for rva in targets if not found[hex(rva)]]
+          if missing:
+              raise SystemExit("unmapped historical RVAs: "+",".join(missing))
+          PY
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-rva-map
+          path: |
+            quest-legacy-30-rva-map-dumper.txt
+            quest-legacy-30-rva-map.txt
+            quest-legacy-30-rva-map.json
+          if-no-files-found: warn
