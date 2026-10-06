@@ -39,6 +39,12 @@ jobs:
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x7012E30 0x900 \
             --expected-sha256 "$sha" --label "AssetBundleExternalResourceProvider.LoadBinDataZipFile(ResourceIdentifier,...)" \
             --output quest-provider-load-bin-zip.json > quest-provider-load-bin-zip.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6C1C8E0 0x500 \
+            --expected-sha256 "$sha" --label "LoadedBundle.LoadBinDataZipFile" \
+            --output quest-loadedbundle-load-bin-zip.json > quest-loadedbundle-load-bin-zip.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6C1CA90 0x400 \
+            --expected-sha256 "$sha" --label "LoadedBundle.LoadBinData" \
+            --output quest-loadedbundle-load-bin.json > quest-loadedbundle-load-bin.txt
 
       - name: Annotate direct call targets
         shell: bash
@@ -60,7 +66,7 @@ jobs:
                   except: pass
           type_by_tdi={int(t["type_definition_index"]):t for t in types}
           out={}
-          for fn in ["quest-common-load-bin-zip.json","quest-provider-load-bin-zip.json"]:
+          for fn in ["quest-common-load-bin-zip.json","quest-provider-load-bin-zip.json","quest-loadedbundle-load-bin-zip.json","quest-loadedbundle-load-bin.json"]:
               d=json.loads(Path(fn).read_text())
               base=int(d["image_base"],16)
               rows=[]
@@ -220,6 +226,10 @@ jobs:
             quest-common-load-bin-zip.json
             quest-provider-load-bin-zip.txt
             quest-provider-load-bin-zip.json
+            quest-loadedbundle-load-bin-zip.txt
+            quest-loadedbundle-load-bin-zip.json
+            quest-loadedbundle-load-bin.txt
+            quest-loadedbundle-load-bin.json
             quest-bin-zip-direct-calls.txt
             quest-bin-zip-direct-calls.json
             quest-bin-zip-types.txt
