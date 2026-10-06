@@ -1,0 +1,230 @@
+name: Probe 7.1 QuestExcel recovered row fingerprints
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-row-fingerprint.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: probe-quest-legacy-71-row-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Scan recovered QuestExcel scalar fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-row-fingerprint.txt
+          import bisect
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          # Independently recovered from exact 7.1 QuestExcel row bytes:
+          #   order  = raw_u32 - 0x732ED834
+          #   mainId = (raw_u32 + 0x1D716) XOR 0x3223AF7D
+          #
+          # Include the modular negation of the order subtraction because the
+          # compiler may materialize it as ADD 0x8CD127CC.
+          WANTED={
+              0x732ED834:"order_sub",
+              0x8CD127CC:"order_add_neg",
+              0x0001D716:"mainid_add",
+              0x3223AF7D:"mainid_xor",
+          }
+
+          with (META/"methods.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          with (META/"types.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              types=list(csv.DictReader(fh))
+          with (META/"fields.csv").open("r",encoding="utf-8-sig",newline="") as fh:
+              fields=list(csv.DictReader(fh))
+
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi=defaultdict(list)
+          for x in fields:
+              try: fields_by_tdi[int(x["type_definition_index"])].append(x)
+              except Exception: pass
+
+          starts=[]
+          by_start=defaultdict(list)
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if not r:continue
+              starts.append(r); by_start[r].append(m)
+          starts=sorted(set(starts))
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not s<=rva<e:return None
+              tdis=sorted({
+                  int(x["type_definition_index"])
+                  for x in by_start[s]
+                  if x.get("type_definition_index")
+              })
+              return {
+                  "start":s,"end":e,
+                  "methods":by_start[s],
+                  "types":[type_by_tdi.get(t,{}) for t in tdis],
+                  "fields":{str(t):fields_by_tdi.get(t,[]) for t in tdis},
+              }
+
+          pe=pefile.PE(str(EXE),fast_load=False)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          hits=[]
+          for sec in pe.sections:
+              if not(sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              for ins in md.disasm(blob,base+sec.VirtualAddress):
+                  matched=[]
+                  for op in ins.operands:
+                      if op.type!=X86_OP_IMM:
+                          continue
+                      v=op.imm & 0xffffffffffffffff
+                      lo=v & 0xffffffff
+                      if lo in WANTED:
+                          matched.append({
+                              "value":f"0x{lo:08X}",
+                              "label":WANTED[lo],
+                          })
+                  if matched:
+                      rva=ins.address-base
+                      hits.append({
+                          "rva":rva,
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                          "bytes":ins.bytes.hex(),
+                          "matched":matched,
+                          "owner":owner(rva),
+                      })
+
+          grouped=defaultdict(lambda:{"labels":set(),"hits":[],"owner":None})
+          for h in hits:
+              o=h.get("owner")
+              key=o["start"] if o else h["rva"]
+              g=grouped[key]
+              g["owner"]=o
+              g["hits"].append(h)
+              for z in h["matched"]: g["labels"].add(z["label"])
+
+          ranked=[]
+          for start,g in grouped.items():
+              ranked.append({
+                  "start":start,
+                  "label_count":len(g["labels"]),
+                  "labels":sorted(g["labels"]),
+                  "hit_count":len(g["hits"]),
+                  "owner":g["owner"],
+                  "hits":g["hits"],
+              })
+          ranked.sort(key=lambda x:(-x["label_count"],-x["hit_count"],x["start"]))
+
+          print("instruction_hits",len(hits))
+          print("owner_groups",len(ranked))
+          print("\n=== ranked owners ===")
+          for x in ranked[:120]:
+              o=x["owner"]
+              print("\nOWNER",f"0x{x['start']:X}",
+                    "labels",x["labels"],"hits",x["hit_count"])
+              if o:
+                  print("METHODS",json.dumps(o["methods"],ensure_ascii=False))
+                  print("TYPES",json.dumps(o["types"],ensure_ascii=False))
+                  for tdi,ff in o["fields"].items():
+                      print("FIELDS",tdi,json.dumps(ff,ensure_ascii=False))
+              for h in x["hits"]:
+                  print(" HIT",f"0x{h['rva']:X}",h["mnemonic"],h["op_str"],
+                        h["matched"])
+
+          # Preserve complete method bodies only for owners with >=2 independent
+          # recovered fingerprints. These are the high-value reader candidates.
+          bodies=[]
+          for x in ranked:
+              if x["label_count"]<2 or not x["owner"]:
+                  continue
+              o=x["owner"]
+              s=o["start"]; e=min(o["end"],s+0x10000)
+              code=pe.get_data(s,e-s)
+              insns=[]
+              for ins in md.disasm(code,base+s):
+                  irva=ins.address-base
+                  insns.append({
+                      "rva":f"0x{irva:X}",
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  })
+                  if irva>=e-1:break
+              bodies.append({
+                  "start":f"0x{s:X}",
+                  "labels":x["labels"],
+                  "owner":o,
+                  "instructions":insns,
+              })
+
+          report={
+              "fingerprints":{f"0x{k:08X}":v for k,v in WANTED.items()},
+              "instruction_hits":hits,
+              "ranked_owners":[
+                  {
+                      **{k:v for k,v in x.items() if k!="labels"},
+                      "labels":sorted(x["labels"]) if isinstance(x["labels"],set) else x["labels"],
+                  }
+                  for x in ranked
+              ],
+              "multi_fingerprint_bodies":bodies,
+          }
+          Path("quest-legacy-71-row-fingerprint.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-row-fingerprint
+          path: |
+            quest-legacy-71-row-fingerprint.txt
+            quest-legacy-71-row-fingerprint.json
+          if-no-files-found: error
