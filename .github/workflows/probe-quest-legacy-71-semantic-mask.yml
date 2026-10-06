@@ -1,0 +1,248 @@
+name: Infer 7.1 QuestExcel semantic presence bits
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-semantic-mask.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-semantic-mask-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-artifact
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir previous-artifact
+          test -s previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch initial AstaPS QuestExcel resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/AstaPS-Resource checkout \
+            8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Correlate native mask bits with semantic field presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-semantic-mask.txt
+          import hashlib
+          import json
+          import struct
+          from collections import defaultdict
+          from pathlib import Path
+
+          raw_path=Path("previous-artifact/quest-output/MiHoYoBinData/3b87ae83.dat")
+          res_path=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
+          raw=raw_path.read_bytes()
+          size=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+size]
+          rows=json.loads(res_path.read_text(encoding="utf-8"))
+          SUBID_KEY=0xB1571A55
+
+          if len(rows)!=25261:
+              raise SystemExit(f"unexpected resource rows {len(rows)}")
+
+          # Bind rows to native bytes only through the independently recovered
+          # subId transform. Keep only one-to-one anchors.
+          enc_to_rows=defaultdict(list)
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  enc_to_rows[(sid^SUBID_KEY)&0xffffffff].append((ordinal,sid))
+
+          wanted=set(enc_to_rows)
+          raw_hits=defaultdict(list)
+          for pos in range(len(payload)-3):
+              value=struct.unpack_from("<I",payload,pos)[0]
+              if value in wanted:
+                  raw_hits[value].append(pos)
+
+          anchors={}
+          for enc,items in enc_to_rows.items():
+              if len(items)==1 and len(raw_hits[enc])==1:
+                  ordinal,sid=items[0]
+                  anchors[ordinal]=(sid,raw_hits[enc][0])
+
+          # Presence means a value would need serialization under the historical
+          # Quest schema, not merely that the JSON exporter emitted a key.
+          def nonempty_array(row,name):
+              v=row.get(name)
+              return isinstance(v,list) and len(v)>0
+
+          signals={
+              "showType_hidden": lambda r: r.get("showType")=="QUEST_HIDDEN",
+              "acceptCond": lambda r: nonempty_array(r,"acceptCond"),
+              "finishCond": lambda r: nonempty_array(r,"finishCond"),
+              "failCond": lambda r: nonempty_array(r,"failCond"),
+              "isRewind": lambda r: r.get("isRewind") is True,
+              "finishExec": lambda r: nonempty_array(r,"finishExec"),
+              "failExec": lambda r: nonempty_array(r,"failExec"),
+              "beginExec": lambda r: nonempty_array(r,"beginExec"),
+              "exclusiveNpcList": lambda r: nonempty_array(r,"exclusiveNpcList"),
+              "sharedNpcList": lambda r: nonempty_array(r,"sharedNpcList"),
+              "trialAvatarList": lambda r: nonempty_array(r,"trialAvatarList"),
+              "exclusivePlaceList": lambda r: nonempty_array(r,"exclusivePlaceList"),
+              "subIdSet": lambda r: isinstance(r.get("subIdSet"),int) and r.get("subIdSet")!=0,
+              "descTextMapHash": lambda r: isinstance(r.get("descTextMapHash"),int) and r.get("descTextMapHash")!=0,
+              "stepDescTextMapHash": lambda r: isinstance(r.get("stepDescTextMapHash"),int) and r.get("stepDescTextMapHash")!=0,
+              "guideTipsTextMapHash": lambda r: isinstance(r.get("guideTipsTextMapHash"),int) and r.get("guideTipsTextMapHash")!=0,
+              "exclusiveNpcPriority": lambda r: isinstance(r.get("exclusiveNpcPriority"),int) and r.get("exclusiveNpcPriority")!=0,
+          }
+
+          ordinals=sorted(anchors)
+          vectors={
+              name: tuple(bool(fn(rows[o])) for o in ordinals)
+              for name,fn in signals.items()
+          }
+
+          # Show which semantic vectors are genuinely independent.
+          aliases=[]
+          names=list(vectors)
+          for i,a in enumerate(names):
+              for b in names[i+1:]:
+                  if vectors[a]==vectors[b]:
+                      aliases.append([a,b,"same"])
+                  elif all(x!=y for x,y in zip(vectors[a],vectors[b])):
+                      aliases.append([a,b,"inverse"])
+
+          # The 351 windows independently showed the candidate flag word begins
+          # immediately after encoded subId. Search a wider neighborhood anyway,
+          # so the result does not depend on that assumption.
+          correlations=[]
+          for rel in range(-4,13):
+              for bit in range(8):
+                  raw_vec=[]
+                  valid_ord=[]
+                  for o in ordinals:
+                      _,pos=anchors[o]
+                      at=pos+rel
+                      if 0<=at<len(payload):
+                          raw_vec.append(bool((payload[at]>>bit)&1))
+                          valid_ord.append(o)
+                  if not valid_ord:
+                      continue
+                  for name,fn in signals.items():
+                      exp=[bool(fn(rows[o])) for o in valid_ord]
+                      same=sum(a==b for a,b in zip(raw_vec,exp))
+                      inv=len(exp)-same
+                      best=max(same,inv)
+                      correlations.append({
+                          "field":name,
+                          "rel":rel,
+                          "raw_bit":bit,
+                          "polarity":"same" if same>=inv else "inverse",
+                          "support":best,
+                          "eligible":len(exp),
+                          "ratio":best/len(exp),
+                          "true_rows":sum(exp),
+                      })
+
+          by_field={}
+          for name in signals:
+              matches=sorted(
+                  (x for x in correlations if x["field"]==name),
+                  key=lambda x:(-x["ratio"],-x["support"],abs(x["rel"]-4),x["rel"],x["raw_bit"]),
+              )
+              by_field[name]=matches[:20]
+
+          print("unique_native_anchors",len(anchors))
+          print("semantic aliases",json.dumps(aliases,ensure_ascii=False))
+          print("\n=== per-field best native bit matches ===")
+          for name in signals:
+              print("\nFIELD",name,"true_rows",sum(vectors[name]))
+              for x in by_field[name][:10]:
+                  print(json.dumps(x,sort_keys=True))
+
+          # Decode the best acceptCond bit directly for Quest 351.
+          accept_best=by_field["acceptCond"][0]
+          q351=[]
+          for ordinal in ordinals:
+              row=rows[ordinal]
+              sid=row.get("subId")
+              if not isinstance(sid,int) or not 35100<=sid<=35107:
+                  continue
+              _,pos=anchors[ordinal]
+              at=pos+accept_best["rel"]
+              raw_bit=bool((payload[at]>>accept_best["raw_bit"])&1)
+              decoded=raw_bit if accept_best["polarity"]=="same" else not raw_bit
+              q351.append({
+                  "ordinal":ordinal,
+                  "subId":sid,
+                  "native_subid_pos":pos,
+                  "raw_mask_word":f"0x{int.from_bytes(payload[pos+4:pos+8],'little'):08X}",
+                  "accept_bit_byte_rel":accept_best["rel"],
+                  "accept_bit_index":accept_best["raw_bit"],
+                  "accept_bit_raw":int(raw_bit),
+                  "accept_present_decoded":decoded,
+                  "resource_acceptCond":row.get("acceptCond"),
+              })
+
+          q351.sort(key=lambda x:x["native_subid_pos"])
+          print("\n=== Quest 351 native acceptCond presence ===")
+          print(json.dumps(q351,ensure_ascii=False,indent=2))
+
+          report={
+              "asset_sha256":hashlib.sha256(raw).hexdigest(),
+              "resource_sha256":hashlib.sha256(res_path.read_bytes()).hexdigest(),
+              "unique_native_anchors":len(anchors),
+              "signal_true_counts":{k:sum(v) for k,v in vectors.items()},
+              "semantic_vector_aliases":aliases,
+              "best_by_field":by_field,
+              "acceptCond_best":accept_best,
+              "quest351":q351,
+          }
+          Path("quest-legacy-71-semantic-mask.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          # A direct native claim requires a strong and non-degenerate signal.
+          if sum(vectors["acceptCond"]) in (0,len(ordinals)):
+              raise SystemExit("acceptCond signal is degenerate")
+          if accept_best["ratio"] < 0.999:
+              raise SystemExit(
+                  f"no near-exact native acceptCond bit; best={accept_best}"
+              )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-semantic-mask
+          path: |
+            quest-legacy-71-semantic-mask.txt
+            quest-legacy-71-semantic-mask.json
+          if-no-files-found: error
