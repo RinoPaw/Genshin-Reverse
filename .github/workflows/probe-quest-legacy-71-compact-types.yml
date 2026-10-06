@@ -1,0 +1,164 @@
+name: Find compact 7.1 QuestExcel row type
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-compact-types.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-compact-types-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Rank compact binary row types from exact 7.1 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-compact-types.txt
+          import csv
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          READER="FNIAHJGHFAK"
+
+          def read(name):
+              with (ROOT/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          types=read("types.csv")
+          fields=read("fields.csv")
+          methods=read("methods.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          fs=defaultdict(list)
+          ms=defaultdict(list)
+          for f in fields:
+              try:fs[int(f["type_definition_index"])].append(f)
+              except Exception:pass
+          for m in methods:
+              try:ms[int(m["type_definition_index"])].append(m)
+              except Exception:pass
+
+          # Known current-runtime semantic types from Quest/351 native decode.
+          strong_types={
+              "QuestShowType":8,
+              "ShowQuestGuideType":8,
+              "KAABNOHKKEP":7,       # ban-group enum family
+              "OOPFBIEAILL":10,      # current Quest guide object
+              "KPHLFFOELCG":6,       # current auxiliary row object
+          }
+
+          rows=[]
+          for tdi,t in type_by_tdi.items():
+              ff=fs.get(tdi,[])
+              n=len(ff)
+              if not 8<=n<=20:
+                  continue
+
+              readers=[]
+              for m in ms.get(tdi,[]):
+                  try:params=json.loads(m.get("parameter_types") or "[]")
+                  except Exception:continue
+                  if params and params[0]==READER:
+                      readers.append(m)
+              if not readers:
+                  continue
+
+              counts=Counter(f.get("field_type") or "" for f in ff)
+              score=0
+              why=[]
+              # Expected compact Quest source row scalar shape.
+              u32=counts["uint32"]
+              i32=counts["int32"]
+              boo=counts["bool"]
+              if u32>=3:
+                  score+=10+min(u32,8)
+                  why.append(f"uint32:{u32}")
+              if i32>=1:
+                  score+=5
+                  why.append(f"int32:{i32}")
+              if boo>=1:
+                  score+=3
+                  why.append(f"bool:{boo}")
+              if 10<=n<=16:
+                  score+=8
+                  why.append(f"compact:{n}")
+
+              for typ,w in strong_types.items():
+                  c=counts[typ]
+                  if c:
+                      score+=w*c
+                      why.append(f"{typ}:{c}")
+
+              # Named Quest-ish fields are a bonus only; obfuscated true types
+              # must remain eligible.
+              names=" ".join(f.get("field_name") or "" for f in ff)
+              for token in ("subId","mainId","order","guide","showGuide","banType"):
+                  if token in names:
+                      score+=4
+                      why.append("name:"+token)
+
+              one_arg=[]
+              for m in readers:
+                  try:params=json.loads(m.get("parameter_types") or "[]")
+                  except Exception:continue
+                  if len(params)==1:
+                      one_arg.append(m)
+                      score+=4
+
+              rows.append({
+                  "score":score,
+                  "type":t,
+                  "field_count":n,
+                  "field_type_counts":dict(counts),
+                  "why":why,
+                  "fields":ff,
+                  "reader_methods":readers,
+                  "one_arg_readers":one_arg,
+              })
+
+          rows.sort(key=lambda x:(-x["score"],abs(x["field_count"]-13),x["type"].get("type_name","")))
+          print("candidates",len(rows))
+          for rank,x in enumerate(rows[:120],1):
+              print(
+                  f"\n=== {rank:03d} score={x['score']} "
+                  f"type={x['type'].get('type_name')} "
+                  f"tdi={x['type'].get('type_definition_index')} "
+                  f"fields={x['field_count']} ==="
+              )
+              print("WHY",x["why"])
+              for f in x["fields"]:
+                  print("FIELD",f.get("field_name"),f.get("field_type"),f.get("field_type_index"))
+              for m in x["reader_methods"]:
+                  print("READER",m.get("method_name"),m.get("rva"),m.get("parameter_types"),m.get("return_type"))
+
+          Path("quest-legacy-71-compact-types.json").write_text(
+              json.dumps({"candidates":rows[:300]},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-compact-types
+          path: |
+            quest-legacy-71-compact-types.txt
+            quest-legacy-71-compact-types.json
+          if-no-files-found: error
