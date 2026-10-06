@@ -1,0 +1,131 @@
+{
+  "target": "7.1.0 Global / Windows x64",
+  "focused_run": {
+    "run_id": 37411379300,
+    "head_sha": "324f916b0d6caabb1b23e87d632bf01cd0278e81",
+    "artifact_id": 11389790544,
+    "artifact_name": "quest-row-prereq-schema",
+    "artifact_sha256": "cb220b0a6def6c20f13daa37e7cf4c5ef61db40d02d59aff283c8181006231a3"
+  },
+  "sources": {
+    "dimbreath_excel": {
+      "revision": "792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+      "commit_title": "CNRELWin7.1.0_R48379043_S48511369_D48533839",
+      "bytes": 7903186,
+      "rows": 17814,
+      "classification": "same-version public dump with field-name/schema misalignment"
+    },
+    "astaps_excel": {
+      "revision": "main at focused run",
+      "bytes": 51009089,
+      "rows": 33217,
+      "provenance_commit": "7465e29b2d58058ab9973187c112abf2717ada03",
+      "provenance_pr": "MeChen618/AstaPS-Resource#9",
+      "classification": "mixed legacy baseline plus BinOutput-derived synthetic augmentation"
+    }
+  },
+  "astaps_pr9": {
+    "added_missing_subquests": 7956,
+    "pre_pr_rows": 25261,
+    "post_pr_rows": 33217,
+    "synthetic_accept_cond_rule": {
+      "first_step": [
+        "QUEST_COND_STATE_EQUAL",
+        [
+          0,
+          3
+        ]
+      ],
+      "later_step": [
+        "QUEST_COND_STATE_EQUAL",
+        [
+          "previous step",
+          3
+        ]
+      ]
+    },
+    "note": "Existing rows kept order/format; acceptCond on existing 351 rows was not refreshed."
+  },
+  "representative_rows": {
+    "35100": {
+      "astaps_acceptCond": [
+        {
+          "type": "QUEST_COND_STATE_EQUAL",
+          "param": [
+            35104,
+            3
+          ]
+        }
+      ],
+      "dimbreath_public_excel_observation": {
+        "failParent": 573649119
+      },
+      "astaps_crosscheck": {
+        "descTextMapHash": 573649119
+      },
+      "current_binoutput_acceptCond": null
+    },
+    "35102": {
+      "astaps_acceptCond": [
+        {
+          "type": "QUEST_COND_STATE_EQUAL",
+          "param": [
+            35103,
+            3
+          ]
+        }
+      ],
+      "current_binoutput_acceptCond": null
+    },
+    "35103": {
+      "astaps_acceptCond": [
+        {
+          "type": "QUEST_COND_STATE_EQUAL",
+          "param": [
+            35105,
+            3
+          ]
+        }
+      ],
+      "current_binoutput_acceptCond": null
+    },
+    "35104": {
+      "astaps_acceptCond": [
+        {
+          "type": "QUEST_COND_STATE_EQUAL",
+          "param": [
+            0,
+            3
+          ]
+        }
+      ],
+      "dimbreath_public_excel_observation": {
+        "acceptCondComb": {
+          "guideScene": 3,
+          "param": [
+            "1005",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "type": "QUEST_GUIDE_NPC"
+        },
+        "failCondComb": "QUEST_HIDDEN"
+      },
+      "current_binoutput_acceptCond": null,
+      "classification": "AstaPS legacy prerequisite; Dimbreath public schema misalignment"
+    }
+  },
+  "native_next_anchor": {
+    "type_definition_index": 17589,
+    "type_name": "LAIMPNDEFCL",
+    "binary_deserializer_rva": "0x9C15DF0",
+    "confirmed_offsets": {
+      "mainId": "0x70",
+      "subId": "0x74",
+      "order": "0xA8"
+    },
+    "proof_needed": "Bind ordinary row to QuestExcel asset and decode exact payload with full consumption."
+  }
+}
