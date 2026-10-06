@@ -383,6 +383,68 @@ jobs:
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x6EA76D0 0x100 \
             --expected-sha256 "$sha" --label "runtime AssetIndex int32 primitive" \
             --output runtime-asset-index-i32-primitive.json > runtime-asset-index-i32-primitive.txt
+      - name: Trace AssetIndexBinaryReader source construction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            runtime-asset-index-reader-source.json \
+            --focus ctor-path:0x6C63B70 \
+            --focus ctor-handle:0x6C64030 \
+            --focus ctor-bytes:0x6C64150 \
+            --focus create-bytes:0x6C64380 \
+            --focus create-handle:0x6C643F0 \
+            --max-body 0x3000 \
+            | tee runtime-asset-index-reader-source.txt
+
+          python - <<'PY' | tee runtime-asset-index-underlying-primitives.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          ROOT=Path("versions/7.1.0-global/windows-x64/metadata")
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label='executable')
+          with (ROOT/'methods.csv').open('r',encoding='utf-8-sig',newline='') as f:
+              methods=list(csv.DictReader(f))
+          with (ROOT/'types.csv').open('r',encoding='utf-8-sig',newline='') as f:
+              types=list(csv.DictReader(f))
+          tb={int(t['type_definition_index']):t for t in types}
+          starts=[]; by={}
+          for m in methods:
+              s=(m.get('rva') or '').strip()
+              if not s: continue
+              try: r=int(s,0)
+              except ValueError: continue
+              starts.append(r); by.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          targets={
+              'readbyte_target':0x6EE85B0,
+              'readint32_target':0x6EA76D0,
+              'readulong_target':0x6ECC1F0,
+          }
+          out={}
+          for label,rva in targets.items():
+              exact=by.get(rva,[])
+              i=bisect.bisect_right(starts,rva)-1
+              owner_start=starts[i] if i>=0 else None
+              owner=by.get(owner_start,[]) if owner_start is not None else []
+              item={
+                  'target_rva':f'0x{rva:X}',
+                  'exact_methods':exact,
+                  'nearest_owner_start':None if owner_start is None else f'0x{owner_start:X}',
+                  'nearest_owner_methods':owner,
+                  'nearest_owner_types':[tb.get(int(x['type_definition_index']),{}) for x in owner],
+              }
+              out[label]=item
+              print(label,json.dumps(item,ensure_ascii=False,indent=2))
+          Path('runtime-asset-index-underlying-primitives.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -420,6 +482,10 @@ jobs:
             runtime-asset-index-readulong.json
             runtime-asset-index-pathhash-getters.txt
             runtime-asset-index-pathhash-getters.json
+            runtime-asset-index-reader-source.txt
+            runtime-asset-index-reader-source.json
+            runtime-asset-index-underlying-primitives.txt
+            runtime-asset-index-underlying-primitives.json
             runtime-asset-index-u64-primitive.txt
             runtime-asset-index-u64-primitive.json
             runtime-asset-index-byte-primitive.txt
