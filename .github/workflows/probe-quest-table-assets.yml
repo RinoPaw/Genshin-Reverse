@@ -1067,6 +1067,41 @@ jobs:
               encoding='utf-8',
           )
           PY
+      - name: Test GPC source-shaped reader against exact QuestExcel payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0xCAB9080 0x1C10 \
+            --expected-sha256 "$sha" \
+            --label "GPCFGOEJFJK.GMENPOPMKAA(FNIAHJGHFAK)" \
+            --output quest-gpc-reader.json \
+            > quest-gpc-reader.txt
+
+          python - <<'PY' | tee quest-gpc-reader-head.txt
+          import json,struct
+          from pathlib import Path
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          raw=Path('quest-output/MiHoYoBinData/3b87ae83.dat').read_bytes()
+          payload=unwrap_mihoyo_bin_data(raw)
+          d=json.loads(Path('quest-gpc-reader.json').read_text(encoding='utf-8'))
+          out={
+              'payload_size':len(payload),
+              'payload_head32':payload[:32].hex(),
+              'payload_u8_0':payload[0],
+              'payload_u16_0':struct.unpack_from('<H',payload,0)[0],
+              'payload_u32_0':struct.unpack_from('<I',payload,0)[0],
+              'payload_u64_0':struct.unpack_from('<Q',payload,0)[0],
+              'reader_start_rva':d['start_rva'],
+              'reader_head':d['instructions'][:120],
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path('quest-gpc-reader-head.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload focused evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -1085,6 +1120,10 @@ jobs:
             quest-outer-framing.json
             quest-row-target-scan.txt
             quest-row-target-scan.json
+            quest-gpc-reader.txt
+            quest-gpc-reader.json
+            quest-gpc-reader-head.txt
+            quest-gpc-reader-head.json
             mainquest-index-asset-summary.txt
             mainquest-index-assets.json
             mainquest-index-reconstruct.txt
