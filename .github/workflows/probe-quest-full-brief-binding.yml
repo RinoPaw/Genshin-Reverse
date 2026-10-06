@@ -264,6 +264,46 @@ jobs:
           Path('quest-scalar-reader-calls.json').write_text(
               json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+      - name: Disassemble ordinary Quest nested row readers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xB8B0230 0x1350 \
+            --expected-sha256 "$sha" --label "OOPFBIEAILL.GMENPOPMKAA(FNIAHJGHFAK) ordinary Quest nested guide" \
+            --output quest-row-oop-reader.json > quest-row-oop-reader.txt
+
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xF08A330 0x920 \
+            --expected-sha256 "$sha" --label "KPHLFFOELCG.GMENPOPMKAA(FNIAHJGHFAK) ordinary Quest guideHint" \
+            --output quest-row-kph-reader.json > quest-row-kph-reader.txt
+
+          python - <<'PY' | tee quest-row-nested-reader-summary.txt
+          import json
+          from pathlib import Path
+
+          out={}
+          for label,fn in (
+              ('OOPFBIEAILL','quest-row-oop-reader.json'),
+              ('KPHLFFOELCG','quest-row-kph-reader.json'),
+          ):
+              d=json.loads(Path(fn).read_text(encoding='utf-8'))
+              rows=[]
+              for x in d['instructions']:
+                  m=x.get('mnemonic','')
+                  op=x.get('op_str','').lower()
+                  if m in {'bt','test','call','jmp','mov','lea','add','xor','cmp'} and (
+                      m in {'bt','test','call','jmp'}
+                      or any(tok in op for tok in ('[rsi','[rdi','[r12','[r13','[r14','[r15'))
+                  ):
+                      rows.append(x)
+              out[label]=rows
+              print('\n###',label)
+              for x in rows:
+                  print(x['rva'],x['mnemonic'],x['op_str'])
+          Path('quest-row-nested-reader-summary.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -291,6 +331,12 @@ jobs:
             quest-cond-scalar-reader.json
             quest-scalar-reader-calls.txt
             quest-scalar-reader-calls.json
+            quest-row-oop-reader.txt
+            quest-row-oop-reader.json
+            quest-row-kph-reader.txt
+            quest-row-kph-reader.json
+            quest-row-nested-reader-summary.txt
+            quest-row-nested-reader-summary.json
             quest-bootstrap-a.txt
             quest-bootstrap-a.json
             quest-bootstrap-b.txt
