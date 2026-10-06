@@ -119,12 +119,6 @@ jobs:
           )
           PY
 
-      - name: Trace exact ordinary LoadBinData call edges
-        shell: bash
-        run: |
-          set -euo pipefail
-          python tools/trace_native_call_edges.py             inputs/7.1.0-global/GenshinImpact.exe             versions/7.1.0-global/windows-x64/metadata/methods.csv             quest-loaded-bundle-bin-edges.json             --focus loaded-bundle-bin:0x6C1CA90             --max-body 0x3000             | tee quest-loaded-bundle-bin-edges.txt
-
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -136,6 +130,4 @@ jobs:
             quest-loaded-bundle-bin-zip-sibling.json
             quest-loaded-bundle-bin-summary.txt
             quest-loaded-bundle-bin-summary.json
-            quest-loaded-bundle-bin-edges.txt
-            quest-loaded-bundle-bin-edges.json
           if-no-files-found: error
