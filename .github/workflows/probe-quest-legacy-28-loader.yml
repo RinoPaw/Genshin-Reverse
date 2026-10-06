@@ -102,6 +102,99 @@ jobs:
           ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-28-loader-dumper.txt"
           test -s "$out/dump.cs"
 
+      - name: Resolve exact wire-helper symbols
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-helper-symbols.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+          targets={
+              0x418FDF0:"presence_init",
+              0x0D576C0:"presence_test",
+              0x4148CE0:"read_u32",
+              0x418CE30:"read_i32",
+              0x4170540:"read_bool",
+              0x41934F0:"read_quest_show_type",
+              0x413DC40:"read_ban_type",
+              0x4141A10:"read_logic_type",
+              0x0F82150:"read_accept_cond_array",
+              0x22A8D50:"read_content_array",
+              0x39638E0:"read_guide",
+              0x4168F40:"read_show_guide_type",
+              0x151F790:"read_exec_array",
+              0x418D2D0:"read_u32_array",
+              0x4197930:"has_remaining",
+              0x4190550:"read_varint_buffer",
+              0x1198DB0:"decode_u32_buffer",
+              0x41534B0:"read_byte",
+              0x1D0FE70:"advance",
+              0x41979F0:"read_array_count",
+              0x0F82010:"read_accept_cond",
+              0x151F950:"read_exec",
+          }
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+          found={}
+          for i,line in enumerate(lines):
+              m=rva_rx.search(line)
+              if not m: continue
+              rva=int(m.group(1),16)
+              if rva not in targets: continue
+
+              sig=None; sig_line=None
+              for k in range(i+1,min(len(lines),i+10)):
+                  s=lines[k].strip()
+                  if s and not s.startswith("//") and "(" in s and ")" in s:
+                      sig=s; sig_line=k+1; break
+
+              # Locate containing namespace/type declaration.
+              ns=None; decl=None
+              for k in range(i,-1,-1):
+                  if lines[k].startswith("// Namespace:"):
+                      ns=lines[k].strip()
+                      for q in range(k,min(i+1,k+40)):
+                          s=lines[q].strip()
+                          if re.search(r"\b(class|struct)\b",s) and "TypeDefIndex:" in s:
+                              decl=s
+                              break
+                      break
+
+              item={
+                  "label":targets[rva],
+                  "rva":rva,
+                  "comment_line":i+1,
+                  "signature_line":sig_line,
+                  "signature":sig,
+                  "namespace":ns,
+                  "declaration":decl,
+                  "context":lines[max(0,i-5):min(len(lines),i+12)],
+              }
+              found.setdefault(f"0x{rva:X}",[]).append(item)
+
+          for rva,label in targets.items():
+              rows=found.get(f"0x{rva:X}",[])
+              print(f"=== {label} 0x{rva:X} hits={len(rows)} ===")
+              for x in rows:
+                  print("TYPE",x["declaration"])
+                  print("SIG",x["signature"])
+                  print("CTX")
+                  for line in x["context"]:
+                      print(line)
+
+          Path("quest-legacy-28-helper-symbols.json").write_text(
+              json.dumps(found,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          missing=[f"{label}=0x{rva:X}" for rva,label in targets.items()
+                   if f"0x{rva:X}" not in found]
+          if missing:
+              print("MISSING",missing)
+          PY
+
       - name: Resolve loader owner and disassemble row-array callers
         shell: bash
         run: |
@@ -267,6 +360,8 @@ jobs:
           name: quest-legacy-28-loader
           path: |
             quest-legacy-28-loader-dumper.txt
+            quest-legacy-28-helper-symbols.txt
+            quest-legacy-28-helper-symbols.json
             quest-legacy-28-loader.txt
             quest-legacy-28-loader.json
           if-no-files-found: warn
