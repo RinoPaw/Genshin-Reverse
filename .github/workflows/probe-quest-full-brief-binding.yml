@@ -115,6 +115,60 @@ jobs:
           )
           PY
 
+      - name: Bind full and brief index bootstrap slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xFCBBB40 0x180 \
+            --expected-sha256 "$sha" --label "LAABEAMHPJG bootstrap A" \
+            --output quest-bootstrap-a.json > quest-bootstrap-a.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xFCBC250 0x160 \
+            --expected-sha256 "$sha" --label "LAABEAMHPJG bootstrap B" \
+            --output quest-bootstrap-b.json > quest-bootstrap-b.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xFCBC390 0x160 \
+            --expected-sha256 "$sha" --label "LAABEAMHPJG bootstrap C" \
+            --output quest-bootstrap-c.json > quest-bootstrap-c.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xFCBC530 0x160 \
+            --expected-sha256 "$sha" --label "LAABEAMHPJG bootstrap brief candidate" \
+            --output quest-bootstrap-brief.json > quest-bootstrap-brief.txt
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0xFCBC670 0x170 \
+            --expected-sha256 "$sha" --label "LAABEAMHPJG bootstrap E" \
+            --output quest-bootstrap-e.json > quest-bootstrap-e.txt
+
+          python - <<'PY' | tee quest-bootstrap-slot-summary.txt
+          import json,re
+          from pathlib import Path
+
+          files=[
+              ('A','quest-bootstrap-a.json'),
+              ('B','quest-bootstrap-b.json'),
+              ('C','quest-bootstrap-c.json'),
+              ('brief_candidate','quest-bootstrap-brief.json'),
+              ('E','quest-bootstrap-e.json'),
+          ]
+          out={}
+          for label,fn in files:
+              d=json.loads(Path(fn).read_text(encoding='utf-8'))
+              rows=[]
+              for x in d['instructions']:
+                  op=x.get('op_str','').lower()
+                  if (
+                      x.get('mnemonic') in {'call','jmp','mov','lea'}
+                      and (
+                          x.get('mnemonic') in {'call','jmp'}
+                          or 'rip' in op
+                          or any(k in op for k in ('0x31350','0x312e0','0x312c8'))
+                      )
+                  ):
+                      rows.append(x)
+              out[label]=rows
+              print('\n###',label)
+              for x in rows:
+                  print(x['rva'],x['mnemonic'],x['op_str'])
+          Path('quest-bootstrap-slot-summary.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -130,4 +184,16 @@ jobs:
             quest-brief-loader.json
             quest-full-brief-binding.txt
             quest-full-brief-binding.json
+            quest-bootstrap-a.txt
+            quest-bootstrap-a.json
+            quest-bootstrap-b.txt
+            quest-bootstrap-b.json
+            quest-bootstrap-c.txt
+            quest-bootstrap-c.json
+            quest-bootstrap-brief.txt
+            quest-bootstrap-brief.json
+            quest-bootstrap-e.txt
+            quest-bootstrap-e.json
+            quest-bootstrap-slot-summary.txt
+            quest-bootstrap-slot-summary.json
           if-no-files-found: error
