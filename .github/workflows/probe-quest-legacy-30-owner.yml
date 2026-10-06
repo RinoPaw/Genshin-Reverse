@@ -1,0 +1,231 @@
+name: Probe 3.0 QuestExcel row ownership
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-owner.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-owner-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download verified exact 3.0.0 inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" -o "$out/UserAssembly.dll"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 300 \
+            "$base/GenshinImpact_Data/Managed/Metadata/global-metadata.dat" -o "$out/global-metadata.dat"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+            "UserAssembly.dll":(177601560,"b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"),
+            "global-metadata.dat":(49356392,"efd5a35bed23de3f1444d40ebf4eaa1dfb338c84d7a168a0264678f94cca5a2a"),
+          }
+          for name,(size,sha) in expected.items():
+              raw=(Path("inputs/3.0.0-global")/name).read_bytes()
+              assert len(raw)==size and hashlib.sha256(raw).hexdigest()==sha
+          PY
+
+      - name: Build pinned Genshin-aware dumper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/R0xdeadc0de/Il2CppDumper-Genshin.git .probe-tools/dumper
+          git -C .probe-tools/dumper checkout --detach 731c4022a15b126da993e54a9f7d7e2c8a06c1af
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj")
+          s=p.read_text(encoding="utf-8-sig")
+          s=s.replace(
+            "<TargetFrameworks>net472;net5.0</TargetFrameworks>",
+            "<TargetFramework>net6.0</TargetFramework>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>",
+          )
+          p.write_text(s,encoding="utf-8")
+          PY
+          dotnet build .probe-tools/dumper/Il2CppDumper/Il2CppDumper.csproj -c Release --nologo
+          app=.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0
+          python - "$app/config.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          x=json.loads(p.read_text(encoding="utf-8-sig"))
+          x["RequireAnyKey"]=False
+          x["GenerateDummyDll"]=False
+          x["GenerateStruct"]=False
+          x["GenerateScript"]=True
+          x["DumpMethod"]=True
+          x["DumpField"]=True
+          x["DumpFieldOffset"]=True
+          x["DumpMethodOffset"]=True
+          p.write_text(json.dumps(x,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Dump exact metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$GITHUB_WORKSPACE/.probe-tools/dumper/Il2CppDumper/bin/Release/net6.0"
+          out="$GITHUB_WORKSPACE/genshin-dump"
+          mkdir -p "$out"
+          (
+            cd "$app"
+            dotnet Il2CppDumper.dll \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/UserAssembly.dll" \
+              "$GITHUB_WORKSPACE/inputs/3.0.0-global/global-metadata.dat" \
+              "$out"
+          ) </dev/null | tee "$GITHUB_WORKSPACE/quest-legacy-30-owner-dumper.txt"
+          test -s "$out/dump.cs"
+
+      - name: Find loader ownership for Quest-like row candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-owner.txt
+          import json,re
+          from pathlib import Path
+
+          lines=Path("genshin-dump/dump.cs").read_text(
+              encoding="utf-8",errors="replace"
+          ).splitlines()
+          starts=[i for i,x in enumerate(lines) if x.startswith("// Namespace:")]
+          starts.append(len(lines))
+
+          targets={
+              "FKGMHOPOCIN":"Quest-like reduced row candidate",
+              "LFMPGONJCCK":"MainQuest-like row candidate",
+              "RandomQuestExcelConfig":"named RandomQuest control",
+          }
+          type_rx=re.compile(
+              r"^\s*(?:public|private|protected|internal)?\s*"
+              r"(?:sealed\s+|abstract\s+|static\s+)*"
+              r"(?:class|struct)\s+([^\s:{]+).*?TypeDefIndex:\s*(\d+)"
+          )
+          rva_rx=re.compile(r"RVA:\s*0x([0-9A-Fa-f]+)")
+
+          results={k:[] for k in targets}
+          for a,b in zip(starts,starts[1:]):
+              block=lines[a:b]
+              joined="\n".join(block)
+              matched=[k for k in targets if k in joined]
+              if not matched:
+                  continue
+              decl=None
+              for rel,line in enumerate(block[:100]):
+                  m=type_rx.search(line)
+                  if m:
+                      decl={
+                          "name":m.group(1),
+                          "typedef_index":int(m.group(2)),
+                          "line":a+rel+1,
+                          "text":line.strip(),
+                      }
+                      break
+              if not decl:
+                  continue
+
+              methods=[]
+              for rel,line in enumerate(block):
+                  rm=rva_rx.search(line)
+                  if not rm:
+                      continue
+                  rva=int(rm.group(1),16)
+                  sig=None
+                  sig_line=None
+                  for k in range(rel+1,min(len(block),rel+8)):
+                      q=block[k].strip()
+                      if q and not q.startswith("//") and "(" in q and ")" in q:
+                          sig=q
+                          sig_line=a+k+1
+                          break
+                  if sig:
+                      methods.append({"rva":rva,"line":sig_line,"signature":sig})
+
+              item={
+                  "namespace_line":a+1,
+                  "namespace":lines[a],
+                  "declaration":decl,
+                  "methods":methods,
+                  "block":block,
+              }
+              for t in matched:
+                  results[t].append(item)
+
+          for target,label in targets.items():
+              rows=results[target]
+              print(f"\n===== {target} :: {label} references={len(rows)} =====")
+              for x in rows:
+                  d=x["declaration"]
+                  print(
+                      f"\n--- type={d['name']} TypeDefIndex={d['typedef_index']} "
+                      f"line={d['line']} ---"
+                  )
+                  # Focus on declarations and generic containers that reveal ownership.
+                  for line in x["block"][:220]:
+                      if (
+                          target in line
+                          or "Dictionary<" in line
+                          or "List<" in line
+                          or "FromBinary" in line
+                          or "FILE_LOCATION" in line
+                          or "GALKIMALNDL" in line
+                      ):
+                          print(line)
+                  for m in x["methods"]:
+                      sig=m["signature"]
+                      if "FromBinary" in sig or "GALKIMALNDL" in sig:
+                          print(f"METHOD RVA=0x{m['rva']:X} {sig}")
+
+          Path("quest-legacy-30-owner.json").write_text(
+              json.dumps(results,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          owners=[
+              x for x in results["FKGMHOPOCIN"]
+              if x["declaration"]["name"]!="FKGMHOPOCIN"
+              and any(
+                  "Dictionary<" in line and "FKGMHOPOCIN" in line
+                  for line in x["block"]
+              )
+          ]
+          print("\nFKGM_DICT_OWNERS",len(owners))
+          for x in owners:
+              print(x["declaration"])
+          PY
+
+      - name: Upload ownership evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-owner
+          path: |
+            quest-legacy-30-owner-dumper.txt
+            quest-legacy-30-owner.txt
+            quest-legacy-30-owner.json
+          if-no-files-found: warn
