@@ -1,0 +1,135 @@
+name: Probe 7.1 Quest binary reader primitive
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-bin-reader.yml"
+
+concurrency:
+  group: probe-quest-bin-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Dump FNIAHJGHFAK reader schema and methods
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-bin-reader-schema.txt
+          import csv,json
+          from pathlib import Path
+
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (root/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          typ=next(x for x in types if int(x["type_definition_index"])==30748)
+          fs=[x for x in fields if int(x["type_definition_index"])==30748]
+          ms=[x for x in methods if int(x["type_definition_index"])==30748]
+          out={"type":typ,"fields":fs,"methods":ms}
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("quest-bin-reader-schema.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Disassemble all FNIAHJGHFAK methods
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-bin-reader-methods.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import CS_ARCH_X86,CS_MODE_64,Cs
+          from capstone.x86_const import X86_OP_IMM
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          exe=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          root=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(exe,PROFILE_71.exe_sha256,label="executable")
+          with (root/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              methods=list(csv.DictReader(f))
+          targets=[x for x in methods if int(x["type_definition_index"])==30748 and (x.get("rva") or "").strip()]
+          starts=sorted(set(int(x["rva"],0) for x in methods if (x.get("rva") or "").strip()))
+          md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+          report=[]
+          with PEImage(exe) as image:
+              base=image.image_base
+              for m in targets:
+                  start=int(m["rva"],0)
+                  i=bisect.bisect_right(starts,start)
+                  end=starts[i] if i<len(starts) else start+0x1000
+                  if end<=start or end-start>0x4000: end=start+0x1000
+                  blob=image.read_rva(start,end-start)
+                  ins=[]
+                  for x in md.disasm(blob,base+start):
+                      row={"rva":f"0x{x.address-base:X}","bytes":x.bytes.hex(),"mnemonic":x.mnemonic,"op_str":x.op_str}
+                      if x.mnemonic in {"call","jmp"}:
+                          for op in x.operands:
+                              if op.type==X86_OP_IMM:
+                                  v=int(op.imm); trva=v-base if v>=base else v
+                                  row["direct_target_rva"]=f"0x{trva:X}"
+                                  break
+                      ins.append(row)
+                  item={"method":m,"start_rva":f"0x{start:X}","end_rva":f"0x{end:X}","instructions":ins}
+                  report.append(item)
+                  print("\n###",m["method_name"],f"0x{start:X}",m.get("parameter_types"))
+                  for x in ins:
+                      print(x["rva"],x["mnemonic"],x["op_str"])
+          Path("quest-bin-reader-methods.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Trace refill primitive direct edges and callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            quest-bin-reader-refill.json \
+            --focus refill:0x1269BFC0 \
+            --max-body 0x10000 \
+            | tee quest-bin-reader-refill.txt
+
+      - name: Assert evidence
+        run: |
+          test -s quest-bin-reader-schema.json
+          test -s quest-bin-reader-methods.json
+          test -s quest-bin-reader-refill.json
+
+      - name: Upload focused evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-bin-reader-primitive
+          path: |
+            quest-bin-reader-schema.txt
+            quest-bin-reader-schema.json
+            quest-bin-reader-methods.txt
+            quest-bin-reader-methods.json
+            quest-bin-reader-refill.txt
+            quest-bin-reader-refill.json
+          if-no-files-found: error
