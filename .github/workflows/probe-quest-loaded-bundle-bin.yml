@@ -63,6 +63,12 @@ jobs:
                   except ValueError:
                       pass
           type_by_tdi={int(t["type_definition_index"]):t for t in types}
+          fields_by_tdi={}
+          methods_by_tdi={}
+          for f in fields:
+              fields_by_tdi.setdefault(int(f["type_definition_index"]),[]).append(f)
+          for m in methods:
+              methods_by_tdi.setdefault(int(m["type_definition_index"]),[]).append(m)
 
           report={"methods":{},"loaded_bundle":None,"candidate_types":[]}
           for fn in ("quest-loaded-bundle-bin.json","quest-loaded-bundle-bin-zip-sibling.json"):
@@ -96,8 +102,8 @@ jobs:
           lb_tdi=int(lb["type_definition_index"])
           report["loaded_bundle"]={
               "type":lb,
-              "fields":[f for f in fields if int(f["type_definition_index"])==lb_tdi],
-              "methods":[m for m in methods if int(m["type_definition_index"])==lb_tdi],
+              "fields":fields_by_tdi.get(lb_tdi,[]),
+              "methods":methods_by_tdi.get(lb_tdi,[]),
           }
           print("\nLOADED_BUNDLE")
           print(json.dumps(report["loaded_bundle"],ensure_ascii=False,indent=2))
@@ -107,7 +113,7 @@ jobs:
           candidates=[]
           for t in types:
               tdi=int(t["type_definition_index"])
-              ms=[m for m in methods if int(m["type_definition_index"])==tdi]
+              ms=methods_by_tdi.get(tdi,[])
               names={m.get("method_name","") for m in ms}
               sig=" ".join(
                   str(m.get("parameter_types",""))+" "+str(m.get("return_type",""))
@@ -126,7 +132,7 @@ jobs:
                   candidates.append({
                       "score":score,
                       "type":t,
-                      "fields":[f for f in fields if int(f["type_definition_index"])==tdi],
+                      "fields":fields_by_tdi.get(tdi,[]),
                       "methods":ms,
                   })
           candidates.sort(key=lambda x:(-x["score"],int(x["type"]["type_definition_index"])))
