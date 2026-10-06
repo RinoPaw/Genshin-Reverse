@@ -1,0 +1,122 @@
+name: Probe 7.1 orphan QuestExcel row readers
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-excel-row-readers.yml"
+
+concurrency:
+  group: probe-quest-excel-row-readers-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Disassemble Quest-shaped row-reader candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+          mkdir -p qrow-candidates
+          python - <<'PY' > /tmp/qrow-candidates
+          rows = [
+              ("random-quest",      0xCF246E0, 0xA20),
+              ("gpc",               0xCAB9080, 0x1C10),
+              ("ordinary-runtime",  0x9C15DF0, 0x2060),
+              ("npdia",             0xF3850A0, 0x2230),
+              ("mpon",              0x1155A450, 0x46C0),
+              ("lglh",              0x12CA3BA0, 0x2E00),
+              ("geeo",              0x11098B90, 0x23E0),
+          ]
+          for label,rva,size in rows:
+              print(label,hex(rva),hex(size))
+          PY
+          while read -r label rva size; do
+            python tools/disassemble_rva.py               inputs/7.1.0-global/GenshinImpact.exe               "$rva" "$size"               --expected-sha256 "$sha"               --label "$label QuestExcel row-reader candidate"               --output "qrow-candidates/$label.json"               > "qrow-candidates/$label.txt"
+          done < /tmp/qrow-candidates
+
+      - name: Fingerprint first mask read and guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-excel-row-reader-fingerprints.txt
+          import json,re
+          from pathlib import Path
+
+          RAW = 0x087EDDD5
+          MASK32 = 0xffffffff
+          ROOT=Path("qrow-candidates")
+          out={}
+
+          def imm(s):
+              m=re.search(r"0x([0-9a-f]+)",s.lower())
+              return int(m.group(1),16) if m else None
+
+          for p in sorted(ROOT.glob("*.json")):
+              d=json.loads(p.read_text())
+              ins=d["instructions"]
+              interesting=[]
+              for i,x in enumerate(ins[:260]):
+                  m=x.get("mnemonic","")
+                  op=x.get("op_str","").lower()
+                  if (
+                      m in {"call","mov","movzx","movsxd","lea","add","sub","xor","bt","test","cmp","je","jne","jz","jnz","jb","jae","js","jns"}
+                      and ("0x20]" in op or m in {"call","bt","test"} or "0x" in op)
+                  ):
+                      interesting.append(x)
+
+              # Collect likely 32-bit stream reads ([base + index + 0x20]).
+              reads=[]
+              for i,x in enumerate(ins):
+                  op=x.get("op_str","").lower()
+                  if x.get("mnemonic") in {"mov","add","xor","sub"} and "+ 0x20]" in op:
+                      window=ins[max(0,i-16):min(len(ins),i+22)]
+                      reads.append({
+                          "index":i,
+                          "rva":x.get("rva"),
+                          "op":x.get("op_str"),
+                          "window":window,
+                      })
+                      if len(reads)>=4: break
+
+              out[p.stem]={
+                  "raw_first_row_mask":f"0x{RAW:08X}",
+                  "first_stream_reads":reads,
+                  "head_interesting":interesting[:120],
+              }
+              print("\n###",p.stem)
+              print("stream-read candidates:",len(reads))
+              for r in reads:
+                  print("READ",r["rva"],r["op"])
+                  for x in r["window"]:
+                      print(" ",x["rva"],x["mnemonic"],x["op_str"])
+
+          Path("quest-excel-row-reader-fingerprints.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-excel-row-readers
+          path: |
+            qrow-candidates/
+            quest-excel-row-reader-fingerprints.txt
+            quest-excel-row-reader-fingerprints.json
+          if-no-files-found: error
