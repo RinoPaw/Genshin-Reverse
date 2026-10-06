@@ -157,6 +157,118 @@ jobs:
               | head -n 1000 || true
           } | tee quest-index-resource-string-candidates.txt
 
+      - name: Resolve LDAB Quest index container schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')"
+
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            0x77F7860 0x160 \
+            --expected-sha256 "$expected_sha" \
+            --label "LDABEPAGBGK.GMENPOPMKAA(FNIAHJGHFAK,kind_0x15)" \
+            --output quest-ldab-reader.json \
+            > quest-ldab-reader.txt
+
+          python - <<'PY' | tee quest-ldab-schema.txt
+          import csv
+          import json
+          import re
+          from pathlib import Path
+
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET_TDIS = {
+              52161: "LDABEPAGBGK",
+              67914: "LAABEAMHPJG",
+              14351: "ODJJEFFIPFA",
+              30748: "FNIAHJGHFAK",
+          }
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          methods = read_csv("methods.csv")
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          fields_by_tdi = {}
+          methods_by_tdi = {}
+          for row in fields:
+              fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+          for row in methods:
+              methods_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+
+          report = {"types": {}, "reader_calls": []}
+          for tdi, expected in TARGET_TDIS.items():
+              typ = type_by_tdi.get(tdi)
+              if not typ or typ.get("type_name") != expected:
+                  raise AssertionError((tdi, typ, expected))
+              item = {
+                  "type": typ,
+                  "fields": fields_by_tdi.get(tdi, []),
+                  "methods": methods_by_tdi.get(tdi, []),
+              }
+              report["types"][str(tdi)] = item
+              print("TYPE", tdi, expected)
+              print(json.dumps(item, ensure_ascii=False, indent=2))
+
+          obj = json.loads(Path("quest-ldab-reader.json").read_text(encoding="utf-8"))
+          base = int(obj["image_base"], 16)
+          by_rva = {}
+          for row in methods:
+              text = (row.get("rva") or "").strip()
+              if not text:
+                  continue
+              try:
+                  by_rva.setdefault(int(text, 0), []).append(row)
+              except ValueError:
+                  pass
+
+          for ins in obj["instructions"]:
+              if ins.get("mnemonic") not in {"call", "jmp"}:
+                  continue
+              m = re.fullmatch(r"0x([0-9a-fA-F]+)", ins.get("op_str", ""))
+              if not m:
+                  continue
+              trva = int(m.group(1), 16) - base
+              item = {
+                  "site_rva": ins["rva"],
+                  "target_rva": f"0x{trva:X}",
+                  "metadata": by_rva.get(trva, []),
+              }
+              report["reader_calls"].append(item)
+              print("CALL", json.dumps(item, ensure_ascii=False, sort_keys=True))
+
+          Path("quest-ldab-schema.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python - <<'PY' | tee quest-ldab-reader-primitives.txt
+          import json
+          from pathlib import Path
+
+          obj = json.loads(Path("quest-ldab-reader.json").read_text(encoding="utf-8"))
+          interesting = []
+          for x in obj["instructions"]:
+              op = x.get("op_str", "").lower()
+              if (
+                  x.get("mnemonic") in {"call","jmp","mov","lea","cmp","test","add","sub","imul","shl","shr","and","or"}
+                  and (
+                      x.get("mnemonic") in {"call","jmp"}
+                      or any(tok in op for tok in ("[rcx", "[rdx", "[r8", "[r9", "[rax", "[rbx", "[rsi", "[rdi"))
+                  )
+              ):
+                  interesting.append(x)
+                  print(json.dumps(x, ensure_ascii=False, sort_keys=True))
+          Path("quest-ldab-reader-primitives.json").write_text(
+              json.dumps(interesting, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -166,6 +278,12 @@ jobs:
             quest-index-bootstrap.json
             quest-index-bootstrap-summary.txt
             quest-index-bootstrap-summary.json
+            quest-ldab-reader.txt
+            quest-ldab-reader.json
+            quest-ldab-schema.txt
+            quest-ldab-schema.json
+            quest-ldab-reader-primitives.txt
+            quest-ldab-reader-primitives.json
             quest-index-string-slots.txt
             quest-index-string-slots.json
             quest-index-resource-string-candidates.txt
