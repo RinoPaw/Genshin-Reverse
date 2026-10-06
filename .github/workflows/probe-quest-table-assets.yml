@@ -282,6 +282,143 @@ jobs:
           )
           PY
 
+      - name: Resolve and export exact main quest 351 BinOutput resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t entry < /tmp/animestudio-entry
+          if (("${#entry[@]}" == 1)); then cli=("${entry[0]}"); else cli=("${entry[0]}" "${entry[1]}"); fi
+
+          python - <<'PY' | tee quest351-asset-summary.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.assetindex import mihoyo_name_hash, parse_asset_index
+
+          results=json.loads(Path('mainquest-index-decode.json').read_text(encoding='utf-8'))
+          full=next(
+              x for x in results
+              if x['path']=='Data/_BinOutput/IndexDic/MainQuestIndex'
+          )
+          hits=full.get('id_351') or []
+          if len(hits)!=1:
+              raise SystemExit(f'expected one mainId 351 index row, got {hits}')
+          handle=int(hits[0]['handle'])
+          low40=handle & ((1 << 40) - 1)
+
+          path='Data/_BinOutput/Quest/351'
+          expected=mihoyo_name_hash(path)
+          if low40 != expected:
+              raise SystemExit(
+                  f'351 handle low40 mismatch: handle=0x{handle:016X} '
+                  f'low40=0x{low40:010X} path_hash=0x{expected:010X}'
+              )
+
+          index=parse_asset_index(
+              Path('design-index-output/MiHoYoBinData/0000006f.dat').read_bytes()
+          )
+          name=index.name_for_hash(low40)
+          ref=index.block_ref_for_asset(name.sub_asset_id)
+          group_id=index.block_groups[ref.block_id]
+
+          out={
+              'main_id':351,
+              'path':path,
+              'handle':handle,
+              'handle_hex':f'0x{handle:016X}',
+              'handle_low40':f'0x{low40:010X}',
+              'path_hash':f'0x{expected:010X}',
+              'exported_name':name.exported_name,
+              'sub_asset_id':name.sub_asset_id,
+              'block_id':ref.block_id,
+              'group_id':group_id,
+              'unknown0':ref.unknown0,
+              'unknown1':ref.unknown1,
+          }
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path('quest351-asset.json').write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8',
+          )
+          PY
+
+          python - <<'PY' | tee quest351-reconstruct.txt
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.samplefetch import (
+              decompress_zstd,
+              download,
+              normalized_name,
+              parse_manifest,
+              reconstruct,
+          )
+
+          item=json.loads(Path('quest351-asset.json').read_text(encoding='utf-8'))
+          block_id=int(item['block_id'])
+          group_id=int(item['group_id'])
+          rows=parse_manifest(decompress_zstd(download(PROFILE_71.sophon_manifest_url)))
+
+          suffix=f'/assetbundles/blocks/{group_id:02x}/{block_id}.blk'
+          matches=[r for r in rows if normalized_name(r).endswith(suffix)]
+          if len(matches)!=1:
+              suffix2=f'/assetbundles/blocks/{group_id:02d}/{block_id}.blk'
+              matches=[r for r in rows if normalized_name(r).endswith(suffix2)]
+          if len(matches)!=1:
+              raise SystemExit(
+                  f'351 block {block_id} group {group_id}: expected one manifest row, got {len(matches)}'
+              )
+
+          target=Path(f'quest351-block/{group_id}/{block_id}.blk')
+          reconstruct(PROFILE_71.sophon_chunk_prefix,matches[0],target,workers=8)
+          print(target,'size=',target.stat().st_size,'md5=',matches[0].get('md5'))
+          PY
+
+          item_block=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('quest351-asset.json').read_text())
+          print(f"quest351-block/{x['group_id']}/{x['block_id']}.blk")
+          PY
+          )
+          rm -rf quest351-output
+          mkdir -p quest351-output
+          "${cli[@]}" "$item_block" quest351-output --game GI --export_type Raw --logger_flags Error \
+            2>&1 | tee quest351-animestudio.txt
+
+          python - <<'PY' | tee quest351-raw-summary.txt
+          import json
+          from pathlib import Path
+          from genshinre.assetindex import unwrap_mihoyo_bin_data
+
+          item=json.loads(Path('quest351-asset.json').read_text(encoding='utf-8'))
+          root=Path('quest351-output')/'MiHoYoBinData'
+          target=root/(item['exported_name']+'.dat')
+          if not target.is_file():
+              candidates=list(root.glob('*.dat')) if root.is_dir() else []
+              raise SystemExit(
+                  f'missing exact quest 351 export: expected {target}; candidates={candidates[:30]}'
+              )
+
+          raw=target.read_bytes()
+          payload=unwrap_mihoyo_bin_data(raw)
+          Path('quest351-payload.bin').write_bytes(payload)
+          summary={
+              **item,
+              'raw_path':str(target),
+              'raw_size':len(raw),
+              'payload_size':len(payload),
+              'payload_prefix_hex':payload[:64].hex(),
+              'payload_suffix_hex':payload[-32:].hex() if payload else '',
+          }
+          print(json.dumps(summary,ensure_ascii=False,indent=2))
+          Path('quest351-raw-summary.json').write_text(
+              json.dumps(summary,ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8',
+          )
+          PY
+
       - name: Extract and validate exact QuestExcel Raw object
         shell: bash
         run: |
@@ -694,4 +831,11 @@ jobs:
             mainquest-index-animestudio.txt
             mainquest-index-decode.txt
             mainquest-index-decode.json
+            quest351-asset-summary.txt
+            quest351-asset.json
+            quest351-reconstruct.txt
+            quest351-animestudio.txt
+            quest351-raw-summary.txt
+            quest351-raw-summary.json
+            quest351-payload.bin
           if-no-files-found: warn
