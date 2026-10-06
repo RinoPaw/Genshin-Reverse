@@ -1,0 +1,305 @@
+name: Probe 7.1 legacy QuestExcel subId key
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-subid-key.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-subid-key-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Find executable references to legacy subId transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-subid-key.txt
+          import bisect
+          import csv
+          import json
+          import struct
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_RIP
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          KEY=0xB1571A55
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          starts=[]
+          methods_by_rva={}
+          for row in methods:
+              try:r=int(row.get("rva") or "0",0)
+              except ValueError:continue
+              if not r:continue
+              starts.append(r)
+              methods_by_rva.setdefault(r,[]).append(row)
+          starts=sorted(set(starts))
+
+          fields_by_tdi={}
+          for row in fields:
+              try:fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception:pass
+
+          methods_by_tdi={}
+          for row in methods:
+              try:methods_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception:pass
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              start=starts[i]
+              end=starts[i+1] if i+1<len(starts) else start+0x10000
+              if not start<=rva<end:return None
+              rows=methods_by_rva[start]
+              tdis=sorted({
+                  int(x["type_definition_index"])
+                  for x in rows
+                  if x.get("type_definition_index")
+              })
+              return {
+                  "start":start,
+                  "end":end,
+                  "method_rows":rows,
+                  "types":[type_by_tdi.get(t,{}) for t in tdis],
+                  "fields":{
+                      str(t):fields_by_tdi.get(t,[])
+                      for t in tdis
+                  },
+                  "type_methods":{
+                      str(t):methods_by_tdi.get(t,[])
+                      for t in tdis
+                  },
+              }
+
+          pe=pefile.PE(str(EXE),fast_load=False)
+          image_base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          executable=[]
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              executable.append({
+                  "name":sec.Name.rstrip(b"\0").decode("ascii",errors="replace"),
+                  "rva":sec.VirtualAddress,
+                  "size":max(sec.SizeOfRawData,sec.Misc_VirtualSize),
+              })
+
+          # First find the literal bytes. Then disassemble the containing
+          # metadata method so we can distinguish data accidents from a real
+          # xor/add/sub immediate in code.
+          literal=struct.pack("<I",KEY)
+          byte_hits=[]
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              pos=0
+              while True:
+                  pos=blob.find(literal,pos)
+                  if pos<0:break
+                  rva=sec.VirtualAddress+pos
+                  byte_hits.append({
+                      "rva":rva,
+                      "section":sec.Name.rstrip(b"\0").decode("ascii",errors="replace"),
+                      "owner":owner(rva),
+                  })
+                  pos+=1
+
+          # Semantic scan all executable sections for immediate KEY. This catches
+          # the exact transform even if the byte string occurs at instruction
+          # boundaries we did not predict.
+          semantic=[]
+          for sec in pe.sections:
+              if not (sec.Characteristics & 0x20000000):
+                  continue
+              blob=sec.get_data()
+              sec_rva=sec.VirtualAddress
+              for ins in md.disasm(blob,image_base+sec_rva):
+                  matched=False
+                  operands=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_IMM:
+                          val=op.imm & 0xffffffffffffffff
+                          operands.append({"type":"imm","value":f"0x{val:X}"})
+                          if val==KEY or (val & 0xffffffff)==KEY:
+                              matched=True
+                      elif op.type==X86_OP_MEM and op.mem.base==X86_REG_RIP:
+                          target=ins.address+ins.size+op.mem.disp
+                          operands.append({
+                              "type":"rip_mem",
+                              "target_rva":f"0x{target-image_base:X}",
+                          })
+                  if matched:
+                      rva=ins.address-image_base
+                      semantic.append({
+                          "rva":rva,
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                          "bytes":ins.bytes.hex(),
+                          "operands":operands,
+                          "owner":owner(rva),
+                      })
+
+          owner_starts=sorted({
+              x["owner"]["start"]
+              for x in semantic
+              if x.get("owner")
+          } | {
+              x["owner"]["start"]
+              for x in byte_hits
+              if x.get("owner")
+          })
+
+          disassembled=[]
+          for start in owner_starts:
+              own=owner(start)
+              if not own:continue
+              # Cap at metadata method boundary, with a sanity ceiling.
+              size=min(max(own["end"]-start,0x100),0x8000)
+              blob=pe.get_data(start,size)
+              insns=[]
+              for ins in md.disasm(blob,image_base+start):
+                  irva=ins.address-image_base
+                  row={
+                      "rva":f"0x{irva:X}",
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  insns.append(row)
+                  if irva>=own["end"]-1:
+                      break
+              disassembled.append({
+                  "owner":own,
+                  "instructions":insns,
+              })
+
+          print("KEY",f"0x{KEY:08X}")
+          print("byte_hits",len(byte_hits))
+          for x in byte_hits:
+              print("BYTE",f"0x{x['rva']:X}",x["section"])
+              if x["owner"]:
+                  print("  OWNER",f"0x{x['owner']['start']:X}",x["owner"]["method_rows"])
+                  print("  TYPES",x["owner"]["types"])
+
+          print("semantic_hits",len(semantic))
+          for x in semantic:
+              print(
+                  "INS",f"0x{x['rva']:X}",
+                  x["mnemonic"],x["op_str"],
+              )
+              if x["owner"]:
+                  print("  OWNER",f"0x{x['owner']['start']:X}",x["owner"]["method_rows"])
+                  print("  TYPES",x["owner"]["types"])
+
+          report={
+              "key":f"0x{KEY:08X}",
+              "executable_sections":executable,
+              "byte_hits":byte_hits,
+              "semantic_hits":semantic,
+              "owners":disassembled,
+          }
+          Path("quest-legacy-71-subid-key.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          if not semantic:
+              raise SystemExit("no executable semantic use of legacy subId key")
+          PY
+
+      - name: Summarize field writes and stream reads near key owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-subid-key-context.txt
+          import json,re
+          from pathlib import Path
+
+          data=json.loads(Path("quest-legacy-71-subid-key.json").read_text())
+          key="b1571a55"
+
+          for item in data["owners"]:
+              own=item["owner"]
+              ins=item["instructions"]
+              print("\n### OWNER",f"0x{own['start']:X}",f"..0x{own['end']:X}")
+              print("METHODS",json.dumps(own["method_rows"],ensure_ascii=False))
+              print("TYPES",json.dumps(own["types"],ensure_ascii=False))
+
+              key_indices=[
+                  i for i,x in enumerate(ins)
+                  if key in (x.get("op_str") or "").lower()
+              ]
+              for i in key_indices:
+                  lo=max(0,i-36)
+                  hi=min(len(ins),i+48)
+                  print("\nKEY WINDOW",ins[i]["rva"],ins[i]["mnemonic"],ins[i]["op_str"])
+                  for x in ins[lo:hi]:
+                      print(x["rva"],x["bytes"],x["mnemonic"],x["op_str"])
+
+              # Give compact candidates for stream cursor reads and object writes.
+              print("\nSTREAM/OBJECT CANDIDATES")
+              emitted=0
+              for x in ins:
+                  op=(x.get("op_str") or "").lower()
+                  m=x.get("mnemonic") or ""
+                  if (
+                      "+ 0x20]" in op
+                      or re.search(r"\[[a-z0-9]+ \+ 0x(?:10|14|18|1c|20|24|28|2c|30|34|38|40|48|50|58|60|68|70|74|75|78|7c|80|88|90|98|a0|a8|b0|b8)\]",op)
+                      or key in op
+                  ):
+                      print(x["rva"],x["bytes"],m,x["op_str"])
+                      emitted+=1
+                      if emitted>=240:
+                          break
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-subid-key
+          path: |
+            quest-legacy-71-subid-key.txt
+            quest-legacy-71-subid-key.json
+            quest-legacy-71-subid-key-context.txt
+          if-no-files-found: error
