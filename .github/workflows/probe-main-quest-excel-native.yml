@@ -1072,6 +1072,289 @@ jobs:
                   encoding='utf-8',
               )
           PY
+      - name: Resolve ordinary Quest row native field types and call graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee ordinary-quest-row-native.txt
+          import bisect
+          import csv
+          import json
+          import struct
+          from collections import defaultdict
+          from pathlib import Path
+
+          from capstone import CS_ARCH_X86, CS_MODE_64, Cs
+          from capstone.x86_const import X86_OP_IMM
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.typearray import ENTRY_SIZE, decode_type_entry, is_valid_type_entry
+
+          ROOT = Path('versions/7.1.0-global/windows-x64/metadata')
+          EXE = Path('inputs/7.1.0-global/GenshinImpact.exe')
+          META = Path('inputs/7.1.0-global/global-metadata.dat')
+          ROW_TDI = 17589
+          ROW_SCALAR_RVA = 0x9C15DF0
+          ROW_ARRAY_RVA = 0x9C15C80
+          TARGETS = {
+              ROW_SCALAR_RVA: 'LAIMPNDEFCL.GMENPOPMKAA(reader)',
+              ROW_ARRAY_RVA: 'LAIMPNDEFCL.GMENPOPMKAA(reader, kind_0x1D)',
+          }
+
+          def read_csv(name):
+              with (ROOT / name).open('r', encoding='utf-8-sig', newline='') as f:
+                  return list(csv.DictReader(f))
+
+          types = read_csv('types.csv')
+          fields = read_csv('fields.csv')
+          methods = read_csv('methods.csv')
+          type_by_tdi = {int(r['type_definition_index']): r for r in types}
+          row_fields = [
+              r for r in fields
+              if int(r['type_definition_index']) == ROW_TDI
+          ]
+          row_methods = [
+              r for r in methods
+              if int(r['type_definition_index']) == ROW_TDI
+          ]
+          print('=== ordinary row metadata ===')
+          print(json.dumps(type_by_tdi[ROW_TDI], ensure_ascii=False))
+          for row in row_fields:
+              print('FIELD', json.dumps(row, ensure_ascii=False))
+          for row in row_methods:
+              print('METHOD', json.dumps(row, ensure_ascii=False))
+
+          method_rows = []
+          methods_by_rva = defaultdict(list)
+          for row in methods:
+              text = str(row.get('rva', '')).strip()
+              if not text:
+                  continue
+              try:
+                  rva = int(text, 16)
+              except ValueError:
+                  continue
+              method_rows.append((rva, row))
+              methods_by_rva[rva].append(row)
+          method_rows.sort(key=lambda x: x[0])
+          method_rvas = [x[0] for x in method_rows]
+
+          def method_context(site_rva):
+              pos = bisect.bisect_right(method_rvas, site_rva)
+              containing = None
+              if pos:
+                  start, row = method_rows[pos - 1]
+                  end = method_rows[pos][0] if pos < len(method_rows) else None
+                  if end is None or start <= site_rva < end:
+                      containing = {
+                          'start_rva': f'0x{start:X}',
+                          'method': row,
+                          'owner': type_by_tdi.get(int(row['type_definition_index']), {}),
+                      }
+              return containing
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+          evidence = {
+              'sample': {
+                  'version': '7.1.0-global',
+                  'exe_sha256': PROFILE_71.exe_sha256,
+              },
+              'row_type_definition_index': ROW_TDI,
+              'runtime_field_types': [],
+              'direct_xrefs': [],
+              'scalar_calls': [],
+              'literal_search': {},
+          }
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+
+              def read_rva(rva, size):
+                  data = image.read_rva(rva, size)
+                  if len(data) != size:
+                      raise ValueError(f'truncated RVA 0x{rva:X} size=0x{size:X}')
+                  return data
+
+              def read_va(va, size):
+                  if va < base:
+                      raise ValueError(f'not image VA: 0x{va:X}')
+                  return read_rva(va - base, size)
+
+              type_array_va = int.from_bytes(
+                  read_rva(PROFILE_71.type_array_pointer_rva, 8), 'little'
+              )
+
+              def describe_entry(entry, depth=0, seen=None):
+                  if seen is None:
+                      seen = set()
+                  decoded = decode_type_entry(entry)
+                  kind = int(decoded['kind'])
+                  data_u64 = int.from_bytes(entry[:8], 'little')
+                  out = {
+                      'kind': decoded['kind_name'],
+                      'kind_value': kind,
+                      'data_u64': f'0x{data_u64:X}',
+                  }
+                  if kind in (0x11, 0x12):
+                      tdi = int(decoded['data_u32'])
+                      out['type_definition_index'] = tdi
+                      if tdi in type_by_tdi:
+                          out['type_name'] = type_by_tdi[tdi].get('type_name', '')
+                          out['namespace'] = type_by_tdi[tdi].get('namespace', '')
+                  elif kind in (0x0F, 0x10, 0x1D) and depth < 4 and data_u64 >= base:
+                      if data_u64 in seen:
+                          out['nested_cycle'] = True
+                      else:
+                          seen = set(seen)
+                          seen.add(data_u64)
+                          nested = read_va(data_u64, ENTRY_SIZE)
+                          out['nested_valid'] = is_valid_type_entry(nested)
+                          if out['nested_valid']:
+                              out['element_or_target'] = describe_entry(
+                                  nested, depth + 1, seen
+                              )
+                  return out
+
+              print('=== recursive runtime field types ===')
+              for ordinal, row in enumerate(row_fields, start=1):
+                  index = int(row['field_type_index'])
+                  entry = read_va(type_array_va + index * ENTRY_SIZE, ENTRY_SIZE)
+                  if not is_valid_type_entry(entry):
+                      info = {
+                          'ordinal': ordinal,
+                          'field_name': row.get('field_name', ''),
+                          'field_type_index': index,
+                          'status': 'invalid-runtime-type-entry',
+                      }
+                  else:
+                      info = {
+                          'ordinal': ordinal,
+                          'field_name': row.get('field_name', ''),
+                          'field_type_index': index,
+                          'runtime_type': describe_entry(entry),
+                      }
+                  evidence['runtime_field_types'].append(info)
+                  print(json.dumps(info, ensure_ascii=False, sort_keys=True))
+
+              print('=== direct rel32 xrefs to ordinary row readers ===')
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  data = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for i in range(max(0, len(data) - 5)):
+                      opcode = data[i]
+                      if opcode not in (0xE8, 0xE9):
+                          continue
+                      disp = struct.unpack_from('<i', data, i + 1)[0]
+                      site = sec.virtual_address + i
+                      target = (site + 5 + disp) & 0xFFFFFFFFFFFFFFFF
+                      if target not in TARGETS:
+                          continue
+                      item = {
+                          'site_rva': f'0x{site:X}',
+                          'opcode': 'call' if opcode == 0xE8 else 'jmp',
+                          'target_rva': f'0x{target:X}',
+                          'target': TARGETS[target],
+                          'containing_method': method_context(site),
+                      }
+                      evidence['direct_xrefs'].append(item)
+                      print(json.dumps(item, ensure_ascii=False))
+
+              pos = bisect.bisect_right(method_rvas, ROW_SCALAR_RVA)
+              next_rva = method_rows[pos][0] if pos < len(method_rows) else ROW_SCALAR_RVA + 0x1800
+              if next_rva <= ROW_SCALAR_RVA:
+                  raise SystemExit('failed to determine scalar reader boundary')
+              scalar_size = next_rva - ROW_SCALAR_RVA
+              print(
+                  f'=== scalar reader direct calls size=0x{scalar_size:X} '
+                  f'next=0x{next_rva:X} ==='
+              )
+              insns = list(md.disasm(read_rva(ROW_SCALAR_RVA, scalar_size), base + ROW_SCALAR_RVA))
+              for idx, insn in enumerate(insns):
+                  if insn.mnemonic != 'call':
+                      continue
+                  target = None
+                  for operand in insn.operands:
+                      if operand.type == X86_OP_IMM:
+                          target = int(operand.imm) - base
+                          break
+                  if target is None:
+                      continue
+                  meta_rows = methods_by_rva.get(target, [])
+                  item = {
+                      'site_rva': f'0x{insn.address - base:X}',
+                      'target_rva': f'0x{target:X}',
+                      'metadata_methods': [
+                          {
+                              'method': row,
+                              'owner': type_by_tdi.get(
+                                  int(row['type_definition_index']), {}
+                              ),
+                          }
+                          for row in meta_rows
+                      ],
+                      'context': [
+                          {
+                              'rva': f'0x{x.address-base:X}',
+                              'mnemonic': x.mnemonic,
+                              'op_str': x.op_str,
+                          }
+                          for x in insns[max(0, idx - 5): min(len(insns), idx + 6)]
+                      ],
+                  }
+                  evidence['scalar_calls'].append(item)
+                  if meta_rows:
+                      owners = ', '.join(
+                          f'{type_by_tdi.get(int(r["type_definition_index"]), {}).get("type_name", "?")}::{r.get("method_name", "?")}'
+                          for r in meta_rows
+                      )
+                  else:
+                      owners = '<no exact metadata method>'
+                  print(
+                      f'CALL 0x{insn.address-base:X} -> 0x{target:X} {owners}'
+                  )
+                  for x in item['context']:
+                      print(f'  {x["rva"]:>11} {x["mnemonic"]:<8} {x["op_str"]}')
+
+          print('=== exact literal search ===')
+          needles = (
+              b'Data/_ExcelBinOutput/QuestExcelConfigData',
+              b'QuestExcelConfigData',
+          )
+          for path in (EXE, META):
+              raw = path.read_bytes()
+              for needle in needles:
+                  key = f'{path.name}:{needle.decode()}'
+                  hits = []
+                  start = 0
+                  while True:
+                      pos = raw.find(needle, start)
+                      if pos < 0:
+                          break
+                      hits.append(pos)
+                      start = pos + 1
+                  utf16 = needle.decode().encode('utf-16-le')
+                  start = 0
+                  utf16_hits = []
+                  while True:
+                      pos = raw.find(utf16, start)
+                      if pos < 0:
+                          break
+                      utf16_hits.append(pos)
+                      start = pos + 2
+                  evidence['literal_search'][key] = {
+                      'ascii_offsets': [f'0x{x:X}' for x in hits],
+                      'utf16le_offsets': [f'0x{x:X}' for x in utf16_hits],
+                  }
+                  print(key, json.dumps(evidence['literal_search'][key]))
+
+          Path('ordinary-quest-row-native.json').write_text(
+              json.dumps(evidence, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
       - name: Compare 7.1 QuestExcel rows across resource sources
         shell: bash
         run: |
@@ -1227,4 +1510,6 @@ jobs:
             quest-excel-row-schema.json
             quest-excel-source-compare.txt
             quest-excel-source-compare.json
+            ordinary-quest-row-native.txt
+            ordinary-quest-row-native.json
           if-no-files-found: warn
