@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "6.0.x"
+          dotnet-version: |\n            5.0.x\n            6.0.x
 
       - uses: actions/setup-python@v7
         with:
