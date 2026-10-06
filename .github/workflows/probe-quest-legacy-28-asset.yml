@@ -1,0 +1,206 @@
+name: Decode exact 2.8 native QuestExcel Quest 351
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-28-asset.yml"
+
+concurrency:
+  group: probe-quest-legacy-28-asset-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e .
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Build pinned 2022 GenshinStudio raw extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/GenshinStudio
+          git clone --filter=blob:none https://github.com/game-maker-ly/GenshinStudio.git "$root"
+          git -C "$root" checkout --detach 46c5aca5c6c7d5124e54a5693264bb61165846c3
+
+          mkdir -p "$root/ProbeExtract"
+          cat > "$root/ProbeExtract/ProbeExtract.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net6.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>disable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../AssetStudio/AssetStudio.csproj" />
+            </ItemGroup>
+          </Project>
+          EOF
+
+          cat > "$root/ProbeExtract/Program.cs" <<'EOF'
+          using AssetStudio;
+          using System.Buffers.Binary;
+
+          if (args.Length != 2) return 2;
+          var manager = new AssetsManager();
+          manager.LoadFiles(Path.GetFullPath(args[0]));
+          var output = Path.GetFullPath(args[1]);
+          Directory.CreateDirectory(output);
+
+          int bins = 0;
+          foreach (var assetsFile in manager.assetsFileList)
+          {
+              IndexObject? index = null;
+              if (assetsFile.ObjectsDic.TryGetValue(2, out var obj) && obj is IndexObject io)
+                  index = io;
+
+              foreach (var asset in assetsFile.Objects)
+              {
+                  if (asset is not MiHoYoBinData bin) continue;
+                  string name = $"pathid-{bin.m_PathID}";
+                  if (index != null && index.Names.TryGetValue(bin.m_PathID, out var recovered))
+                      name = recovered;
+                  name = Path.GetFileNameWithoutExtension(name);
+
+                  var raw = new byte[4 + bin.RawData.Length];
+                  BinaryPrimitives.WriteInt32LittleEndian(raw.AsSpan(0,4), bin.RawData.Length);
+                  bin.RawData.CopyTo(raw,4);
+                  File.WriteAllBytes(Path.Combine(output,name+".dat"),raw);
+                  bins++;
+              }
+          }
+          Console.WriteLine($"mihoyo_bin_data={bins}");
+          return bins > 0 ? 0 : 3;
+          EOF
+
+          dotnet build "$root/ProbeExtract/ProbeExtract.csproj" -c Release --nologo
+          printf '%s\n' "$root/ProbeExtract/bin/Release/net6.0/ProbeExtract.dll" > /tmp/extractor
+
+      - name: Download exact official 2.8 QuestExcel block
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220625012443_r2qBGYstD0u3Q9xK/ScatteredFiles'
+          mkdir -p inputs
+          rel='GenshinImpact_Data/StreamingAssets/AssetBundles/blocks/00/25539185.blk'
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 600 \
+            "$base/$rel" -o inputs/25539185.blk
+          python - <<'PY' | tee quest-legacy-28-asset-sample.txt
+          import hashlib
+          from pathlib import Path
+          p=Path("inputs/25539185.blk")
+          print("size",p.stat().st_size)
+          print("sha256",hashlib.sha256(p.read_bytes()).hexdigest())
+          if p.stat().st_size < 100_000:
+              raise SystemExit("2.8 Quest block unexpectedly small")
+          PY
+
+      - name: Export exact 2.8 MiHoYoBinData
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p quest-output
+          dotnet "$(cat /tmp/extractor)" inputs/25539185.blk quest-output \
+            2>&1 | tee quest-legacy-28-asset-extract.txt
+          find quest-output -maxdepth 1 -type f -printf '%f %s\n' | sort | sed -n '1,200p'
+          test -s quest-output/3b87ae83.dat
+
+      - name: Decode complete 2.8 QuestExcel and Quest 351
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-28-asset-decode.txt
+          import hashlib,json
+          from pathlib import Path
+          from genshinre.questlegacy import (
+              detect_legacy_quest_xor_key,
+              find_quest_rows,
+              parse_legacy_quest_prefix,
+          )
+
+          p=Path("quest-output/3b87ae83.dat")
+          raw=p.read_bytes()
+          key,count=detect_legacy_quest_xor_key(
+              raw,
+              probe_rows=200,
+              min_row_count=1_000,
+              max_row_count=100_000,
+          )
+          decoded=parse_legacy_quest_prefix(raw,xor_key=key,max_rows=count)
+          q351=find_quest_rows(decoded,main_id=351)
+
+          rows=[]
+          for row in q351:
+              f=row.fields
+              rows.append({
+                  "index":row.index,
+                  "start":row.start,
+                  "end":row.end,
+                  "subId":f.get("sub_id"),
+                  "mainId":f.get("main_id"),
+                  "order":f.get("order"),
+                  "bitfield":f.get("bitfield"),
+                  "acceptCondComb":f.get("accept_cond_comb"),
+                  "acceptCond":f.get("accept_cond"),
+                  "finishCondComb":f.get("finish_cond_comb"),
+                  "finishCond":f.get("finish_cond"),
+                  "failCondComb":f.get("fail_cond_comb"),
+                  "failCond":f.get("fail_cond"),
+                  "finishExec":f.get("finish_exec"),
+                  "failExec":f.get("fail_exec"),
+                  "beginExec":f.get("begin_exec"),
+              })
+
+          report={
+              "raw_size":len(raw),
+              "raw_sha256":hashlib.sha256(raw).hexdigest(),
+              "xor_key":f"0x{key:02X}",
+              "row_count":count,
+              "consumed":decoded.consumed,
+              "payload_complete":decoded.consumed == len(raw)-4,
+              "quest351":rows,
+          }
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("quest-legacy-28-asset-decode.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          expected={35100,35101,35102,35103,35104,35105,35106,35107}
+          got={x["subId"] for x in rows}
+          if got != expected:
+              raise SystemExit(f"Quest 351 incomplete: {sorted(got)}")
+          if not report["payload_complete"]:
+              raise SystemExit(
+                  f"full payload not consumed: {decoded.consumed} != {len(raw)-4}"
+              )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-28-native-asset
+          path: |
+            quest-legacy-28-asset-sample.txt
+            quest-legacy-28-asset-extract.txt
+            quest-legacy-28-asset-decode.txt
+            quest-legacy-28-asset-decode.json
+            quest-output/3b87ae83.dat
+          if-no-files-found: warn
