@@ -1,0 +1,204 @@
+name: Probe AstaPS QuestExcel provenance
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-astaps-quest-provenance.yml"
+
+concurrency:
+  group: probe-astaps-quest-provenance-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch exact AstaPS QuestExcel revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/AstaPS-Resource
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/RinoPaw/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          printf '%s\n' '/ExcelBinOutput/QuestExcelConfigData.json' \
+            > /tmp/AstaPS-Resource/.git/info/sparse-checkout
+
+          for spec in \
+            initial:8c85a82f37341a422002a0352c89a142c4017e53 \
+            pre_pr9:f05477520872f4e1361485c7e2ea955190696161 \
+            pr9:7465e29b2d58058ab9973187c112abf2717ada03 \
+            current:main
+          do
+            label="${spec%%:*}"
+            ref="${spec#*:}"
+            git -C /tmp/AstaPS-Resource checkout --force "$ref"
+            cp /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json \
+              "/tmp/QuestExcelConfigData-${label}.json"
+            sha256sum "/tmp/QuestExcelConfigData-${label}.json"
+          done
+
+      - name: Fetch peer Grasscutter-Resources generation source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/Grasscutter-Resources
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/233-Jerry/Grasscutter-Resources.git /tmp/Grasscutter-Resources
+          git -C /tmp/Grasscutter-Resources fetch --depth 1 origin \
+            46d2b65b40f2897edc0c0b3ef235e733e6dde6c4
+          git -C /tmp/Grasscutter-Resources checkout --detach \
+            46d2b65b40f2897edc0c0b3ef235e733e6dde6c4
+          git -C /tmp/Grasscutter-Resources sparse-checkout set --no-cone \
+            '/Resources/ExcelBinOutput/QuestExcelConfigData.json' \
+            '/Tool/MergeQuests.js'
+          test -s /tmp/Grasscutter-Resources/Resources/ExcelBinOutput/QuestExcelConfigData.json
+          test -s /tmp/Grasscutter-Resources/Tool/MergeQuests.js
+          sha256sum /tmp/Grasscutter-Resources/Resources/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Compare revisions and Quest 351 provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee astaps-quest-provenance.txt
+          import hashlib,json
+          from pathlib import Path
+
+          files={
+              "initial":Path("/tmp/QuestExcelConfigData-initial.json"),
+              "pre_pr9":Path("/tmp/QuestExcelConfigData-pre_pr9.json"),
+              "pr9":Path("/tmp/QuestExcelConfigData-pr9.json"),
+              "current":Path("/tmp/QuestExcelConfigData-current.json"),
+              "peer_233_jerry":Path("/tmp/Grasscutter-Resources/Resources/ExcelBinOutput/QuestExcelConfigData.json"),
+          }
+          wanted=set(range(35100,35108))
+
+          def sid(row):
+              for k in ("subId","_subId","SubId","_SubId"):
+                  if k in row: return row[k]
+              return None
+
+          def canonical(row):
+              return json.dumps(row,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+
+          report={}
+          rows_by={}
+          for label,path in files.items():
+              raw=path.read_bytes()
+              data=json.loads(raw)
+              rows_by[label]=data
+              hits=[]
+              for i,row in enumerate(data):
+                  if sid(row) in wanted:
+                      hits.append({"ordinal":i,"subId":sid(row),"row":row})
+              report[label]={
+                  "size":len(raw),
+                  "sha256":hashlib.sha256(raw).hexdigest(),
+                  "row_count":len(data),
+                  "quest351":hits,
+              }
+              print("\n===",label,"===")
+              print("size",len(raw),"sha256",report[label]["sha256"],"rows",len(data))
+              for x in hits:
+                  row=x["row"]
+                  print(
+                      "351",x["ordinal"],x["subId"],
+                      "acceptCond=",json.dumps(row.get("acceptCond"),ensure_ascii=False,sort_keys=True),
+                      "beginExec=",json.dumps(row.get("beginExec"),ensure_ascii=False,sort_keys=True),
+                  )
+
+          labels=list(files)
+          eq={}
+          for i,a in enumerate(labels):
+              for b in labels[i+1:]:
+                  aa={sid(x):canonical(x) for x in rows_by[a] if sid(x) in wanted}
+                  bb={sid(x):canonical(x) for x in rows_by[b] if sid(x) in wanted}
+                  shared=sorted(set(aa)&set(bb))
+                  eq[f"{a}__{b}"]={
+                      "shared_351_ids":shared,
+                      "identical_351_ids":[x for x in shared if aa[x]==bb[x]],
+                      "different_351_ids":[x for x in shared if aa[x]!=bb[x]],
+                  }
+
+          initial_ids=[sid(x) for x in rows_by["initial"]]
+          pre_ids=[sid(x) for x in rows_by["pre_pr9"]]
+          pr9_ids=[sid(x) for x in rows_by["pr9"]]
+          current_ids=[sid(x) for x in rows_by["current"]]
+
+          def setdiff(a,b):
+              aa=set(x for x in a if x is not None)
+              bb=set(x for x in b if x is not None)
+              return {
+                  "added":len(bb-aa),
+                  "removed":len(aa-bb),
+                  "added_sample":sorted(bb-aa)[:40],
+                  "removed_sample":sorted(aa-bb)[:40],
+              }
+
+          report["comparisons"]=eq
+          report["id_diffs"]={
+              "initial_to_pre_pr9":setdiff(initial_ids,pre_ids),
+              "pre_pr9_to_pr9":setdiff(pre_ids,pr9_ids),
+              "pr9_to_current":setdiff(pr9_ids,current_ids),
+          }
+
+          print("\n=== QUEST 351 IDENTITY ===")
+          print(json.dumps(eq,ensure_ascii=False,indent=2))
+          print("\n=== ID DIFFS ===")
+          print(json.dumps(report["id_diffs"],ensure_ascii=False,indent=2))
+
+          Path("astaps-quest-provenance.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Show peer MergeQuests provenance logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee peer-mergequests-extract.txt
+          from pathlib import Path
+          text=Path("/tmp/Grasscutter-Resources/Tool/MergeQuests.js").read_text(
+              encoding="utf-8",errors="replace"
+          )
+          needles=[
+              'QuestExcelConfigData (3.2).json',
+              'const questBlacklist',
+              'json_file:',
+              'let subQuests = rel3_2_data.filter',
+              'subQuests = latest_data.filter',
+              'subQuests = subQuestBin',
+              'unknownCondition',
+          ]
+          lines=text.splitlines()
+          for needle in needles:
+              print("\n###",needle)
+              for i,line in enumerate(lines):
+                  if needle in line:
+                      for x in lines[max(0,i-4):min(len(lines),i+12)]:
+                          print(x)
+                      break
+          PY
+
+      - name: Upload provenance evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: astaps-quest-provenance
+          path: |
+            astaps-quest-provenance.txt
+            astaps-quest-provenance.json
+            peer-mergequests-extract.txt
+          if-no-files-found: warn
