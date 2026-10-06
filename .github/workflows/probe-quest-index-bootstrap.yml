@@ -441,6 +441,151 @@ jobs:
           )
           PY
 
+      - name: Resolve exact Quest index genericinst
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-index-genericinst.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshinre.typearray import ENTRY_SIZE, TYPE_KIND_NAMES, decode_type_entry, is_valid_type_entry
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          METHOD_INDEX = 417406
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          with (ROOT / "methods.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              methods = list(csv.DictReader(f))
+          with (ROOT / "types.csv").open("r", encoding="utf-8-sig", newline="") as f:
+              types = list(csv.DictReader(f))
+          type_by_tdi = {int(r["type_definition_index"]): r for r in types}
+
+          row = next((r for r in methods if int(r["method_index"]) == METHOD_INDEX), None)
+          if row is None:
+              raise AssertionError(f"method index {METHOD_INDEX} missing")
+          if row["type_name"] != "LDABEPAGBGK" or row["method_name"] != "GMENPOPMKAA":
+              raise AssertionError(f"method identity drift: {row}")
+
+          param_indices = json.loads(row.get("parameter_type_indices") or "[]")
+          param_names = json.loads(row.get("parameter_types") or "[]")
+          print("METHOD", json.dumps(row, ensure_ascii=False, sort_keys=True))
+          print("PARAM_INDICES", param_indices)
+          print("PARAM_NAMES", param_names)
+          if len(param_indices) != 2:
+              raise AssertionError(f"expected 2 parameters, got {param_indices}")
+          generic_index = int(param_indices[1])
+
+          def describe(raw, type_by_tdi):
+              if len(raw) != ENTRY_SIZE or not is_valid_type_entry(raw):
+                  raise AssertionError(f"invalid Il2CppType bytes: {raw.hex()}")
+              d = decode_type_entry(raw)
+              kind = int(d["kind"])
+              out = {
+                  "kind": kind,
+                  "kind_name": TYPE_KIND_NAMES.get(kind, f"kind_0x{kind:02X}"),
+                  "data_u32": int(d["data_u32"]),
+                  "data_u64": f"0x{int.from_bytes(raw[:8], 'little'):X}",
+                  "raw": raw.hex(),
+              }
+              if kind in (0x11, 0x12):
+                  tdi = int(d["data_u32"])
+                  out["type_definition_index"] = tdi
+                  out["type_definition"] = type_by_tdi.get(tdi, {})
+              return out
+
+          with PEImage(EXE) as image:
+              base = image.image_base
+              type_array_va = int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva, 8), "little"
+              )
+
+              def read_va(va, size):
+                  if va < base:
+                      raise AssertionError(f"VA 0x{va:X} below image base")
+                  data = image.read_rva(va - base, size)
+                  if len(data) != size:
+                      raise AssertionError(f"truncated VA read 0x{va:X} size {size}")
+                  return data
+
+              generic_raw = read_va(type_array_va + generic_index * ENTRY_SIZE, ENTRY_SIZE)
+              generic_type = describe(generic_raw, type_by_tdi)
+              print("GENERIC_TYPE", json.dumps(generic_type, ensure_ascii=False, sort_keys=True))
+              if generic_type["kind"] != 0x15:
+                  raise AssertionError(f"parameter type {generic_index} is not genericinst")
+
+              generic_class_va = int.from_bytes(generic_raw[:8], "little")
+              # Unity/IL2CPP v27+ Il2CppGenericClass:
+              #   +0x00 Il2CppType* generic type definition
+              #   +0x08 class_inst
+              #   +0x10 method_inst
+              #   +0x18 cached_class
+              gc = read_va(generic_class_va, 0x20)
+              base_type_va = int.from_bytes(gc[0x00:0x08], "little")
+              class_inst_va = int.from_bytes(gc[0x08:0x10], "little")
+              method_inst_va = int.from_bytes(gc[0x10:0x18], "little")
+              cached_class_va = int.from_bytes(gc[0x18:0x20], "little")
+
+              base_type = describe(read_va(base_type_va, ENTRY_SIZE), type_by_tdi)
+              print("GENERIC_CLASS", json.dumps({
+                  "va": f"0x{generic_class_va:X}",
+                  "raw": gc.hex(),
+                  "base_type_va": f"0x{base_type_va:X}",
+                  "class_inst_va": f"0x{class_inst_va:X}",
+                  "method_inst_va": f"0x{method_inst_va:X}",
+                  "cached_class_va": f"0x{cached_class_va:X}",
+                  "base_type": base_type,
+              }, ensure_ascii=False, sort_keys=True))
+
+              # Il2CppGenericInst is two native-width words: argc, argv**.
+              inst = read_va(class_inst_va, 0x10)
+              argc = int.from_bytes(inst[0x00:0x08], "little")
+              argv_va = int.from_bytes(inst[0x08:0x10], "little")
+              if argc != 2:
+                  raise AssertionError(f"expected generic arity 2, got {argc}")
+              ptrs = read_va(argv_va, argc * 8)
+              args = []
+              for i in range(argc):
+                  arg_va = int.from_bytes(ptrs[i*8:(i+1)*8], "little")
+                  arg = describe(read_va(arg_va, ENTRY_SIZE), type_by_tdi)
+                  arg["va"] = f"0x{arg_va:X}"
+                  args.append(arg)
+                  print("ARG", i, json.dumps(arg, ensure_ascii=False, sort_keys=True))
+
+              if [x["kind"] for x in args] != [0x09, 0x0B]:
+                  raise AssertionError(
+                      f"expected <uint32,uint64>, got {[x['kind_name'] for x in args]}"
+                  )
+
+              result = {
+                  "method_index": METHOD_INDEX,
+                  "method": row,
+                  "runtime_type_index": generic_index,
+                  "generic_type": generic_type,
+                  "generic_class_va": f"0x{generic_class_va:X}",
+                  "base_type": base_type,
+                  "class_inst_va": f"0x{class_inst_va:X}",
+                  "argc": argc,
+                  "args": args,
+                  "classification": "generic collection<uint32,uint64>",
+              }
+
+              base_name = str(base_type.get("type_definition", {}).get("type_name", ""))
+              if base_name:
+                  result["generic_definition_name"] = base_name
+                  result["classification"] = f"{base_name}<uint32,uint64>"
+              print("RESULT", json.dumps(result, ensure_ascii=False, sort_keys=True))
+              Path("quest-index-genericinst.json").write_text(
+                  json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
       - name: Upload focused evidence
         uses: actions/upload-artifact@v6
         with:
@@ -466,4 +611,6 @@ jobs:
             quest-index-string-literals-recovery.txt
             quest-index-string-literals-filtered.txt
             quest-index-string-literals-filtered.json
+            quest-index-genericinst.txt
+            quest-index-genericinst.json
           if-no-files-found: error
