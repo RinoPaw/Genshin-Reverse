@@ -209,6 +209,21 @@ Its Quest 351 prerequisite graph is:
 This is a pure previous-row/order chain. It differs from the exact 2.8 native graph above,
 so it cannot be described as an unmodified 2.8 carry-forward.
 
+A full-table audit shows that the rule is systemic across the initial resource:
+
+```text
+mainId groups                         3,099
+rows with STATE_EQUAL acceptCond     25,261 / 25,261
+first rows exactly [0,3]              3,099 / 3,099
+non-first exact previous-row [*,3]   21,489 / 22,162
+all rows matching the linear rule    24,588 / 25,261 = 97.34%
+groups fully matching the rule        2,759 / 3,099
+```
+
+This distribution is incompatible with a direct native-table dump. The previous-row
+prerequisite is a repository-wide materialization convention with a minority of
+exceptions/overrides, not a Quest 351 anomaly.
+
 Later AstaPS-Resource PR #9 explicitly documents the same heuristic for newly appended
 quests: first row gets `QUEST_COND_STATE_EQUAL [0,3]`, then each later row depends on the
 previous row. The PR says this follows the "convention of the existing rows". Quest 351
@@ -558,12 +573,12 @@ Current layer-by-layer classification:
 | layer | classification |
 | --- | --- |
 | exact 7.1 QuestExcel asset location/extraction | CONFIRMED |
-| AstaPS current QuestExcel provenance | HIGH_CONFIDENCE synthetic/mixed legacy resource |
+| AstaPS current QuestExcel provenance | **CONFIRMED synthetic/materialized resource lineage** |
 | AstaPS quest 351 prerequisite graph | **CONFIRMED downstream synthesis/materialization** |
 | same-version Dimbreath QuestExcel public field labels | HIGH_CONFIDENCE schema/field-name misalignment |
 | exact native ordinary finish/fail condition+exec representation | CONFIRMED field families/offsets |
 | direct ordinary-row acceptCond / beginExec representation | no direct slot found; table-source relation still UNRESOLVED |
-| exact source-authority relation between QuestExcel and BinOutput/Quest | UNRESOLVED |
+| exact 7.1 legacy QuestExcel row wire | UNRESOLVED; independent format archaeology |
 
 The AstaPS Quest 351 prerequisite provenance is **CONFIRMED** from historical-native and
 repository/tooling evidence. The exact 7.1 legacy table wire remains unresolved as a
@@ -581,6 +596,8 @@ that row format is decoded directly.
 4. Keep exact 7.1 legacy `3b87ae83.dat` decoding as an independent format-research task.
    Do not force the 2.8/3.x row schema onto it: the current devkit scan tested 13,411 reader
    methods / 262 candidates and found no schema that consumed all Quest 351 windows exactly.
+   A second pass built 342 plausible 7.1 reader schemas and found zero 8/8 field-transform
+   matches for the observed 351 `subId` anchors.
 5. If continuing the wire research, identify the 7.1 table container/reader from native
    registration or dynamic loading evidence, then require full-row and full-table structural
    consumption.
