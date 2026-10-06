@@ -1,0 +1,327 @@
+name: Probe 3.0 QuestExcel row layout scan
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-30-layout-scan.yml"
+
+concurrency:
+  group: probe-quest-legacy-30-layout-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install capstone pefile
+
+      - name: Download exact 3.0.0 UserAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://autopatchhk.yuanshen.com/client_app/download/pc_zip/20220815143807_dyIghvy1b5fjfzHU/ScatteredFiles'
+          out='inputs/3.0.0-global'
+          mkdir -p "$out"
+          curl --fail --location --retry 8 --retry-all-errors \
+            --connect-timeout 30 --max-time 900 \
+            "$base/GenshinImpact_Data/Native/UserAssembly.dll" \
+            -o "$out/UserAssembly.dll"
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path("inputs/3.0.0-global/UserAssembly.dll")
+          raw=p.read_bytes()
+          sha=hashlib.sha256(raw).hexdigest()
+          print("size",len(raw),"sha256",sha)
+          assert len(raw)==177601560
+          assert sha=="b368b8959442f351143d16eb67d514520064897d1eeb37e0d3f544688bd4510b"
+          PY
+
+      - name: Scan runtime functions for legacy QuestExcel object-layout fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-layout-scan.txt
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+
+          path=Path("inputs/3.0.0-global/UserAssembly.dll")
+          pe=pefile.PE(str(path),fast_load=True)
+          pe.parse_data_directories(
+              directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]]
+          )
+          base=pe.OPTIONAL_HEADER.ImageBase
+
+          runtime=sorted({
+              (int(x.struct.BeginAddress),int(x.struct.EndAddress))
+              for x in pe.DIRECTORY_ENTRY_EXCEPTION
+              if int(x.struct.EndAddress)>int(x.struct.BeginAddress)
+          })
+
+          fields={
+              0x10:"subId",
+              0x14:"mainId",
+              0x18:"order",
+              0x1C:"subIdSet",
+              0x20:"isMpBlock",
+              0x24:"descTextMapHash",
+              0x28:"stepDescTextMapHash",
+              0x2C:"guideTipsTextMapHash",
+              0x30:"showType",
+              0x34:"banType",
+              0x38:"acceptCondComb",
+              0x40:"acceptCond",
+              0x48:"finishCondComb",
+              0x50:"finishCond",
+              0x58:"failCondComb",
+              0x60:"failCond",
+              0x68:"guide",
+              0x70:"showGuide",
+              0x74:"finishParent",
+              0x75:"failParent",
+              0x78:"failParentShow",
+              0x7C:"isRewind",
+              0x80:"finishExec",
+              0x88:"failExec",
+              0x90:"beginExec",
+              0x98:"exclusiveNpcList",
+              0xA0:"sharedNpcList",
+              0xA8:"exclusiveNpcPriority",
+              0xB0:"trialAvatarList",
+              0xB8:"exclusivePlaceList",
+          }
+          distinctive={0x74,0x75,0x78,0x7C,0x80,0x88,0x90,0x98,0xA0,0xA8,0xB0,0xB8}
+          ignored_bases={"rsp","rbp","rip",None}
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          candidates=[]
+          scanned=0
+          decoded_bytes=0
+
+          for a,b in runtime:
+              size=b-a
+              if size < 0x120 or size > 0x20000:
+                  continue
+              raw=pe.get_data(a,size)
+              if not raw:
+                  continue
+              scanned+=1
+              decoded_bytes+=len(raw)
+
+              per_base=defaultdict(set)
+              per_base_hits=defaultdict(list)
+              calls=[]
+              ins_count=0
+
+              for ins in md.disasm(raw,base+a):
+                  ins_count+=1
+                  irva=ins.address-base
+                  if (
+                      ins.mnemonic=="call"
+                      and ins.operands
+                      and ins.operands[0].type==X86_OP_IMM
+                  ):
+                      calls.append((irva,ins.operands[0].imm-base))
+
+                  for op_index,op in enumerate(ins.operands):
+                      if op.type != X86_OP_MEM:
+                          continue
+                      breg=ins.reg_name(op.mem.base) if op.mem.base else None
+                      disp=op.mem.disp
+                      if breg in ignored_bases or disp not in fields:
+                          continue
+                      per_base[breg].add(disp)
+                      per_base_hits[breg].append({
+                          "rva":irva,
+                          "disp":disp,
+                          "field":fields[disp],
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                          "operand_index":op_index,
+                      })
+
+              for breg,offsets in per_base.items():
+                  uniq=len(offsets)
+                  dist=len(offsets & distinctive)
+                  if uniq < 6:
+                      continue
+                  if len(calls)<3 and dist<4:
+                      continue
+
+                  # Strongly prefer the unusual tail of the historical Quest layout
+                  # and functions that actually perform substantial decoding work.
+                  score = uniq*100 + dist*35 + min(len(calls),80)*2 + min(size//64,100)
+                  candidates.append({
+                      "score":score,
+                      "begin_rva":a,
+                      "end_rva":b,
+                      "size":size,
+                      "base_register":breg,
+                      "unique_offsets":sorted(offsets),
+                      "field_names":[fields[x] for x in sorted(offsets)],
+                      "distinctive_offsets":sorted(offsets & distinctive),
+                      "call_count":len(calls),
+                      "calls":calls,
+                      "hits":per_base_hits[breg],
+                      "instruction_count":ins_count,
+                  })
+
+          candidates.sort(key=lambda x:(-x["score"],-len(x["unique_offsets"]),x["begin_rva"]))
+          print("runtime functions",len(runtime))
+          print("scanned functions",scanned)
+          print("decoded bytes",decoded_bytes)
+          print("candidates",len(candidates))
+
+          for rank,c in enumerate(candidates[:80],1):
+              print(
+                  f"RANK {rank:02d} score={c['score']} "
+                  f"fn=0x{c['begin_rva']:X}-0x{c['end_rva']:X} "
+                  f"size=0x{c['size']:X} base={c['base_register']} "
+                  f"unique={len(c['unique_offsets'])} distinct={len(c['distinctive_offsets'])} "
+                  f"calls={c['call_count']}"
+              )
+              print("  fields",",".join(c["field_names"]))
+              print("  offsets",",".join(f"0x{x:X}" for x in c["unique_offsets"]))
+
+          Path("quest-legacy-30-layout-scan.json").write_text(
+              json.dumps({
+                  "runtime_function_count":len(runtime),
+                  "scanned_function_count":scanned,
+                  "decoded_bytes":decoded_bytes,
+                  "fields":{hex(k):v for k,v in fields.items()},
+                  "candidates":candidates[:200],
+              },indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          if not candidates:
+              raise SystemExit("no layout candidates found")
+          PY
+
+      - name: Dump top layout candidates with exact field-hit contexts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-30-layout-top.txt
+          import json
+          from pathlib import Path
+
+          import pefile
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
+
+          scan=json.loads(Path("quest-legacy-30-layout-scan.json").read_text())
+          top=scan["candidates"][:20]
+          pe=pefile.PE("inputs/3.0.0-global/UserAssembly.dll",fast_load=True)
+          base=pe.OPTIONAL_HEADER.ImageBase
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+
+          detailed=[]
+          for rank,c in enumerate(top,1):
+              a,b=c["begin_rva"],c["end_rva"]
+              breg=c["base_register"]
+              insns=[]
+              for ins in md.disasm(pe.get_data(a,b-a),base+a):
+                  item={
+                      "rva":ins.address-base,
+                      "bytes":ins.bytes.hex(),
+                      "mnemonic":ins.mnemonic,
+                      "op_str":ins.op_str,
+                  }
+                  if (
+                      ins.mnemonic=="call"
+                      and ins.operands
+                      and ins.operands[0].type==X86_OP_IMM
+                  ):
+                      item["call_target_rva"]=ins.operands[0].imm-base
+                  mem=[]
+                  for op in ins.operands:
+                      if op.type==X86_OP_MEM:
+                          mem.append({
+                              "base":ins.reg_name(op.mem.base) if op.mem.base else None,
+                              "index":ins.reg_name(op.mem.index) if op.mem.index else None,
+                              "scale":op.mem.scale,
+                              "disp":op.mem.disp,
+                          })
+                  if mem:
+                      item["mem"]=mem
+                  insns.append(item)
+
+              interesting=[]
+              field_offsets={int(k,16):v for k,v in scan["fields"].items()}
+              for i,x in enumerate(insns):
+                  is_call="call_target_rva" in x
+                  matched=[]
+                  for m in x.get("mem",[]):
+                      if m["base"]==breg and m["disp"] in field_offsets:
+                          matched.append((m["disp"],field_offsets[m["disp"]]))
+                  if not is_call and not matched:
+                      continue
+                  interesting.append({
+                      "index":i,
+                      "rva":x["rva"],
+                      "call_target_rva":x.get("call_target_rva"),
+                      "fields":[{"offset":o,"name":n} for o,n in matched],
+                      "context":insns[max(0,i-5):min(len(insns),i+6)],
+                  })
+
+              detailed.append({
+                  "rank":rank,
+                  "candidate":c,
+                  "interesting":interesting,
+              })
+
+              print(
+                  f"\n=== RANK {rank} fn=0x{a:X}-0x{b:X} "
+                  f"base={breg} score={c['score']} ==="
+              )
+              print("fields",",".join(c["field_names"]))
+              for item in interesting:
+                  tags=[]
+                  if item["call_target_rva"] is not None:
+                      tags.append(f"CALL->0x{item['call_target_rva']:X}")
+                  tags.extend(
+                      f"{f['name']}@0x{f['offset']:X}" for f in item["fields"]
+                  )
+                  print(f"-- 0x{item['rva']:X} {' '.join(tags)}")
+                  for y in item["context"]:
+                      print(f"  0x{y['rva']:X} {y['mnemonic']:<7} {y['op_str']}")
+
+          Path("quest-legacy-30-layout-top.json").write_text(
+              json.dumps(detailed,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload layout evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-30-layout-scan
+          path: |
+            quest-legacy-30-layout-scan.txt
+            quest-legacy-30-layout-scan.json
+            quest-legacy-30-layout-top.txt
+            quest-legacy-30-layout-top.json
+          if-no-files-found: warn
