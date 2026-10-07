@@ -32,6 +32,9 @@ SUB_QUEST = {
     "FKKAEBOAMCN": "stepDescTextMapHash",
     "KBDPGMJFJGO": "guideTipsTextMapHash",
     "KIILAIEPKIA": "banType",
+    "FMLPOCDOFNH": "exclusiveNpcList",
+    "NLIKPBMIJJD": "exclusivePlaceList",
+    "FJDKHGMJOPL": "preferArea2GuideScene",
 }
 
 COND = {
@@ -61,6 +64,7 @@ KNOWN_SUB = {
     "finishExec", "failExec", "acceptCond", "beginExec", "finishCondComb",
     "failCondComb", "acceptCondComb", "guideHint", "isMpBlock", "subIdSet",
     "sharedNpcList", "stepDescTextMapHash", "guideTipsTextMapHash", "banType",
+    "exclusiveNpcList", "exclusivePlaceList", "preferArea2GuideScene",
 }
 KNOWN_COND = {"type", "param", "param_str", "count"}
 KNOWN_GUIDE = {
