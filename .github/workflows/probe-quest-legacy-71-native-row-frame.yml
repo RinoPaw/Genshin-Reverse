@@ -1,0 +1,295 @@
+name: Probe 7.1 QuestExcel native row framing
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-native-row-frame.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-native-row-frame-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch comparison resources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+          rm -rf /tmp/asta-initial
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-initial
+          git -C /tmp/asta-initial sparse-checkout init --no-cone
+          git -C /tmp/asta-initial sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-initial checkout 8c85a82f37341a422002a0352c89a142c4017e53
+
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+
+      - name: Recover native rows from masks and compare populations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-native-row-frame.txt
+          import collections
+          import hashlib
+          import json
+          import statistics
+          import struct
+          from pathlib import Path
+
+          RAW = Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          AGD = Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          ASTA_INITIAL = Path("/tmp/asta-initial/ExcelBinOutput/QuestExcelConfigData.json")
+          ASTA_PR9 = Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+
+          SUBID_KEY = 0xB1571A55
+          MASKS = {
+              0x087EFDD5,
+              0x087EDDD5,
+              0x087FFDD5,
+              0x087EF9D5,
+              0x083EFDD5,
+              0x087FDDD5,
+              0x287EFDD5,
+              0x087ED9D5,
+              0x083EDDD5,
+              0x007FFDD5,
+              0x087FF9D5,
+              0x083EF9D5,
+              0x083FFDD5,
+          }
+
+          raw = RAW.read_bytes()
+          declared = struct.unpack_from("<I", raw, 0)[0]
+          payload = raw[4:4 + declared]
+          if declared != len(raw) - 4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          hits = []
+          for pos in range(len(payload) - 3):
+              u = struct.unpack_from("<I", payload, pos)[0]
+              if u in MASKS:
+                  hits.append((pos, u))
+
+          if not hits or hits[0][0] != 4:
+              raise SystemExit(f"unexpected first native row start: {hits[:1]}")
+
+          rows = []
+          for ordinal, (start, mask) in enumerate(hits):
+              end = hits[ordinal + 1][0] if ordinal + 1 < len(hits) else len(payload)
+              if end - start < 8:
+                  raise SystemExit(f"implausibly short row at {start:#x}")
+              raw_sid = struct.unpack_from("<I", payload, end - 4)[0]
+              sid = raw_sid ^ SUBID_KEY
+              rows.append({
+                  "ordinal": ordinal,
+                  "start": start,
+                  "end": end,
+                  "size": end - start,
+                  "mask": mask,
+                  "subId": sid,
+              })
+
+          sids = [x["subId"] for x in rows]
+          if len(set(sids)) != len(sids):
+              dup = [x for x, n in collections.Counter(sids).items() if n > 1]
+              raise SystemExit(f"duplicate native subIds: {dup[:20]}")
+          if rows[-1]["end"] != len(payload):
+              raise SystemExit("native rows do not consume payload")
+
+          def load(path):
+              data = json.loads(path.read_text(encoding="utf-8"))
+              return data, {x.get("subId") for x in data if isinstance(x.get("subId"), int)}
+
+          agd, agd_sids = load(AGD)
+          asta_initial, initial_sids = load(ASTA_INITIAL)
+          asta_pr9, pr9_sids = load(ASTA_PR9)
+          native_sids = set(sids)
+
+          def relation(name, data, ids):
+              return {
+                  "name": name,
+                  "rows": len(data),
+                  "unique_subIds": len(ids),
+                  "intersection_native": len(ids & native_sids),
+                  "only_resource": sorted(ids - native_sids),
+                  "only_native_count": len(native_sids - ids),
+              }
+
+          relations = [
+              relation("Dimbreath-7.1", agd, agd_sids),
+              relation("AstaPS-initial", asta_initial, initial_sids),
+              relation("AstaPS-PR9", asta_pr9, pr9_sids),
+          ]
+
+          # Correlate the raw first-row mask bits with published Dimbreath field
+          # presence. Dimbreath labels are comparison labels only; they are not
+          # accepted as native semantic truth.
+          native_by_sid = {x["subId"]: x for x in rows}
+          matched = [(r, native_by_sid[r["subId"]]) for r in agd if r.get("subId") in native_by_sid]
+          public_fields = sorted({k for r, _ in matched for k in r})
+          mask_correlations = []
+          for field in public_fields:
+              for bit in range(32):
+                  bins = {0: [0, 0], 1: [0, 0]}
+                  for r, nr in matched:
+                      b = (nr["mask"] >> bit) & 1
+                      bins[b][1] += 1
+                      if field in r:
+                          bins[b][0] += 1
+                  if not bins[0][1] or not bins[1][1]:
+                      continue
+                  p0 = bins[0][0] / bins[0][1]
+                  p1 = bins[1][0] / bins[1][1]
+                  if abs(p0 - p1) >= 0.98:
+                      mask_correlations.append({
+                          "field": field,
+                          "bit": bit,
+                          "bit0_present": bins[0][0],
+                          "bit0_total": bins[0][1],
+                          "bit1_present": bins[1][0],
+                          "bit1_total": bins[1][1],
+                          "delta": p1 - p0,
+                      })
+          mask_correlations.sort(key=lambda x: (-abs(x["delta"]), x["field"], x["bit"]))
+
+          # Rank fixed-offset u32 transforms for stable numeric public fields.
+          # This is discovery evidence only because public 7.1 labels are known
+          # to be partly misaligned.
+          def transform_rank(field):
+              counters = {
+                  "xor": collections.Counter(),
+                  "sub": collections.Counter(),
+                  "add": collections.Counter(),
+              }
+              eligible = 0
+              for r, nr in matched:
+                  v = r.get(field)
+                  if not isinstance(v, int) or isinstance(v, bool):
+                      continue
+                  eligible += 1
+                  start, end = nr["start"], nr["end"]
+                  data = payload[start:end - 4]  # exclude proven subId scalar
+                  for off in range(0, len(data) - 3):
+                      u = struct.unpack_from("<I", data, off)[0]
+                      counters["xor"][(off, u ^ (v & 0xffffffff))] += 1
+                      counters["sub"][(off, (u - v) & 0xffffffff)] += 1
+                      counters["add"][(off, (u + v) & 0xffffffff)] += 1
+              result = {"field": field, "eligible": eligible}
+              for kind, c in counters.items():
+                  result[kind] = [
+                      {
+                          "offset": off,
+                          "key": f"0x{key:08X}",
+                          "support": support,
+                      }
+                      for (off, key), support in c.most_common(12)
+                  ]
+              return result
+
+          scalar_fields = [
+              "mainId",
+              "order",
+              "failParent",
+              "stepDescTextMapHash",
+              "guideTipsTextMapHash",
+              "subIdSet",
+          ]
+          transforms = [transform_rank(x) for x in scalar_fields]
+
+          sizes = [x["size"] for x in rows]
+          report = {
+              "asset": {
+                  "raw_size": len(raw),
+                  "raw_sha256": hashlib.sha256(raw).hexdigest(),
+                  "payload_size": len(payload),
+                  "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                  "table_head_u32": f"0x{struct.unpack_from('<I', payload, 0)[0]:08X}",
+              },
+              "native_framing": {
+                  "row_count": len(rows),
+                  "unique_subIds": len(set(sids)),
+                  "first_start": rows[0]["start"],
+                  "last_end": rows[-1]["end"],
+                  "full_consumption": rows[-1]["end"] == len(payload),
+                  "row_size": {
+                      "min": min(sizes),
+                      "max": max(sizes),
+                      "median": statistics.median(sizes),
+                      "mean": statistics.mean(sizes),
+                  },
+                  "mask_count": len(MASKS),
+                  "mask_distribution": {
+                      f"0x{k:08X}": v
+                      for k, v in collections.Counter(x["mask"] for x in rows).most_common()
+                  },
+                  "first_rows": rows[:12],
+                  "last_rows": rows[-12:],
+              },
+              "relations": relations,
+              "dimbreath_native_matches": len(matched),
+              "mask_correlations": mask_correlations,
+              "scalar_transform_rank": transforms,
+          }
+
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          Path("quest-legacy-71-native-row-frame.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          Path("quest-legacy-71-native-row-index.json").write_text(
+              json.dumps(rows, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-native-row-frame
+          path: |
+            quest-legacy-71-native-row-frame.txt
+            quest-legacy-71-native-row-frame.json
+            quest-legacy-71-native-row-index.json
+          if-no-files-found: error
