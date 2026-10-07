@@ -1,0 +1,187 @@
+name: Probe Quest 7.1 runtime field map
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-runtime-field-map.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd71 /tmp/gc3700 /tmp/gc4000
+
+          git clone --filter=blob:none --no-checkout https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd71
+          git -C /tmp/agd71 sparse-checkout init --no-cone
+          git -C /tmp/agd71 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/agd71 checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+          git clone --filter=blob:none --no-checkout https://github.com/TomyJan/GCResource.git /tmp/gc3700
+          git -C /tmp/gc3700 sparse-checkout init --no-cone
+          git -C /tmp/gc3700 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/gc3700 checkout 609730bf63568baee1eb77a605b6c273a064dbc1
+
+          git clone --filter=blob:none --no-checkout https://github.com/TomyJan/GCResource.git /tmp/gc4000
+          git -C /tmp/gc4000 sparse-checkout init --no-cone
+          git -C /tmp/gc4000 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/gc4000 checkout ede70f1e23c1a494fe4258837d963b1d63004911
+
+      - name: Infer 7.1 obfuscated field semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-runtime-field-map.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          def norm_entries(v):
+              if not isinstance(v,list): return None
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict): continue
+                  out.append({
+                      "type":x.get("type"),
+                      "param":x.get("param",[]),
+                      "param_str":x.get("param_str",x.get("paramStr",x.get("JBELGECAIIL",""))) or "",
+                      "count":x.get("count"),
+                  })
+              return out
+
+          def load(root, modern):
+              rows={}
+              for p in sorted(Path(root).glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED") if modern else o.get("subQuests")
+                  if not isinstance(seq,list): seq=o.get("subQuests",[])
+                  for r in seq:
+                      if not isinstance(r,dict):continue
+                      sid=r.get("NFGFDHPPBIF") if modern else r.get("subId")
+                      if not isinstance(sid,int):sid=r.get("subId")
+                      if isinstance(sid,int):rows[sid]=r
+              return rows
+
+          cur=load("/tmp/agd71/BinOutput/Quest",True)
+          old37=load("/tmp/gc3700/BinOutput/Quest",False)
+          old40=load("/tmp/gc4000/BinOutput/Quest",False)
+          common=sorted(set(cur)&set(old37)&set(old40))
+          print("ROWS",len(cur),len(old37),len(old40),"COMMON",len(common))
+
+          semantic_fields=["acceptCond","beginExec","finishCond","failCond","finishExec","failExec"]
+          # Candidate 7.1 list-valued fields on ordinary rows.
+          candidates=sorted({
+              k for sid in common for k,v in cur[sid].items()
+              if isinstance(v,list) and all(isinstance(x,dict) for x in v)
+          })
+          print("CANDIDATES",candidates)
+
+          report={}
+          for sf in semantic_fields:
+              old_consensus={}
+              for sid in common:
+                  a=norm_entries(old37[sid].get(sf))
+                  b=norm_entries(old40[sid].get(sf))
+                  if a is not None and b is not None and a==b:
+                      old_consensus[sid]=a
+              print("\n===",sf,"old_consensus_rows",len(old_consensus),"===")
+              scores=[]
+              for ck in candidates:
+                  compared=match=meaningful=0
+                  mismatches=[]
+                  for sid,ov in old_consensus.items():
+                      cv=norm_entries(cur[sid].get(ck))
+                      if cv is None: continue
+                      compared+=1
+                      if ov or cv: meaningful+=1
+                      if cv==ov: match+=1
+                      elif len(mismatches)<8:
+                          mismatches.append({"subId":sid,"old":ov,"cur":cv})
+                  ratio=match/compared if compared else 0
+                  scores.append((ratio,match,compared,meaningful,ck,mismatches))
+              scores.sort(reverse=True,key=lambda x:(x[0],x[1],x[2],x[4]))
+              for ratio,match,compared,meaningful,ck,mm in scores[:12]:
+                  print(ck,"match",match,"compared",compared,"ratio",f"{ratio:.6f}","meaningful",meaningful)
+                  if ratio>0.95 and mm:
+                      print(" mismatch_examples",json.dumps(mm,ensure_ascii=False))
+              report[sf]=[
+                  {"field":ck,"ratio":ratio,"match":match,"compared":compared,"meaningful":meaningful}
+                  for ratio,match,compared,meaningful,ck,_ in scores[:12]
+              ]
+
+          # Stronger mapping: compare only rows where old semantic field is meaningful.
+          print("\n=== MEANINGFUL-ONLY MAPPING ===")
+          best={}
+          for sf in semantic_fields:
+              target={}
+              for sid in common:
+                  a=norm_entries(old37[sid].get(sf)); b=norm_entries(old40[sid].get(sf))
+                  if a is not None and b is not None and a==b and a:
+                      target[sid]=a
+              scored=[]
+              for ck in candidates:
+                  compared=match=0
+                  for sid,ov in target.items():
+                      cv=norm_entries(cur[sid].get(ck))
+                      if cv is None: continue
+                      compared+=1
+                      if cv==ov: match+=1
+                  scored.append((match/compared if compared else 0,match,compared,ck))
+              scored.sort(reverse=True)
+              print(sf,"target_rows",len(target),"best",scored[:10])
+              best[sf]=scored[:10]
+
+          # For every high-confidence mapping, quantify how many 7.1 rows can be
+          # recovered directly from same-version runtime BinOutput.
+          print("\n=== DIRECT 7.1 COVERAGE ===")
+          chosen={}
+          for sf,arr in best.items():
+              if not arr:continue
+              ratio,match,compared,ck=arr[0]
+              if ratio==1.0 and compared>=5:
+                  chosen[sf]=ck
+                  meaningful_rows=sum(1 for r in cur.values() if norm_entries(r.get(ck)))
+                  print(sf,"->",ck,"meaningful_7.1_rows",meaningful_rows,
+                        "proof_rows",compared,"proof_matches",match)
+
+          # Print direct Quest351 mapping if present.
+          print("\n=== QUEST351 ===")
+          for sid in range(35100,35108):
+              r=cur.get(sid)
+              if not r:continue
+              print(json.dumps({
+                  "subId":sid,
+                  **{sf:r.get(ck) for sf,ck in chosen.items() if ck in r},
+                  "raw_candidate_fields":{k:r.get(k) for k in candidates if k in r},
+              },ensure_ascii=False))
+
+          Path("quest71-runtime-field-map.json").write_text(
+              json.dumps({"mapping":report,"chosen":chosen},ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-runtime-field-map
+          path: |
+            quest71-runtime-field-map.txt
+            quest71-runtime-field-map.json
+          if-no-files-found: error
