@@ -1,0 +1,235 @@
+name: Identify 7.1 QuestExcel body reader excluding subId suffix
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-body-consumption.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-body-consumption-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none https://github.com/owomocha/genshin-7.0-local-re-devkit.git /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Rank schemas against native body end before subId
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-body-consumption.txt
+          import csv,json,struct
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,0x083EFDD5,
+              0x087FDDD5,0x287EFDD5,0x087ED9D5,0x083EDDD5,0x007FFDD5,
+              0x087FF9D5,0x083EF9D5,0x083FFDD5,
+          }
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try: fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception: pass
+
+          deser={}
+          one_by_class={}
+          candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not rva or not params or params[0]!=READER:
+                  continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)!=1:
+                  continue
+              ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+              priority=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+              prev=one_by_class.get(cls)
+              if prev is None or priority<prev[0]:
+                  one_by_class[cls]=(priority,rva)
+              t=type_by_tdi.get(tdi,{})
+              try: fc=int(t.get("field_count") or "0")
+              except ValueError: fc=0
+              if 4<=fc<=96 or cls in {"GPCFGOEJFJK","LAIMPNDEFCL","AFIOOHMJHDM","RandomQuestExcelConfig"}:
+                  candidates.append((rva,m,t,fc,tdi))
+
+          row_deser={cls:rva for cls,(_p,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          if n!=len(raw)-4: raise SystemExit("wrapper mismatch")
+
+          starts=[]
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in LOW_MASKS: starts.append((pos,u))
+          if len(starts)!=33214 or starts[0][0]!=4:
+              raise SystemExit(f"row framing drift {len(starts)} {starts[:1]}")
+          rows=[]
+          for i,(start,mask) in enumerate(starts):
+              end=starts[i+1][0] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,end-4)[0]^SUBID_KEY
+              rows.append({"ordinal":i,"start":start,"body_end":end-4,"end":end,"size":end-start,"subId":sid,"mask":mask})
+
+          def quantile(items,n):
+              if len(items)<=n:return list(items)
+              idx=sorted({round(i*(len(items)-1)/(n-1)) for i in range(n)})
+              return [items[i] for i in idx]
+          stage1=quantile(rows,96)
+          stage2=quantile(rows,2000)
+
+          built=[]
+          for rva,m,t,fc,tdi in candidates:
+              try: schema=BC.build(exe,rva,deser,cache={})
+              except Exception: continue
+              built.append((rva,m,t,fc,tdi,schema))
+
+          def consume(schema,row,target):
+              rd=BC.Reader(payload); rd.p=row["start"]
+              try: value=rd.record(schema)
+              except Exception as exc:return False,rd.p,None,type(exc).__name__
+              return rd.p==target,rd.p,value,None
+
+          leaders=[]
+          for rva,m,t,fc,tdi,schema in built:
+              exact_body=exact_full=errors=0
+              delta_body=[]
+              for row in stage1:
+                  ok,p,_v,err=consume(schema,row,row["body_end"])
+                  if err:
+                      errors+=1; continue
+                  if ok: exact_body+=1
+                  if p==row["end"]: exact_full+=1
+                  delta_body.append(p-row["body_end"])
+              if not exact_body:
+                  continue
+              leaders.append({
+                  "rva":rva,"type_name":m.get("type_name"),"method_name":m.get("method_name"),
+                  "tdi":tdi,"field_count":fc,"schema":schema,
+                  "stage1_body":exact_body,"stage1_full":exact_full,"stage1_errors":errors,
+                  "delta_min":min(delta_body) if delta_body else None,
+                  "delta_max":max(delta_body) if delta_body else None,
+              })
+          leaders.sort(key=lambda x:(-x["stage1_body"],x["stage1_errors"],x["rva"]))
+
+          finalists=[]
+          for x in leaders[:50]:
+              eb=ef=errors=0; exact_rows=[]; misses=[]
+              for row in stage2:
+                  ok,p,_v,err=consume(x["schema"],row,row["body_end"])
+                  if err:
+                      errors+=1
+                      continue
+                  if ok:
+                      eb+=1
+                      if len(exact_rows)<40: exact_rows.append({"ordinal":row["ordinal"],"subId":row["subId"],"size":row["size"]})
+                  if p==row["end"]: ef+=1
+                  elif len(misses)<10:
+                      misses.append({"subId":row["subId"],"size":row["size"],"delta_body":p-row["body_end"]})
+              finalists.append({
+                  **{k:v for k,v in x.items() if k!="schema"},
+                  "stage2_body":eb,"stage2_full":ef,"stage2_errors":errors,
+                  "exact_rows":exact_rows,"misses":misses,
+                  "schema":x["schema"],
+                  "fields":fields_by_tdi.get(x["tdi"],[]),
+              })
+          finalists.sort(key=lambda x:(-x["stage2_body"],x["stage2_errors"],x["rva"]))
+
+          print("native_rows",len(rows))
+          print("candidate_methods",len(candidates))
+          print("built_schemas",len(built))
+          print("stage1_leaders",len(leaders))
+          print("\n=== finalists ===")
+          for x in finalists[:30]:
+              print(json.dumps({
+                  "rva":f"0x{x['rva']:X}","type_name":x["type_name"],"method_name":x["method_name"],
+                  "field_count":x["field_count"],"stage1_body":x["stage1_body"],
+                  "stage2_body":x["stage2_body"],"stage2_full":x["stage2_full"],
+                  "stage2_errors":x["stage2_errors"],"exact_rows":x["exact_rows"][:8],
+                  "misses":x["misses"][:5],
+              },ensure_ascii=False))
+
+          report={
+              "native_rows":len(rows),"candidate_methods":len(candidates),"built_schemas":len(built),
+              "target":"row body end = row end - 4-byte encoded subId suffix",
+              "finalists":[
+                  {
+                      **{k:v for k,v in x.items() if k not in {"schema","fields","rva"}},
+                      "rva":f"0x{x['rva']:X}","schema":x["schema"],"fields":x["fields"],
+                  } for x in finalists
+              ],
+          }
+          Path("quest-legacy-71-body-consumption.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-body-consumption
+          path: |
+            quest-legacy-71-body-consumption.txt
+            quest-legacy-71-body-consumption.json
+          if-no-files-found: error
