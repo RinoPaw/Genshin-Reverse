@@ -149,6 +149,32 @@ jobs:
           print("\n=== QUEST351 ROOT DECODE ===")
           print(json.dumps(decode,ensure_ascii=False,indent=2))
 
+          # Exact payload byte 59 starts the ordinary sub-quest array:
+          # raw count 0xA74F0AC3 XOR 0xA74F0ACB == 8.
+          array_decode={}
+          array_schema=schemas.get("ordinary_array_LAIMPNDEFCL",{})
+          if "error" not in array_schema:
+              rd=BC.Reader(payload);rd.p=59
+              try:
+                  value=rd.record(array_schema)
+                  array_decode={
+                      "ok":True,
+                      "start":59,
+                      "end":rd.p,
+                      "consumed":rd.p-59,
+                      "value":value,
+                  }
+              except Exception as exc:
+                  array_decode={
+                      "ok":False,
+                      "start":59,
+                      "end":rd.p,
+                      "consumed":rd.p-59,
+                      "error":type(exc).__name__+":"+str(exc),
+                  }
+          print("\n=== QUEST351 ORDINARY ARRAY DECODE ===")
+          print(json.dumps(array_decode,ensure_ascii=False,indent=2))
+
           report={
               "payload_size":len(payload),
               "targets":{k:f"0x{v:X}" for k,v in TARGETS.items()},
