@@ -273,6 +273,105 @@ jobs:
           print(json.dumps(semantic,ensure_ascii=False,indent=2))
           PY
 
+      - name: Trace native QuestCond reader callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-questcond-callers.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={
+              "QuestCond.FromBinary(reader)":0x11582570,
+              "QuestCond.FromBinaryInner(reader)":0x115825D0,
+              "QuestCond.FromBinary(reader,kind)":0x115828F0,
+              "QuestCond.FromBinaryInner(reader,kind)":0x11582950,
+          }
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          methods=rows("methods.csv"); fields=rows("fields.csv"); types=rows("types.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb={}
+          for f in fields: fb.setdefault(int(f["type_definition_index"]),[]).append(f)
+          starts=[]; by={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  starts.append(r); by.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]; e=starts[i+1] if i+1<len(starts) else s+0x1000
+              if not(s<=rva<e):return None
+              meta=by.get(s,[])
+              tdis=sorted({int(m["type_definition_index"]) for m in meta if m.get("type_definition_index")})
+              return {
+                  "start":f"0x{s:X}","end":f"0x{e:X}",
+                  "methods":meta,
+                  "types":[tb.get(t,{}) for t in tdis],
+                  "fields":[f for t in tdis for f in fb.get(t,[])],
+              }
+
+          report={"targets":{},"callers":{}}
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          with PEImage(EXE) as image:
+              base=image.image_base
+              # Disassemble all four QuestCond readers.
+              for name,target in TARGETS.items():
+                  ow=owner(target)
+                  start=int(ow["start"],16) if ow else target
+                  end=min(int(ow["end"],16),start+0x900) if ow else target+0x900
+                  body=image.read_rva(start,end-start)
+                  insns=[]
+                  for ins in md.disasm(body,base+start):
+                      rec={"rva":f"0x{ins.address-base:X}","bytes":ins.bytes.hex(),
+                           "mnemonic":ins.mnemonic,"op_str":ins.op_str}
+                      if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          tr=int(ins.operands[0].imm-base)
+                          rec["call_target"]=f"0x{tr:X}"
+                          rec["call_owner"]=owner(tr)
+                      insns.append(rec)
+                  report["targets"][name]={"target":f"0x{target:X}","owner":ow,"instructions":insns}
+                  print("\n=== TARGET",name,f"0x{target:X}","===")
+                  print(json.dumps({"owner":ow},ensure_ascii=False,indent=2))
+                  for x in insns:
+                      print(x["rva"],x["bytes"],x["mnemonic"],x["op_str"],
+                            "-> "+x.get("call_target","") if "call_target" in x else "")
+
+              # Direct rel32 callers across executable code.
+              target_by_va={base+rva:name for name,rva in TARGETS.items()}
+              callers={name:[] for name in TARGETS}
+              for sec in image.sections:
+                  if not(sec.characteristics&0x20000000):continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  off=0
+                  while True:
+                      off=blob.find(b"\\xE8",off)
+                      if off<0 or off+5>len(blob):break
+                      rel=int.from_bytes(blob[off+1:off+5],"little",signed=True)
+                      crva=sec.virtual_address+off
+                      name=target_by_va.get(base+crva+5+rel)
+                      if name is not None:
+                          callers[name].append({"call_rva":f"0x{crva:X}","owner":owner(crva)})
+                      off+=1
+              report["callers"]=callers
+              for name,items in callers.items():
+                  print("\n=== CALLERS",name,len(items),"===")
+                  print(json.dumps(items,ensure_ascii=False,indent=2))
+
+          Path("quest71-questcond-callers.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -282,4 +381,6 @@ jobs:
             quest351-full-native.txt
             quest351-full-native.json
             quest71-acceptcond-census.txt
+            quest71-questcond-callers.txt
+            quest71-questcond-callers.json
           if-no-files-found: error
