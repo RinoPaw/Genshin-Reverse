@@ -187,6 +187,11 @@ jobs:
               print("RESOLVE_UNRESOLVED_EMPTY",len(newly_empty),newly_empty[:300])
               print("UNRESOLVED_NO_TSV_ROW",len(missing_tsv),missing_tsv[:100])
               print("CONFLICTS",len(conflicts),json.dumps(conflicts[:20],ensure_ascii=False))
+              if conflicts:
+                  raise SystemExit(
+                      f"{field}: leaked TSV disagrees with pinned community controls "
+                      f"after normalized duplicate removal: {len(conflicts)} conflicts"
+                  )
               print("OVERLAP_EXAMPLES",json.dumps(overlap_examples[:12],ensure_ascii=False))
 
           Path("quest71-tsv-recovery.json").write_text(
