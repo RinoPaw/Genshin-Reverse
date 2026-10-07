@@ -1,0 +1,265 @@
+name: Probe Quest 7.1 start-condition evidence
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-start-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json' 'BinOutput/WQAcceptHintMark/WQAcceptHintMark.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+          rm -rf /tmp/c70
+          git clone --filter=blob:none --no-checkout https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70
+          git -C /tmp/c70 sparse-checkout init --no-cone
+          git -C /tmp/c70 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/c70 checkout 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
+
+      - name: Benchmark start-condition evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-start-evidence.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          RAW=Path("/tmp/raw71/BinOutput/Quest")
+          C70=Path("/tmp/c70/BinOutput/Quest")
+          HINT=Path("/tmp/raw71/BinOutput/WQAcceptHintMark/WQAcceptHintMark.json")
+
+          def load_raw():
+              rows={}
+              roots={}
+              by_main=defaultdict(list)
+              for p in sorted(RAW.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  mid=o.get("id")
+                  roots[mid]=o
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if not isinstance(r,dict):continue
+                      sid=r.get("NFGFDHPPBIF")
+                      if not isinstance(sid,int):continue
+                      rm=r.get("PCOMHEOJPOO")
+                      if not isinstance(rm,int):rm=mid
+                      rows[sid]=r
+                      if isinstance(rm,int):by_main[rm].append(sid)
+              return rows,roots,by_main
+
+          def load_c70():
+              rows={}
+              by_main=defaultdict(list)
+              for p in sorted(C70.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  mid=o.get("id")
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if not isinstance(r,dict):continue
+                      sid=r.get("subId")
+                      if not isinstance(sid,int):continue
+                      rm=r.get("mainId")
+                      if not isinstance(rm,int):rm=mid
+                      rows[sid]=r
+                      if isinstance(rm,int):by_main[rm].append(sid)
+              return rows,by_main
+
+          def norm_item(x):
+              if not isinstance(x,dict):return None
+              typ=x.get("type",x.get("damageRatio"))
+              if not isinstance(typ,str) or not typ:return None
+              p=list(x.get("param") or [])
+              while p and p[-1] in (0,"0",""):p.pop()
+              if typ in ("QUEST_COND_STATE_EQUAL","QUEST_COND_STATE_NOT_EQUAL") and len(p)>2:
+                  p=p[:2]
+              return {
+                  "type":typ,
+                  "param":p,
+                  "param_str":x.get("param_str",x.get("paramStr","")) or "",
+              }
+
+          def norm_flat(v):
+              if not isinstance(v,list):return []
+              out=[]
+              for x in v:
+                  y=norm_item(x)
+                  if y and y["type"]!="QUEST_COND_UNKNOWN":out.append(y)
+              return out
+
+          def norm_groups(v):
+              if not isinstance(v,list):return []
+              out=[]
+              for group in v:
+                  if not isinstance(group,list):continue
+                  g=[]
+                  for x in group:
+                      y=norm_item(x)
+                      if y:g.append(y)
+                  out.append(g)
+              return out
+
+          def canon(v):
+              return json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+
+          raw,roots,raw_by_main=load_raw()
+          c70,c70_by_main=load_c70()
+          known={
+              sid:norm_flat(r.get("acceptCond"))
+              for sid,r in c70.items()
+              if isinstance(r.get("acceptCond"),list)
+          }
+          meaningful={sid:v for sid,v in known.items() if v}
+          missing=set(raw)-set(known)
+
+          hints=json.loads(HINT.read_text(encoding="utf-8"))
+          print("ROWS",{"raw71":len(raw),"c70":len(c70),"known_accept_keys":len(known),
+                        "known_accept_nonempty":len(meaningful),"missing_accept_key":len(missing)})
+          print("WQ_HINT_ENTRIES",len(hints))
+
+          st=Counter(); examples=[]
+          recovered={}
+          for k,h in hints.items():
+              if not isinstance(h,dict):continue
+              mid=h.get("mainQuestID")
+              target=h.get("PBNINIGIMCB")
+              groups=norm_groups(h.get("condition"))
+              if not isinstance(target,int):
+                  st["no_target"]+=1
+                  continue
+              st["with_target"]+=1
+              if target in raw:st["target_in_raw"]+=1
+              if isinstance(mid,int) and target in raw_by_main.get(mid,[]):st["target_in_same_main"]+=1
+              if groups:st["with_conditions"]+=1
+              else:st["empty_conditions"]+=1
+
+              actual=known.get(target)
+              if actual is not None:
+                  st["target_has_historical_accept_key"]+=1
+                  if actual:st["target_has_historical_nonempty"]+=1
+                  # WQ hint is OR-of-AND groups. Exact-match one group against
+                  # flat acceptCond only as a conservative equivalence test.
+                  exact_groups=[g for g in groups if canon(g)==canon(actual)]
+                  if exact_groups:st["one_group_exact_accept"]+=1
+                  # Also compare unordered sets for controls whose serializer order differs.
+                  aset={canon(x) for x in actual}
+                  if any({canon(x) for x in g}==aset for g in groups):
+                      st["one_group_set_equal_accept"]+=1
+              else:
+                  st["target_missing_historical_accept_key"]+=1
+                  if groups:
+                      recovered[target]={
+                          "mainQuestID":mid,
+                          "groups":groups,
+                          "source":"WQAcceptHintMark",
+                      }
+
+              if len(examples)<80:
+                  examples.append({
+                      "mainQuestID":mid,"target":target,
+                      "hintGroups":groups,
+                      "historicalAccept":actual,
+                  })
+
+          print("\n=== WQ ACCEPT HINT BENCHMARK ===")
+          print(dict(st))
+          print("RECOVERABLE_MISSING_TARGETS",len(recovered))
+          print("RECOVERABLE_IDS",sorted(recovered)[:300])
+          print("EXAMPLES",json.dumps(examples[:40],ensure_ascii=False,indent=2))
+
+          # Quest-root talk conditions: compare every talk condition list to all
+          # historical acceptCond rows in the same main quest. This tests whether
+          # a client-side talk gate duplicates quest-start prerequisites.
+          tst=Counter(); exact_pairs=[]; missing_candidates=defaultdict(list)
+          for mid,o in roots.items():
+              if not isinstance(mid,int):continue
+              talks=o.get("DLLABGGCEBM")
+              if not isinstance(talks,list):continue
+              known_sids=[sid for sid in raw_by_main.get(mid,[]) if sid in known]
+              missing_sids=[sid for sid in raw_by_main.get(mid,[]) if sid in missing]
+              for t in talks:
+                  if not isinstance(t,dict):continue
+                  cond=norm_flat(t.get("JEDNDGCOMGC"))
+                  if not cond:continue
+                  tst["talks_with_cond"]+=1
+                  matched=[]
+                  for sid in known_sids:
+                      if canon(cond)==canon(known[sid]):
+                          matched.append(sid)
+                  if matched:
+                      tst["talks_matching_any_accept"]+=1
+                      tst["matched_pairs"]+=len(matched)
+                      if len(exact_pairs)<100:
+                          exact_pairs.append({
+                              "mainId":mid,"talkId":t.get("id"),
+                              "matchedSubIds":matched,"cond":cond,
+                          })
+                  for sid in missing_sids:
+                      # Candidate only if condition references that exact subId
+                      # or if the main has a single unresolved row. Keep as raw
+                      # evidence; do not promote.
+                      refs={
+                          x["param"][0] for x in cond
+                          if x["type"] in ("QUEST_COND_STATE_EQUAL","QUEST_COND_STATE_NOT_EQUAL")
+                          and x["param"] and isinstance(x["param"][0],int)
+                      }
+                      if sid in refs or len(missing_sids)==1:
+                          missing_candidates[sid].append({
+                              "talkId":t.get("id"),"cond":cond,
+                          })
+
+          print("\n=== TALK CONDITION BENCHMARK ===")
+          print(dict(tst))
+          print("EXACT_PAIR_SAMPLE",json.dumps(exact_pairs[:40],ensure_ascii=False,indent=2))
+          print("MISSING_CANDIDATE_ROWS",len(missing_candidates))
+          print("MISSING_CANDIDATE_SAMPLE",json.dumps(
+              {str(k):v[:5] for k,v in list(sorted(missing_candidates.items()))[:80]},
+              ensure_ascii=False,indent=2
+          ))
+
+          Path("quest71-start-evidence.json").write_text(json.dumps({
+              "wq_stats":dict(st),
+              "wq_missing_candidates":recovered,
+              "talk_stats":dict(tst),
+              "talk_missing_candidates":missing_candidates,
+          },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-start-evidence
+          path: |
+            quest71-start-evidence.txt
+            quest71-start-evidence.json
+          if-no-files-found: error
