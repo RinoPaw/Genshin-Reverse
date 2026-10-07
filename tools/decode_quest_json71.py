@@ -15,6 +15,7 @@ TOP_LEVEL = {
     "AKEAJELNNEN": "freeStyleDic",
     "DKKIDDFEHMD": "forcePreloadLuaList",
     "PCIAMAFDDAA": "dialogList",
+    "IMGDIONBDMG": "pauseResDestroyType",
 }
 
 SUB_QUEST = {
@@ -41,6 +42,7 @@ SUB_QUEST = {
     "FJDKHGMJOPL": "preferArea2GuideScene",
     "IAHIMJCLIJG": "failParentShow",
     "HJOFKFKBFCF": "failParent",
+    "FABHGLLGFHN": "extraShowType",
 }
 
 COND = {
@@ -57,6 +59,7 @@ GUIDE = {
     "AMCLBMAOELH": "inSceneStyle",
     "NJGODCNNNNJ": "indicatorStyle",
     "ABIJICNCCOD": "areaStyle",
+    "GNKEAKGMNBN": "residentGuideType",
 }
 
 KNOWN_TOP = {
@@ -66,7 +69,7 @@ KNOWN_TOP = {
     "activeMode", "activityId", "chapterId", "mainQuestTag", "recommendLevel",
     "repeatable", "showRedPoint", "showType", "specialShowCondIdList",
     "specialShowQuestId", "specialShowRewardId", "suggestTrackOutOfOrder",
-    "taskID", "type",
+    "taskID", "type", "pauseResDestroyType",
 }
 KNOWN_SUB = {
     "subId", "mainId", "order", "descTextMapHash", "showType", "showGuide",
@@ -75,7 +78,7 @@ KNOWN_SUB = {
     "failCondComb", "acceptCondComb", "guideHint", "isMpBlock", "subIdSet",
     "sharedNpcList", "stepDescTextMapHash", "guideTipsTextMapHash", "banType",
     "exclusiveNpcList", "exclusivePlaceList", "preferArea2GuideScene",
-    "failParentShow", "failParent",
+    "failParentShow", "failParent", "extraShowType",
 }
 KNOWN_COND = {"type", "param", "param_str", "count"}
 KNOWN_GUIDE = {
