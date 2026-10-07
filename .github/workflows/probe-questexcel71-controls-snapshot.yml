@@ -1,0 +1,92 @@
+name: Snapshot pinned 7.1 Quest controls
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-controls-snapshot.yml"
+
+concurrency:
+  group: probe-questexcel71-controls-snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned same-version Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -d /tmp/asta-pr9/BinOutput/Quest
+
+      - name: Build compact subId snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("/tmp/asta-pr9/BinOutput/Quest")
+          rows = {}
+          duplicates = []
+          for path in sorted(root.glob("*.json")):
+              try:
+                  data = json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              if not isinstance(data, dict):
+                  continue
+              for row in data.get("subQuests", []):
+                  if not isinstance(row, dict):
+                      continue
+                  sid = row.get("subId")
+                  if not isinstance(sid, int):
+                      continue
+                  if str(sid) in rows:
+                      duplicates.append(sid)
+                  rows[str(sid)] = row
+
+          if duplicates:
+              raise SystemExit(f"duplicate subIds: {duplicates[:20]}")
+
+          out = {
+              "source": {
+                  "repository": "MeChen618/AstaPS-Resource",
+                  "commit": "7465e29b2d58058ab9973187c112abf2717ada03",
+                  "path": "BinOutput/Quest/*.json",
+              },
+              "rowCount": len(rows),
+              "rows": rows,
+          }
+          Path("questexcel71-controls-snapshot.json").write_text(
+              json.dumps(out, ensure_ascii=False, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          print("rows", len(rows))
+          print("bytes", Path("questexcel71-controls-snapshot.json").stat().st_size)
+          PY
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-controls-snapshot
+          path: questexcel71-controls-snapshot.json
+          if-no-files-found: error
