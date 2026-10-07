@@ -38,6 +38,28 @@ jobs:
             --dir evidence/q71
           test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
 
+      - name: Validate package parser against exact 7.1 asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from genshinre.questexcel71 import parse_questexcel71_raw_export
+
+          raw = Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat").read_bytes()
+          table = parse_questexcel71_raw_export(raw)
+          assert len(table.rows) == 33214
+          assert table.framed_bytes == table.payload_size
+          assert len({row.sub_id for row in table.rows}) == 33214
+          print("rows", len(table.rows))
+          print("payload_size", table.payload_size)
+          print("framed_bytes", table.framed_bytes)
+          print("opaque_tail_bytes", sum(len(row.raw_tail) for row in table.rows))
+          print("order_rows", sum(row.order is not None for row in table.rows))
+          print("is_mp_block_rows", sum(row.is_mp_block is True for row in table.rows))
+          print("bit34_rows", sum(row.unknown_bit34_raw is not None for row in table.rows))
+          PY
+
       - name: Fetch pinned same-version quest controls
         shell: bash
         run: |
