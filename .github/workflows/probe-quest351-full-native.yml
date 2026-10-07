@@ -105,6 +105,12 @@ jobs:
           EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
           EXT.install2()
 
+          # Register the exact 7.1 BinConfig UTF-8 helper. The pinned analyzer
+          # otherwise treats these calls as empty nested deserializers and
+          # under-consumes the stream.
+          STRING_HELPER_RVA=0xFD53090
+          BC.H_STRINGS=tuple(dict.fromkeys((*BC.H_STRINGS, exe.base+STRING_HELPER_RVA)))
+
           schemas={}
           for name,rva in TARGETS.items():
               try:
