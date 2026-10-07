@@ -250,9 +250,13 @@ class QuestRecovery71Tests(unittest.TestCase):
         self.assertNotIn("acceptCond", row["fields"])
         self.assertEqual(
             row["missing_field_status"]["acceptCond"]["status"],
-            "compatibility-empty",
+            "unresolved",
         )
-        self.assertNotIn("40001", unresolved["rows"])
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["reason"],
+            "community-placeholder-only",
+        )
+        self.assertIn("40001", unresolved["rows"])
 
 
 if __name__ == "__main__":
