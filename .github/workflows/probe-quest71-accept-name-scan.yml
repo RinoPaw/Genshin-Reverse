@@ -1,0 +1,52 @@
+name: Probe Quest 7.1 accept field names
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-accept-name-scan.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Scan exact 7.1 metadata for accept-related fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-accept-name-scan.txt
+          import csv,json
+          from pathlib import Path
+          meta=Path("versions/7.1.0-global/windows-x64/metadata")
+          with (meta/"types.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              types=list(csv.DictReader(f))
+          with (meta/"fields.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              fields=list(csv.DictReader(f))
+          tb={int(t["type_definition_index"]):t for t in types}
+          needles=("accept","cond","prereq","require","begin")
+          hits=[]
+          for field in fields:
+              name=(field.get("field_name") or "")
+              lower=name.lower()
+              if not any(n in lower for n in needles):
+                  continue
+              owner=tb.get(int(field["type_definition_index"]),{})
+              hits.append({"owner":owner,"field":field})
+          print("MATCHES",len(hits))
+          print(json.dumps(hits,ensure_ascii=False,indent=2))
+          exact=[x for x in hits if "accept" in (x["field"].get("field_name") or "").lower()]
+          print("\nACCEPT_MATCHES",len(exact))
+          print(json.dumps(exact,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-accept-name-scan
+          path: quest71-accept-name-scan.txt
+          if-no-files-found: error
