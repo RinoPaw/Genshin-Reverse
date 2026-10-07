@@ -150,6 +150,134 @@ jobs:
                       "quest_owner_array_fields":quest_arrays,
                   },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
+      - name: Resolve Quest root generic containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-acceptcond-generic-owners.txt
+          import csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+              n=PROFILE_71.runtime_type_count
+
+              def read_va(va,size):
+                  if not (base <= va): return b""
+                  try:return image.read_rva(va-base,size)
+                  except Exception:return b""
+
+              def entry(index):
+                  if not (0<=index<n): return None
+                  raw=image.read_rva(type_array_rva+index*16,16)
+                  if len(raw)!=16:return None
+                  return {
+                      "index":index,
+                      "data_u64":int.from_bytes(raw[:8],"little"),
+                      "data_u32":int.from_bytes(raw[:4],"little"),
+                      "kind":raw[0x0A],
+                      "raw":raw.hex(),
+                  }
+
+              def type_from_ptr(ptr):
+                  if not (base <= ptr): return None
+                  rva=ptr-base
+                  delta=rva-type_array_rva
+                  if delta>=0 and delta%16==0:
+                      e=entry(delta//16)
+                  else:
+                      raw=read_va(ptr,16)
+                      if len(raw)!=16:return None
+                      e={
+                          "index":None,
+                          "data_u64":int.from_bytes(raw[:8],"little"),
+                          "data_u32":int.from_bytes(raw[:4],"little"),
+                          "kind":raw[0x0A],
+                          "raw":raw.hex(),
+                      }
+                  if not e:return None
+                  out={"runtime_type":e}
+                  if e["kind"] in (0x11,0x12):
+                      tdi=e["data_u32"]
+                      t=tb.get(tdi)
+                      if t:
+                          out["type_definition_index"]=tdi
+                          out["type_name"]=t.get("type_name") or ""
+                  return out
+
+              def resolve_generic(index):
+                  e=entry(index)
+                  if not e or e["kind"]!=0x15:return None
+                  gptr=e["data_u64"]
+                  raw=read_va(gptr,32)
+                  out={
+                      "runtime_type_index":index,
+                      "runtime_type":e,
+                      "generic_class_ptr":hex(gptr),
+                      "generic_class_raw":raw.hex(),
+                  }
+                  if len(raw)<24:return out
+                  ptrs=[int.from_bytes(raw[i:i+8],"little") for i in range(0,len(raw),8)]
+                  out["generic_class_ptrs"]=[hex(x) for x in ptrs]
+                  out["generic_type"]=type_from_ptr(ptrs[0]) if ptrs else None
+                  for label,p in (
+                      ("class_inst",ptrs[1] if len(ptrs)>1 else 0),
+                      ("method_inst",ptrs[2] if len(ptrs)>2 else 0),
+                  ):
+                      iraw=read_va(p,16)
+                      inst={"ptr":hex(p),"raw":iraw.hex()}
+                      if len(iraw)>=16:
+                          argc=int.from_bytes(iraw[:4],"little")
+                          argv=int.from_bytes(iraw[8:16],"little")
+                          inst["argc"]=argc
+                          inst["argv"]=hex(argv)
+                          inst["args"]=[]
+                          if argc<=16:
+                              avraw=read_va(argv,argc*8)
+                              if len(avraw)==argc*8:
+                                  for i in range(argc):
+                                      tptr=int.from_bytes(avraw[i*8:(i+1)*8],"little")
+                                      inst["args"].append({
+                                          "ptr":hex(tptr),
+                                          "type":type_from_ptr(tptr),
+                                      })
+                      out[label]=inst
+                  return out
+
+              owners={"AFIOOHMJHDM","LAIMPNDEFCL","RandomQuestExcelConfig"}
+              result=[]
+              for f in fields:
+                  if (f.get("field_type") or "")!="kind_0x15":continue
+                  owner=tb.get(int(f["type_definition_index"]),{})
+                  if owner.get("type_name") not in owners:continue
+                  try:ix=int(f.get("field_type_index") or "-1")
+                  except ValueError:continue
+                  result.append({
+                      "owner":owner,
+                      "field":f,
+                      "resolved":resolve_generic(ix),
+                  })
+
+              print("QUEST_OWNER_GENERIC_FIELDS",len(result))
+              print(json.dumps(result,ensure_ascii=False,indent=2))
+              Path("quest71-acceptcond-generic-owners.json").write_text(
+                  json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -157,4 +285,6 @@ jobs:
           path: |
             quest71-acceptcond-runtime-owners.txt
             quest71-acceptcond-runtime-owners.json
+            quest71-acceptcond-generic-owners.txt
+            quest71-acceptcond-generic-owners.json
           if-no-files-found: error
