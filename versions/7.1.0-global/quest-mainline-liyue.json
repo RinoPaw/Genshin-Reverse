@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "version": "7.1.0-global",
+  "scope": "Liyue Archon Quest Chapter I Acts I-IV",
+  "officialChapterIds": [
+    1101,
+    1102,
+    1103,
+    1104
+  ],
+  "chapterBoundaries": [
+    {
+      "chapterId": 1101,
+      "beginSubQuestId": 100002,
+      "endSubQuestId": 101801
+    },
+    {
+      "chapterId": 1102,
+      "beginSubQuestId": 101003,
+      "endSubQuestId": 101609
+    },
+    {
+      "chapterId": 1103,
+      "beginSubQuestId": 102001,
+      "endSubQuestId": 102510
+    },
+    {
+      "chapterId": 1104,
+      "beginSubQuestId": 800002,
+      "endSubQuestId": 800311
+    }
+  ],
+  "groups": [
+    {
+      "name": "chapter-i-act-i",
+      "chapterId": 1101,
+      "mainQuestIds": [
+        1000,
+        1001,
+        1002,
+        1004,
+        1008,
+        1009,
+        1003,
+        1018
+      ]
+    },
+    {
+      "name": "chapter-i-act-ii",
+      "chapterId": 1102,
+      "mainQuestIds": [
+        1010,
+        1011,
+        1012,
+        1014,
+        1013,
+        1015,
+        1016
+      ]
+    },
+    {
+      "name": "chapter-i-act-iii",
+      "chapterId": 1103,
+      "mainQuestIds": [
+        1020,
+        1021,
+        1022,
+        1023,
+        1024,
+        1025
+      ]
+    },
+    {
+      "name": "chapter-i-act-iv",
+      "chapterId": 1104,
+      "mainQuestIds": [
+        8000,
+        8001,
+        8002,
+        8003
+      ]
+    }
+  ],
+  "parallelSets": [
+    [
+      1008,
+      1009,
+      1003
+    ]
+  ],
+  "hiddenSupportMainQuestIds": [
+    1001,
+    1004
+  ],
+  "targetMainQuestIds": [
+    1000,
+    1001,
+    1002,
+    1004,
+    1008,
+    1009,
+    1003,
+    1018,
+    1010,
+    1011,
+    1012,
+    1014,
+    1013,
+    1015,
+    1016,
+    1020,
+    1021,
+    1022,
+    1023,
+    1024,
+    1025,
+    8000,
+    8001,
+    8002,
+    8003
+  ],
+  "notes": [
+    "Chapter I Act I is not a single linear recommendation chain: MainQuest 1002 opens a 1008/1009/1003 recommendation block before 1018.",
+    "MainQuest 1001 and 1004 are hidden chapterId 1101 support resources and are part of the native truth target.",
+    "Chapter I Act II follows 1010 -> 1011 -> 1012 -> 1014 -> 1013 -> 1015 -> 1016.",
+    "Chapter I Act III follows 1020 -> 1021 -> 1022 -> 1023 -> 1024 -> 1025.",
+    "Chapter I Act IV follows 8000 -> 8001 -> 8002 -> 8003.",
+    "No legacy QuestExcel fields or synthetic prerequisite carry-forward are used to make this target decode."
+  ]
+}

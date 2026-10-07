@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "version": "7.1.0-global",
+  "scope": "Inazuma Archon Quest Chapter II through Act III",
+  "officialChapterIds": [
+    1201,
+    1202,
+    1203,
+    1204
+  ],
+  "chapterBoundaries": [
+    {
+      "chapterId": 1201,
+      "beginSubQuestId": 200003,
+      "endSubQuestId": 200212
+    },
+    {
+      "chapterId": 1202,
+      "beginSubQuestId": 201102,
+      "endSubQuestId": 200711
+    },
+    {
+      "chapterId": 1203,
+      "beginSubQuestId": 200805,
+      "endSubQuestId": 200908
+    },
+    {
+      "chapterId": 1204,
+      "beginSubQuestId": 201003,
+      "endSubQuestId": 202102
+    }
+  ],
+  "groups": [
+    {
+      "name": "chapter-ii-prologue",
+      "chapterId": 1201,
+      "mainQuestIds": [
+        2000,
+        2001,
+        2002
+      ]
+    },
+    {
+      "name": "chapter-ii-act-i",
+      "chapterId": 1202,
+      "mainQuestIds": [
+        2011,
+        2012,
+        2013,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007
+      ]
+    },
+    {
+      "name": "chapter-ii-act-ii",
+      "chapterId": 1203,
+      "mainQuestIds": [
+        2008,
+        2009
+      ]
+    },
+    {
+      "name": "chapter-ii-act-iii",
+      "chapterId": 1204,
+      "mainQuestIds": [
+        2010,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021
+      ]
+    }
+  ],
+  "targetMainQuestIds": [
+    2000,
+    2001,
+    2002,
+    2011,
+    2012,
+    2013,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+  ],
+  "notes": [
+    "Chapter II chapterId 1201 is the Inazuma prologue chain 2000 -> 2001 -> 2002.",
+    "Act I crosses MainQuest number ranges: 2011 -> 2012 -> 2013 -> 2003 -> 2004 -> 2005 -> 2006 -> 2007.",
+    "Act II is 2008 -> 2009.",
+    "Act III is 2010 -> 2014 -> 2015 -> 2016 -> 2017 -> 2018 -> 2019 -> 2020 -> 2021.",
+    "Membership follows the native suggestTrackMainQuestList chains and official ChapterExcel begin/end boundaries."
+  ]
+}

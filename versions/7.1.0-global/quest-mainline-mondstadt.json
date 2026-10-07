@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "version": "7.1.0-global",
+  "scope": "new-game opening through Mondstadt Archon Quest Prologue Act III",
+  "officialChapterIds": [
+    1001,
+    1002,
+    1003
+  ],
+  "chapterBoundaries": [
+    {
+      "chapterId": 1001,
+      "beginSubQuestId": 36301,
+      "endSubQuestId": 31101
+    },
+    {
+      "chapterId": 1002,
+      "beginSubQuestId": 37004,
+      "endSubQuestId": 38406
+    },
+    {
+      "chapterId": 1003,
+      "beginSubQuestId": 39705,
+      "endSubQuestId": 39604
+    }
+  ],
+  "groups": [
+    {
+      "name": "opening-support",
+      "mainQuestIds": [
+        351,
+        359
+      ]
+    },
+    {
+      "name": "prologue-act-i",
+      "chapterId": 1001,
+      "mainQuestIds": [
+        363,
+        352,
+        353,
+        355,
+        354,
+        360,
+        356,
+        357,
+        358,
+        306,
+        307,
+        308,
+        309,
+        311
+      ]
+    },
+    {
+      "name": "prologue-act-ii",
+      "chapterId": 1002,
+      "mainQuestIds": [
+        370,
+        371,
+        372,
+        373,
+        374,
+        375,
+        376,
+        377,
+        20101,
+        379,
+        380,
+        381,
+        382,
+        383,
+        384
+      ]
+    },
+    {
+      "name": "prologue-act-iii",
+      "chapterId": 1003,
+      "mainQuestIds": [
+        397,
+        388,
+        389,
+        390,
+        393,
+        394,
+        398,
+        396
+      ]
+    }
+  ],
+  "parallelSets": [
+    [
+      306,
+      307,
+      308
+    ],
+    [
+      380,
+      381,
+      382
+    ]
+  ],
+  "targetMainQuestIds": [
+    351,
+    359,
+    363,
+    352,
+    353,
+    355,
+    354,
+    360,
+    356,
+    357,
+    358,
+    306,
+    307,
+    308,
+    309,
+    311,
+    370,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    377,
+    20101,
+    379,
+    380,
+    381,
+    382,
+    383,
+    384,
+    397,
+    388,
+    389,
+    390,
+    393,
+    394,
+    398,
+    396
+  ],
+  "excluded": [
+    {
+      "mainQuestId": 361,
+      "reason": "series 1001 but materialized type is WQ; excluded from the opening-to-Mondstadt mainline target"
+    }
+  ],
+  "notes": [
+    "MainQuest 363 and 311 are hidden chapter boundary quests.",
+    "MainQuest 359 is hidden AQ support data and is included in the native truth target.",
+    "MainQuest 20101 bridges the linear Act II chain into MainQuest 379.",
+    "Membership is the regression target; list order must not be interpreted as a fully linear runtime schedule."
+  ]
+}

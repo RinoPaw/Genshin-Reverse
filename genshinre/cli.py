@@ -162,6 +162,38 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("research-status", help="summarize machine-readable analysis state and open claims")
     p.add_argument("path", type=Path)
 
+    p = sub.add_parser(
+        "decode-quest-bin",
+        help="decode a Genshin 7.1 native Data/_BinOutput/Quest payload",
+    )
+    p.add_argument("input", type=Path)
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser(
+        "quest-coverage",
+        help="batch-decode extracted 7.1 Quest payloads and summarize unsupported native shapes",
+    )
+    p.add_argument("input", type=Path)
+    p.add_argument("--output", type=Path)
+    p.add_argument("--fail-on-error", action="store_true")
+
+    p = sub.add_parser(
+        "quest-assets",
+        help="resolve MainQuestIndex entries to exact 7.1 design AssetIndex block locations",
+    )
+    p.add_argument("design_asset_index", type=Path)
+    p.add_argument("main_quest_index", type=Path)
+    p.add_argument("--output", type=Path)
+
+    p = sub.add_parser(
+        "quest-collect",
+        help="collect exact Quest payloads from per-block AnimeStudio Raw exports",
+    )
+    p.add_argument("asset_manifest", type=Path)
+    p.add_argument("export_root", type=Path)
+    p.add_argument("output_dir", type=Path)
+    p.add_argument("--coverage", type=Path)
+
     p = sub.add_parser("validate", help="validate a version/platform artifact directory")
     p.add_argument("path", type=Path)
     p.add_argument("--allow-partial", action="store_true")
@@ -410,6 +442,51 @@ def main() -> None:
         from .analysis import research_status
 
         print(json.dumps(research_status(args.path), indent=2, ensure_ascii=False))
+    elif args.command == "decode-quest-bin":
+        from .questbin import parse_main_quest
+
+        quest = parse_main_quest(args.input.read_bytes())
+        rendered = quest.to_json()
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            print(rendered, end="")
+    elif args.command == "quest-coverage":
+        from .questcoverage import analyze_quest_path
+
+        result = analyze_quest_path(args.input)
+        rendered = json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            print(rendered, end="")
+        if args.fail_on_error and result["failed"]:
+            raise SystemExit(1)
+    elif args.command == "quest-assets":
+        from .questresources import build_quest_asset_manifest
+
+        result = build_quest_asset_manifest(
+            args.design_asset_index.read_bytes(),
+            args.main_quest_index.read_bytes(),
+        )
+        rendered = json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            print(rendered, end="")
+    elif args.command == "quest-collect":
+        from .questcollect import collect_quest_payloads
+
+        result = collect_quest_payloads(
+            args.asset_manifest,
+            args.export_root,
+            args.output_dir,
+            coverage_path=args.coverage,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
     elif args.command == "validate":
         from .validate import validate_version
 

@@ -43,6 +43,28 @@ Exact Quest 351 controls match the decoded values, including `35101 TEAM_DEAD ->
 
 No fifth QuestExec array exists for `beginExec`, and the current runtime-type census finds no ordinary `acceptCond` owner.
 
+## Full native Quest decoder checkpoint
+
+The maintained 7.1 ordinary Quest decoder now consumes the complete recovered corpus:
+
+- 4,417 / 4,417 MainQuest payloads full-consumed;
+- 0 parse failures;
+- 0 mainId mismatches;
+- 9,087,239 payload bytes consumed;
+- all observed AFIO/LAIM presence bits covered by the exact client readers.
+
+The decoder also has exact same-version type-name mappings for every Quest content/exec ID
+observed in this corpus: 93 QuestContent IDs and 100 QuestExec IDs. The mapping was derived by
+aligning native 7.1 entries against Dimbreath 7.1 commit
+`792978e5503ecfba73dcb3562ed44a0d35a2abe2` on mainId, subId, field and array position:
+71,051 entries compared, zero type-name conflicts.
+
+One reference mismatch is intentionally not imported into the native decoder. Dimbreath row
+`701609` contains one `failCond` and three `failExec` entries, while the exact 7.1 native row
+has presence bits `[0,3,12,19,25,26,31,34,35,39,48]`; bits 51/55 are absent. The official
+native row therefore owns neither fail array. Treat those four reference entries as
+conversion/additional-layer data, not native Quest fields.
+
 ## Positive control
 
 The condition format itself still exists in 7.1 and the maintained QuestCond decoder recovers its native wire.

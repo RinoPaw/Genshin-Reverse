@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "version": "7.1.0-global",
+  "scope": "Sumeru Archon Quest Chapter III Acts I-V with native hidden support",
+  "officialChapterIds": [
+    1301,
+    1302,
+    1303,
+    1304,
+    1305,
+    1306
+  ],
+  "chapterBoundaries": [
+    {
+      "chapterId": 1301,
+      "beginSubQuestId": 300002,
+      "endSubQuestId": 300612
+    },
+    {
+      "chapterId": 1302,
+      "beginSubQuestId": 300714,
+      "endSubQuestId": 301210
+    },
+    {
+      "chapterId": 1303,
+      "beginSubQuestId": 301617,
+      "endSubQuestId": 301811
+    },
+    {
+      "chapterId": 1304,
+      "beginSubQuestId": 301906,
+      "endSubQuestId": 302110
+    },
+    {
+      "chapterId": 1305,
+      "beginSubQuestId": 302413,
+      "endSubQuestId": 302617
+    }
+  ],
+  "groups": [
+    {
+      "name": "chapter-iii-act-i",
+      "chapterId": 1301,
+      "mainQuestIds": [
+        3000,
+        3001,
+        3002,
+        3003,
+        3004,
+        3005,
+        3006
+      ]
+    },
+    {
+      "name": "chapter-iii-act-ii",
+      "chapterId": 1302,
+      "mainQuestIds": [
+        3007,
+        3008,
+        3009,
+        3010,
+        3011,
+        3014,
+        3012,
+        3013,
+        3015
+      ]
+    },
+    {
+      "name": "chapter-iii-act-iii",
+      "chapterId": 1303,
+      "mainQuestIds": [
+        3016,
+        3017,
+        3018
+      ]
+    },
+    {
+      "name": "chapter-iii-act-iv",
+      "chapterId": 1304,
+      "mainQuestIds": [
+        3019,
+        3020,
+        3021
+      ]
+    },
+    {
+      "name": "chapter-iii-act-v",
+      "chapterId": 1305,
+      "mainQuestIds": [
+        3024,
+        3025,
+        3022,
+        3028,
+        3026,
+        3023,
+        3027
+      ]
+    }
+  ],
+  "specialChapterMainQuestIds": [
+    3013
+  ],
+  "hiddenSupportMainQuestIds": [
+    3015,
+    3023,
+    3027
+  ],
+  "targetMainQuestIds": [
+    3000,
+    3001,
+    3002,
+    3003,
+    3004,
+    3005,
+    3006,
+    3007,
+    3008,
+    3009,
+    3010,
+    3011,
+    3014,
+    3012,
+    3013,
+    3015,
+    3016,
+    3017,
+    3018,
+    3019,
+    3020,
+    3021,
+    3024,
+    3025,
+    3022,
+    3028,
+    3026,
+    3023,
+    3027
+  ],
+  "notes": [
+    "Chapter III Acts I-IV follow the native suggestTrackMainQuestList chains shown by MainQuest 3000-3021.",
+    "MainQuest 3013 is a series-1302 AQ attached to official chapterId 1306, which has no begin/end pair in ChapterExcel; it remains in the runtime truth target.",
+    "MainQuest 3015 is hidden AQ support for chapterId 1302.",
+    "Act V follows 3024 -> 3025 -> 3022 -> 3028 -> 3026; MainQuest 3023 and 3027 are hidden AQ scene/state support resources and are included.",
+    "Membership is a native decoding regression target, not a claim that every hidden support resource appears in the visible quest log."
+  ]
+}
