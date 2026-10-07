@@ -17,7 +17,6 @@ TOP_LEVEL = {
     "PCIAMAFDDAA": "dialogList",
     "IMGDIONBDMG": "pauseResDestroyType",
     "AHBDGODKBDF": "unlockDescTextMapHash",
-    "INFDFLBGLPD": "showRedPoint",
 }
 
 SUB_QUEST = {
@@ -45,7 +44,6 @@ SUB_QUEST = {
     "IAHIMJCLIJG": "failParentShow",
     "HJOFKFKBFCF": "failParent",
     "FABHGLLGFHN": "extraShowType",
-    "DMCMNPLMCKL": "showType",
 }
 
 COND = {
