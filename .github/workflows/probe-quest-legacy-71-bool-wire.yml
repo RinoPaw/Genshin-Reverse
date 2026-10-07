@@ -1,0 +1,242 @@
+name: Recover 7.1 QuestExcel boolean wire fields
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-bool-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-bool-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact AstaPS PR9 materialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -s /tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Recover boolean transforms inside fixed-mask row families
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-bool-wire.txt
+          import collections,json,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY=0xB1571A55
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[]
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in LOW_MASKS: starts.append((pos,u))
+          if len(starts)!=33214 or starts[0][0]!=4:
+              raise SystemExit(f"framing drift {len(starts)}")
+
+          native=[]
+          for i,(start,low) in enumerate(starts):
+              end=starts[i+1][0] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,end-4)[0]^SUBID_KEY
+              native.append({
+                  "start":start,"end":end,"subId":sid,
+                  "mask64":struct.unpack_from("<Q",payload,start)[0],
+              })
+          rb={x["subId"]:x for x in json.loads(RES.read_text(encoding="utf-8"))
+              if isinstance(x,dict) and isinstance(x.get("subId"),int)}
+          matched=[(rb[n["subId"]],n) for n in native if n["subId"] in rb]
+          if len(matched)!=33214: raise SystemExit(f"alignment drift {len(matched)}")
+
+          main_relation=sum(
+              isinstance(r.get("mainId"),int) and r["mainId"]==r["subId"]//100
+              for r,_ in matched
+          )
+          print("mainId_equals_subId_div100",main_relation,"/",len(matched))
+
+          groups=collections.defaultdict(list)
+          for r,nr in matched: groups[nr["mask64"]].append((r,nr))
+          top=sorted(groups,key=lambda m:-len(groups[m]))[:20]
+
+          def bool_value(row,field):
+              v=row.get(field)
+              return v if isinstance(v,bool) else None
+
+          def scan_bool(items,field):
+              vals=[(r,n,bool_value(r,field)) for r,n in items]
+              vals=[x for x in vals if x[2] is not None]
+              if not vals:return {"eligible":0}
+              true=sum(v for _,_,v in vals)
+              if true==0 or true==len(vals):
+                  return {"eligible":len(vals),"true":true,"mixed":False}
+
+              # Only offsets physically present in every row of this mask group.
+              min_body=min(n["end"]-n["start"]-4 for _,n,_ in vals)
+              width_hits=[]
+              for width in (1,2,4):
+                  if min_body<width:continue
+                  mod=(1<<(8*width))-1
+                  for off in range(8,min_body-width+1):
+                      # Test simple XOR / SUB / ADD transforms to decoded 0/1.
+                      rawvals=[]
+                      for _,n,b in vals:
+                          u=int.from_bytes(payload[n["start"]+off:n["start"]+off+width],"little")
+                          rawvals.append((u,1 if b else 0))
+                      for kind in ("xor","sub","add"):
+                          keys=collections.Counter()
+                          ok_by_key=collections.Counter()
+                          for u,b in rawvals:
+                              if kind=="xor": key=u^b
+                              elif kind=="sub": key=(u-b)&mod
+                              else: key=(u+b)&mod
+                              keys[key]+=1
+                          key,support=keys.most_common(1)[0]
+                          if support==len(rawvals):
+                              width_hits.append({
+                                  "width":width,"offset":off,"kind":kind,
+                                  "key":f"0x{key:0{width*2}X}",
+                                  "support":support,"ratio":1.0,
+                              })
+
+              # More general exact two-value split: offset byte/u16/u32 values
+              # may encode false/true with unrelated constants.
+              splits=[]
+              for width in (1,2,4):
+                  if min_body<width:continue
+                  for off in range(8,min_body-width+1):
+                      by=collections.defaultdict(set)
+                      counts=collections.Counter()
+                      for _,n,b in vals:
+                          u=int.from_bytes(payload[n["start"]+off:n["start"]+off+width],"little")
+                          by[u].add(bool(b)); counts[u]+=1
+                      if any(len(s)>1 for s in by.values()):continue
+                      if len(by)>8:continue
+                      has0=any(False in s for s in by.values())
+                      has1=any(True in s for s in by.values())
+                      if not(has0 and has1):continue
+                      splits.append({
+                          "width":width,"offset":off,
+                          "values":{
+                              f"0x{k:0{width*2}X}":{
+                                  "bool":next(iter(by[k])),
+                                  "count":counts[k],
+                              } for k in sorted(by)
+                          },
+                      })
+              return {
+                  "eligible":len(vals),"true":true,"mixed":True,
+                  "simple_transforms":width_hits[:80],
+                  "exact_splits":splits[:80],
+              }
+
+          results=[]
+          for mask in top:
+              items=groups[mask]
+              results.append({
+                  "mask64":f"0x{mask:016X}","rows":len(items),
+                  "isRewind":scan_bool(items,"isRewind"),
+              })
+
+          # Search duplicate/native representation of subIdSet before suffix.
+          # The materialized field is equal to subId on almost every row.
+          subidset_stats={"eligible":0,"standard_key_hits":0,"any_key_best":[]}
+          anykeys=collections.Counter()
+          for r,nr in matched:
+              ss=r.get("subIdSet")
+              if not isinstance(ss,int) or isinstance(ss,bool):continue
+              subidset_stats["eligible"]+=1
+              data=payload[nr["start"]:nr["end"]-4]
+              rowkeys=set()
+              found=False
+              for off in range(0,len(data)-3):
+                  u=struct.unpack_from("<I",data,off)[0]
+                  if (u^SUBID_KEY)==(ss&0xffffffff):found=True
+                  rowkeys.add(u^(ss&0xffffffff))
+              if found:subidset_stats["standard_key_hits"]+=1
+              anykeys.update(rowkeys)
+          subidset_stats["standard_key_ratio"]=(
+              subidset_stats["standard_key_hits"]/subidset_stats["eligible"]
+          )
+          subidset_stats["any_key_best"]=[
+              {"key":f"0x{k:08X}","support":v,
+               "ratio":v/subidset_stats["eligible"]}
+              for k,v in anykeys.most_common(20)
+          ]
+
+          report={
+              "rows":len(matched),
+              "mainId_equals_subId_div100":main_relation,
+              "mainId_relation_ratio":main_relation/len(matched),
+              "groups":results,
+              "subIdSet_search":subidset_stats,
+          }
+          Path("quest-legacy-71-bool-wire.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          print("\n=== isRewind fixed-mask candidates ===")
+          for x in results:
+              ir=x["isRewind"]
+              if not ir.get("mixed"):continue
+              print(json.dumps({
+                  "mask64":x["mask64"],"rows":x["rows"],
+                  "eligible":ir["eligible"],"true":ir["true"],
+                  "simple":ir["simple_transforms"][:12],
+                  "splits":ir["exact_splits"][:8],
+              },ensure_ascii=False))
+          print("\n=== subIdSet physical search ===")
+          print(json.dumps(subidset_stats,ensure_ascii=False))
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-bool-wire
+          path: |
+            quest-legacy-71-bool-wire.txt
+            quest-legacy-71-bool-wire.json
+          if-no-files-found: error
