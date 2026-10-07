@@ -1,0 +1,45 @@
+name: Probe Quest 7.1 field types
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-field-types.yml"
+
+concurrency:
+  group: quest71-field-types-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Query exact 7.1 Quest field metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          F=versions/7.1.0-global/windows-x64/metadata/fields.csv
+          {
+            echo '=== OWNER LAIMPNDEFCL ==='
+            python -m genshinre.cli query-fields "$F" --type LAIMPNDEFCL || true
+            echo '=== OWNER AFIOOHMJHDM ==='
+            python -m genshinre.cli query-fields "$F" --type AFIOOHMJHDM || true
+            for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO; do
+              echo "=== FIELD $field ==="
+              python -m genshinre.cli query-fields "$F" --field-name "$field" || true
+            done
+          } | tee quest71-field-types.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: quest71-field-types
+          path: quest71-field-types.txt
+          if-no-files-found: error
