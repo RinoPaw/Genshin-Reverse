@@ -141,6 +141,27 @@ jobs:
               nr["subId"] for nr, row in aligned
               if row.get("order") != nr["orderCandidate"]
           ]
+          order_miss_details = []
+          for nr, row in aligned:
+              if row.get("order") == nr["orderCandidate"]:
+                  continue
+              order_miss_details.append({
+                  "subId": nr["subId"],
+                  "mask64": f"0x{nr['mask64']:016X}",
+                  "candidate": nr["orderCandidate"],
+                  "expected": row.get("order"),
+                  "rowHex": payload[nr["start"]:nr["end"]].hex(),
+                  "keys": sorted(row.keys()),
+                  "values": {
+                      key: row[key]
+                      for key in (
+                          "exclusivePlaceList", "FJDKHGMJOPL", "FABHGLLGFHN",
+                          "isMpBlock", "showType", "DMCMNPLMCKL", "banType",
+                          "subIdSet", "stepDescTextMapHash",
+                      )
+                      if key in row
+                  },
+              })
 
           mp_present = mp_field_present = mp_true = 0
           mp_raw = collections.Counter()
@@ -221,6 +242,7 @@ jobs:
               "nativeRows": len(native),
               "aligned": len(aligned),
               "orderMisses": order_misses,
+              "orderMissDetails": order_miss_details,
               "bit52_isMpBlock": {
                   "bitPresent": mp_present,
                   "fieldPresent": mp_field_present,
