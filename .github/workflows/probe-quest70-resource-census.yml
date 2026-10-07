@@ -103,9 +103,11 @@ jobs:
           print("RAW_7_0_ROWS",len(raw))
 
           sets={}
+          loaded={}
           report={}
           for name,root in ROOTS.items():
               files,rows=load_normal(root)
+              loaded[name]=rows
               sets[name]=set(rows)
               st=Counter()
               for r in rows.values():
@@ -139,8 +141,7 @@ jobs:
               conflicts=[]
               for sid in sorted(union):
                   vals={}
-                  for name,root in ROOTS.items():
-                      _,rows=load_normal(root)
+                  for name,rows in loaded.items():
                       if sid not in rows:continue
                       v=meaningful(rows[sid].get(field))
                       if not v:continue
