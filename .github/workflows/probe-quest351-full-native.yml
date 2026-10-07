@@ -372,6 +372,106 @@ jobs:
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Resolve native QuestCond array owners from runtime type array
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-questcond-arrays.txt
+          import csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+              n=PROFILE_71.runtime_type_count
+              print("TYPE_ARRAY",hex(type_array_rva),"COUNT",n)
+
+              def entry(index):
+                  if not (0<=index<n): return None
+                  raw=image.read_rva(type_array_rva+index*16,16)
+                  if len(raw)!=16:return None
+                  return {
+                      "index":index,
+                      "data_u64":int.from_bytes(raw[:8],"little"),
+                      "data_u32":int.from_bytes(raw[:4],"little"),
+                      "kind":raw[0x0A],
+                      "raw":raw.hex(),
+                  }
+
+              def resolve_szarray(index):
+                  e=entry(index)
+                  if not e or e["kind"]!=0x1D:return None
+                  candidates=[]
+                  # IL2CPP's runtime Il2CppType data for SZARRAY is a pointer
+                  # to the element Il2CppType. Also test index-form defensively.
+                  ptr=e["data_u64"]
+                  if base <= ptr:
+                      rva=ptr-base
+                      delta=rva-type_array_rva
+                      if delta>=0 and delta%16==0:
+                          candidates.append(delta//16)
+                  candidates.append(e["data_u32"])
+                  seen=set()
+                  for ix in candidates:
+                      if ix in seen:continue
+                      seen.add(ix)
+                      ee=entry(ix)
+                      if not ee:continue
+                      name=""
+                      tdi=None
+                      if ee["kind"] in (0x11,0x12):
+                          tdi=ee["data_u32"]
+                          name=(tb.get(tdi) or {}).get("type_name","")
+                      if name:
+                          return {
+                              "array_type_index":index,
+                              "array_entry":e,
+                              "element_type_index":ix,
+                              "element_entry":ee,
+                              "element_type_definition_index":tdi,
+                              "element_type_name":name,
+                          }
+                  return None
+
+              targets={"QuestCond","KIMCPAKMJMH","JPGNLOPMNHN","QuestExec","QuestContent"}
+              hits=[]
+              for f in fields:
+                  if (f.get("field_type") or "")!="kind_0x1D":continue
+                  try:ix=int(f.get("field_type_index") or "-1")
+                  except ValueError:continue
+                  res=resolve_szarray(ix)
+                  if not res:continue
+                  if res["element_type_name"] not in targets:continue
+                  owner=tb.get(int(f["type_definition_index"]),{})
+                  hits.append({"owner":owner,"field":f,"resolved":res})
+
+              print("TARGET_ARRAY_FIELDS",len(hits))
+              for h in hits:
+                  print(json.dumps(h,ensure_ascii=False))
+
+              qc=[h for h in hits if h["resolved"]["element_type_name"]=="QuestCond"]
+              print("QUESTCOND_ARRAY_FIELDS",len(qc))
+              print(json.dumps(qc,ensure_ascii=False,indent=2))
+
+              # Explicit sanity output for the already-proven ordinary Quest row.
+              known=[h for h in hits if h["owner"].get("type_name")=="LAIMPNDEFCL"]
+              print("LAIMPNDEFCL_ARRAY_FIELDS",len(known))
+              print(json.dumps(known,ensure_ascii=False,indent=2))
+          PY
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -383,4 +483,5 @@ jobs:
             quest71-acceptcond-census.txt
             quest71-questcond-callers.txt
             quest71-questcond-callers.json
+            quest71-questcond-arrays.txt
           if-no-files-found: error
