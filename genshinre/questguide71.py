@@ -27,28 +27,53 @@ class QuestGuide71:
     start: int
     end: int
     mask_raw: int
-    unknown_string_10: str | None
+    gcpcnaonccj: str | None
     params: tuple[str, ...] | None
-    unknown_string_20: str | None
+    hbcfhmlpndb: str | None
     in_scene_style: int | None
-    unknown_scalar_2c: int | None
+    oepapdephdo: int | None
     auto_guide: int | None
     guide_scene: int | None
     indicator_style: int | None
     resident_guide_type: int | None
-    unknown_scalar_40: int | None
-    unknown_scalar_44: int | None
+    miephkgcbkc: int | None
+    cphabdhidkc: int | None
     guide_layer: int | None
     poi_point_id: int | None
     guide_style: int | None
     area_style: int | None
     poi_region_id: int | None
-    unknown_scalar_5c: int | None
+    aejmpebjihe: int | None
     guide_type: int | None
 
     @property
     def size(self) -> int:
         return self.end - self.start
+
+    # Compatibility aliases for earlier structural-only decoder names.
+    @property
+    def unknown_string_10(self) -> str | None:
+        return self.gcpcnaonccj
+
+    @property
+    def unknown_string_20(self) -> str | None:
+        return self.hbcfhmlpndb
+
+    @property
+    def unknown_scalar_2c(self) -> int | None:
+        return self.oepapdephdo
+
+    @property
+    def unknown_scalar_40(self) -> int | None:
+        return self.miephkgcbkc
+
+    @property
+    def unknown_scalar_44(self) -> int | None:
+        return self.cphabdhidkc
+
+    @property
+    def unknown_scalar_5c(self) -> int | None:
+        return self.aejmpebjihe
 
 
 def _u16(data: bytes, pos: int, end: int, label: str) -> int:
@@ -140,15 +165,15 @@ def parse_questguide71(data: bytes, start: int, end: int) -> QuestGuide71:
 
     p = start + 4
 
-    unknown_string_10 = None
+    gcpcnaonccj = None
     if _present(mask_raw, 6, decoded_mask=True):
-        unknown_string_10, p = _read_string(
+        gcpcnaonccj, p = _read_string(
             data,
             p,
             end,
             length_xor=STRING0_LENGTH_XOR,
             block_add=STRING0_BLOCK_ADD,
-            label="guide string +0x10",
+            label="guide GCPCNAONCCJ",
         )
 
     in_scene_style = None
@@ -163,21 +188,21 @@ def parse_questguide71(data: bytes, start: int, end: int) -> QuestGuide71:
         area_style = ((raw + 0xA3111AD6) & 0xFFFFFFFF) ^ 0xD02AF3CF
         p += 4
 
-    unknown_scalar_44 = None
+    cphabdhidkc = None
     if _present(mask_raw, 29):
         raw = _u32(data, p, end, "guide scalar +0x44")
-        unknown_scalar_44 = (raw + 0x9A458AD0) & 0xFFFFFFFF
+        cphabdhidkc = (raw + 0x9A458AD0) & 0xFFFFFFFF
         p += 4
 
-    unknown_string_20 = None
+    hbcfhmlpndb = None
     if _present(mask_raw, 31):
-        unknown_string_20, p = _read_string(
+        hbcfhmlpndb, p = _read_string(
             data,
             p,
             end,
             length_xor=STRING1_LENGTH_XOR,
             block_add=STRING1_BLOCK_ADD,
-            label="guide string +0x20",
+            label="guide HBCFHMLPNDB",
         )
 
     poi_point_id = None
@@ -217,14 +242,14 @@ def parse_questguide71(data: bytes, start: int, end: int) -> QuestGuide71:
         auto_guide = ((raw + 0x3558F5E6) & 0xFFFFFFFF) ^ 0x16544D4B
         p += 4
 
-    unknown_scalar_40 = None
+    miephkgcbkc = None
     if _present(mask_raw, 25):
-        unknown_scalar_40 = _u32(data, p, end, "guide scalar +0x40") ^ 0x50426272
+        miephkgcbkc = _u32(data, p, end, "guide MIEPHKGCBKC") ^ 0x50426272
         p += 4
 
-    unknown_scalar_5c = None
+    aejmpebjihe = None
     if _present(mask_raw, 19):
-        unknown_scalar_5c = _u32(data, p, end, "guide scalar +0x5C") ^ 0x46B407FE
+        aejmpebjihe = _u32(data, p, end, "guide AEJMPEBJIHE") ^ 0x46B407FE
         p += 4
 
     guide_type = None
@@ -233,9 +258,9 @@ def parse_questguide71(data: bytes, start: int, end: int) -> QuestGuide71:
         guide_type = (raw + 0x6FE88290) & 0xFFFFFFFF
         p += 4
 
-    unknown_scalar_2c = None
+    oepapdephdo = None
     if _present(mask_raw, 18):
-        unknown_scalar_2c = _u32(data, p, end, "guide scalar +0x2C") ^ 0x135FBF6F
+        oepapdephdo = _u32(data, p, end, "guide OEPAPDEPHDO") ^ 0x135FBF6F
         p += 4
 
     indicator_style = None
@@ -257,23 +282,23 @@ def parse_questguide71(data: bytes, start: int, end: int) -> QuestGuide71:
         start=start,
         end=p,
         mask_raw=mask_raw,
-        unknown_string_10=unknown_string_10,
+        gcpcnaonccj=gcpcnaonccj,
         params=params,
-        unknown_string_20=unknown_string_20,
+        hbcfhmlpndb=hbcfhmlpndb,
         in_scene_style=in_scene_style,
-        unknown_scalar_2c=unknown_scalar_2c,
+        oepapdephdo=oepapdephdo,
         auto_guide=auto_guide,
         guide_scene=guide_scene,
         indicator_style=indicator_style,
         resident_guide_type=resident_guide_type,
-        unknown_scalar_40=unknown_scalar_40,
-        unknown_scalar_44=unknown_scalar_44,
+        miephkgcbkc=miephkgcbkc,
+        cphabdhidkc=cphabdhidkc,
         guide_layer=guide_layer,
         poi_point_id=poi_point_id,
         guide_style=guide_style,
         area_style=area_style,
         poi_region_id=poi_region_id,
-        unknown_scalar_5c=unknown_scalar_5c,
+        aejmpebjihe=aejmpebjihe,
         guide_type=guide_type,
     )
 
