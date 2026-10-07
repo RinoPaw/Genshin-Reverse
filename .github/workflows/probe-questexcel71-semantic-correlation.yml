@@ -127,6 +127,11 @@ jobs:
 
           rank_presence("bit34", presence_set_native("unknown_bit34_raw"), row_keys)
           rank_presence("bit40", presence_set_native("unknown_bit40_raw"), row_keys)
+          rank_presence(
+              "bit29/prefer_area2_guide_scene",
+              {sid for sid in common if native[sid].prefer_area2_guide_scene},
+              row_keys,
+          )
           rank_presence("dabnijghapj", presence_set_native("dabnijghapj"), row_keys)
           rank_presence("guide.unknown_string_10",
                         {sid for sid in common if native[sid].guide.unknown_string_10 is not None},
