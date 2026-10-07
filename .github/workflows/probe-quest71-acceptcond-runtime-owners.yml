@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install focused dependencies
-        run: python -m pip install -e . pefile zstandard
+        run: python -m pip install -e . pefile zstandard capstone
       - name: Fetch exact pinned global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
       - name: Resolve all QuestCond record arrays
@@ -499,6 +499,68 @@ jobs:
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Disassemble exclusive Quest root generic reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-exclusive-generic-reader.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET=0x7808380
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          methods=rows("methods.csv"); types=rows("types.csv"); fields=rows("fields.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb={}
+          for f in fields: fb.setdefault(int(f["type_definition_index"]),[]).append(f)
+          starts=[]; by={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except ValueError:continue
+              if not r:continue
+              starts.append(r); by.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]; e=starts[i+1] if i+1<len(starts) else s+0x1000
+              if not(s<=rva<e):return None
+              mm=by.get(s,[])
+              tdis=sorted({int(m["type_definition_index"]) for m in mm})
+              return {
+                  "start":f"0x{s:X}",
+                  "methods":mm,
+                  "types":[tb.get(t,{}) for t in tdis],
+                  "fields":[f for t in tdis for f in fb.get(t,[])],
+              }
+
+          ow=owner(TARGET)
+          print("TARGET_OWNER",json.dumps(ow,ensure_ascii=False,indent=2))
+          start=int(ow["start"],16) if ow else TARGET
+          end=(starts[bisect.bisect_right(starts,start)] if bisect.bisect_right(starts,start)<len(starts) else start+0x1000)
+          end=min(end,start+0x1200)
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          with PEImage(EXE) as image:
+              base=image.image_base
+              blob=image.read_rva(start,end-start)
+              print("DISASM_RANGE",hex(start),hex(end),len(blob))
+              for ins in md.disasm(blob,base+start):
+                  line=[f"0x{ins.address-base:X}",ins.bytes.hex(),ins.mnemonic,ins.op_str]
+                  if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                      tr=int(ins.operands[0].imm-base)
+                      line += ["CALL",f"0x{tr:X}",json.dumps(owner(tr),ensure_ascii=False)]
+                  print("\t".join(line))
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -512,4 +574,5 @@ jobs:
             quest71-acceptcond-generic-registration.json
             quest71-root-generic-readers.txt
             quest71-root-generic-readers.json
+            quest71-exclusive-generic-reader.txt
           if-no-files-found: error
