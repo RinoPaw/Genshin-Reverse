@@ -1,0 +1,289 @@
+name: Locate 7.1 QuestExcel row reader by native scalar fingerprints
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-reader-fingerprint.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-reader-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone
+
+      - name: Fetch exact pinned global 7.1 executable
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Find method owners containing native QuestExcel scalar fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-reader-fingerprint.txt
+          import bisect
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          # Directly recovered from the official 7.1 QuestExcel bytes.
+          #
+          # subId = raw ^ 0xB1571A55
+          # order = raw - 0x732ED834
+          #
+          # The order subtraction can appear in machine code as either SUB K
+          # or ADD -K (= 0x8CD127CC). The other constants are strong
+          # same-version scalar correlations and are discovery aids only.
+          fingerprints = {
+              "subId_xor": {0xB1571A55},
+              "order_sub_or_addneg": {0x732ED834, 0x8CD127CC},
+              "failParent_xor_pair": {0x2AC0B95D, 0x2AC0BB5D},
+              "stepDesc_xor_pair": {0xABB3B4F1, 0xABB3B6F1},
+              "guideTips_xor_pair": {0x59B7A0F4, 0x59B7A2F4},
+          }
+          all_imms = {x for values in fingerprints.values() for x in values}
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          fields_by_tdi = {}
+          for row in fields:
+              try:
+                  fields_by_tdi.setdefault(int(row["type_definition_index"]), []).append(row)
+              except Exception:
+                  pass
+
+          starts = []
+          by_start = {}
+          for row in methods:
+              try:
+                  rva = int(row.get("rva") or "0", 0)
+              except Exception:
+                  continue
+              if not rva:
+                  continue
+              starts.append(rva)
+              by_start.setdefault(rva, []).append(row)
+          starts = sorted(set(starts))
+
+          def owner(rva):
+              i = bisect.bisect_right(starts, rva) - 1
+              if i < 0:
+                  return None
+              start = starts[i]
+              end = starts[i + 1] if i + 1 < len(starts) else start + 0x10000
+              if not start <= rva < end:
+                  return None
+              return start, end
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          hit_by_owner = {}
+          with PEImage(EXE) as image:
+              base = image.image_base
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob = image.read_rva(sec.virtual_address, sec.raw_size)
+                  for ins in md.disasm(blob, base + sec.virtual_address):
+                      vals = []
+                      for op in ins.operands:
+                          if op.type == X86_OP_IMM:
+                              vals.append(int(op.imm) & 0xffffffff)
+                      matched = sorted(set(vals) & all_imms)
+                      if not matched:
+                          continue
+                      rva = ins.address - base
+                      own = owner(rva)
+                      if own is None:
+                          continue
+                      start, end = own
+                      item = hit_by_owner.setdefault(start, {
+                          "start": start,
+                          "end": end,
+                          "hits": [],
+                          "values": set(),
+                      })
+                      item["values"].update(matched)
+                      item["hits"].append({
+                          "rva": rva,
+                          "bytes": ins.bytes.hex(),
+                          "mnemonic": ins.mnemonic,
+                          "op_str": ins.op_str,
+                          "values": matched,
+                      })
+
+              report = []
+              for start, item in hit_by_owner.items():
+                  values = item["values"]
+                  groups = {
+                      name: sorted(values & candidates)
+                      for name, candidates in fingerprints.items()
+                      if values & candidates
+                  }
+                  metas = by_start.get(start, [])
+                  tdis = sorted({
+                      int(x["type_definition_index"])
+                      for x in metas
+                      if x.get("type_definition_index")
+                  })
+                  type_meta = []
+                  for tdi in tdis:
+                      type_meta.append({
+                          "type": type_by_tdi.get(tdi, {}),
+                          "fields": fields_by_tdi.get(tdi, []),
+                      })
+
+                  # Decode a compact body around the relevant hits. Also
+                  # preserve all BT/TEST guards in the method if reasonably
+                  # sized, because the true row reader should expose the
+                  # recovered 64-bit presence-mask pattern.
+                  end = min(item["end"], start + 0x9000)
+                  body = image.read_rva(start, end - start)
+                  guards = []
+                  calls = []
+                  stream_reads = []
+                  for ins in md.disasm(body, base + start):
+                      irva = ins.address - base
+                      m = ins.mnemonic
+                      if m == "bt" or m == "test":
+                          guards.append({
+                              "rva": irva,
+                              "bytes": ins.bytes.hex(),
+                              "mnemonic": m,
+                              "op_str": ins.op_str,
+                          })
+                      if m == "call":
+                          calls.append({
+                              "rva": irva,
+                              "bytes": ins.bytes.hex(),
+                              "op_str": ins.op_str,
+                          })
+                      # Keep obvious [base+index+0x20] byte-stream accesses.
+                      if "+ 0x20]" in ins.op_str and any(
+                          q in ins.op_str for q in ("byte ptr", "word ptr", "dword ptr", "qword ptr")
+                      ):
+                          stream_reads.append({
+                              "rva": irva,
+                              "bytes": ins.bytes.hex(),
+                              "mnemonic": m,
+                              "op_str": ins.op_str,
+                          })
+
+                  score = 0
+                  if "subId_xor" in groups:
+                      score += 100
+                  if "order_sub_or_addneg" in groups:
+                      score += 100
+                  score += 20 * sum(
+                      name in groups
+                      for name in ("failParent_xor_pair", "stepDesc_xor_pair", "guideTips_xor_pair")
+                  )
+                  # The target reader is expected to have one FNIAHJGHFAK
+                  # reader parameter, but do not make this mandatory.
+                  if any(
+                      "FNIAHJGHFAK" in (m.get("parameter_types") or "")
+                      for m in metas
+                  ):
+                      score += 30
+
+                  report.append({
+                      "score": score,
+                      "start_rva": f"0x{start:X}",
+                      "end_rva": f"0x{item['end']:X}",
+                      "method_size": item["end"] - start,
+                      "metadata": metas,
+                      "type_metadata": type_meta,
+                      "fingerprint_groups": groups,
+                      "fingerprint_hits": [
+                          {**h, "rva": f"0x{h['rva']:X}"}
+                          for h in item["hits"]
+                      ],
+                      "guards": [
+                          {**g, "rva": f"0x{g['rva']:X}"}
+                          for g in guards
+                      ],
+                      "calls": [
+                          {**x, "rva": f"0x{x['rva']:X}"}
+                          for x in calls
+                      ],
+                      "stream_reads": [
+                          {**x, "rva": f"0x{x['rva']:X}"}
+                          for x in stream_reads
+                      ],
+                  })
+
+          report.sort(key=lambda x: (-x["score"], x["start_rva"]))
+          out = {
+              "fingerprints": {
+                  k: [f"0x{x:08X}" for x in sorted(v)]
+                  for k, v in fingerprints.items()
+              },
+              "method_count": len(report),
+              "methods": report,
+          }
+          print("candidate_methods", len(report))
+          for x in report[:40]:
+              print(json.dumps({
+                  "score": x["score"],
+                  "start_rva": x["start_rva"],
+                  "method_size": x["method_size"],
+                  "metadata": [{
+                      "type_name": m.get("type_name"),
+                      "method_name": m.get("method_name"),
+                      "parameter_types": m.get("parameter_types"),
+                      "return_type": m.get("return_type"),
+                      "type_definition_index": m.get("type_definition_index"),
+                  } for m in x["metadata"]],
+                  "groups": x["fingerprint_groups"],
+                  "hits": x["fingerprint_hits"],
+                  "guard_count": len(x["guards"]),
+                  "stream_read_count": len(x["stream_reads"]),
+              }, ensure_ascii=False))
+
+          Path("quest-legacy-71-reader-fingerprint.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-reader-fingerprint
+          path: |
+            quest-legacy-71-reader-fingerprint.txt
+            quest-legacy-71-reader-fingerprint.json
+          if-no-files-found: error
