@@ -446,18 +446,32 @@ jobs:
                           }
                   return None
 
-              targets={"QuestCond","KIMCPAKMJMH","JPGNLOPMNHN","QuestExec","QuestContent"}
+              cond_record_names={
+                  t.get("type_name") or ""
+                  for t in types
+                  if any(
+                      int(f.get("type_definition_index") or -1)==int(t["type_definition_index"])
+                      and "QuestCondType" in (f.get("field_type") or "")
+                      for f in fields
+                  )
+              }
+              cond_record_names.discard("QuestCondType")
+              targets=set(cond_record_names)|{"QuestCond","KIMCPAKMJMH","JPGNLOPMNHN","QuestExec","QuestContent"}
               hits=[]
+              all_arrays=[]
               for f in fields:
                   if (f.get("field_type") or "")!="kind_0x1D":continue
                   try:ix=int(f.get("field_type_index") or "-1")
                   except ValueError:continue
                   res=resolve_szarray(ix)
                   if not res:continue
-                  if res["element_type_name"] not in targets:continue
                   owner=tb.get(int(f["type_definition_index"]),{})
-                  hits.append({"owner":owner,"field":f,"resolved":res})
+                  item={"owner":owner,"field":f,"resolved":res}
+                  all_arrays.append(item)
+                  if res["element_type_name"] in targets:
+                      hits.append(item)
 
+              print("COND_RECORD_NAMES",sorted(cond_record_names))
               print("TARGET_ARRAY_FIELDS",len(hits))
               for h in hits:
                   print(json.dumps(h,ensure_ascii=False))
@@ -466,9 +480,16 @@ jobs:
               print("QUESTCOND_ARRAY_FIELDS",len(qc))
               print(json.dumps(qc,ensure_ascii=False,indent=2))
 
-              # Explicit sanity output for the already-proven ordinary Quest row.
-              known=[h for h in hits if h["owner"].get("type_name")=="LAIMPNDEFCL"]
-              print("LAIMPNDEFCL_ARRAY_FIELDS",len(known))
+              cond_arrays=[h for h in hits if h["resolved"]["element_type_name"] in cond_record_names]
+              print("COND_RECORD_ARRAY_FIELDS",len(cond_arrays))
+              print(json.dumps(cond_arrays,ensure_ascii=False,indent=2))
+
+              # Print every resolved array field on the ordinary full-quest row
+              # and its root, so an erased condition carrier cannot hide behind
+              # a non-target semantic name.
+              quest_owner_names={"LAIMPNDEFCL","AFIOOHMJHDM","RandomQuestExcelConfig"}
+              known=[h for h in all_arrays if h["owner"].get("type_name") in quest_owner_names]
+              print("QUEST_OWNER_ALL_ARRAY_FIELDS",len(known))
               print(json.dumps(known,ensure_ascii=False,indent=2))
           PY
 
