@@ -1,0 +1,150 @@
+name: Probe QuestExcel 7.1 guide helper
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-guide-helper.yml"
+
+concurrency:
+  group: probe-questexcel71-guide-helper-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Disassemble guide helper and dump exact metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-guide-helper.txt
+          import bisect, csv, json
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS=[0xFD53090,0xB8B0230]
+          NAMES={"OOPFBIEAILL","NBLEHPOBCEB","KPHLFFOELCG","HCFAOAJBPHB","LNNJKAPJIEH"}
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=rows("methods.csv")
+          fields=rows("fields.csv")
+          types=rows("types.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          methods_by_rva={}
+          starts=[]
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  methods_by_rva.setdefault(r,[]).append(m)
+                  starts.append(r)
+          starts=sorted(set(starts))
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x1000
+              return {"start":s,"end":e,"methods":methods_by_rva.get(s,[])}
+
+          wanted_types={}
+          for t in types:
+              if t.get("type_name") in NAMES:
+                  wanted_types[int(t["type_definition_index"])]=t
+
+          print("=== TYPES ===")
+          for tdi,t in sorted(wanted_types.items()):
+              print(json.dumps(t,ensure_ascii=False))
+
+          print("=== FIELDS ===")
+          for f in fields:
+              try:tdi=int(f["type_definition_index"])
+              except Exception:continue
+              if tdi in wanted_types:
+                  print(json.dumps(f,ensure_ascii=False))
+
+          print("=== METHODS ===")
+          for m in methods:
+              try:tdi=int(m["type_definition_index"])
+              except Exception:continue
+              if tdi in wanted_types:
+                  print(json.dumps(m,ensure_ascii=False))
+
+          md=Cs(CS_ARCH_X86,CS_MODE_64)
+          md.detail=True
+          report={"targets":{}}
+          with PEImage(EXE) as image:
+              base=image.image_base
+              for target in TARGETS:
+                  ow=owner(target)
+                  if not ow:
+                      raise SystemExit(f"no owner for 0x{target:X}")
+                  start=ow["start"]
+                  end=min(ow["end"],start+0x1800)
+                  body=image.read_rva(start,end-start)
+                  insns=list(md.disasm(body,base+start))
+                  out=[]
+                  for ins in insns:
+                      rec={
+                          "rva":f"0x{ins.address-base:X}",
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          tr=int(ins.operands[0].imm-base)
+                          rec["call_target"]=f"0x{tr:X}"
+                          rec["call_owner"]=owner(tr)
+                      out.append(rec)
+                  report["targets"][f"0x{target:X}"]={
+                      "owner_start":f"0x{start:X}",
+                      "owner_end":f"0x{ow['end']:X}",
+                      "metadata":ow["methods"],
+                      "instructions":out,
+                  }
+                  print(f"=== DISASM 0x{target:X} owner 0x{start:X}..0x{ow['end']:X} ===")
+                  for rec in out:
+                      suffix=""
+                      if "call_target" in rec:
+                          meth=(rec["call_owner"] or {}).get("methods",[])
+                          names=[f"{x.get('type_name')}.{x.get('method_name')}{x.get('parameter_types')}" for x in meth]
+                          suffix=" -> "+rec["call_target"]+" "+repr(names)
+                      print(rec["rva"],rec["bytes"],rec["mnemonic"],rec["op_str"]+suffix)
+
+          Path("questexcel71-guide-helper.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-guide-helper
+          path: |
+            questexcel71-guide-helper.txt
+            questexcel71-guide-helper.json
+          if-no-files-found: error
