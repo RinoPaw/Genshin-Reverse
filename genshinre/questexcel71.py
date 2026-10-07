@@ -4,7 +4,11 @@ from dataclasses import dataclass
 import struct
 
 from .questguide71 import QuestGuide71, QuestGuide71ParseError, find_questguide71
-from .questguidehint71 import (\n    QuestGuideHint71,\n    QuestGuideHint71ParseError,\n    parse_questguidehint71,\n)\n
+from .questguidehint71 import (
+    QuestGuideHint71,
+    QuestGuideHint71ParseError,
+    parse_questguidehint71,
+)
 
 class QuestExcel71ParseError(ValueError):
     pass
