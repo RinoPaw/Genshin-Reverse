@@ -185,19 +185,21 @@ jobs:
                   if not (sec.characteristics & 0x20000000):
                       continue
                   blob=image.read_rva(sec.virtual_address,sec.raw_size)
-                  for off in range(0,max(0,len(blob)-5)):
-                      if blob[off]!=0xE8:
-                          continue
+                  off=0
+                  while True:
+                      off=blob.find(b"\\xE8",off)
+                      if off<0 or off+5>len(blob):
+                          break
                       rel=int.from_bytes(blob[off+1:off+5],"little",signed=True)
                       call_rva=sec.virtual_address+off
-                      if call_rva+5+rel!=target:
-                          continue
-                      ow=owner(call_rva)
-                      callers.append({
-                          "caller_rva":None if ow is None else f"0x{ow['start']:X}",
-                          "call_rva":f"0x{call_rva:X}",
-                          "metadata":[] if ow is None else ow["methods"],
-                      })
+                      if call_rva+5+rel==target:
+                          ow=owner(call_rva)
+                          callers.append({
+                              "caller_rva":None if ow is None else f"0x{ow['start']:X}",
+                              "call_rva":f"0x{call_rva:X}",
+                              "metadata":[] if ow is None else ow["methods"],
+                          })
+                      off+=1
           report["guide_reader_callers"]=callers
           print("=== GUIDE READER CALLERS ===")
           print(json.dumps(callers,ensure_ascii=False,indent=2))
