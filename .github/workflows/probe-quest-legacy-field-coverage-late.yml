@@ -86,19 +86,40 @@ jobs:
                       if isinstance(sid,int):rows[sid]=r
               return rows
 
-          def norm(v):
+          def _zero(v):
+              return v == 0 or v == "0"
+
+          def norm(v, field):
               if not isinstance(v,list):return None
               out=[]
+              seen=set()
               for x in v:
                   if not isinstance(x,dict):continue
                   t=x.get("type")
                   if not t:continue
-                  out.append({
+                  # Quest client/resource converters often materialize an empty
+                  # accept slot as QUEST_COND_UNKNOWN [0,0]. It is not a real
+                  # prerequisite.
+                  if field=="acceptCond" and t=="QUEST_COND_UNKNOWN":
+                      continue
+                  param=list(x.get("param",[]) or [])
+                  # Later resource converters right-pad fixed parameter slots
+                  # with zero. Remove only suffix padding while retaining at
+                  # least one parameter so a meaningful explicit zero survives.
+                  while len(param)>1 and _zero(param[-1]):
+                      param.pop()
+                  item={
                       "type":t,
-                      "param":x.get("param",[]),
+                      "param":param,
                       "param_str":x.get("param_str",x.get("paramStr","")) or "",
                       "count":x.get("count"),
-                  })
+                  }
+                  # Some historical client->JSON projections duplicate the last
+                  # fixed condition slot (Quest351 is a proven example). For
+                  # semantic recovery keep one exact normalized condition.
+                  key=json.dumps(item,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+                  if key in seen:continue
+                  seen.add(key);out.append(item)
               return out
 
           cur=load71(Path("/tmp/agd71/BinOutput/Quest"))
@@ -119,7 +140,7 @@ jobs:
                   vals=[]
                   for ver,rows in snaps.items():
                       if sid not in rows:continue
-                      nv=norm(rows[sid].get(field))
+                      nv=norm(rows[sid].get(field),field)
                       if nv is None:continue
                       if nv:version_meaningful[ver]+=1
                       vals.append((ver,nv))
@@ -165,6 +186,31 @@ jobs:
                   [{"subId":sid,**late[sid]} for sid in sorted(late)[:50]],
                   ensure_ascii=False,indent=2
               ))
+              if field=="acceptCond":
+                  # Diagnose whether post-4.0 values in later community
+                  # snapshots are real conditions or only default placeholders.
+                  old40=set(snaps["4.0"])
+                  for ver in ("4.6","5.0","6.6","7.0"):
+                      type_counts=Counter()
+                      real_rows=0
+                      placeholder_rows=0
+                      for sid,row in snaps[ver].items():
+                          if sid in old40 or sid not in cur:continue
+                          raw=row.get(field)
+                          if isinstance(raw,list) and any(
+                              isinstance(x,dict) and x.get("type")=="QUEST_COND_UNKNOWN"
+                              for x in raw
+                          ):
+                              placeholder_rows+=1
+                          nv=norm(raw,field)
+                          if nv:
+                              real_rows+=1
+                              for x in nv:type_counts[x["type"]]+=1
+                      print("LATE_SOURCE",ver,
+                            "real_rows",real_rows,
+                            "unknown_placeholder_rows",placeholder_rows,
+                            "types",dict(type_counts))
+
               report["fields"][field]={
                   "high_confidence_rows":len(chosen),
                   "late_recovered_after_4.0":len(late),
