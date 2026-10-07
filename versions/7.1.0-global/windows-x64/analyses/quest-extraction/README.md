@@ -262,3 +262,77 @@ modern 7.1 ordinary Quest 351 source does not contain native
 The remaining provenance question is downstream: identify the exact resource
 generation or merge step that re-materialized predecessor `acceptCond`
 chains in older Asta-derived QuestExcel data.
+
+## 2026-10-07 ordinary `acceptCond` ownership closure
+
+The native 7.1 condition wire still exists, but ordinary quest rows no longer
+own it.
+
+The maintained `genshinre.questcond71` decoder is bound to the native
+`QuestCond` binary reader and recovers:
+
+- a two-byte presence mask;
+- optional uint32 parameter arrays;
+- optional `QuestCondType` scalar values;
+- the surrounding `QuestCond[]` count transform.
+
+This proves that the condition record format itself survives in the 7.1
+client. It does **not** imply that ordinary quest rows still serialize an
+`acceptCond` field.
+
+Exact runtime-type ownership scans close that distinction:
+
+- `LAIMPNDEFCL`, the ordinary full-quest row, owns exactly four relevant
+  object arrays: two `KIMCPAKMJMH[]` / QuestExec arrays and two
+  `JPGNLOPMNHN[]` / QuestContent arrays;
+- those four arrays are byte-exactly bound to `failExec`, `finishExec`,
+  `failCond`, and `finishCond`;
+- no `QuestCond[]` field exists anywhere in the 7.1 runtime field census;
+- no direct single-object field whose type is `QuestCond` or any other
+  `QuestCondType` record exists;
+- no ordinary full-quest owner (`LAIMPNDEFCL` or `AFIOOHMJHDM`) owns an
+  array of any of the recovered condition-record types.
+
+The two generic-inst fields on the `AFIOOHMJHDM` full-quest root were also
+checked so that a prerequisite collection could not hide behind erased
+metadata:
+
+- type index `577923` is reused by
+  `InteractionManager._curLoadFreeStyleDic`, identifying it as a generic
+  collection unrelated to quest condition records;
+- the exclusive root generic at type index `629808` is read by RVA
+  `0x7808380`; its element loop consumes four-byte scalars directly and
+  applies
+  `((raw + 0xC35B495C) mod 2^32) XOR 0x08CA1CAA`. It invokes no
+  `QuestCond` or condition-record sub-reader.
+
+Therefore there is no remaining ordinary 7.1 full-quest field or container
+that can represent `acceptCond`.
+
+A separate native type does retain the concept:
+`MoleMole.Config.RandomQuestExcelConfig` has a named
+`_acceptCond : RandomQuestCond[]` field in the same exact 7.1 metadata.
+It also retains named `_beginExec`, `_failExec`, `_finishExec`,
+`_finishCond`, and `_failCond` fields. This is useful negative/positive
+control: the metadata and runtime-type recovery do preserve an
+`acceptCond` field when one genuinely exists.
+
+Historical exact-client controls place the ordinary-quest removal boundary
+between 2.8 and 3.0:
+
+- exact 2.8 QuestExcel still serializes Quest 351 prerequisite conditions;
+- exact 3.0, 3.2, and 3.4 Quest 351 rows no longer carry those
+  `acceptCond` prerequisites;
+- exact 7.1 ordinary full-quest rows remain without an `acceptCond`
+  container.
+
+Consequently, predecessor-style ordinary `acceptCond` chains seen in modern
+Asta-derived QuestExcel resources are historical/downstream materialization,
+not a faithful decode of the 7.1 ordinary quest source. Asta's repair tooling
+independently states that the current 7.1 BinOutput lost `acceptCond` and
+reconstructs prerequisites from older resource graphs; that downstream
+statement is corroborating evidence, not the basis of the native conclusion.
+
+The remaining prerequisite investigation is now narrower: identify and audit
+the exact historical-resource merge/materialization step that chooses which
+old prerequisite graph to project into modern server resources.
