@@ -11,6 +11,10 @@ TOP_LEVEL = {
     "JIJKODHIEED": "subQuests",
     "JNHHOJAPDPP": "preloadLuaList",
     "NBOJMAHCCGM": "descTextMapHash",
+    "DLLABGGCEBM": "talks",
+    "AKEAJELNNEN": "freeStyleDic",
+    "DKKIDDFEHMD": "forcePreloadLuaList",
+    "PCIAMAFDDAA": "dialogList",
 }
 
 SUB_QUEST = {
@@ -58,7 +62,11 @@ GUIDE = {
 KNOWN_TOP = {
     "id", "rewardIdList", "luaPath", "suggestTrackMainQuestList", "series",
     "resId", "titleTextMapHash", "descTextMapHash", "subQuests",
-    "preloadLuaList",
+    "preloadLuaList", "forcePreloadLuaList", "freeStyleDic", "talks", "dialogList",
+    "activeMode", "activityId", "chapterId", "mainQuestTag", "recommendLevel",
+    "repeatable", "showRedPoint", "showType", "specialShowCondIdList",
+    "specialShowQuestId", "specialShowRewardId", "suggestTrackOutOfOrder",
+    "taskID", "type",
 }
 KNOWN_SUB = {
     "subId", "mainId", "order", "descTextMapHash", "showType", "showGuide",
