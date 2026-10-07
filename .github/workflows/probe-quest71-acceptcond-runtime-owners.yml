@@ -1,0 +1,160 @@
+name: Probe Quest 7.1 acceptCond runtime owners
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-acceptcond-runtime-owners.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Resolve all QuestCond record arrays
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-acceptcond-runtime-owners.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+
+          cond_record_names=set()
+          for f in fields:
+              if "QuestCondType" not in (f.get("field_type") or ""):
+                  continue
+              owner=tb.get(int(f["type_definition_index"]),{})
+              name=owner.get("type_name") or ""
+              if name and name!="QuestCondType":
+                  cond_record_names.add(name)
+          print("COND_RECORD_NAMES",json.dumps(sorted(cond_record_names),ensure_ascii=False))
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+              n=PROFILE_71.runtime_type_count
+
+              def entry(index):
+                  if not (0<=index<n): return None
+                  raw=image.read_rva(type_array_rva+index*16,16)
+                  if len(raw)!=16:return None
+                  return {
+                      "index":index,
+                      "data_u64":int.from_bytes(raw[:8],"little"),
+                      "data_u32":int.from_bytes(raw[:4],"little"),
+                      "kind":raw[0x0A],
+                      "raw":raw.hex(),
+                  }
+
+              def class_name_from_entry(e):
+                  if not e or e["kind"] not in (0x11,0x12):
+                      return None
+                  tdi=e["data_u32"]
+                  t=tb.get(tdi)
+                  if not t:return None
+                  return tdi,t.get("type_name") or ""
+
+              def resolve_szarray(index):
+                  e=entry(index)
+                  if not e or e["kind"]!=0x1D:return None
+                  candidates=[]
+                  ptr=e["data_u64"]
+                  if base <= ptr:
+                      rva=ptr-base
+                      delta=rva-type_array_rva
+                      if delta>=0 and delta%16==0:
+                          candidates.append(delta//16)
+                  candidates.append(e["data_u32"])
+                  seen=set()
+                  for ix in candidates:
+                      if ix in seen:continue
+                      seen.add(ix)
+                      ee=entry(ix)
+                      got=class_name_from_entry(ee)
+                      if not got:continue
+                      tdi,name=got
+                      return {
+                          "array_type_index":index,
+                          "element_type_index":ix,
+                          "element_type_definition_index":tdi,
+                          "element_type_name":name,
+                      }
+                  return None
+
+              arrays=[]
+              for f in fields:
+                  if (f.get("field_type") or "")!="kind_0x1D":continue
+                  try:ix=int(f.get("field_type_index") or "-1")
+                  except ValueError:continue
+                  res=resolve_szarray(ix)
+                  if not res:continue
+                  arrays.append({
+                      "owner":tb.get(int(f["type_definition_index"]),{}),
+                      "field":f,
+                      "resolved":res,
+                  })
+
+              cond_arrays=[
+                  x for x in arrays
+                  if x["resolved"]["element_type_name"] in cond_record_names
+              ]
+              print("COND_RECORD_ARRAY_FIELDS",len(cond_arrays))
+              print(json.dumps(cond_arrays,ensure_ascii=False,indent=2))
+
+              qcond=[
+                  x for x in arrays
+                  if x["resolved"]["element_type_name"]=="QuestCond"
+              ]
+              print("QUESTCOND_ARRAY_FIELDS",len(qcond))
+              print(json.dumps(qcond,ensure_ascii=False,indent=2))
+
+              quest_owner_names={"LAIMPNDEFCL","AFIOOHMJHDM","RandomQuestExcelConfig"}
+              quest_arrays=[
+                  x for x in arrays
+                  if x["owner"].get("type_name") in quest_owner_names
+              ]
+              print("QUEST_OWNER_ALL_ARRAY_FIELDS",len(quest_arrays))
+              print(json.dumps(quest_arrays,ensure_ascii=False,indent=2))
+
+              Path("quest71-acceptcond-runtime-owners.json").write_text(
+                  json.dumps({
+                      "condition_record_names":sorted(cond_record_names),
+                      "condition_record_array_fields":cond_arrays,
+                      "questcond_array_fields":qcond,
+                      "quest_owner_array_fields":quest_arrays,
+                  },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-acceptcond-runtime-owners
+          path: |
+            quest71-acceptcond-runtime-owners.txt
+            quest71-acceptcond-runtime-owners.json
+          if-no-files-found: error
