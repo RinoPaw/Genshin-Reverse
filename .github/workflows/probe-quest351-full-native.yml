@@ -493,6 +493,123 @@ jobs:
               print(json.dumps(known,ensure_ascii=False,indent=2))
           PY
 
+      - name: Resolve generic QuestCond owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-questcond-generics.txt
+          import csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          QUESTCOND_TDI=54128
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+              n=PROFILE_71.runtime_type_count
+
+              def raw_entry(i):
+                  if not (0<=i<n):return None
+                  raw=image.read_rva(type_array_rva+i*16,16)
+                  if len(raw)!=16:return None
+                  return raw
+
+              qc_indices=[]
+              for i in range(n):
+                  raw=raw_entry(i)
+                  if raw is None:continue
+                  kind=raw[0x0A]
+                  if kind in (0x11,0x12) and int.from_bytes(raw[:4],"little")==QUESTCOND_TDI:
+                      qc_indices.append(i)
+              qc_vas={type_array_va+i*16 for i in qc_indices}
+              print("QUESTCOND_TYPE_INDICES",qc_indices)
+              print("QUESTCOND_TYPE_VAS",[hex(x) for x in sorted(qc_vas)])
+
+              def read_va(va,size):
+                  if va<base:return None
+                  try:
+                      b=image.read_rva(va-base,size)
+                  except Exception:
+                      return None
+                  return b if len(b)==size else None
+
+              def generic_args_from_class(gc_va):
+                  blob=read_va(gc_va,0x40)
+                  if blob is None:return []
+                  found=[]
+                  # Modern IL2CPP GenericClass embeds pointers to GenericInst
+                  # in its generic context. Probe aligned qwords and validate
+                  # the GenericInst shape: uint32 argc + aligned argv pointer.
+                  for off in range(0,0x40,8):
+                      inst_va=int.from_bytes(blob[off:off+8],"little")
+                      ib=read_va(inst_va,0x10)
+                      if ib is None:continue
+                      argc=int.from_bytes(ib[:4],"little")
+                      argv_va=int.from_bytes(ib[8:16],"little")
+                      if not (1<=argc<=32):continue
+                      argv=read_va(argv_va,argc*8)
+                      if argv is None:continue
+                      args=[int.from_bytes(argv[j*8:j*8+8],"little") for j in range(argc)]
+                      if any(a in qc_vas for a in args):
+                          found.append({
+                              "generic_class_offset":off,
+                              "generic_inst_va":hex(inst_va),
+                              "argc":argc,
+                              "argv_va":hex(argv_va),
+                              "args":[hex(a) for a in args],
+                          })
+                  return found
+
+              generic_type_indices={}
+              array_type_indices={}
+              for i in range(n):
+                  raw=raw_entry(i)
+                  if raw is None:continue
+                  kind=raw[0x0A]
+                  data=int.from_bytes(raw[:8],"little")
+                  if kind==0x15: # genericinst
+                      hits=generic_args_from_class(data)
+                      if hits:generic_type_indices[i]=hits
+                  elif kind==0x14: # multidimensional array
+                      ab=read_va(data,0x20)
+                      if ab is not None:
+                          etype=int.from_bytes(ab[:8],"little")
+                          if etype in qc_vas:
+                              array_type_indices[i]={"array_type_va":hex(data),"element_type_va":hex(etype)}
+
+              print("QUESTCOND_GENERIC_TYPE_INDICES",len(generic_type_indices))
+              print(json.dumps(generic_type_indices,ensure_ascii=False,indent=2))
+              print("QUESTCOND_MDARRAY_TYPE_INDICES",len(array_type_indices))
+              print(json.dumps(array_type_indices,ensure_ascii=False,indent=2))
+
+              field_hits=[]
+              interesting=set(generic_type_indices)|set(array_type_indices)
+              for f in fields:
+                  try:ix=int(f.get("field_type_index") or "-1")
+                  except ValueError:continue
+                  if ix not in interesting:continue
+                  field_hits.append({
+                      "owner":tb.get(int(f["type_definition_index"]),{}),
+                      "field":f,
+                      "generic":generic_type_indices.get(ix),
+                      "mdarray":array_type_indices.get(ix),
+                  })
+              print("QUESTCOND_GENERIC_OR_ARRAY_FIELDS",len(field_hits))
+              print(json.dumps(field_hits,ensure_ascii=False,indent=2))
+          PY
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -505,4 +622,5 @@ jobs:
             quest71-questcond-callers.txt
             quest71-questcond-callers.json
             quest71-questcond-arrays.txt
+            quest71-questcond-generics.txt
           if-no-files-found: error
