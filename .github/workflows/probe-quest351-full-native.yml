@@ -110,6 +110,10 @@ jobs:
           # under-consumes the stream.
           STRING_HELPER_RVA=0xFD53090
           BC.H_STRINGS=tuple(dict.fromkeys((*BC.H_STRINGS, exe.base+STRING_HELPER_RVA)))
+          # Managed array allocation helper also moved in 7.1. Register it so
+          # string[] / scalar[] fields are not collapsed into a single string.
+          ARRAY_NEW_RVA=0x50B230
+          BC.H_ARRAY_NEW=exe.base+ARRAY_NEW_RVA
 
           schemas={}
           for name,rva in TARGETS.items():
