@@ -1,0 +1,305 @@
+name: Map 7.1 QuestExcel native row layout by mask deltas
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-layout-map.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-layout-map-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact AstaPS PR9 materialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -s /tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Infer fixed-mask scalar offsets and one-bit layout deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-layout-map.txt
+          import collections,json,statistics,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY=0xB1571A55
+          MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+
+          raw=RAW.read_bytes()
+          declared=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+declared]
+          starts=[]
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in MASKS:
+                  starts.append((pos,u))
+          if len(starts)!=33214 or starts[0][0]!=4:
+              raise SystemExit(f"framing drift {len(starts)} {starts[:1]}")
+
+          native=[]
+          for i,(start,low) in enumerate(starts):
+              end=starts[i+1][0] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,end-4)[0]^SUBID_KEY
+              native.append({
+                  "ordinal":i,"start":start,"end":end,"size":end-start,
+                  "subId":sid,"mask64":struct.unpack_from("<Q",payload,start)[0],
+              })
+          if native[-1]["end"]!=len(payload):
+              raise SystemExit("payload not fully consumed")
+          nb={x["subId"]:x for x in native}
+
+          resource=json.loads(RES.read_text(encoding="utf-8"))
+          rb={x["subId"]:x for x in resource if isinstance(x.get("subId"),int)}
+          matched=[(rb[x["subId"]],x) for x in native if x["subId"] in rb]
+          if len(matched)!=33214:
+              raise SystemExit(f"alignment drift {len(matched)}")
+
+          def typed(v):
+              return isinstance(v,list) and any(
+                  isinstance(x,dict) and isinstance(x.get("type"),str) and x["type"].strip()
+                  for x in v
+              )
+          def meaningful(v):
+              if v is None or v is False:return False
+              if isinstance(v,(int,float)) and not isinstance(v,bool):return v!=0
+              if isinstance(v,str):return bool(v.strip())
+              if isinstance(v,list):return any(meaningful(x) for x in v)
+              if isinstance(v,dict):return any(meaningful(x) for x in v.values())
+              return True
+          def npc_count(row):
+              v=row.get("exclusiveNpcList")
+              return len(v) if isinstance(v,list) else 0
+
+          predicates={
+              "show_hidden":lambda r:r.get("showType")=="QUEST_HIDDEN",
+              "show_show":lambda r:r.get("showType")=="QUEST_SHOW",
+              "rewind":lambda r:r.get("isRewind") is True,
+              "desc":lambda r:isinstance(r.get("descTextMapHash"),int) and r.get("descTextMapHash")!=0,
+              "step_desc":lambda r:isinstance(r.get("stepDescTextMapHash"),int) and r.get("stepDescTextMapHash")!=0,
+              "guide_tips":lambda r:isinstance(r.get("guideTipsTextMapHash"),int) and r.get("guideTipsTextMapHash")!=0,
+              "finish_parent":lambda r:meaningful(r.get("finishParent")),
+              "guide":lambda r:meaningful(r.get("guide")),
+              "finish_cond":lambda r:typed(r.get("finishCond")),
+              "fail_cond":lambda r:typed(r.get("failCond")),
+              "finish_exec":lambda r:typed(r.get("finishExec")),
+              "fail_exec":lambda r:typed(r.get("failExec")),
+              "begin_exec":lambda r:typed(r.get("beginExec")),
+              "npc_nonempty":lambda r:npc_count(r)>0,
+              "npc_multi":lambda r:npc_count(r)>1,
+          }
+
+          groups=collections.defaultdict(list)
+          for r,n in matched:
+              groups[n["mask64"]].append((r,n))
+
+          def rate(items,pred):
+              return sum(bool(pred(r)) for r,_ in items)/len(items)
+
+          summary={}
+          for mask,items in groups.items():
+              sizes=[n["size"] for _,n in items]
+              summary[mask]={
+                  "mask64":f"0x{mask:016X}",
+                  "rows":len(items),
+                  "size_min":min(sizes),
+                  "size_max":max(sizes),
+                  "size_median":statistics.median(sizes),
+                  "size_mean":statistics.mean(sizes),
+                  "predicates":{k:rate(items,p) for k,p in predicates.items()},
+              }
+
+          # Recover offsets for currently strong scalar transforms.
+          def find_offsets(items,field,decode,nonzero=False):
+              offsets=collections.Counter()
+              eligible=0
+              hit_rows=0
+              miss_ids=[]
+              for r,n in items:
+                  v=r.get(field)
+                  if not isinstance(v,int) or isinstance(v,bool):
+                      continue
+                  if nonzero and v==0:
+                      continue
+                  eligible+=1
+                  vv=v&0xffffffff
+                  data=payload[n["start"]:n["end"]-4]
+                  hits=[]
+                  for off in range(len(data)-3):
+                      u=struct.unpack_from("<I",data,off)[0]
+                      if decode(u)==vv:
+                          hits.append(off)
+                  if hits:
+                      hit_rows+=1
+                      for off in set(hits):offsets[off]+=1
+                  elif len(miss_ids)<20:
+                      miss_ids.append(r.get("subId"))
+              return {
+                  "eligible":eligible,"hit_rows":hit_rows,
+                  "ratio":hit_rows/eligible if eligible else 0,
+                  "offsets":[
+                      {"offset":off,"support":n,"ratio":n/eligible if eligible else 0}
+                      for off,n in offsets.most_common(16)
+                  ],
+                  "first_misses":miss_ids,
+              }
+
+          top_masks=sorted(groups,key=lambda m:-len(groups[m]))[:24]
+          layouts=[]
+          for mask in top_masks:
+              items=groups[mask]
+              layouts.append({
+                  "mask64":f"0x{mask:016X}",
+                  "rows":len(items),
+                  "order":find_offsets(items,"order",lambda u:(u-0x732ED834)&0xffffffff),
+                  "desc":find_offsets(items,"descTextMapHash",lambda u:u^0x2AC0BB5D,True),
+                  "step_desc":find_offsets(items,"stepDescTextMapHash",lambda u:u^0xABB3B4F1,True),
+                  "guide_tips_a2":find_offsets(items,"guideTipsTextMapHash",lambda u:u^0x59B7A2F4,True),
+                  "guide_tips_a0":find_offsets(items,"guideTipsTextMapHash",lambda u:u^0x59B7A0F4,True),
+                  "main_candidate":find_offsets(
+                      items,"mainId",
+                      lambda u:(((u+0x1D716)&0xffffffff)^0x3223AF7D),
+                  ),
+              })
+
+          # Compare mask families differing by exactly one bit.
+          pairs=[]
+          masks=list(groups)
+          for i,a in enumerate(masks):
+              if len(groups[a])<20:continue
+              for b in masks[i+1:]:
+                  if len(groups[b])<20:continue
+                  d=a^b
+                  if d==0 or d&(d-1):continue
+                  bit=d.bit_length()-1
+                  sa,sb=summary[a],summary[b]
+                  # Orient 0 -> 1 for the differing bit.
+                  if (a>>bit)&1:
+                      zero,one=b,a
+                  else:
+                      zero,one=a,b
+                  sz0,sz1=summary[zero],summary[one]
+                  deltas=[]
+                  for k in predicates:
+                      dv=sz1["predicates"][k]-sz0["predicates"][k]
+                      if abs(dv)>=0.05:
+                          deltas.append({"predicate":k,"delta":dv,
+                                         "rate0":sz0["predicates"][k],
+                                         "rate1":sz1["predicates"][k]})
+                  deltas.sort(key=lambda x:-abs(x["delta"]))
+                  pairs.append({
+                      "bit":bit,
+                      "mask0":f"0x{zero:016X}","mask1":f"0x{one:016X}",
+                      "rows0":len(groups[zero]),"rows1":len(groups[one]),
+                      "median_size0":sz0["size_median"],
+                      "median_size1":sz1["size_median"],
+                      "median_size_delta":sz1["size_median"]-sz0["size_median"],
+                      "predicate_deltas":deltas[:12],
+                  })
+          pairs.sort(key=lambda x:(x["bit"],-(x["rows0"]+x["rows1"])))
+
+          # Value-shape controls for materialized fields whose keys are always present.
+          controls={
+              "showType":collections.Counter(),
+              "isRewind":collections.Counter(),
+              "subIdSet_relation":collections.Counter(),
+              "exclusiveNpcPriority":collections.Counter(),
+              "exclusiveNpcList_len":collections.Counter(),
+          }
+          for r,_ in matched:
+              controls["showType"][repr(r.get("showType"))]+=1
+              controls["isRewind"][repr(r.get("isRewind"))]+=1
+              sid=r.get("subId"); ss=r.get("subIdSet")
+              rel="equal_subId" if ss==sid else ("zero" if ss==0 else "other")
+              controls["subIdSet_relation"][rel]+=1
+              controls["exclusiveNpcPriority"][repr(r.get("exclusiveNpcPriority"))]+=1
+              controls["exclusiveNpcList_len"][str(npc_count(r))]+=1
+
+          report={
+              "rows":len(matched),
+              "mask64_count":len(groups),
+              "top_mask_summary":[summary[m] for m in sorted(groups,key=lambda m:-len(groups[m]))[:24]],
+              "scalar_layouts":layouts,
+              "one_bit_pairs":pairs,
+              "controls":{k:dict(v.most_common(30)) for k,v in controls.items()},
+          }
+          Path("quest-legacy-71-layout-map.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          print("rows",len(matched),"mask64_count",len(groups))
+          print("\n=== materialized value controls ===")
+          print(json.dumps(report["controls"],ensure_ascii=False,indent=2))
+          print("\n=== top fixed-mask scalar layouts ===")
+          for x in layouts[:12]:
+              def lead(k):
+                  y=x[k]
+                  return {
+                      "eligible":y["eligible"],"hit_rows":y["hit_rows"],"ratio":y["ratio"],
+                      "offsets":y["offsets"][:5],
+                  }
+              print(json.dumps({
+                  "mask64":x["mask64"],"rows":x["rows"],
+                  "order":lead("order"),"desc":lead("desc"),
+                  "step_desc":lead("step_desc"),
+                  "guide_tips_a2":lead("guide_tips_a2"),
+                  "guide_tips_a0":lead("guide_tips_a0"),
+                  "main_candidate":lead("main_candidate"),
+              },ensure_ascii=False))
+          print("\n=== one-bit mask deltas ===")
+          for x in pairs[:160]:
+              if x["predicate_deltas"] or abs(x["median_size_delta"])>=2:
+                  print(json.dumps(x,ensure_ascii=False))
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-layout-map
+          path: |
+            quest-legacy-71-layout-map.txt
+            quest-legacy-71-layout-map.json
+          if-no-files-found: error
