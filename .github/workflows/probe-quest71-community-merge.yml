@@ -1,0 +1,174 @@
+name: Probe Quest 7.1 community merge provenance
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-community-merge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned 7.1, 7.0, and raw controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/luna71 395a5ee6442142a803691f60d541ee1706ae9cd7
+          fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/luna70 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+      - name: Audit carry-forward and currentness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-community-merge.txt
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          def load_normal(root):
+              rows={}
+              for p in sorted(Path(root).glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  for r in o.get("subQuests",[]) if isinstance(o.get("subQuests"),list) else []:
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          rows[r["subId"]]=r
+              return rows
+
+          def load_raw71(root):
+              rows={}
+              for p in sorted(Path(root).glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("NFGFDHPPBIF"),int):
+                          rows[r["NFGFDHPPBIF"]]=r
+              return rows
+
+          def canon_list(v):
+              if not isinstance(v,list): return []
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict):continue
+                  typ=x.get("type")
+                  if not typ:continue
+                  param=list(x.get("param",[])) if isinstance(x.get("param",[]),list) else []
+                  # Normalize serializer padding only; preserve non-zero content.
+                  while param and param[-1] in (0,"0",""):
+                      param.pop()
+                  pstr=x.get("param_str",x.get("paramStr",x.get("JBELGECAIIL",""))) or ""
+                  out.append({"type":typ,"param":param,"param_str":pstr,"count":int(x.get("count") or 0)})
+              return out
+
+          luna71=load_normal("/tmp/luna71/BinOutput/Quest")
+          luna70=load_normal("/tmp/luna70/BinOutput/Quest")
+          raw71=load_raw71("/tmp/agd71/BinOutput/Quest")
+          print("ROWS",{"luna71":len(luna71),"luna70":len(luna70),"raw71":len(raw71)})
+          ids71=set(luna71);ids70=set(luna70);idsraw=set(raw71)
+          print("LUNA71_OVERLAP_70",len(ids71&ids70))
+          print("LUNA71_NEW_VS_70",len(ids71-ids70))
+          print("LUNA71_OVERLAP_RAW71",len(ids71&idsraw))
+
+          # First prove the 7.1 community dataset actually incorporates same-version
+          # raw fields where those still exist.
+          aliases={
+              "finishCond":"finishCond",
+              "failCond":"KHEBAEMAPPJ",
+              "finishExec":"FAPCNCGCEBJ",
+              "failExec":"CNPOFCKIBDL",
+          }
+          print("\n=== CURRENT FIELD AGREEMENT WITH RAW 7.1 ===")
+          current_report={}
+          for sem,rawkey in aliases.items():
+              st=Counter();examples=[]
+              for sid in sorted(ids71&idsraw):
+                  a=canon_list(luna71[sid].get(sem))
+                  b=canon_list(raw71[sid].get(rawkey))
+                  if a:st["community_nonempty"]+=1
+                  if b:st["raw_nonempty"]+=1
+                  if a==b:st["equal"]+=1
+                  else:
+                      st["different"]+=1
+                      if len(examples)<20:examples.append({"subId":sid,"community":a,"raw":b})
+              print(sem,dict(st))
+              print("examples",json.dumps(examples,ensure_ascii=False,indent=2))
+              current_report[sem]={"stats":dict(st),"examples":examples}
+
+          # Then test whether the two missing fields are simply 7.0 carry-forward.
+          print("\n=== MISSING FIELD CARRY-FORWARD FROM 7.0 ===")
+          missing_report={}
+          for sem in ("acceptCond","beginExec"):
+              st=Counter();diff=[];new_nonempty=[]
+              for sid in sorted(ids71):
+                  a=canon_list(luna71[sid].get(sem))
+                  if sid in luna70:
+                      b=canon_list(luna70[sid].get(sem))
+                      st["overlap_rows"]+=1
+                      if a:st["71_nonempty_overlap"]+=1
+                      if b:st["70_nonempty_overlap"]+=1
+                      if a==b:st["exact_equal_overlap"]+=1
+                      else:
+                          st["different_overlap"]+=1
+                          if len(diff)<50:diff.append({"subId":sid,"7.1":a,"7.0":b})
+                  elif a:
+                      st["new_71_nonempty"]+=1
+                      if len(new_nonempty)<100:new_nonempty.append({"subId":sid,"value":a})
+                  else:
+                      st["new_71_empty"]+=1
+              print(sem,dict(st))
+              print("diff_examples",json.dumps(diff,ensure_ascii=False,indent=2))
+              print("new_nonempty_examples",json.dumps(new_nonempty,ensure_ascii=False,indent=2))
+              missing_report[sem]={"stats":dict(st),"diff":diff,"new_nonempty":new_nonempty}
+
+          # Compare exact Quest351 and a sample of 7.1-only ids.
+          print("\n=== QUEST351 ===")
+          for sid in range(35100,35108):
+              if sid in luna71:
+                  print(json.dumps({
+                      "subId":sid,
+                      "acceptCond":canon_list(luna71[sid].get("acceptCond")),
+                      "beginExec":canon_list(luna71[sid].get("beginExec")),
+                      "finishExec":canon_list(luna71[sid].get("finishExec")),
+                      "failExec":canon_list(luna71[sid].get("failExec")),
+                  },ensure_ascii=False))
+
+          Path("quest71-community-merge.json").write_text(
+              json.dumps({
+                  "rows":{"luna71":len(luna71),"luna70":len(luna70),"raw71":len(raw71)},
+                  "current":current_report,
+                  "missing":missing_report,
+              },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-community-merge
+          path: |
+            quest71-community-merge.txt
+            quest71-community-merge.json
+          if-no-files-found: error
