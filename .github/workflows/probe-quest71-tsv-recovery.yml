@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Run focused recovery tests
+        run: python -m unittest tests.test_questrecovery71
+
       - name: Fetch pinned sources
         shell: bash
         run: |
@@ -38,6 +41,10 @@ jobs:
             395a5ee6442142a803691f60d541ee1706ae9cd7 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70 \
             0991d8a9d82b37a7400774764c0b6e04e7c66a9d 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b \
+            980c5c7569f07ccaa10d88772680bb64317f5520 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/c70c \
+            a64cf90adbcbb4fec3ad1c00d94bfb455511e080 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/wander-in-wind/TsvParser.git /tmp/tsv \
             096da276f5afc91a4a78517570806e520b5d7383 'src/main/resources/json/*.json'
 
@@ -50,6 +57,7 @@ jobs:
           from collections import Counter
           from pathlib import Path
           from genshinre.questrecovery71 import (
+              build_consensus_from_directories,
               build_from_directories,
               load_community_rows,
               _comparison_value,
@@ -58,6 +66,8 @@ jobs:
           RAW=Path("/tmp/raw71/BinOutput/Quest")
           C71=Path("/tmp/c71/BinOutput/Quest")
           C70=Path("/tmp/c70/BinOutput/Quest")
+          C70B=Path("/tmp/c70b/BinOutput/Quest")
+          C70C=Path("/tmp/c70c/BinOutput/Quest")
           TSV=Path("/tmp/tsv/src/main/resources/json")
 
           def load_raw(root):
@@ -268,6 +278,27 @@ jobs:
               print(
                   "INTEGRATED_FIELD",field,
                   integrated_manifest["summary"]["fields"][field],
+              )
+
+          consensus_manifest,consensus_unresolved=build_consensus_from_directories(
+              RAW,
+              {
+                  "capyb2222/LunaGC-Resources@395a5ee6":C71,
+                  "chenlin996/LunaGC-Resources7.0@0991d8a9":C70,
+                  "nyakochao/LunaGC-Resources-7.0@980c5c75":C70B,
+                  "Merprose2/LunaGCR-Resources@a64cf90a":C70C,
+              },
+              raw_71_source="DimbreathBot/AnimeGameData@792978e5",
+              historical_tsv_root=TSV,
+              historical_tsv_source="wander-in-wind/TsvParser@096da276",
+          )
+          print("\n=== CONSENSUS + TSV RECOVERY SUMMARY ===")
+          print(json.dumps(consensus_manifest["summary"],ensure_ascii=False,indent=2))
+          print("CONSENSUS_UNRESOLVED",consensus_unresolved["summary"])
+          for field in ("acceptCond","beginExec"):
+              print(
+                  "CONSENSUS_FIELD",field,
+                  consensus_manifest["summary"]["fields"][field],
               )
 
           Path("quest71-tsv-recovery.json").write_text(
