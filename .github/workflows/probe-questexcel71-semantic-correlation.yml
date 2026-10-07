@@ -1,0 +1,247 @@
+name: Probe QuestExcel 7.1 semantic correlations
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-semantic-correlation.yml"
+
+concurrency:
+  group: probe-questexcel71-semantic-correlation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  correlate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact QuestExcel asset evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf evidence/q71
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          ASSET="$(find evidence/q71 -type f -name 3b87ae83.dat -print -quit)"
+          test -n "$ASSET"
+          test -s "$ASSET"
+          cp "$ASSET" questexcel71.dat
+          sha256sum questexcel71.dat
+
+      - name: Fetch pinned same-version BinOutput controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+
+      - name: Correlate unresolved native slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-semantic-correlation.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+          from genshinre.questexcel71 import parse_questexcel71_raw_export
+
+          table = parse_questexcel71_raw_export(Path("questexcel71.dat").read_bytes())
+          native = {row.sub_id: row for row in table.rows}
+
+          controls = {}
+          for path in sorted(Path("/tmp/asta-pr9/BinOutput/Quest").glob("*.json")):
+              try:
+                  root = json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              if not isinstance(root, dict):
+                  continue
+              for row in root.get("subQuests", []):
+                  if isinstance(row, dict) and isinstance(row.get("subId"), int):
+                      controls[row["subId"]] = row
+
+          common = sorted(set(native) & set(controls))
+          print("native_rows", len(native))
+          print("control_rows", len(controls))
+          print("intersection", len(common))
+
+          def presence_set_native(attr):
+              return {sid for sid in common if getattr(native[sid], attr) is not None}
+
+          def key_sets(scope):
+              out = defaultdict(set)
+              for sid in common:
+                  obj = controls[sid]
+                  if scope == "guide":
+                      obj = obj.get("guide")
+                  if not isinstance(obj, dict):
+                      continue
+                  for key in obj:
+                      out[key].add(sid)
+              return out
+
+          row_keys = key_sets("row")
+          guide_keys = key_sets("guide")
+
+          def rank_presence(label, s, candidates, limit=20):
+              scored = []
+              for key, ks in candidates.items():
+                  inter = len(s & ks)
+                  union = len(s | ks)
+                  scored.append((
+                      1 if s == ks else 0,
+                      inter / union if union else 1.0,
+                      inter,
+                      len(s),
+                      len(ks),
+                      key,
+                      len(s - ks),
+                      len(ks - s),
+                  ))
+              scored.sort(reverse=True)
+              print(f"\n=== PRESENCE {label} n={len(s)} ===")
+              for exact,jacc,inter,ns,nk,key,miss,extra in scored[:limit]:
+                  print(
+                      f"{key}\texact={exact}\tjacc={jacc:.6f}\tinter={inter}"
+                      f"\tnative={ns}\tcontrol={nk}\tnative_only={miss}\tcontrol_only={extra}"
+                  )
+
+          rank_presence("bit34", presence_set_native("unknown_bit34_raw"), row_keys)
+          rank_presence("bit40", presence_set_native("unknown_bit40_raw"), row_keys)
+          rank_presence("dabnijghapj", presence_set_native("dabnijghapj"), row_keys)
+          rank_presence("guide.unknown_string_10",
+                        {sid for sid in common if native[sid].guide.unknown_string_10 is not None},
+                        guide_keys)
+          rank_presence("guide.unknown_string_20",
+                        {sid for sid in common if native[sid].guide.unknown_string_20 is not None},
+                        guide_keys)
+          for attr in ("unknown_scalar_2c","unknown_scalar_40","unknown_scalar_44","unknown_scalar_5c"):
+              rank_presence(
+                  "guide."+attr,
+                  {sid for sid in common if getattr(native[sid].guide, attr) is not None},
+                  guide_keys,
+              )
+
+          # Exact value equality against every same-version control key. This is
+          # strong for strings/ids and a useful negative control for unknown slots.
+          def rank_values(label, getter, scope, limit=30):
+              counts = Counter()
+              present = 0
+              comparable = Counter()
+              for sid in common:
+                  val = getter(native[sid])
+                  if val is None:
+                      continue
+                  present += 1
+                  obj = controls[sid]
+                  if scope == "guide":
+                      obj = obj.get("guide")
+                  if not isinstance(obj, dict):
+                      continue
+                  for key, cval in obj.items():
+                      if isinstance(cval, (str, int, bool)):
+                          comparable[key] += 1
+                          if cval == val and type(cval) is type(val):
+                              counts[key] += 1
+              print(f"\n=== VALUE {label} present={present} ===")
+              keys = set(comparable) | set(counts)
+              ranked = sorted(
+                  keys,
+                  key=lambda k: (
+                      counts[k] / comparable[k] if comparable[k] else 0,
+                      counts[k],
+                      comparable[k],
+                      k,
+                  ),
+                  reverse=True,
+              )
+              for key in ranked[:limit]:
+                  print(
+                      f"{key}\tmatch={counts[key]}\tcomparable={comparable[key]}"
+                      f"\tratio={(counts[key]/comparable[key] if comparable[key] else 0):.6f}"
+                  )
+
+          rank_values("unknown_core_u32", lambda r:r.unknown_core_u32, "row")
+          rank_values("dabnijghapj", lambda r:r.dabnijghapj, "row")
+          rank_values("guide.unknown_string_10", lambda r:r.guide.unknown_string_10, "guide")
+          rank_values("guide.unknown_string_20", lambda r:r.guide.unknown_string_20, "guide")
+          for attr in ("unknown_scalar_2c","unknown_scalar_40","unknown_scalar_44","unknown_scalar_5c"):
+              rank_values("guide."+attr, lambda r,a=attr:getattr(r.guide,a), "guide")
+
+          # Show selected high-information rows.
+          selected = [7713702,7713704,7713705,7713706,1001307]
+          print("\n=== SELECTED ROWS ===")
+          for sid in selected:
+              r = native.get(sid)
+              c = controls.get(sid)
+              if r is None:
+                  print(sid, "native-missing")
+                  continue
+              print(json.dumps({
+                  "subId": sid,
+                  "mask64": f"0x{r.mask64:016X}",
+                  "unknown_core_u32": r.unknown_core_u32,
+                  "unknown_bit34_raw": r.unknown_bit34_raw,
+                  "unknown_bit40_raw": r.unknown_bit40_raw,
+                  "guide": {
+                      "mask_raw": f"0x{r.guide.mask_raw:08X}",
+                      "unknown_string_10": r.guide.unknown_string_10,
+                      "unknown_string_20": r.guide.unknown_string_20,
+                      "unknown_scalar_2c": r.guide.unknown_scalar_2c,
+                      "unknown_scalar_40": r.guide.unknown_scalar_40,
+                      "unknown_scalar_44": r.guide.unknown_scalar_44,
+                      "unknown_scalar_5c": r.guide.unknown_scalar_5c,
+                      "params": r.guide.params,
+                      "guide_scene": r.guide.guide_scene,
+                      "poi_point_id": r.guide.poi_point_id,
+                      "poi_region_id": r.guide.poi_region_id,
+                  },
+                  "control_row_unknowns": {
+                      k:v for k,v in (c or {}).items()
+                      if k not in {
+                          "subId","mainId","order","descTextMapHash","stepDescTextMapHash",
+                          "guide","finishCond","failCond","finishExec","failExec","npcId",
+                          "exclusivePlaceList","isMpBlock","isRewind","finishParent","showType",
+                      }
+                  },
+                  "control_guide": (c or {}).get("guide"),
+              }, ensure_ascii=False, default=list))
+
+          report = {
+              "native_rows": len(native),
+              "control_rows": len(controls),
+              "intersection": len(common),
+          }
+          Path("questexcel71-semantic-correlation.json").write_text(
+              json.dumps(report, indent=2)+"\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-semantic-correlation
+          path: |
+            questexcel71-semantic-correlation.txt
+            questexcel71-semantic-correlation.json
+          if-no-files-found: error
