@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import struct
 
+from .questguide71 import QuestGuide71, QuestGuide71ParseError, find_questguide71
+
 
 class QuestExcel71ParseError(ValueError):
     pass
@@ -16,6 +18,7 @@ ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
 UNKNOWN_BIT34_RAW = 0x074282C5
 UNKNOWN_BIT40_RAW = 0x08
+SHOW_TYPE_HIDDEN_RAW = 0x59B4291F
 STEP_DESC_TEXT_MAP_HASH_XOR = 0xABB3B4F1
 GUIDE_TIPS_TEXT_MAP_HASH_XOR = 0x59B7A2F4
 DMCMNPLMCKL_HIDDEN_RAW = 0x53FAFAF9
@@ -34,6 +37,7 @@ LOW_ROW_MASKS = frozenset({
 })
 
 BIT_DMCMNPLMCKL = 10
+BIT_SHOW_TYPE = 13
 BIT_BAN_TYPE = 22
 BIT_PREFER_AREA2_GUIDE_SCENE = 29
 BIT_UNKNOWN_34 = 34
@@ -62,6 +66,8 @@ class QuestExcel71Row:
     known_prefix_end: int
     raw_tail: bytes
     known_suffix_start: int
+    guide: QuestGuide71
+    show_type: str | None
     guide_tips_text_map_hash: int
     sub_id: int
 
@@ -219,15 +225,40 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             )
         p += 1
 
-    known_suffix_start = suffix_pos - 4
-    if p > known_suffix_start:
+    guide_tips_pos = suffix_pos - 4
+    if p > guide_tips_pos:
         raise QuestExcel71ParseError(
             f"row {index} subId {sub_id} known prefix overlaps guideTipsTextMapHash"
         )
     guide_tips_text_map_hash = (
-        _u32(payload, known_suffix_start, suffix_pos, "guideTipsTextMapHash")
+        _u32(payload, guide_tips_pos, suffix_pos, "guideTipsTextMapHash")
         ^ GUIDE_TIPS_TEXT_MAP_HASH_XOR
     )
+
+    show_type = None
+    guide_end = guide_tips_pos
+    if not ((mask64 >> BIT_SHOW_TYPE) & 1):
+        show_type_pos = guide_end - 4
+        raw_value = _u32(payload, show_type_pos, guide_end, "showType")
+        if raw_value != SHOW_TYPE_HIDDEN_RAW:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected showType raw "
+                f"0x{raw_value:08X}"
+            )
+        show_type = "QUEST_HIDDEN"
+        guide_end = show_type_pos
+
+    if p > guide_end:
+        raise QuestExcel71ParseError(
+            f"row {index} subId {sub_id} known prefix overlaps QuestGuide71"
+        )
+    try:
+        guide = find_questguide71(payload, p, guide_end)
+    except QuestGuide71ParseError as exc:
+        raise QuestExcel71ParseError(
+            f"row {index} subId {sub_id}: {exc}"
+        ) from exc
+    known_suffix_start = guide.start
 
     return QuestExcel71Row(
         index=index,
@@ -245,8 +276,10 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         ban_type=ban_type,
         unknown_bit40_raw=unknown_bit40_raw,
         known_prefix_end=p,
-        raw_tail=payload[p:known_suffix_start],
+        raw_tail=payload[p:guide.start],
         known_suffix_start=known_suffix_start,
+        guide=guide,
+        show_type=show_type,
         guide_tips_text_map_hash=guide_tips_text_map_hash,
         sub_id=sub_id,
     )
