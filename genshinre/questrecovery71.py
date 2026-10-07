@@ -153,12 +153,19 @@ def build_manifest(
     raw_71_source: str,
     community_71_source: str,
     community_70_source: str,
+    historical_tsv_rows: Mapping[int, Mapping[str, Any]] | None = None,
+    historical_tsv_source: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     rows_out: dict[str, Any] = {}
     unresolved_out: dict[str, Any] = {}
     field_counts: dict[str, Counter[str]] = {
         field: Counter() for field in (*RAW_71_FIELD_KEYS, *COMPAT_FIELDS)
     }
+    historical_tsv_rows = historical_tsv_rows or {}
+    if historical_tsv_rows and not historical_tsv_source:
+        raise ValueError(
+            "historical_tsv_source is required when historical_tsv_rows are provided"
+        )
 
     for sub_id in sorted(raw_71_rows):
         raw_row = raw_71_rows[sub_id]
@@ -182,6 +189,7 @@ def build_manifest(
 
         compat_71 = community_71_rows.get(sub_id)
         compat_70 = community_70_rows.get(sub_id)
+        compat_tsv = historical_tsv_rows.get(sub_id)
 
         for field in COMPAT_FIELDS:
             if compat_70 is None:
@@ -252,6 +260,82 @@ def build_manifest(
                     }
                     field_counts[field]["compatibility_empty"] += 1
 
+            # The leaked TSV is an independent historical server/design-table
+            # source. It can strengthen a compatibility value or fill a gap,
+            # but it never upgrades acceptCond/beginExec to native 7.1.
+            if compat_tsv is not None:
+                raw_tsv = compat_tsv.get(field)
+                value_tsv = _comparison_value(raw_tsv, field=field)
+                if value_tsv:
+                    if field in row_fields:
+                        current = _comparison_value(
+                            row_fields[field]["value"],
+                            field=field,
+                        )
+                        if current == value_tsv:
+                            provenance = row_fields[field]["provenance"]
+                            provenance["historical_server_source"] = historical_tsv_source
+                            provenance["historical_server_source_agrees"] = True
+                            status["historical_server_source"] = historical_tsv_source
+                            field_counts[field]["historical_tsv_support"] += 1
+                        else:
+                            row_fields.pop(field, None)
+                            status = {
+                                "status": "unresolved",
+                                "reason": "historical-tsv-community-diverged",
+                                "historical_tsv_source": historical_tsv_source,
+                                "historical_tsv": value_tsv,
+                                "community": current,
+                            }
+                            field_counts[field]["historical_tsv_conflict"] += 1
+                    elif (
+                        status.get("status") == "unresolved"
+                        and status.get("reason") != "community-carry-forward-diverged"
+                    ):
+                        row_fields[field] = {
+                            "value": _typed_entries(raw_tsv, field=field),
+                            "provenance": {
+                                "kind": "historical-server-source",
+                                "status": "compatibility-only",
+                                "source": historical_tsv_source,
+                                "evidence": (
+                                    "direct GC leaked TSV column retained the "
+                                    "compatibility field"
+                                ),
+                                "native_7_1": False,
+                            },
+                        }
+                        status = {
+                            "status": "compatibility-value",
+                            "source": historical_tsv_source,
+                            "historical_server_source": True,
+                        }
+                        field_counts[field]["historical_tsv_value"] += 1
+                    elif status.get("status") == "compatibility-empty":
+                        status = {
+                            "status": "unresolved",
+                            "reason": "historical-tsv-community-empty-diverged",
+                            "historical_tsv_source": historical_tsv_source,
+                            "historical_tsv": value_tsv,
+                        }
+                        field_counts[field]["historical_tsv_conflict"] += 1
+                elif (
+                    field not in row_fields
+                    and status.get("status") == "unresolved"
+                    and status.get("reason") != "community-carry-forward-diverged"
+                    and not (
+                        field == "acceptCond"
+                        and _has_unknown_accept_placeholder(raw_tsv)
+                    )
+                ):
+                    status = {
+                        "status": "compatibility-empty",
+                        "source": historical_tsv_source,
+                        "evidence": "historical leaked TSV row has no typed field entries",
+                        "native_7_1": False,
+                    }
+                    field_counts[field]["historical_tsv_empty"] += 1
+
             row_status[field] = status
             if status["status"] == "unresolved":
                 unresolved_out.setdefault(str(sub_id), {"subId": sub_id, "fields": {}})
@@ -273,16 +357,30 @@ def build_manifest(
             "quest_cond_unknown_is_placeholder": True,
             "quest_cond_unknown_is_unresolved": True,
             "compatibility_requires_predecessor_equality": True,
+            "historical_tsv_is_native_7_1": False,
+            "historical_tsv_can_resolve_missing_community_evidence": True,
+            "historical_tsv_conflicts_remain_unresolved": True,
         },
         "sources": {
             "raw_7_1": _source_ref("same-version-client-projection", raw_71_source),
             "community_7_1": _source_ref("community-merged-resource", community_71_source),
             "community_7_0": _source_ref("community-predecessor-resource", community_70_source),
+            **(
+                {
+                    "historical_tsv": _source_ref(
+                        "historical-server-source",
+                        historical_tsv_source,
+                    )
+                }
+                if historical_tsv_source
+                else {}
+            ),
         },
         "summary": {
             "raw_7_1_rows": len(raw_71_rows),
             "community_7_1_rows": len(community_71_rows),
             "community_7_0_rows": len(community_70_rows),
+            "historical_tsv_rows": len(historical_tsv_rows),
             "unresolved_rows": len(unresolved_out),
             "fields": {
                 field: dict(counts)
@@ -314,6 +412,8 @@ def build_from_directories(
     raw_71_source: str,
     community_71_source: str,
     community_70_source: str,
+    historical_tsv_root: Path | None = None,
+    historical_tsv_source: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     return build_manifest(
         load_raw_71_rows(raw_71_root),
@@ -322,6 +422,12 @@ def build_from_directories(
         raw_71_source=raw_71_source,
         community_71_source=community_71_source,
         community_70_source=community_70_source,
+        historical_tsv_rows=(
+            load_community_rows(historical_tsv_root)
+            if historical_tsv_root is not None
+            else None
+        ),
+        historical_tsv_source=historical_tsv_source,
     )
 
 
