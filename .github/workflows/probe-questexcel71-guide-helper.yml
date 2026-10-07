@@ -280,6 +280,67 @@ jobs:
           Path("questexcel71-guide-schema.json").write_text(
               json.dumps(schemas,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
+      - name: Locate QuestExcel guideHint source reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-guidehint-reader.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          QWORD_SUB=0xE0AD7FB32B279A2B
+          LEN_XOR=0x65D5
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+          methods=rows("methods.csv"); fields=rows("fields.csv"); types=rows("types.csv")
+          tb={int(x["type_definition_index"]):x for x in types}
+          starts=[]; by={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  starts.append(r); by.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]; e=starts[i+1] if i+1<len(starts) else s+0x1000
+              if not(s<=rva<e):return None
+              meta=by.get(s,[])
+              tdis=sorted({int(x["type_definition_index"]) for x in meta if x.get("type_definition_index")})
+              return {
+                  "start":s,"end":e,"methods":meta,
+                  "types":[tb.get(x,{}) for x in tdis],
+                  "fields":[f for f in fields if int(f.get("type_definition_index") or -1) in tdis],
+              }
+
+          key=QWORD_SUB.to_bytes(8,"little")
+          hits=[]
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  if not(sec.characteristics & 0x20000000):continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  at=0
+                  while True:
+                      x=blob.find(key,at)
+                      if x<0:break
+                      rva=sec.virtual_address+x
+                      hits.append({"rva":f"0x{rva:X}","owner":owner(rva)})
+                      at=x+1
+          print("QWORD_SUB",f"0x{QWORD_SUB:016X}","hits",len(hits))
+          print(json.dumps(hits,ensure_ascii=False,indent=2))
+          Path("questexcel71-guidehint-reader.json").write_text(
+              json.dumps({"qword_sub":f"0x{QWORD_SUB:016X}","len_xor":f"0x{LEN_XOR:04X}","hits":hits},
+                         ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -288,4 +349,6 @@ jobs:
           path: |
             questexcel71-guide-helper.txt
             questexcel71-guide-helper.json
+            questexcel71-guidehint-reader.txt
+            questexcel71-guidehint-reader.json
           if-no-files-found: error
