@@ -336,3 +336,82 @@ statement is corroborating evidence, not the basis of the native conclusion.
 The remaining prerequisite investigation is now narrower: identify and audit
 the exact historical-resource merge/materialization step that chooses which
 old prerequisite graph to project into modern server resources.
+## 2026-10-07 downstream Asta prerequisite materialization provenance
+
+The downstream provenance is now closed far enough to identify both the
+pre-existing synthetic convention and the later code-review step that copied
+it into newly materialized rows.
+
+The first `AstaPS-Resource` import of the flattened table is commit
+`8c85a82f37341a422002a0352c89a142c4017e53`
+(`Add ExcelBinOutput part 3 of 5`). That commit adds
+`ExcelBinOutput/QuestExcelConfigData.json` as a static 1,905,666-line file;
+its parent does not contain the table. The repository does not preserve the
+external generator that produced that initial file, so provenance before this
+import remains unknown.
+
+A focused audit of that exact imported file found:
+
+- 25,261 rows across 3,099 main-quest groups;
+- 24,588 / 25,261 rows (**97.335814%**) exactly match the synthetic rule
+  *first row -> `QUEST_COND_STATE_EQUAL [0,3]`; later row -> previous
+  physical row subId, state 3*;
+- all 3,099 first rows use the `[0,3]` form;
+- 21,489 / 22,162 non-first rows (**96.96327%**) point exactly to the
+  preceding physical row;
+- 2,759 / 3,099 main-quest groups (**89.028719%**) match that synthetic
+  rule on every row.
+
+Quest 351 is a direct example. The imported table serializes it as the single
+chain:
+
+`35104 -> 35100 -> 35107 -> 35101 -> 35106 -> 35105 -> 35103 -> 35102`.
+
+That differs from the intact historical branch/convergence graph and cannot be
+treated as source-authored prerequisite semantics.
+
+The next materialization step is explicit rather than inferred.
+`MeChen618/AstaPS-Resource` PR #9,
+`Update QuestExcelConfigData from BinOutput/Quest`, merged as
+`7465e29b2d58058ab9973187c112abf2717ada03`, adds 7,956 BinOutput
+subquests that were absent from the flattened table. Its PR description states
+that current BinOutput carries no `acceptCond` / `beginExec`, then defines
+the generated fallback used for those new rows: first step
+`QUEST_COND_STATE_EQUAL [0,3]`, each later step
+`QUEST_COND_STATE_EQUAL [previous step,3]`. PR #9 therefore knowingly extends
+the already-present flattened-table convention; it does not recover those
+edges from 7.1 native quest data.
+
+The historical repair controls can also be bound to exact public refs:
+
+- `TomyJan/GCResource` branch `3700`:
+  `609730bf63568baee1eb77a605b6c273a064dbc1`;
+- `TomyJan/GCResource` branch `4000`:
+  `ede70f1e23c1a494fe4258837d963b1d63004911`.
+
+For `BinOutput/Quest/351.json`, both refs resolve to the identical Git blob
+`1349ca8a9f15fc5ca6590cd8ce4ecdb04d0fae61`. This is byte-level 3.7/4.0
+consensus for the historical Quest 351 graph. The separate `3700-Full`
+branch resolves that file to
+`393b602027f93b8b8efec4abfcb64df69043be20` and has the later
+obfuscated/field-loss shape; it is not the prerequisite consensus control used
+for this comparison.
+
+Upstream PR #11 later repairs evidence-backed rows from those historical
+graphs. Its first large repair commit,
+`abbc237458361f5d9a054d622bb7e9e1ed91ed7a`, introduces the explicit
+repair manifests and audit tooling. Those repairs are downstream restoration
+policy, not evidence that ordinary 7.1 native quest rows still own
+`acceptCond`.
+
+The resulting provenance chain is therefore:
+
+`ordinary native acceptCond removed by the 3.0-era client data`
+-> `7.1 ordinary native Quest/QuestExcel still has no acceptCond owner`
+-> `initial Asta flattened import already contains a nearly universal physical-order chain`
+-> `PR #9 explicitly copies that convention into 7,956 newly materialized rows`
+-> `later repair manifests selectively restore historical graphs from pinned old controls`.
+
+This closes the origin of the modern Asta predecessor chain inside the
+repository history. The remaining unknown is the external generator that
+created the pre-import flattened file before commit `8c85a82f`.
