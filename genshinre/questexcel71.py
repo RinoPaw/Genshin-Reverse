@@ -22,7 +22,21 @@ ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
 UNKNOWN_BIT34_RAW = 0x074282C5
 UNKNOWN_BIT40_RAW = 0x08
+FAIL_PARENT_SHOW_HIDDEN_RAW = 0x076DA7BF
+LBEFPHGELAN_TRUE_RAW = 0x87
 SHOW_TYPE_HIDDEN_RAW = 0x59B4291F
+DABNIJGHAPJ_XOR = 0x723E5DDC
+EOFPICJEHLP_BY_RAW = {
+    0x467DE16D: 1,
+    0x467DE170: 2,
+    0x467DE16F: 3,
+    0x467DE16A: 4,
+    0x467DE169: 5,
+}
+SHOW_GUIDE_BY_RAW = {
+    0x016C73EB: "QUEST_GUIDE_ITEM_DISABLE",
+    0x016C73E8: "QUEST_GUIDE_ITEM_MOVE_HIDE",
+}
 STEP_DESC_TEXT_MAP_HASH_XOR = 0xABB3B4F1
 GUIDE_TIPS_TEXT_MAP_HASH_XOR = 0x59B7A2F4
 DMCMNPLMCKL_HIDDEN_RAW = 0x53FAFAF9
@@ -42,13 +56,19 @@ LOW_ROW_MASKS = frozenset({
 
 BIT_DMCMNPLMCKL = 10
 BIT_SHOW_TYPE = 13
+BIT_SUB_ID_SET = 16
 BIT_BAN_TYPE = 22
+BIT_EOFPICJEHLP = 27
 BIT_PREFER_AREA2_GUIDE_SCENE = 29
 BIT_UNKNOWN_34 = 34
 BIT_EXCLUSIVE_PLACE_LIST = 37
 BIT_UNKNOWN_40 = 40
+BIT_DABNIJGHAPJ = 41
+BIT_FAIL_PARENT_SHOW = 45
 BIT_IS_MP_BLOCK = 52
 BIT_ORDER = 57
+BIT_LBEFPHGELAN = 61
+BIT_SHOW_GUIDE = 63
 
 
 @dataclass(frozen=True)
@@ -68,6 +88,13 @@ class QuestExcel71Row:
     ban_type: str | None
     unknown_bit40_raw: int | None
     guide_hint: QuestGuideHint71
+    sub_id_set_raw: int | None
+    eofpicjehlp: int | None
+    fail_parent_show: str | None
+    show_guide: str | None
+    dabnijghapj: int | None
+    unknown_core8: bytes
+    lbefphgelan: bool | None
     known_prefix_end: int
     raw_tail: bytes
     known_suffix_start: int
@@ -238,6 +265,72 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         ) from exc
     p = guide_hint.end
 
+    sub_id_set_raw = None
+    if (mask64 >> BIT_SUB_ID_SET) & 1:
+        sub_id_set_raw = _u32(payload, p, suffix_pos, "subIdSet raw")
+        p += 4
+
+    eofpicjehlp = None
+    if not ((mask64 >> BIT_EOFPICJEHLP) & 1):
+        raw_value = _u32(payload, p, suffix_pos, "EOFPICJEHLP")
+        eofpicjehlp = EOFPICJEHLP_BY_RAW.get(raw_value)
+        if eofpicjehlp is None:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected EOFPICJEHLP raw "
+                f"0x{raw_value:08X}"
+            )
+        p += 4
+
+    fail_parent_show = None
+    if (mask64 >> BIT_FAIL_PARENT_SHOW) & 1:
+        raw_value = _u32(payload, p, suffix_pos, "failParentShow")
+        if raw_value != FAIL_PARENT_SHOW_HIDDEN_RAW:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected failParentShow raw "
+                f"0x{raw_value:08X}"
+            )
+        fail_parent_show = "QUEST_HIDDEN"
+        p += 4
+
+    show_guide = None
+    if (mask64 >> BIT_SHOW_GUIDE) & 1:
+        raw_value = _u32(payload, p, suffix_pos, "showGuide")
+        show_guide = SHOW_GUIDE_BY_RAW.get(raw_value)
+        if show_guide is None:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected showGuide raw "
+                f"0x{raw_value:08X}"
+            )
+        p += 4
+
+    dabnijghapj = None
+    if (mask64 >> BIT_DABNIJGHAPJ) & 1:
+        dabnijghapj = _u32(payload, p, suffix_pos, "DABNIJGHAPJ") ^ DABNIJGHAPJ_XOR
+        p += 4
+
+    core_start = p
+    if p + 8 > suffix_pos:
+        raise QuestExcel71ParseError(
+            f"row {index} subId {sub_id} truncates fixed 8-byte core"
+        )
+    unknown_core8 = payload[p:p + 8]
+    p += 8
+
+    lbefphgelan = None
+    if (mask64 >> BIT_LBEFPHGELAN) & 1:
+        if p >= suffix_pos:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} truncates LBEFPHGELAN"
+            )
+        raw_value = payload[p]
+        if raw_value != LBEFPHGELAN_TRUE_RAW:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected LBEFPHGELAN raw "
+                f"0x{raw_value:02X}"
+            )
+        lbefphgelan = True
+        p += 1
+
     guide_tips_pos = suffix_pos - 4
     if p > guide_tips_pos:
         raise QuestExcel71ParseError(
@@ -271,6 +364,11 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         raise QuestExcel71ParseError(
             f"row {index} subId {sub_id}: {exc}"
         ) from exc
+    if p != guide.start:
+        raise QuestExcel71ParseError(
+            f"row {index} subId {sub_id} outer fields consume through 0x{p:X}, "
+            f"guide starts at 0x{guide.start:X}"
+        )
     known_suffix_start = guide.start
 
     return QuestExcel71Row(
@@ -289,8 +387,15 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         ban_type=ban_type,
         unknown_bit40_raw=unknown_bit40_raw,
         guide_hint=guide_hint,
-        known_prefix_end=p,
-        raw_tail=payload[p:guide.start],
+        sub_id_set_raw=sub_id_set_raw,
+        eofpicjehlp=eofpicjehlp,
+        fail_parent_show=fail_parent_show,
+        show_guide=show_guide,
+        dabnijghapj=dabnijghapj,
+        unknown_core8=unknown_core8,
+        lbefphgelan=lbefphgelan,
+        known_prefix_end=core_start,
+        raw_tail=unknown_core8,
         known_suffix_start=known_suffix_start,
         guide=guide,
         show_type=show_type,
