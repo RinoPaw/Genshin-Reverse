@@ -117,6 +117,15 @@ def _comparison_value(value: Any, *, field: str) -> list[dict[str, Any]]:
     ]
 
 
+def _has_unknown_accept_placeholder(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    return any(
+        isinstance(item, dict) and item.get("type") == "QUEST_COND_UNKNOWN"
+        for item in value
+    )
+
+
 def _source_ref(kind: str, label: str) -> dict[str, str]:
     return {"kind": kind, "source": label}
 
@@ -174,9 +183,27 @@ def build_manifest(
                 }
                 field_counts[field]["unresolved"] += 1
             else:
-                value_70 = _comparison_value(compat_70.get(field), field=field)
-                value_71 = _comparison_value(compat_71.get(field), field=field)
-                if value_70 != value_71:
+                raw_70 = compat_70.get(field)
+                raw_71 = compat_71.get(field)
+                value_70 = _comparison_value(raw_70, field=field)
+                value_71 = _comparison_value(raw_71, field=field)
+                placeholder_70 = (
+                    field == "acceptCond"
+                    and _has_unknown_accept_placeholder(raw_70)
+                )
+                placeholder_71 = (
+                    field == "acceptCond"
+                    and _has_unknown_accept_placeholder(raw_71)
+                )
+                if not value_70 and not value_71 and (placeholder_70 or placeholder_71):
+                    status = {
+                        "status": "unresolved",
+                        "reason": "community-placeholder-only",
+                        "community_70_placeholder": placeholder_70,
+                        "community_71_placeholder": placeholder_71,
+                    }
+                    field_counts[field]["unresolved"] += 1
+                elif value_70 != value_71:
                     status = {
                         "status": "unresolved",
                         "reason": "community-carry-forward-diverged",
@@ -229,6 +256,7 @@ def build_manifest(
             "compatibility_fields": list(COMPAT_FIELDS),
             "previous_row_synthesis": False,
             "quest_cond_unknown_is_placeholder": True,
+            "quest_cond_unknown_is_unresolved": True,
             "compatibility_requires_predecessor_equality": True,
         },
         "sources": {
