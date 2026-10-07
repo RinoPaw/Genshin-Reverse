@@ -15,6 +15,7 @@ class QuestExcel71ParseError(ValueError):
 
 
 SUB_ID_XOR = 0xB1571A55
+DESC_TEXT_MAP_HASH_XOR = 0x2AC0BB5D
 EXCLUSIVE_PLACE_COUNT_XOR = 0xB51E6D91
 EXCLUSIVE_PLACE_ELEMENT_SUB = 0x449FCFB9
 PREFER_AREA2_GUIDE_SCENE_RAW = 0x8BFDD679
@@ -82,6 +83,7 @@ class QuestExcel71Row:
     end: int
     mask64: int
     unknown_prefix_u32: int
+    desc_text_map_hash: int
     exclusive_place_list: tuple[int, ...] | None
     prefer_area2_guide_scene: bool
     order: int | None
@@ -165,7 +167,8 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         )
 
     mask64 = struct.unpack_from("<Q", payload, start)[0]
-    unknown_prefix_u32 = _u32(payload, start + 8, end, "row +8 word")
+    unknown_prefix_u32 = _u32(payload, start + 8, end, "descTextMapHash raw")
+    desc_text_map_hash = unknown_prefix_u32 ^ DESC_TEXT_MAP_HASH_XOR
     suffix_pos = end - 4
     sub_id = _u32(payload, suffix_pos, end, "subId") ^ SUB_ID_XOR
     p = start + 12
@@ -388,6 +391,7 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         end=end,
         mask64=mask64,
         unknown_prefix_u32=unknown_prefix_u32,
+        desc_text_map_hash=desc_text_map_hash,
         exclusive_place_list=exclusive_place_list,
         prefer_area2_guide_scene=prefer_area2_guide_scene,
         order=order,
