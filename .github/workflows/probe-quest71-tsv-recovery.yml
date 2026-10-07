@@ -301,6 +301,31 @@ jobs:
                   consensus_manifest["summary"]["fields"][field],
               )
 
+          unresolved_by_field={"acceptCond":[],"beginExec":[]}
+          reason_counts={"acceptCond":Counter(),"beginExec":Counter()}
+          for sid,row in consensus_unresolved["rows"].items():
+              for field,status in row.get("fields",{}).items():
+                  if field not in unresolved_by_field:
+                      continue
+                  unresolved_by_field[field].append(int(sid))
+                  reason_counts[field][status.get("reason","?")]+=1
+          for field in ("acceptCond","beginExec"):
+              unresolved_by_field[field].sort()
+              print(
+                  "CONSENSUS_UNRESOLVED_IDS",field,
+                  len(unresolved_by_field[field]),
+                  unresolved_by_field[field],
+              )
+              print(
+                  "CONSENSUS_UNRESOLVED_REASONS",field,
+                  dict(reason_counts[field]),
+              )
+
+          Path("quest71-consensus-unresolved.json").write_text(
+              json.dumps(consensus_unresolved,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
           Path("quest71-tsv-recovery.json").write_text(
               json.dumps({
                   "sources":{
@@ -323,4 +348,5 @@ jobs:
           path: |
             quest71-tsv-recovery.txt
             quest71-tsv-recovery.json
+            quest71-consensus-unresolved.json
           if-no-files-found: error
