@@ -611,6 +611,35 @@ jobs:
               return True
 
           print("common",len(common))
+
+          # Candidate recovered below for IHOOIFBLPJK. Validate its default-value
+          # omission semantics over every one of the 33,214 same-version rows.
+          IHOO_ADD=0x53299149
+          IHOO_XOR=0x98927E83
+          mismatch=[]
+          nonzero=0
+          projected=0
+          for sid in common:
+              decoded=((native[sid].unknown_core_u32 + IHOO_ADD) & 0xffffffff) ^ IHOO_XOR
+              expected=controls[sid].get("IHOOIFBLPJK",0)
+              if "IHOOIFBLPJK" in controls[sid]:
+                  projected+=1
+              if decoded:
+                  nonzero+=1
+              if decoded!=expected:
+                  mismatch.append((sid,decoded,expected,"IHOOIFBLPJK" in controls[sid]))
+          print(
+              "IHOOIFBLPJK_FULL",
+              "rows",len(common),
+              "projected",projected,
+              "decoded_nonzero",nonzero,
+              "mismatches",len(mismatch),
+              "add",hex(IHOO_ADD),
+              "xor",hex(IHOO_XOR),
+          )
+          if mismatch:
+              print("IHOOIFBLPJK_MISMATCH_SAMPLE",mismatch[:20])
+
           for key in keys:
               pairs=[
                   (native[sid].unknown_core_u32,controls[sid][key])
