@@ -121,12 +121,14 @@ jobs:
                   raise SystemExit(f"implausibly short row at {start:#x}")
               raw_sid = struct.unpack_from("<I", payload, end - 4)[0]
               sid = raw_sid ^ SUBID_KEY
+              mask64 = struct.unpack_from("<Q", payload, start)[0]
               rows.append({
                   "ordinal": ordinal,
                   "start": start,
                   "end": end,
                   "size": end - start,
                   "mask": mask,
+                  "mask64": mask64,
                   "subId": sid,
               })
 
@@ -170,10 +172,10 @@ jobs:
           public_fields = sorted({k for r, _ in matched for k in r})
           mask_correlations = []
           for field in public_fields:
-              for bit in range(32):
+              for bit in range(64):
                   bins = {0: [0, 0], 1: [0, 0]}
                   for r, nr in matched:
-                      b = (nr["mask"] >> bit) & 1
+                      b = (nr["mask64"] >> bit) & 1
                       bins[b][1] += 1
                       if field in r:
                           bins[b][0] += 1
@@ -258,11 +260,16 @@ jobs:
                       "median": statistics.median(sizes),
                       "mean": statistics.mean(sizes),
                   },
-                  "mask_count": len(MASKS),
-                  "mask_distribution": {
+                  "low_mask_count": len(MASKS),
+                  "low_mask_distribution": {
                       f"0x{k:08X}": v
                       for k, v in collections.Counter(x["mask"] for x in rows).most_common()
                   },
+                  "high_mask_distribution": {
+                      f"0x{k:08X}": v
+                      for k, v in collections.Counter((x["mask64"] >> 32) & 0xffffffff for x in rows).most_common()
+                  },
+                  "mask64_count": len({x["mask64"] for x in rows}),
                   "first_rows": rows[:12],
                   "last_rows": rows[-12:],
               },
