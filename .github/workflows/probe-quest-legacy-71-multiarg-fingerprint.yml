@@ -1,0 +1,287 @@
+name: Fingerprint 7.1 QuestExcel multi-arg row readers
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-multiarg-fingerprint.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: probe-quest-legacy-71-multiarg-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact Dimbreath 7.1 row ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd
+          git clone --filter=blob:none --no-checkout https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none https://github.com/owomocha/genshin-7.0-local-re-devkit.git /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Test native multi-arg reader bodies against order field
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-multiarg-fingerprint.txt
+          import csv
+          import json
+          import struct
+          from collections import Counter
+          from pathlib import Path
+
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          AGD=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          READER="FNIAHJGHFAK"
+          SUBID_KEY=0xB1571A55
+          ORDER_SUB=0x732ED834
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          fields=read_csv("fields.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+          fields_by_tdi={}
+          for row in fields:
+              try: fields_by_tdi.setdefault(int(row["type_definition_index"]),[]).append(row)
+              except Exception: pass
+
+          deser={}
+          one_by_class={}
+          multi=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not rva or not params or params[0] != READER:
+                  continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+                  priority=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  old=one_by_class.get(cls)
+                  if old is None or priority<old[0]:
+                      one_by_class[cls]=(priority,rva)
+              else:
+                  multi.append((rva,m,tdi,params))
+
+          row_deser={cls:rva for cls,(_p,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          rows=json.loads(AGD.read_text(encoding="utf-8"))
+
+          encoded={}
+          for ordinal,row in enumerate(rows):
+              sid=row.get("subId")
+              if isinstance(sid,int):
+                  encoded.setdefault((sid^SUBID_KEY)&0xffffffff,[]).append((ordinal,sid))
+          hits={x:[] for x in encoded}
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in hits: hits[u].append(pos)
+          anchors={}
+          for enc,items in encoded.items():
+              if len(items)==1 and len(hits[enc])==1:
+                  ordinal,sid=items[0]
+                  anchors[ordinal]=(sid,hits[enc][0])
+
+          spans=[]
+          for ordinal in range(len(rows)):
+              cur=anchors.get(ordinal)
+              if not cur: continue
+              if ordinal==0:
+                  start=4
+              else:
+                  prev=anchors.get(ordinal-1)
+                  if not prev: continue
+                  start=prev[1]+4
+              end=cur[1]
+              if 8 <= end-start <= 4096:
+                  spans.append({
+                      "ordinal":ordinal,
+                      "subId":cur[0],
+                      "order":rows[ordinal].get("order"),
+                      "start":start,
+                      "end":end,
+                      "size":end-start,
+                  })
+          by_ord={x["ordinal"]:x for x in spans}
+          simple=[by_ord[i] for i in range(18)]
+          assert all(x["size"]==56 for x in simple)
+          assert [x["order"] for x in simple[:3]]==[1,2,3]
+
+          class TraceReader(BC.Reader):
+              def __init__(self,b):
+                  super().__init__(b); self.trace=[]
+              def val(self,w,ops):
+                  start=self.p
+                  rawv=self.u(w)
+                  value=BC.apply_ops(rawv,ops,w)
+                  self.trace.append({"start":start,"width":w,"raw":rawv,"value":value,"ops":ops})
+                  return value
+
+          def parse(schema,span,trace=False):
+              rr=TraceReader(payload) if trace else BC.Reader(payload)
+              rr.p=span["start"]
+              try: rr.record(schema)
+              except Exception as exc:
+                  return rr.p,getattr(rr,"trace",[]),type(exc).__name__
+              return rr.p,getattr(rr,"trace",[]),None
+
+          print("multi_arg_methods",len(multi))
+          print("inativeallocator_methods",sum("INativeAllocator" in p for _r,_m,_t,ps in multi for p in ps[1:]))
+
+          built=0
+          fingerprint=[]
+          build_errors=Counter()
+          for rva,m,tdi,params in multi:
+              was_two=rva in EXT._state.get("two",set())
+              if was_two:
+                  EXT._state["two"].discard(rva)
+              try:
+                  schema=EXT.build(exe,rva,deser,cache={})
+                  built+=1
+              except Exception as exc:
+                  build_errors[type(exc).__name__]+=1
+                  if was_two: EXT._state["two"].add(rva)
+                  continue
+              if was_two: EXT._state["two"].add(rva)
+
+              controls=[]
+              ok=True
+              for span in simple[:3]:
+                  end,tr,err=parse(schema,span,True)
+                  target=span["start"]+0x0C
+                  hh=[x for x in tr if x["start"]==target and x["width"]==4 and x["value"]==(span["order"]&0xffffffff)]
+                  controls.append({
+                      "ordinal":span["ordinal"],"end":end,"error":err,"hits":hh[:3],
+                  })
+                  if not hh:
+                      ok=False
+                      break
+              if not ok:
+                  continue
+
+              exact=0
+              deltas=Counter()
+              errors=0
+              for span in simple:
+                  end,_tr,err=parse(schema,span,False)
+                  if err: errors+=1
+                  delta=end-span["end"]
+                  deltas[delta]+=1
+                  if not err and delta==0: exact+=1
+              fingerprint.append({
+                  "rva":f"0x{rva:X}",
+                  "type_name":m.get("type_name"),
+                  "method_name":m.get("method_name"),
+                  "type_definition_index":m.get("type_definition_index"),
+                  "params":params,
+                  "metadata_field_count":type_by_tdi.get(tdi,{}).get("field_count"),
+                  "fields":fields_by_tdi.get(tdi,[]),
+                  "simple_exact":exact,
+                  "simple_total":len(simple),
+                  "errors":errors,
+                  "deltas":dict(deltas),
+                  "controls":controls,
+                  "schema":schema,
+              })
+
+          fingerprint.sort(key=lambda x:(-x["simple_exact"],x["rva"]))
+          print("built_multiarg_schemas",built)
+          print("build_errors",dict(build_errors))
+          print("order_fingerprint_candidates",len(fingerprint))
+          for x in fingerprint[:80]:
+              print(json.dumps({
+                  "rva":x["rva"],"type_name":x["type_name"],"method_name":x["method_name"],
+                  "tdi":x["type_definition_index"],"params":x["params"],
+                  "metadata_field_count":x["metadata_field_count"],
+                  "simple_exact":x["simple_exact"],"deltas":x["deltas"],
+                  "control_ops":[c["hits"][0]["ops"] for c in x["controls"] if c["hits"]],
+              },ensure_ascii=False))
+
+          report={
+              "row_framing":"[body][encoded_subId suffix]",
+              "order_transform":f"raw-0x{ORDER_SUB:08X}",
+              "multi_arg_methods":len(multi),
+              "built_multiarg_schemas":built,
+              "build_errors":dict(build_errors),
+              "candidates":fingerprint,
+          }
+          Path("quest-legacy-71-multiarg-fingerprint.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-multiarg-fingerprint
+          path: |
+            quest-legacy-71-multiarg-fingerprint.txt
+            quest-legacy-71-multiarg-fingerprint.json
+          if-no-files-found: error
