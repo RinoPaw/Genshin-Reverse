@@ -551,3 +551,26 @@ Therefore the remaining unresolved set cannot be reduced by searching these
 known Luna/Asta-derived public Quest JSON siblings. Further progress must come
 from a different evidence class: server-side source, independently preserved
 historical data, or semantic reconstruction from the Quest graph / scripts.
+## 2026-10-07 unresolved historical exhaustion
+
+The 10,657 rows left unresolved by the conservative compatibility manifest
+were checked against pinned 3.7, 4.0, 4.6, 5.0, 6.6, 7.0, and 7.1-community
+Quest snapshots.
+
+For both `acceptCond` and `beginExec`, every one of those 10,657 rows has
+**no historical field evidence** under that snapshot set:
+
+- recovered non-empty values: 0;
+- recovered empty values from an explicitly present historical field: 0;
+- single-version values: 0;
+- conflicting values: 0;
+- remaining unresolved: 10,657.
+
+This closes historical carry-forward as a recovery source for those rows.
+Any further values produced for them must be explicitly classified as
+`inferred` / `synthetic compatibility`, not `recovered`.
+
+The next useful evidence class is structural inference from same-version
+Quest topology, retained finish/fail arrays, talk/script relationships, and
+other quest-adjacent resources. That inference must stay separate from the
+native and historical layers already preserved by `genshinre.questrecovery71`.
