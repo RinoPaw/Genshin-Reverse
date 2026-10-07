@@ -35,7 +35,6 @@ jobs:
           fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
           fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70a 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
           fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
-          fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/c70c a64cf90a0dca864ca4fa35f9c30ed3d4cffb237c
           fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71a 395a5ee6442142a803691f60d541ee1706ae9cd7
           fetch_repo https://github.com/invoker-bot/LunaGC-Resources.git /tmp/c71b e2c1d3ca75f931572325e9f3d8f02a2e7ef2e7e7
 
@@ -111,7 +110,6 @@ jobs:
           sources={
               "c70a":load_norm("/tmp/c70a/BinOutput/Quest"),
               "c70b":load_norm("/tmp/c70b/BinOutput/Quest"),
-              "c70c":load_norm("/tmp/c70c/BinOutput/Quest"),
               "c71a":load_norm("/tmp/c71a/BinOutput/Quest"),
               "c71b":load_norm("/tmp/c71b/BinOutput/Quest"),
           }
@@ -182,7 +180,7 @@ jobs:
                   print(n,p)
 
           # Which raw 7.1 rows have no row in any 7.0 source specifically?
-          old_union=set().union(*(set(sources[k]) for k in ("c70a","c70b","c70c")))
+          old_union=set().union(*(set(sources[k]) for k in ("c70a","c70b")))
           new71=sorted(set(raw)-old_union)
           print("\nNO_7_0_ROW_UNION",len(new71),new71[:1000])
           report["new_7_1_vs_7_0_union"]=new71
