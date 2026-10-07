@@ -1,0 +1,217 @@
+name: Correlate AstaPS QuestExcel fields with 7.1 native wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-asta-wire-correlation.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: probe-quest-legacy-71-asta-wire-correlation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch AstaPS PR9 resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -s /tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Correlate resource fields with native row masks and bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-asta-wire-correlation.txt
+          import collections
+          import json
+          import struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY=0xB1571A55
+          MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,0x083EFDD5,
+              0x087FDDD5,0x287EFDD5,0x087ED9D5,0x083EDDD5,0x007FFDD5,
+              0x087FF9D5,0x083EF9D5,0x083FFDD5,
+          }
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          hits=[]
+          for pos in range(len(payload)-3):
+              u=struct.unpack_from("<I",payload,pos)[0]
+              if u in MASKS:
+                  hits.append((pos,u))
+          native=[]
+          for i,(start,low) in enumerate(hits):
+              end=hits[i+1][0] if i+1<len(hits) else len(payload)
+              sid=struct.unpack_from("<I",payload,end-4)[0]^SUBID_KEY
+              native.append({
+                  "ordinal":i,"start":start,"end":end,"size":end-start,
+                  "mask64":struct.unpack_from("<Q",payload,start)[0],
+                  "subId":sid,
+              })
+          if len(native)!=33214 or native[-1]["end"]!=len(payload):
+              raise SystemExit(f"native framing drift {len(native)} {native[-1] if native else None}")
+          native_by_sid={x["subId"]:x for x in native}
+
+          rows=json.loads(RES.read_text(encoding="utf-8"))
+          aligned=[(r,native_by_sid[r["subId"]]) for r in rows if r.get("subId") in native_by_sid]
+          if len(aligned)!=33214:
+              raise SystemExit(f"aligned count drift {len(aligned)}")
+
+          # Field presence vs every raw mask bit.
+          all_fields=sorted({k for r,_ in aligned for k in r})
+          presence=[]
+          for field in all_fields:
+              present_total=sum(field in r for r,_ in aligned)
+              best=[]
+              for bit in range(64):
+                  bins={0:[0,0],1:[0,0]}
+                  for r,nr in aligned:
+                      b=(nr["mask64"]>>bit)&1
+                      bins[b][1]+=1
+                      if field in r: bins[b][0]+=1
+                  if not bins[0][1] or not bins[1][1]: continue
+                  p0=bins[0][0]/bins[0][1]
+                  p1=bins[1][0]/bins[1][1]
+                  delta=p1-p0
+                  if abs(delta)>=0.95:
+                      best.append({
+                          "bit":bit,"delta":delta,
+                          "bit0_present":bins[0][0],"bit0_total":bins[0][1],
+                          "bit1_present":bins[1][0],"bit1_total":bins[1][1],
+                      })
+              best.sort(key=lambda x:-abs(x["delta"]))
+              presence.append({
+                  "field":field,"present_rows":present_total,
+                  "presence_ratio":present_total/len(aligned),
+                  "strong_bits":best[:12],
+              })
+
+          # Rank fixed-offset one-op matches for integer values. Keep a high
+          # support threshold so synthetic/default coincidences do not dominate.
+          scalar=[]
+          for field in all_fields:
+              eligible=[(r,nr) for r,nr in aligned
+                        if isinstance(r.get(field),int) and not isinstance(r.get(field),bool)]
+              if len(eligible)<100:
+                  continue
+              counters={k:collections.Counter() for k in ("xor","sub","add")}
+              for r,nr in eligible:
+                  v=r[field]&0xffffffff
+                  body=payload[nr["start"]:nr["end"]-4]
+                  # Search only first 128 bytes; long tail/nested content is not
+                  # useful for stable scalar layout discovery.
+                  lim=min(len(body)-3,128)
+                  for off in range(max(0,lim)):
+                      u=struct.unpack_from("<I",body,off)[0]
+                      counters["xor"][(off,u^v)]+=1
+                      counters["sub"][(off,(u-v)&0xffffffff)]+=1
+                      counters["add"][(off,(u+v)&0xffffffff)]+=1
+              item={"field":field,"eligible":len(eligible)}
+              for kind,c in counters.items():
+                  item[kind]=[
+                      {"offset":o,"key":f"0x{k:08X}","support":s,"ratio":s/len(eligible)}
+                      for (o,k),s in c.most_common(8)
+                  ]
+              scalar.append(item)
+
+          # Quest 351 exact aligned controls.
+          q351=[]
+          by_res={r["subId"]:r for r,_ in aligned}
+          for sid in range(35100,35108):
+              nr=native_by_sid.get(sid)
+              rr=by_res.get(sid)
+              if not nr or not rr: continue
+              body=payload[nr["start"]:nr["end"]-4]
+              q351.append({
+                  "subId":sid,"ordinal":nr["ordinal"],"start":nr["start"],"end":nr["end"],
+                  "size":nr["size"],"mask64":f"0x{nr['mask64']:016X}",
+                  "body_hex":body.hex(),
+                  "resource":rr,
+              })
+
+          # Fields explicitly relevant to the prerequisite provenance.
+          focus_names=[
+              "acceptCond","acceptCondComb","beginExec","finishCond","failCond",
+              "finishExec","failExec","guide","showType","showGuide","isMpBlock",
+              "subIdSet","banType","failParentShow","mainId","order",
+              "descTextMapHash","stepDescTextMapHash","guideTipsTextMapHash",
+          ]
+          focus={x["field"]:x for x in presence if x["field"] in focus_names}
+
+          report={
+              "native_rows":len(native),
+              "resource_rows":len(rows),
+              "aligned_rows":len(aligned),
+              "resource_only_subIds":sorted({r.get("subId") for r in rows if isinstance(r.get("subId"),int)}-set(native_by_sid)),
+              "focus_presence":focus,
+              "all_presence":presence,
+              "scalar_transform_rank":scalar,
+              "quest351":q351,
+          }
+          print(json.dumps({
+              "native_rows":report["native_rows"],
+              "resource_rows":report["resource_rows"],
+              "aligned_rows":report["aligned_rows"],
+              "resource_only_subIds":report["resource_only_subIds"],
+              "focus_presence":focus,
+              "scalar_top":[{
+                  "field":x["field"],"eligible":x["eligible"],
+                  "xor":x["xor"][:3],"sub":x["sub"][:3],"add":x["add"][:3],
+              } for x in scalar],
+              "quest351":[{
+                  "subId":x["subId"],"ordinal":x["ordinal"],"start":x["start"],
+                  "end":x["end"],"size":x["size"],"mask64":x["mask64"],
+                  "resource_keys":list(x["resource"]),
+              } for x in q351],
+          },ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-asta-wire-correlation.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-asta-wire-correlation
+          path: |
+            quest-legacy-71-asta-wire-correlation.txt
+            quest-legacy-71-asta-wire-correlation.json
+          if-no-files-found: error
