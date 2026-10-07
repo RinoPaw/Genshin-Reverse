@@ -61,6 +61,17 @@ jobs:
           git -C /tmp/agd-71 sparse-checkout set 'BinOutput/Quest/*.json'
           git -C /tmp/agd-71 checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
 
+      - name: Fetch pinned 7.1 Dimbreath native-name controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/dimbreath-71
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/dimbreath-71
+          git -C /tmp/dimbreath-71 sparse-checkout init --no-cone
+          git -C /tmp/dimbreath-71 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/dimbreath-71 checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
       - name: Correlate unresolved native slots
         shell: bash
         run: |
@@ -86,10 +97,27 @@ jobs:
                   if isinstance(row, dict) and isinstance(row.get("subId"), int):
                       controls[row["subId"]] = row
 
+          dim_controls = {}
+          for path in sorted(Path("/tmp/dimbreath-71/BinOutput/Quest").glob("*.json")):
+              try:
+                  root = json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              if not isinstance(root, dict):
+                  continue
+              for row in root.get("subQuests", []):
+                  if isinstance(row, dict):
+                      sid = row.get("subId", row.get("NFGFDHPPBIF"))
+                      if isinstance(sid, int):
+                          dim_controls[sid] = row
+
           common = sorted(set(native) & set(controls))
+          dim_common = sorted(set(native) & set(dim_controls))
           print("native_rows", len(native))
           print("control_rows", len(controls))
           print("intersection", len(common))
+          print("dimbreath_control_rows", len(dim_controls))
+          print("dimbreath_intersection", len(dim_common))
 
           def presence_set_native(attr):
               return {sid for sid in common if getattr(native[sid], attr) is not None}
@@ -198,6 +226,79 @@ jobs:
           rank_values("guide.unknown_string_20", lambda r:r.guide.unknown_string_20, "guide")
           for attr in ("unknown_scalar_2c","unknown_scalar_40","unknown_scalar_44","unknown_scalar_5c"):
               rank_values("guide."+attr, lambda r,a=attr:getattr(r.guide,a), "guide")
+
+          # Use Dimbreath's pinned CNRELWin7.1.0 dump as a native-name control.
+          # Unlike the Asta projection, it preserves many obfuscated runtime fields.
+          dim_row_keys = defaultdict(set)
+          for sid in dim_common:
+              for key in dim_controls[sid]:
+                  dim_row_keys[key].add(sid)
+
+          print("\n=== DIMBREATH PRESENCE BIT40 ===")
+          bit40_set_all = {sid for sid in dim_common if native[sid].unknown_bit40_raw is not None}
+          dim_presence_rank = []
+          for key,ks in dim_row_keys.items():
+              inter=len(bit40_set_all & ks)
+              union=len(bit40_set_all | ks)
+              dim_presence_rank.append((
+                  1 if bit40_set_all==ks else 0,
+                  inter/union if union else 1.0,
+                  inter,len(bit40_set_all),len(ks),key,
+                  len(bit40_set_all-ks),len(ks-bit40_set_all),
+              ))
+          dim_presence_rank.sort(reverse=True)
+          for exact,jacc,inter,ns,nk,key,miss,extra in dim_presence_rank[:40]:
+              print(
+                  f"{key}\texact={exact}\tjacc={jacc:.6f}\tinter={inter}"
+                  f"\tnative={ns}\tcontrol={nk}\tnative_only={miss}\tcontrol_only={extra}"
+              )
+
+          print("\n=== DIMBREATH UNKNOWN CORE VALUE/TRANSFORM ===")
+          # For each scalar Dimbreath key, test direct equality and whether a
+          # single XOR or modular add/sub constant maps the native fixed slot.
+          dim_scalar_pairs = defaultdict(list)
+          for sid in dim_common:
+              raw = native[sid].unknown_core_u32
+              for key,val in dim_controls[sid].items():
+                  if isinstance(val, bool) or not isinstance(val, int):
+                      continue
+                  dim_scalar_pairs[key].append((raw,val))
+          ranked=[]
+          for key,pairs in dim_scalar_pairs.items():
+              if len(pairs)<10:
+                  continue
+              eq=sum(a==b for a,b in pairs)
+              xors={a^b for a,b in pairs}
+              adds={(b-a)&0xffffffff for a,b in pairs}
+              subs={(a-b)&0xffffffff for a,b in pairs}
+              score=(
+                  1 if eq==len(pairs) else 0,
+                  1 if len(xors)==1 else 0,
+                  1 if len(adds)==1 else 0,
+                  eq/len(pairs),
+                  len(pairs),
+              )
+              ranked.append((score,key,pairs,xors,adds,subs,eq))
+          ranked.sort(reverse=True,key=lambda x:(x[0],x[1]))
+          for score,key,pairs,xors,adds,subs,eq in ranked[:50]:
+              print(
+                  key,
+                  "pairs",len(pairs),
+                  "eq",eq,
+                  "ratio",f"{eq/len(pairs):.6f}",
+                  "xor_constants",len(xors),
+                  "xor",hex(next(iter(xors))) if len(xors)==1 else "",
+                  "add_constants",len(adds),
+                  "add",hex(next(iter(adds))) if len(adds)==1 else "",
+                  "sub_constants",len(subs),
+                  "sub",hex(next(iter(subs))) if len(subs)==1 else "",
+              )
+
+          print("\n=== DIMBREATH BIT40 ROWS ===")
+          for sid in sorted(bit40_set_all):
+              c=dim_controls[sid]
+              scalar={k:v for k,v in c.items() if isinstance(v,(bool,int,str)) and k not in {"subId","NFGFDHPPBIF","mainId","PCOMHEOJPOO","order"}}
+              print(json.dumps({"subId":sid,"fields":scalar,"guideHint":c.get("guideHint",c.get("BIHKOLLEDPE"))},ensure_ascii=False))
 
           # Resolve the remaining fixed-core uint32 against every scalar
           # same-version control field using the simple transforms seen
