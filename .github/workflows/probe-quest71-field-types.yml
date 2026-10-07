@@ -33,6 +33,14 @@ jobs:
             python -m genshinre.cli query-fields "$F" --type LAIMPNDEFCL || true
             echo '=== OWNER AFIOOHMJHDM ==='
             python -m genshinre.cli query-fields "$F" --type AFIOOHMJHDM || true
+            echo '=== OWNER OOPFBIEAILL ==='
+            python -m genshinre.cli query-fields "$F" --type OOPFBIEAILL || true
+            for type_name in QuestShowType QuestExtraShowType QuestResidentGuideType \
+              GNOFDPCJNJM JKGOAFAGMFO OFLILKIBBEK NINNEBHPPCH \
+              AOBIFAGCPLE KPHLFFOELCG MIFLGIOOBAJ KAABNOHKKEP; do
+              echo "=== TYPE $type_name ==="
+              python -m genshinre.cli query-fields "$F" --type "$type_name" || true
+            done
             for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO; do
               echo "=== FIELD $field ==="
               python -m genshinre.cli query-fields "$F" --field-name "$field" || true
