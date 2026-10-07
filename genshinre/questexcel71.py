@@ -63,6 +63,7 @@ class QuestExcel71Row:
     dmcmnplmckl: str | None
     ban_type: str | None
     unknown_bit40_raw: int | None
+    guide_hint: QuestGuideHint71
     known_prefix_end: int
     raw_tail: bytes
     known_suffix_start: int
@@ -283,6 +284,7 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         dmcmnplmckl=dmcmnplmckl,
         ban_type=ban_type,
         unknown_bit40_raw=unknown_bit40_raw,
+        guide_hint=guide_hint,
         known_prefix_end=p,
         raw_tail=payload[p:guide.start],
         known_suffix_start=known_suffix_start,
