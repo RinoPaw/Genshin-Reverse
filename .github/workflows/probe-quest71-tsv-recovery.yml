@@ -1,0 +1,214 @@
+name: Probe Quest 7.1 leaked TSV recovery
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-tsv-recovery.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3" pattern="$4"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set "$pattern"
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 \
+            792978e5503ecfba73dcb3562ed44a0d35a2abe2 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71 \
+            395a5ee6442142a803691f60d541ee1706ae9cd7 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70 \
+            0991d8a9d82b37a7400774764c0b6e04e7c66a9d 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/wander-in-wind/TsvParser.git /tmp/tsv \
+            096da276f5afc91a4a78517570806e520b5d7383 'src/main/resources/json/*.json'
+
+      - name: Compare leaked TSV with recovery gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-tsv-recovery.txt
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from genshinre.questrecovery71 import (
+              build_from_directories,
+              load_community_rows,
+              _comparison_value,
+          )
+
+          RAW=Path("/tmp/raw71/BinOutput/Quest")
+          C71=Path("/tmp/c71/BinOutput/Quest")
+          C70=Path("/tmp/c70/BinOutput/Quest")
+          TSV=Path("/tmp/tsv/src/main/resources/json")
+
+          def load_raw(root):
+              out={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if not isinstance(r,dict):continue
+                      sid=r.get("NFGFDHPPBIF")
+                      if isinstance(sid,int): out[sid]=r
+              return out
+
+          def load_tsv(root):
+              out={}
+              roots=0
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  roots+=1
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          out[r["subId"]]=r
+              return out,roots
+
+          raw=load_raw(RAW)
+          c71=load_community_rows(C71)
+          c70=load_community_rows(C70)
+          tsv,tsv_roots=load_tsv(TSV)
+
+          manifest,unresolved=build_from_directories(
+              RAW,C71,C70,
+              raw_71_source="DimbreathBot/AnimeGameData@792978e5",
+              community_71_source="capyb2222/LunaGC-Resources@395a5ee6",
+              community_70_source="chenlin996/LunaGC-Resources7.0@0991d8a9",
+          )
+          unresolved_rows=unresolved["rows"]
+
+          print("ROWS",{
+              "raw71":len(raw),"c71":len(c71),"c70":len(c70),
+              "tsv_roots":tsv_roots,"tsv_rows":len(tsv),
+              "tsv_intersection_raw71":len(set(tsv)&set(raw)),
+              "manifest_unresolved_rows":len(unresolved_rows),
+          })
+
+          identity=Counter()
+          identity_examples=[]
+          for sid in sorted(set(tsv)&set(raw)):
+              tr=tsv[sid]; rr=raw[sid]
+              tm=tr.get("mainId"); rm=rr.get("PCOMHEOJPOO")
+              to=tr.get("order"); ro=rr.get("GBFIFKGFKHD")
+              identity["rows"]+=1
+              if tm==rm: identity["mainId_match"]+=1
+              else:
+                  identity["mainId_mismatch"]+=1
+                  if len(identity_examples)<20:
+                      identity_examples.append((sid,"mainId",tm,rm))
+              if to==ro: identity["order_match"]+=1
+              else:
+                  identity["order_mismatch"]+=1
+                  if len(identity_examples)<20:
+                      identity_examples.append((sid,"order",to,ro))
+          print("IDENTITY",dict(identity))
+          print("IDENTITY_MISMATCH_EXAMPLES",identity_examples)
+
+          def norm(row,field):
+              if row is None:return []
+              return _comparison_value(row.get(field),field=field)
+
+          report={"fields":{}}
+          for field in ("acceptCond","beginExec"):
+              st=Counter()
+              conflicts=[]
+              newly_nonempty=[]
+              newly_empty=[]
+              missing_tsv=[]
+              overlap_examples=[]
+              for sid in sorted(raw):
+                  tv=norm(tsv.get(sid),field)
+                  v71=norm(c71.get(sid),field)
+                  v70=norm(c70.get(sid),field)
+
+                  if sid in tsv:
+                      st["tsv_row"]+=1
+                      if tv:st["tsv_nonempty"]+=1
+                      else:st["tsv_empty"]+=1
+                  else:
+                      st["tsv_no_row"]+=1
+
+                  if tv and v71:
+                      st["tsv_and_c71_nonempty"]+=1
+                      if tv==v71:st["tsv_c71_exact"]+=1
+                      else:
+                          st["tsv_c71_conflict"]+=1
+                          if len(conflicts)<40:
+                              conflicts.append({"subId":sid,"tsv":tv,"c71":v71})
+                  if tv and v70:
+                      st["tsv_and_c70_nonempty"]+=1
+                      if tv==v70:st["tsv_c70_exact"]+=1
+                      else:st["tsv_c70_conflict"]+=1
+
+                  u=(unresolved_rows.get(str(sid)) or {}).get("fields",{}).get(field)
+                  if u is not None:
+                      st["currently_unresolved"]+=1
+                      if sid not in tsv:
+                          st["unresolved_no_tsv_row"]+=1
+                          if len(missing_tsv)<100:missing_tsv.append(sid)
+                      elif tv:
+                          st["unresolved_tsv_nonempty"]+=1
+                          newly_nonempty.append(sid)
+                      else:
+                          st["unresolved_tsv_empty"]+=1
+                          newly_empty.append(sid)
+
+                  if tv and len(overlap_examples)<30:
+                      overlap_examples.append({"subId":sid,"tsv":tv,"c70":v70,"c71":v71})
+
+              report["fields"][field]=dict(st)
+              print("\nFIELD",field,dict(st))
+              print("RECOVER_UNRESOLVED_NONEMPTY",len(newly_nonempty),newly_nonempty[:500])
+              print("RESOLVE_UNRESOLVED_EMPTY",len(newly_empty),newly_empty[:300])
+              print("UNRESOLVED_NO_TSV_ROW",len(missing_tsv),missing_tsv[:100])
+              print("CONFLICTS",len(conflicts),json.dumps(conflicts[:20],ensure_ascii=False))
+              print("OVERLAP_EXAMPLES",json.dumps(overlap_examples[:12],ensure_ascii=False))
+
+          Path("quest71-tsv-recovery.json").write_text(
+              json.dumps({
+                  "sources":{
+                      "raw71":"DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+                      "community71":"capyb2222/LunaGC-Resources@395a5ee6442142a803691f60d541ee1706ae9cd7",
+                      "community70":"chenlin996/LunaGC-Resources7.0@0991d8a9d82b37a7400774764c0b6e04e7c66a9d",
+                      "leaked_tsv":"wander-in-wind/TsvParser@096da276f5afc91a4a78517570806e520b5d7383",
+                  },
+                  "rows":{"raw71":len(raw),"tsv":len(tsv),"intersection":len(set(tsv)&set(raw))},
+                  "identity":dict(identity),
+                  **report,
+              },ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-tsv-recovery
+          path: |
+            quest71-tsv-recovery.txt
+            quest71-tsv-recovery.json
+          if-no-files-found: error
