@@ -187,6 +187,64 @@ jobs:
           for attr in ("unknown_scalar_2c","unknown_scalar_40","unknown_scalar_44","unknown_scalar_5c"):
               rank_values("guide."+attr, lambda r,a=attr:getattr(r.guide,a), "guide")
 
+          # Resolve the remaining fixed-core uint32 against every scalar
+          # same-version control field using the simple transforms seen
+          # throughout this reader (xor or modular add/sub).
+          candidate_row_fields = (
+              "PCOMHEOJPOO","NFGFDHPPBIF","IHOOIFBLPJK","KBDPGMJFJGO",
+              "FKKAEBOAMCN","IILNPFILEGJ","NBOJMAHCCGM",
+              "KGNKIMLCNMC","MIABAAMCOFK","BMBJLJFPAIM",
+              "HEMLAEELDFC","HJOFKFKBFCF","FJDKHGMJOPL",
+              "PHDIEJAPFJO","MDLABCMFLMH",
+          )
+          print("\n=== LAIMPNDEFCL CANDIDATE PRESENCE ===")
+          bit40_set = presence_set_native("unknown_bit40_raw")
+          print("bit40_subids", sorted(bit40_set))
+          for key in candidate_row_fields:
+              ks = row_keys.get(key, set())
+              print(
+                  key,
+                  "count", len(ks),
+                  "bit40_inter", len(bit40_set & ks),
+                  "bit40_native_only", len(bit40_set - ks),
+                  "bit40_control_only", len(ks - bit40_set),
+              )
+
+          print("\n=== UNKNOWN CORE SIMPLE TRANSFORMS ===")
+          for key in candidate_row_fields:
+              pairs=[]
+              for sid in common:
+                  cv=controls[sid].get(key)
+                  if isinstance(cv, bool) or not isinstance(cv, int):
+                      continue
+                  pairs.append((native[sid].unknown_core_u32, cv))
+              if not pairs:
+                  continue
+              xors={a ^ b for a,b in pairs}
+              adds={(b-a)&0xffffffff for a,b in pairs}
+              subs={(a-b)&0xffffffff for a,b in pairs}
+              print(
+                  key,
+                  "pairs",len(pairs),
+                  "xor_constants",len(xors),
+                  "xor",hex(next(iter(xors))) if len(xors)==1 else "",
+                  "add_constants",len(adds),
+                  "add",hex(next(iter(adds))) if len(adds)==1 else "",
+                  "sub_constants",len(subs),
+                  "sub",hex(next(iter(subs))) if len(subs)==1 else "",
+              )
+
+          print("\n=== BIT40 ROW CONTROLS ===")
+          for sid in sorted(bit40_set):
+              c=controls[sid]
+              print(json.dumps({
+                  "subId":sid,
+                  "mainId":c.get("mainId"),
+                  "order":c.get("order"),
+                  "row_fields":{k:c.get(k) for k in candidate_row_fields if k in c},
+                  "guideHint":c.get("guideHint"),
+              },ensure_ascii=False))
+
           # Show selected high-information rows.
           selected = [7713702,7713704,7713705,7713706,1001307]
           print("\n=== SELECTED ROWS ===")
