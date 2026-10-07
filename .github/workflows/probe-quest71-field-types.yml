@@ -28,7 +28,14 @@ jobs:
         run: |
           set -euo pipefail
           F=versions/7.1.0-global/windows-x64/metadata/fields.csv
+          M=versions/7.1.0-global/windows-x64/metadata/methods.csv
           {
+            echo '=== METHODS LAIMPNDEFCL ==='
+            python -m genshinre.cli query-methods "$M" --type LAIMPNDEFCL || true
+            echo '=== METHODS AFIOOHMJHDM ==='
+            python -m genshinre.cli query-methods "$M" --type AFIOOHMJHDM || true
+            echo '=== METHODS OOPFBIEAILL ==='
+            python -m genshinre.cli query-methods "$M" --type OOPFBIEAILL || true
             echo '=== OWNER LAIMPNDEFCL ==='
             python -m genshinre.cli query-fields "$F" --type LAIMPNDEFCL || true
             echo '=== OWNER AFIOOHMJHDM ==='
