@@ -26,6 +26,10 @@ FAIL_PARENT_SHOW_HIDDEN_RAW = 0x076DA7BF
 LBEFPHGELAN_TRUE_RAW = 0x87
 SHOW_TYPE_HIDDEN_RAW = 0x59B4291F
 DABNIJGHAPJ_XOR = 0x723E5DDC
+SUB_ID_SET_XOR = 0x01B9521A
+SUB_ID_SET_ADD = 0xA5772739
+MAIN_ID_ADD = 0x0001B716
+MAIN_ID_XOR = 0x32238F7D
 EOFPICJEHLP_BY_RAW = {
     0x467DE16D: 1,
     0x467DE170: 2,
@@ -89,10 +93,14 @@ class QuestExcel71Row:
     unknown_bit40_raw: int | None
     guide_hint: QuestGuideHint71
     sub_id_set_raw: int | None
+    sub_id_set: int | None
     eofpicjehlp: int | None
     fail_parent_show: str | None
     show_guide: str | None
     dabnijghapj: int | None
+    unknown_core_u32: int
+    main_id_raw: int
+    main_id: int
     unknown_core8: bytes
     lbefphgelan: bool | None
     known_prefix_end: int
@@ -266,8 +274,13 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
     p = guide_hint.end
 
     sub_id_set_raw = None
+    sub_id_set = None
     if (mask64 >> BIT_SUB_ID_SET) & 1:
         sub_id_set_raw = _u32(payload, p, suffix_pos, "subIdSet raw")
+        sub_id_set = (
+            ((sub_id_set_raw ^ SUB_ID_SET_XOR) + SUB_ID_SET_ADD)
+            & 0xFFFFFFFF
+        )
         p += 4
 
     eofpicjehlp = None
@@ -314,6 +327,9 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             f"row {index} subId {sub_id} truncates fixed 8-byte core"
         )
     unknown_core8 = payload[p:p + 8]
+    unknown_core_u32 = _u32(payload, p, suffix_pos, "unknown fixed-core word")
+    main_id_raw = _u32(payload, p + 4, suffix_pos, "mainId raw")
+    main_id = ((main_id_raw + MAIN_ID_ADD) & 0xFFFFFFFF) ^ MAIN_ID_XOR
     p += 8
 
     lbefphgelan = None
@@ -388,14 +404,18 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         unknown_bit40_raw=unknown_bit40_raw,
         guide_hint=guide_hint,
         sub_id_set_raw=sub_id_set_raw,
+        sub_id_set=sub_id_set,
         eofpicjehlp=eofpicjehlp,
         fail_parent_show=fail_parent_show,
         show_guide=show_guide,
         dabnijghapj=dabnijghapj,
+        unknown_core_u32=unknown_core_u32,
+        main_id_raw=main_id_raw,
+        main_id=main_id,
         unknown_core8=unknown_core8,
         lbefphgelan=lbefphgelan,
-        known_prefix_end=core_start,
-        raw_tail=unknown_core8,
+        known_prefix_end=guide.start,
+        raw_tail=b"",
         known_suffix_start=known_suffix_start,
         guide=guide,
         show_type=show_type,
