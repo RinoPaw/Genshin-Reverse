@@ -136,6 +136,40 @@ jobs:
                           suffix=" -> "+rec["call_target"]+" "+repr(names)
                       print(rec["rva"],rec["bytes"],rec["mnemonic"],rec["op_str"]+suffix)
 
+          # Exact QuestExcel guide-string fingerprint recovered from native rows.
+          GUIDE_STRING_QWORD_ADD=0xFE73512F02263E11
+          GUIDE_STRING_LEN_XOR=0x3E11
+          key=GUIDE_STRING_QWORD_ADD.to_bytes(8,"little")
+          fingerprint=[]
+          seen=set()
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  at=0
+                  while True:
+                      x=blob.find(key,at)
+                      if x<0:
+                          break
+                      rva=sec.virtual_address+x
+                      ow=owner(rva)
+                      ident=None if ow is None else ow["start"]
+                      if ident not in seen:
+                          seen.add(ident)
+                          fingerprint.append({
+                              "hit_rva":f"0x{rva:X}",
+                              "owner":ow,
+                          })
+                      at=x+1
+          report["guide_string_fingerprint"]={
+              "length_xor":f"0x{GUIDE_STRING_LEN_XOR:04X}",
+              "qword_add":f"0x{GUIDE_STRING_QWORD_ADD:016X}",
+              "owners":fingerprint,
+          }
+          print("=== GUIDE STRING FINGERPRINT ===")
+          print(json.dumps(report["guide_string_fingerprint"],ensure_ascii=False,indent=2))
+
           Path("questexcel71-guide-helper.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
