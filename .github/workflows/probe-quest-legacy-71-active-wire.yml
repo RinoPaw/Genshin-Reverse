@@ -203,7 +203,7 @@ jobs:
                   active = bool(pred(r))
                   true_count += active
                   values.append((active, nr["mask64"]))
-              if true_count == 0 or true_count == len(values):
+              if true_count < 100 or len(values) - true_count < 100:
                   return {"name": name, "true": true_count, "rows": len(values), "best": []}
               best = []
               for bit in range(64):
@@ -216,7 +216,7 @@ jobs:
                       else:
                           b0n += 1
                           b0t += active
-                  if not b0n or not b1n:
+                  if min(b0n, b1n) < 100:
                       continue
                   p0=b0t/b0n
                   p1=b1t/b1n
@@ -294,7 +294,7 @@ jobs:
               eligible=0
               for r,nr in items:
                   v=first_accept_target(r)
-                  if v is None:
+                  if v is None or v == 0:
                       continue
                   eligible += 1
                   data=payload[nr["start"]:nr["end"]]
@@ -393,7 +393,15 @@ jobs:
           print("\n=== strong activity/mask correlations ===")
           for x in strong:
               print(json.dumps(x,ensure_ascii=False))
-          print("\n=== accept target fixed-mask leaders ===")
+          print("\n=== selected materialized predicates ===")
+          for wanted in (
+              "typed:acceptCond", "typed:beginExec", "typed:finishCond",
+              "typed:failCond", "typed:finishExec", "typed:failExec",
+              "accept:state_equal_target", "guide:typed", "isRewind:true",
+          ):
+              item=next((x for x in correlations if x["name"]==wanted),None)
+              print(json.dumps(item,ensure_ascii=False))
+          print("\n=== accept target fixed-mask leaders (nonzero target only) ===")
           for x in accept_by_mask[:8]:
               def best(name):
                   arr=x.get(name,[])
