@@ -1,0 +1,55 @@
+name: Audit MainQuest 7.1 historical mappings
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - "tools/audit_mainquest71_history_mapping.py"
+      - ".github/workflows/audit-mainquest71-history.yml"
+
+concurrency:
+  group: audit-mainquest71-history-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Fetch Quest snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3" path="$4"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set "$path"
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/TomyJan/GCResource.git /tmp/q37 609730bf63568baee1eb77a605b6c273a064dbc1 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_4.6.0.git /tmp/q46 e7e0204a273a82efd3c86507bb19cb0d9e760c53 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/Rafs-kk/LunaGC-6.6-res.git /tmp/q66 b0501c5d8f0f184caa95c12c99dc2f1da428145a 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/q70 a64cf90adbcbb4fec3ad1c00d94bfb455511e080 'BinOutput/Quest/*.json'
+      - name: Audit historical mappings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/audit_mainquest71_history_mapping.py             /tmp/raw71/BinOutput/Quest             q37=/tmp/q37/BinOutput/Quest             q46=/tmp/q46/BinOutput/Quest             q66=/tmp/q66/BinOutput/Quest             q70=/tmp/q70/BinOutput/Quest             --output mainquest71-history.json | tee mainquest71-history.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: mainquest71-history
+          path: |
+            mainquest71-history.json
+            mainquest71-history.txt
+          if-no-files-found: error
