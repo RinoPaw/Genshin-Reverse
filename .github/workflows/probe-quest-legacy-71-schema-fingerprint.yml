@@ -1,0 +1,225 @@
+name: Fingerprint 7.1 QuestExcel reader by effective scalar transforms
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-schema-fingerprint.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-schema-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none \
+            https://github.com/owomocha/genshin-7.0-local-re-devkit.git \
+            /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
+            fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Rank schemas by effective recovered QuestExcel scalar transforms
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-schema-fingerprint.txt
+          import csv,json
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          READER="FNIAHJGHFAK"
+          MASK=(1<<32)-1
+
+          TARGETS={
+              "subId_xor_B1571A55":lambda u:(u^0xB1571A55)&MASK,
+              "order_sub_732ED834":lambda u:(u-0x732ED834)&MASK,
+              "desc_xor_2AC0BB5D":lambda u:(u^0x2AC0BB5D)&MASK,
+              "stepDesc_xor_ABB3B4F1":lambda u:(u^0xABB3B4F1)&MASK,
+              "guideTips_xor_59B7A2F4":lambda u:(u^0x59B7A2F4)&MASK,
+          }
+          TESTS=(0,1,0x12345678,0x89ABCDEF,0xFFFFFFFF)
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+          methods=read_csv("methods.csv")
+          types=read_csv("types.csv")
+          type_by_tdi={int(x["type_definition_index"]):x for x in types}
+
+          deser={}
+          one_by_class={}
+          candidates=[]
+          for m in methods:
+              try:
+                  rva=int(m.get("rva") or "0",0)
+                  tdi=int(m["type_definition_index"])
+                  params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not rva or not params or params[0]!=READER:
+                  continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or m.get("return_type_name") or "").lower()
+                  priority=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or priority<prev[0]:
+                      one_by_class[cls]=(priority,rva)
+                  candidates.append((rva,m,tdi))
+
+          row_deser={cls:rva for cls,(_p,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          def equivalent(ops,target):
+              try:
+                  return all(BC.apply_ops(x,list(ops or []),4)==target(x) for x in TESTS)
+              except Exception:
+                  return False
+
+          def flatten(node,path="root",depth=0,seen=None):
+              if depth>10:return []
+              seen=set() if seen is None else set(seen)
+              oid=id(node)
+              if oid in seen:return []
+              seen.add(oid)
+              out=[]
+              mask=node.get("mask")
+              if mask:
+                  out.append({
+                      "kind":"mask","path":path,
+                      "width":mask.get("width"),"ops":mask.get("ops",[]),
+                  })
+              for i,st in enumerate(node.get("steps",[])):
+                  p=f"{path}.{i}:{st.get('kind')}"
+                  k=st.get("kind")
+                  if k=="base":
+                      out.extend(flatten(st["sub"],p,depth+1,seen))
+                  elif k=="scalar":
+                      out.append({
+                          "kind":"scalar","path":p,"bit":st.get("bit"),
+                          "width":st.get("width"),"ops":st.get("ops",[]),
+                          "dest":st.get("dest"),
+                      })
+                  elif k in ("string","array","array0","strarray"):
+                      lw=st.get("lw")
+                      if lw:
+                          out.append({
+                              "kind":"length","path":p+".len","bit":st.get("bit"),
+                              "width":lw,"ops":st.get("lops",[]),
+                          })
+                      if k in ("array","array0") and st.get("ew"):
+                          out.append({
+                              "kind":"elem","path":p+".elem","bit":st.get("bit"),
+                              "width":st.get("ew"),"ops":st.get("eops",[]),
+                          })
+                  elif k in ("call","objarray","rec") and isinstance(st.get("sub"),dict):
+                      if st.get("lw"):
+                          out.append({
+                              "kind":"length","path":p+".len","bit":st.get("bit"),
+                              "width":st.get("lw"),"ops":st.get("lops",[]),
+                          })
+                      out.extend(flatten(st["sub"],p,depth+1,seen))
+              return out
+
+          ranked=[]
+          errors=0
+          for rva,m,tdi in candidates:
+              try:
+                  schema=BC.build(exe,rva,deser,cache={})
+              except Exception:
+                  errors+=1
+                  continue
+              flat=flatten(schema)
+              hits={k:[] for k in TARGETS}
+              for item in flat:
+                  if item.get("width")!=4:
+                      continue
+                  ops=item.get("ops",[])
+                  for name,target in TARGETS.items():
+                      if equivalent(ops,target):
+                          hits[name].append({
+                              "path":item["path"],"kind":item["kind"],
+                              "bit":item.get("bit"),"dest":item.get("dest"),
+                              "ops":ops,
+                          })
+              labels=[k for k,v in hits.items() if v]
+              if not labels:
+                  continue
+              t=type_by_tdi.get(tdi,{})
+              ranked.append({
+                  "score":len(labels),
+                  "rva":f"0x{rva:X}",
+                  "type_name":m.get("type_name"),
+                  "method_name":m.get("method_name"),
+                  "parameter_types":m.get("parameter_types"),
+                  "return_type":m.get("return_type"),
+                  "type_definition_index":tdi,
+                  "field_count":t.get("field_count"),
+                  "schema_mask":schema.get("mask"),
+                  "labels":labels,
+                  "hits":hits,
+                  "flat_count":len(flat),
+              })
+
+          ranked.sort(key=lambda x:(-x["score"],x["rva"]))
+          print("candidate_one_reader",len(candidates))
+          print("build_errors",errors)
+          print("schemas_with_any_target",len(ranked))
+          print("score_distribution",json.dumps(
+              dict(sorted(__import__('collections').Counter(x["score"] for x in ranked).items())),
+              sort_keys=True
+          ))
+          for x in ranked[:120]:
+              print(json.dumps(x,ensure_ascii=False))
+
+          report={
+              "targets":list(TARGETS),
+              "candidate_one_reader":len(candidates),
+              "build_errors":errors,
+              "ranked":ranked,
+          }
+          Path("quest-legacy-71-schema-fingerprint.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-schema-fingerprint
+          path: |
+            quest-legacy-71-schema-fingerprint.txt
+            quest-legacy-71-schema-fingerprint.json
+          if-no-files-found: error
