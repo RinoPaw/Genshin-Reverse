@@ -260,6 +260,8 @@ def build_manifest(
                     }
                     field_counts[field]["compatibility_empty"] += 1
 
+            base_status_name = status["status"]
+
             # The leaked TSV is an independent historical server/design-table
             # source. It can strengthen a compatibility value or fill a gap,
             # but it never upgrades acceptCond/beginExec to native 7.1.
@@ -335,6 +337,19 @@ def build_manifest(
                         "native_7_1": False,
                     }
                     field_counts[field]["historical_tsv_empty"] += 1
+
+            if status["status"] != base_status_name:
+                count_key = {
+                    "unresolved": "unresolved",
+                    "compatibility-value": "compatibility_value",
+                    "compatibility-empty": "compatibility_empty",
+                }
+                old_key = count_key.get(base_status_name)
+                new_key = count_key.get(status["status"])
+                if old_key is not None:
+                    field_counts[field][old_key] -= 1
+                if new_key is not None:
+                    field_counts[field][new_key] += 1
 
             row_status[field] = status
             if status["status"] == "unresolved":
