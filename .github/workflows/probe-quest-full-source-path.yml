@@ -1,0 +1,150 @@
+name: Probe Quest 7.1 full source path
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest-full-source-path.yml"
+
+concurrency:
+  group: probe-quest-full-source-path-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Resolve full-quest source string slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-full-source-path.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_MEM,X86_REG_RIP
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={
+              "full_source_prefix_slot":0x5A6D818,
+              "full_source_suffix_slot":0x5A6D858,
+          }
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          methods=rows("methods.csv")
+          starts=[];by={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  starts.append(r);by.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not(s<=rva<e):return None
+              return {"start":s,"end":e,"methods":by.get(s,[])}
+
+          report={"targets":{},"xrefs":{},"owners":{}}
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          with PEImage(EXE) as image:
+              base=image.image_base
+              print("image_base",hex(base))
+              for name,rva in TARGETS.items():
+                  raw=image.read_rva(rva,0x40)
+                  q=int.from_bytes(raw[:8],"little")
+                  item={"rva":f"0x{rva:X}","bytes64":raw.hex(),"qword":f"0x{q:X}"}
+                  if base<=q<base+0x80000000:
+                      prva=q-base
+                      try:
+                          item["pointed_rva"]=f"0x{prva:X}"
+                          item["pointed_bytes64"]=image.read_rva(prva,0x40).hex()
+                      except Exception as exc:
+                          item["pointed_error"]=repr(exc)
+                  report["targets"][name]=item
+                  print("TARGET",name,json.dumps(item,ensure_ascii=False))
+
+              target_va={base+rva:name for name,rva in TARGETS.items()}
+              hits={name:[] for name in TARGETS}
+              owners={}
+              for sec in image.sections:
+                  if not(sec.characteristics&0x20000000):continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  for ins in md.disasm(blob,base+sec.virtual_address):
+                      for oi,op in enumerate(ins.operands):
+                          if op.type!=X86_OP_MEM or op.mem.base!=X86_REG_RIP:
+                              continue
+                          t=ins.address+ins.size+op.mem.disp
+                          name=target_va.get(t)
+                          if name is None:continue
+                          rva=ins.address-base
+                          ow=owner(rva)
+                          rec={
+                              "rva":f"0x{rva:X}",
+                              "bytes":ins.bytes.hex(),
+                              "mnemonic":ins.mnemonic,
+                              "op_str":ins.op_str,
+                              "operand_index":oi,
+                              "owner":ow,
+                          }
+                          hits[name].append(rec)
+                          if ow:owners[ow["start"]]=ow
+              report["xrefs"]=hits
+              for name,hh in hits.items():
+                  print("\nXREFS",name,len(hh))
+                  for h in hh:print(json.dumps(h,ensure_ascii=False))
+
+              # Dump each owning method so initialization writes and literal
+              # registration calls can be inspected from one artifact.
+              for start,ow in sorted(owners.items()):
+                  end=min(ow["end"],start+0x3000)
+                  blob=image.read_rva(start,end-start)
+                  insns=[]
+                  for ins in md.disasm(blob,base+start):
+                      insns.append({
+                          "rva":f"0x{ins.address-base:X}",
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      })
+                  report["owners"][f"0x{start:X}"]={
+                      "metadata":ow["methods"],"instructions":insns,
+                  }
+                  print("\nOWNER",f"0x{start:X}",json.dumps(ow["methods"],ensure_ascii=False))
+                  for x in insns:
+                      print(x["rva"],x["bytes"],x["mnemonic"],x["op_str"])
+
+          Path("quest-full-source-path.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-full-source-path
+          path: |
+            quest-full-source-path.txt
+            quest-full-source-path.json
+          if-no-files-found: error
