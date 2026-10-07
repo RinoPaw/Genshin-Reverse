@@ -45,46 +45,28 @@ jobs:
           from pathlib import Path
 
           ROOTS={
-              "6.7":Path("/tmp/agd67/BinOutput/Quest"),
-              "7.0":Path("/tmp/agd70/BinOutput/Quest"),
-              "7.1":Path("/tmp/agd71/BinOutput/Quest"),
+              "6.7":(Path("/tmp/agd67/BinOutput/Quest"),"HLCINEMBGEF"),
+              "7.0":(Path("/tmp/agd70/BinOutput/Quest"),"EBNBLBEIFFJ"),
+              "7.1":(Path("/tmp/agd71/BinOutput/Quest"),"JIJKODHIEED"),
           }
 
-          def load(root):
+          def load(root,subquest_key):
               rows={}
+              n=0
               for p in sorted(root.glob("*.json")):
                   try:o=json.loads(p.read_text(encoding="utf-8"))
                   except Exception:continue
                   if not isinstance(o,dict):continue
-                  # Locate the subquest list without assuming its obfuscated key.
-                  seqs=[]
-                  for k,v in o.items():
-                      if not isinstance(v,list) or not v or not all(isinstance(x,dict) for x in v):
-                          continue
-                      score=0
-                      for r in v[:20]:
-                          vals=list(r.values())
-                          if any(isinstance(x,int) and 10000<=x<=99999999 for x in vals):
-                              score+=1
-                          if any(isinstance(x,list) for x in vals):
-                              score+=1
-                      seqs.append((score,k,v))
-                  if not seqs:continue
-                  seqs.sort(reverse=True,key=lambda x:x[0])
-                  _,key,seq=seqs[0]
+                  seq=o.get(subquest_key,[])
+                  if not isinstance(seq,list):continue
                   for r in seq:
-                      # Infer subId from common identity patterns: an integer that
-                      # appears in the row and whose //100-ish main relation is
-                      # plausible. Prefer known 7.1/legacy names when available.
+                      if not isinstance(r,dict):continue
                       sid=r.get("subId")
                       if not isinstance(sid,int):
                           sid=r.get("NFGFDHPPBIF")
                       if not isinstance(sid,int):
-                          # Dimbreath 6.7/7.0 names are obfuscated. Use the integer
-                          # field with the largest cardinality later; here keep all
-                          # rows with a stable synthetic key from file+position.
-                          sid=(p.stem,len(rows))
-                      rows[sid]=(p.stem,r)
+                          sid=(p.stem,n)
+                      rows[sid]=(p.stem,r);n+=1
               return rows
 
           def array_stats(rows):
@@ -117,8 +99,8 @@ jobs:
 
           all_stats={}
           all_rows={}
-          for ver,root in ROOTS.items():
-              rows=load(root); all_rows[ver]=rows
+          for ver,(root,key) in ROOTS.items():
+              rows=load(root,key); all_rows[ver]=rows
               st=array_stats(rows);all_stats[ver]=st
               print("\n### VERSION",ver,"ROWS",len(rows),"ARRAY_FIELDS",len(st))
               for k,x in sorted(st.items(),key=lambda kv:(-kv[1]["elems"],kv[0])):
@@ -139,7 +121,7 @@ jobs:
 
           # Print Quest351 rows with every list-of-dict field for 6.7/7.0/7.1.
           # We locate them by any integer field in 35100..35107.
-          for ver,root in ROOTS.items():
+          for ver,(root,_key) in ROOTS.items():
               print("\n### QUEST351",ver)
               for p in [root/"351.json"]:
                   if not p.exists():continue
