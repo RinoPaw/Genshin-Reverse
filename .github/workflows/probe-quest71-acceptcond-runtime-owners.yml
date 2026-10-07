@@ -278,6 +278,169 @@ jobs:
                   json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Resolve genericinst via metadata registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-acceptcond-generic-registration.txt
+          import csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET_TYPE_INDEXES=(629808,577923)
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+
+              def read_va(va,n):
+                  if va<base:return b""
+                  try:return image.read_rva(va-base,n)
+                  except Exception:return b""
+
+              def runtime_entry(ix):
+                  raw=image.read_rva(type_array_rva+ix*16,16)
+                  return {
+                      "index":ix,
+                      "data_u64":int.from_bytes(raw[:8],"little"),
+                      "data_u32":int.from_bytes(raw[:4],"little"),
+                      "kind":raw[10],
+                      "raw":raw.hex(),
+                  }
+
+              # Locate the Il2CppMetadataRegistration by the verified
+              # (typesCount, types*) pair. In current IL2CPP this is the fourth
+              # count/pointer pair after genericClasses, genericInsts and
+              # genericMethodTable.
+              ptr_pat=type_array_va.to_bytes(8,"little")
+              candidates=[]
+              for sec in image.sections:
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  off=0
+                  while True:
+                      off=blob.find(ptr_pat,off)
+                      if off<0:break
+                      rva=sec.virtual_address+off
+                      for count_off in (rva-8,rva-4):
+                          raw=image.read_rva(count_off,8)
+                          if len(raw)>=4 and int.from_bytes(raw[:4],"little")==PROFILE_71.runtime_type_count:
+                              candidates.append({
+                                  "pointer_rva":rva,
+                                  "count_rva":count_off,
+                                  "section":sec.name,
+                              })
+                      off+=1
+              print("TYPE_PAIR_CANDIDATES",json.dumps(candidates,indent=2))
+
+              reports=[]
+              for cand in candidates:
+                  # Preferred aligned layout: uint64 count, pointer; types pair at +0x30.
+                  reg_rva=cand["pointer_rva"]-0x38
+                  raw=image.read_rva(reg_rva,0x80)
+                  if len(raw)<0x40:continue
+                  q=[int.from_bytes(raw[i:i+8],"little") for i in range(0,len(raw),8)]
+                  rep={
+                      "registration_rva":hex(reg_rva),
+                      "qwords":[hex(x) for x in q],
+                  }
+                  if len(q)>=8:
+                      rep["generic_classes_count"]=q[0]
+                      rep["generic_classes_ptr"]=hex(q[1])
+                      rep["generic_insts_count"]=q[2]
+                      rep["generic_insts_ptr"]=hex(q[3])
+                      rep["generic_method_table_count"]=q[4]
+                      rep["generic_method_table_ptr"]=hex(q[5])
+                      rep["types_count"]=q[6]
+                      rep["types_ptr"]=hex(q[7])
+                  reports.append(rep)
+              print("REGISTRATION_REPORTS",json.dumps(reports,indent=2))
+
+              resolved=[]
+              for rep in reports:
+                  if rep.get("types_count")!=PROFILE_71.runtime_type_count:
+                      continue
+                  if int(rep.get("types_ptr","0"),16)!=type_array_va:
+                      continue
+                  gcc=int(rep["generic_classes_count"])
+                  gcp=int(rep["generic_classes_ptr"],16)
+                  if not (0<gcc<2_000_000 and gcp>=base):
+                      continue
+
+                  for tix in TARGET_TYPE_INDEXES:
+                      te=runtime_entry(tix)
+                      gidx=te["data_u32"]
+                      item={"runtime_type":te,"generic_class_index":gidx}
+                      if gidx>=gcc:
+                          item["error"]="generic class index out of range"
+                          resolved.append(item);continue
+                      pblob=read_va(gcp+gidx*8,8)
+                      if len(pblob)!=8:
+                          item["error"]="generic class pointer unreadable"
+                          resolved.append(item);continue
+                      gcptr=int.from_bytes(pblob,"little")
+                      item["generic_class_ptr"]=hex(gcptr)
+                      gcraw=read_va(gcptr,32)
+                      item["generic_class_raw"]=gcraw.hex()
+                      if len(gcraw)<24:
+                          item["error"]="generic class unreadable"
+                          resolved.append(item);continue
+
+                      # Modern Il2CppGenericClass: typeDefinitionIndex + padding,
+                      # context.class_inst, context.method_inst, cached_class.
+                      tdi=int.from_bytes(gcraw[:4],"little")
+                      item["generic_type_definition_index"]=tdi
+                      item["generic_type"]=tb.get(tdi,{})
+                      class_inst=int.from_bytes(gcraw[8:16],"little")
+                      method_inst=int.from_bytes(gcraw[16:24],"little")
+                      item["class_inst_ptr"]=hex(class_inst)
+                      item["method_inst_ptr"]=hex(method_inst)
+
+                      def decode_inst(ptr):
+                          iraw=read_va(ptr,16)
+                          out={"ptr":hex(ptr),"raw":iraw.hex()}
+                          if len(iraw)<16:return out
+                          argc=int.from_bytes(iraw[:4],"little")
+                          argv=int.from_bytes(iraw[8:16],"little")
+                          out.update({"argc":argc,"argv":hex(argv),"args":[]})
+                          if argc>16:return out
+                          av=read_va(argv,argc*8)
+                          if len(av)!=argc*8:return out
+                          for i in range(argc):
+                              tp=int.from_bytes(av[i*8:(i+1)*8],"little")
+                              traw=read_va(tp,16)
+                              a={"ptr":hex(tp),"raw":traw.hex()}
+                              if len(traw)==16:
+                                  kind=traw[10]
+                                  data=int.from_bytes(traw[:4],"little")
+                                  a["kind"]=kind
+                                  a["data_u32"]=data
+                                  if kind in (0x11,0x12):
+                                      a["type_definition_index"]=data
+                                      a["type"]=tb.get(data,{})
+                              out["args"].append(a)
+                          return out
+
+                      item["class_inst"]=decode_inst(class_inst)
+                      item["method_inst"]=decode_inst(method_inst) if method_inst else None
+                      resolved.append(item)
+
+              print("RESOLVED_GENERICINST",json.dumps(resolved,ensure_ascii=False,indent=2))
+              Path("quest71-acceptcond-generic-registration.json").write_text(
+                  json.dumps(resolved,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -287,4 +450,6 @@ jobs:
             quest71-acceptcond-runtime-owners.json
             quest71-acceptcond-generic-owners.txt
             quest71-acceptcond-generic-owners.json
+            quest71-acceptcond-generic-registration.txt
+            quest71-acceptcond-generic-registration.json
           if-no-files-found: error
