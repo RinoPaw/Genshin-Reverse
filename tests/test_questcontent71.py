@@ -93,7 +93,7 @@ class QuestContent71Tests(unittest.TestCase):
         self.assertEqual(7, items[0].unknown_scalar)
 
     def test_rejects_unknown_mask_bits(self) -> None:
-        raw = bytes([(1 - MASK_ADD) & 0xFF])
+        raw = bytes([((1 << 2) - MASK_ADD) & 0xFF])
         with self.assertRaisesRegex(QuestContent71ParseError, "unsupported"):
             parse_questcontent71_array(u32(
                 ((1 ^ ARRAY_COUNT_XOR) - ARRAY_COUNT_ADD) & 0xFFFFFFFF
