@@ -4,12 +4,16 @@ import struct
 import unittest
 
 from genshinre.questexcel71 import (
+    BAN_TYPE_BY_RAW,
+    BIT_BAN_TYPE,
+    BIT_DMCMNPLMCKL,
     BIT_EXCLUSIVE_PLACE_LIST,
     BIT_IS_MP_BLOCK,
     BIT_ORDER,
     BIT_PREFER_AREA2_GUIDE_SCENE,
     BIT_UNKNOWN_34,
     EXCLUSIVE_PLACE_COUNT_XOR,
+    DMCMNPLMCKL_HIDDEN_RAW,
     EXCLUSIVE_PLACE_ELEMENT_SUB,
     GUIDE_TIPS_TEXT_MAP_HASH_XOR,
     IS_MP_BLOCK_TRUE_RAW,
@@ -41,6 +45,8 @@ def make_row(
     is_mp_block: bool = False,
     bit34: bool = False,
     step_desc_text_map_hash: int = 0,
+    dmcmnplmckl_hidden: bool = False,
+    ban_type: str | None = None,
     tail: bytes = b"",
     guide_tips_text_map_hash: int = 0,
 ) -> bytes:
@@ -55,6 +61,10 @@ def make_row(
         mask64 |= 1 << BIT_IS_MP_BLOCK
     if bit34:
         mask64 |= 1 << BIT_UNKNOWN_34
+    if dmcmnplmckl_hidden:
+        mask64 &= ~(1 << BIT_DMCMNPLMCKL)
+    if ban_type is not None:
+        mask64 &= ~(1 << BIT_BAN_TYPE)
 
     out = bytearray(struct.pack("<Q", mask64))
     out += u32(unknown_prefix_u32)
@@ -71,6 +81,11 @@ def make_row(
     if bit34:
         out += u32(UNKNOWN_BIT34_RAW)
     out += u32(step_desc_text_map_hash ^ STEP_DESC_TEXT_MAP_HASH_XOR)
+    if dmcmnplmckl_hidden:
+        out += u32(DMCMNPLMCKL_HIDDEN_RAW)
+    if ban_type is not None:
+        raw_by_ban_type = {value: raw for raw, value in BAN_TYPE_BY_RAW.items()}
+        out += u32(raw_by_ban_type[ban_type])
     out += tail
     out += u32(guide_tips_text_map_hash ^ GUIDE_TIPS_TEXT_MAP_HASH_XOR)
     out += u32(sub_id ^ SUB_ID_XOR)
@@ -92,6 +107,8 @@ class QuestExcel71Tests(unittest.TestCase):
             is_mp_block=True,
             bit34=True,
             step_desc_text_map_hash=0x13579BDF,
+            dmcmnplmckl_hidden=True,
+            ban_type="BAN_GROUP_TRANSPORT_MAP",
             tail=b"\xAA\xBB\xCC",
             guide_tips_text_map_hash=0x2468ACE0,
         )
@@ -115,6 +132,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIs(first.is_mp_block, True)
         self.assertEqual(UNKNOWN_BIT34_RAW, first.unknown_bit34_raw)
         self.assertEqual(0x13579BDF, first.step_desc_text_map_hash)
+        self.assertEqual("QUEST_HIDDEN", first.dmcmnplmckl)
+        self.assertEqual("BAN_GROUP_TRANSPORT_MAP", first.ban_type)
         self.assertEqual(b"\xAA\xBB\xCC", first.raw_tail)
         self.assertEqual(first.end - 8, first.known_suffix_start)
         self.assertEqual(0x2468ACE0, first.guide_tips_text_map_hash)
@@ -126,6 +145,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIsNone(second.is_mp_block)
         self.assertIsNone(second.unknown_bit34_raw)
         self.assertEqual(0, second.step_desc_text_map_hash)
+        self.assertIsNone(second.dmcmnplmckl)
+        self.assertIsNone(second.ban_type)
         self.assertEqual(b"opaque", second.raw_tail)
         self.assertEqual(second.end - 8, second.known_suffix_start)
         self.assertEqual(0, second.guide_tips_text_map_hash)
