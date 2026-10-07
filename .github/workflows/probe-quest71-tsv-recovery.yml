@@ -194,6 +194,23 @@ jobs:
                   )
               print("OVERLAP_EXAMPLES",json.dumps(overlap_examples[:12],ensure_ascii=False))
 
+          integrated_manifest,integrated_unresolved=build_from_directories(
+              RAW,C71,C70,
+              raw_71_source="DimbreathBot/AnimeGameData@792978e5",
+              community_71_source="capyb2222/LunaGC-Resources@395a5ee6",
+              community_70_source="chenlin996/LunaGC-Resources7.0@0991d8a9",
+              historical_tsv_root=TSV,
+              historical_tsv_source="wander-in-wind/TsvParser@096da276",
+          )
+          print("\n=== INTEGRATED RECOVERY SUMMARY ===")
+          print(json.dumps(integrated_manifest["summary"],ensure_ascii=False,indent=2))
+          print("INTEGRATED_UNRESOLVED",integrated_unresolved["summary"])
+          for field in ("acceptCond","beginExec"):
+              print(
+                  "INTEGRATED_FIELD",field,
+                  integrated_manifest["summary"]["fields"][field],
+              )
+
           Path("quest71-tsv-recovery.json").write_text(
               json.dumps({
                   "sources":{
