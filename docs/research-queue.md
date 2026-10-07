@@ -17,14 +17,14 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 
 | Priority | Investigation | Current state | Integration value |
 | --- | --- | --- | --- |
-| P0 | [#12 WorldPlayerReviveRsp opcode / shape](https://github.com/RinoPaw/Genshin-Reverse/issues/12) | UNRESOLVED | closes the confirmed 7.1 team-wipe revive request path so AstaPS can emit the native response and finish respawn |
+| P0 | [#12 WorldPlayerReviveRsp runtime confirmation](https://github.com/RinoPaw/Genshin-Reverse/issues/12) | HIGH_CONFIDENCE | static identity is narrowed to S2C CmdId 7003 / GFPMFMJPNMA / retcode field 14; one live 5232 -> 7003 transaction remains |
 | P0 | [#11 Monster drowning packet](https://github.com/RinoPaw/Genshin-Reverse/issues/11) | UNRESOLVED | identifies the exact 7.1 environmental-death message so drowned monsters complete authoritative death/despawn/drop without a follow-up player hit |
 | P0 | [#9 Quest 351 persistent “Return to quest point” client state](https://github.com/RinoPaw/Genshin-Reverse/issues/9) | UNRESOLVED | identifies the exact 7.1 client state/transition needed to stop the return prompt being permanently visible in AstaPS fresh-player intro |
 | P1 | [#1 CmdId 186 / GetActivityInfoReq candidate](https://github.com/RinoPaw/Genshin-Reverse/issues/1) | HIGH_CONFIDENCE | closes a repeated fresh-born/login packet with exact-Global semantic evidence; no current gameplay path is blocked by the remaining semantic edge |
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
 | P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED parent; historical continuity and restored tables documented | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
 | P1 | [#10 ReliquaryMainProp exact weight field / consumer](https://github.com/RinoPaw/Genshin-Reverse/issues/10) | UNRESOLVED | first narrow #5 closure: bind the historical main-prop weight field and weighted-selection semantics on exact Global 7.1 |
-| P1 | [#8 QuestExcel extraction / prerequisite corruption root cause](https://github.com/RinoPaw/Genshin-Reverse/issues/8) | ACTIVE / UNRESOLVED | can remove a recurring resource-repair class by locating whether corruption occurs in client data, schema decode or post-processing |
+| P1 | [#20 remaining ordinary Quest compatibility acceptCond/beginExec gaps](https://github.com/RinoPaw/Genshin-Reverse/issues/20) | ACTIVE / UNRESOLVED | recover or classify the remaining 4,901 acceptCond and 112 beginExec compatibility gaps without collapsing provenance classes |
 | P1/P2 | [#7 Structural protobuf recovery from obfuscated metadata](https://github.com/RinoPaw/Genshin-Reverse/issues/7) | EVALUATION | can recover richer field/container/oneof structure for unknown packets and future version migration |
 | P2 | [#6 Version-independent MHY string-literal recovery](https://github.com/RinoPaw/Genshin-Reverse/issues/6) | EVALUATION | may provide reusable semantic anchors and reduce per-version metadata reverse work |
 
@@ -43,12 +43,16 @@ The queue is AstaPS-driven. Work in this order unless new evidence changes the i
 
 1. Close the narrowest active P0 blocker with a reproducible current-client result. The current death-lifecycle pair is #12 first, then #11; both share runtime reproduction context and should reuse any recovered packet tooling.
 2. Return to #9 after the death-lifecycle blockers because it is a larger client-state investigation with an upstream integration consumer.
-3. Checkpoint #8 whenever a durable loader/schema/artifact boundary is reached. Do not let a long resource investigation monopolize the exact-sample tooling while P0 gameplay blockers are open.
+3. Treat #8 as closed extraction/ownership work. Work #20 only from new evidence classes; do not reopen exhausted QuestExcel-tail or sibling-resource searches.
 4. Use #10 as the next narrow P1 data-fidelity target; promote into parent #5 only after the exact field consumer is proven.
 5. Keep #4 available for gameplay fidelity, but do not prioritize it above a current reproducible P0.
 6. Work on #7 or #6 only when the resulting infrastructure directly shortens an active protocol/native investigation or when no higher-priority consumer is waiting.
 
 Do not keep more than one broad infrastructure investigation active merely because the tooling is interesting. A reusable method earns maintenance cost by closing concrete current-version questions.
+
+## Status ownership
+
+See [governance.md](governance.md). Issues own scope and promotion gates; target analyses own durable sample-bound conclusions. This queue is only an index and must be updated in the same maintenance change when those sources materially change.
 
 ## Default-branch and workflow hygiene
 
@@ -72,7 +76,7 @@ When AstaPS reaches an unknown behavior, use this order before opening a reverse
 
 Do not create reverse tasks for questions already closed by resource evidence. The skip-intro lifecycle bug is an example: the required rule is already known — presentation skipping must preserve the normal scene-ready/PostEnterSceneRsp/onPlayerBorn lifecycle — so additional reversing needs a new concrete uncertainty, not a generic request to inspect intro again.
 
-A resource discrepancy can still justify a reverse task when the uncertainty is in the extraction boundary itself. Issue #8 is the model: downstream repairs already work, but the exact-client serialization/decoder/post-processing boundary remains unknown and recurring corruption has a concrete AstaPS-Resource consumer.
+A resource discrepancy can still justify a reverse task when the uncertainty is in the extraction boundary itself. Issue #8 is the completed model: exact-client extraction closed the ownership boundary, after which remaining compatibility reconstruction moved to the narrower #20 task.
 
 ## Researcher handoff contract
 

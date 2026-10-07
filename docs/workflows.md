@@ -46,15 +46,13 @@ This is the retained generic opt-in exact-sample research workflow. It accepts a
 
 Packet-specific Actions are not retained after their useful evidence has been committed. CmdId 186, waypoint response recovery, packet framing, scene-handler work, candidate-graph experiments and similar investigations now rely on committed evidence plus reusable package/tools entry points rather than dedicated Actions shells.
 
-## Temporary active research orchestration
+## Temporary research orchestration
 
-Issue #8 still has one temporary exact-sample workflow on the default branch: `probe-quest-table-assets.yml`.
+There is currently no topic-specific workflow on the maintained branch.
 
-It reconstructs small pinned 7.1 AssetBundle block entries for the active QuestExcel storage investigation. The current handoff still depends on the hosted reconstruction artifacts from this path, so it remains `active-temporary`. It uses same-ref stale-run cancellation and must be retired as soon as the block/index relationship and required evidence become durable.
+The former QuestExcel table-assets probe reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
 
-The 2026-10-05 maintenance checkpoint retired the other one-off Quest/native probe shells after their reusable operations or exploratory parameters were preserved in generic tools, durable notes, or Git history. The classification and retained anchors are recorded under `versions/7.1.0-global/windows-x64/analyses/quest-extraction/` and issue #13.
-
-Do not add another topic-specific workflow when a local command, an existing retained workflow, or a small reusable tool can answer the same question efficiently. CI is not the default interactive reverse-engineering loop.
+New topic-specific workflows must follow `docs/governance.md`: one concrete owner, a stated hosted-orchestration need, a named output and an explicit retirement condition.
 
 ## Retirement rule
 
