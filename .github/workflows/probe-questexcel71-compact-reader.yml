@@ -1,0 +1,158 @@
+name: Probe QuestExcel 7.1 compact row reader
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-compact-reader.yml"
+
+concurrency:
+  group: probe-questexcel71-compact-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Locate compact QuestExcel row reader by wire constants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-compact-reader.txt
+          import bisect,csv,json,struct
+          from pathlib import Path
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86_const import X86_OP_IMM, X86_OP_MEM
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+          CONSTANTS={
+              "descTextMapHash_xor":0x2AC0BB5D,
+              "stepDescTextMapHash_xor":0xABB3B4F1,
+              "guideTipsTextMapHash_xor":0x59B7A2F4,
+              "subId_xor":0xB1571A55,
+              "mainId_xor":0x32238F7D,
+              "DABNIJGHAPJ_xor":0x723E5DDC,
+              "bit34_raw":0x074282C5,
+              "bit40_raw":0x08,
+          }
+          with (META/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              methods=list(csv.DictReader(f))
+          starts=[]; by_rva={}
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  starts.append(r); by_rva.setdefault(r,[]).append(m)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x20000
+              if s<=rva<e:return s
+              return None
+
+          hits={k:[] for k in CONSTANTS}
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  if not (sec.characteristics & 0x20000000):
+                      continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  for name,value in CONSTANTS.items():
+                      # 32-bit immediate scan. bit40 byte is too common, skip byte scan.
+                      if value <= 0xFF:
+                          continue
+                      pat=struct.pack("<I",value)
+                      off=0
+                      while True:
+                          off=blob.find(pat,off)
+                          if off<0:break
+                          rva=sec.virtual_address+off
+                          hits[name].append({"rva":rva,"owner":owner(rva)})
+                          off+=1
+
+          print("=== CONSTANT HITS ===")
+          for name,items in hits.items():
+              print(name, len(items))
+              for x in items[:40]:
+                  om=by_rva.get(x["owner"],[]) if x["owner"] else []
+                  print(json.dumps({
+                      "rva":f"0x{x['rva']:X}",
+                      "owner":f"0x{x['owner']:X}" if x["owner"] else None,
+                      "methods":om,
+                  },ensure_ascii=False))
+
+          owner_counts={}
+          for name,items in hits.items():
+              for x in items:
+                  if x["owner"] is None:continue
+                  owner_counts.setdefault(x["owner"],set()).add(name)
+          ranked=sorted(owner_counts.items(),key=lambda kv:(-len(kv[1]),kv[0]))
+          print("\n=== OWNER RANKING ===")
+          for rva,names in ranked[:50]:
+              print(f"0x{rva:X}",len(names),sorted(names),json.dumps(by_rva.get(rva,[]),ensure_ascii=False))
+
+          candidates=[r for r,names in ranked if len(names)>=2][:8]
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          with PEImage(EXE) as image:
+              for rva in candidates:
+                  next_i=bisect.bisect_right(starts,rva)
+                  end=starts[next_i] if next_i<len(starts) else rva+0x4000
+                  size=min(max(end-rva,0x100),0x6000)
+                  code=image.read_rva(rva,size)
+                  ins=list(md.disasm(code,rva))
+                  print(f"\n=== DISASM 0x{rva:X} size=0x{size:X} ===")
+                  print(json.dumps(by_rva.get(rva,[]),ensure_ascii=False))
+                  interesting=[]
+                  vals=set(CONSTANTS.values())
+                  for idx,i in enumerate(ins):
+                      imm_hit=False
+                      mem_write=False
+                      for op in i.operands:
+                          if op.type==X86_OP_IMM and (op.imm & 0xffffffff) in vals:
+                              imm_hit=True
+                          if op.type==X86_OP_MEM and op.mem.disp:
+                              if i.mnemonic.startswith("mov"):
+                                  mem_write=True
+                      if imm_hit:
+                          lo=max(0,idx-10); hi=min(len(ins),idx+14)
+                          interesting.extend(range(lo,hi))
+                  for idx in sorted(set(interesting)):
+                      i=ins[idx]
+                      ops=[]
+                      for op in i.operands:
+                          if op.type==X86_OP_MEM:
+                              ops.append({
+                                  "mem_base":i.reg_name(op.mem.base),
+                                  "mem_index":i.reg_name(op.mem.index),
+                                  "disp":op.mem.disp,
+                                  "size":op.size,
+                              })
+                          elif op.type==X86_OP_IMM:
+                              ops.append({"imm":op.imm,"imm32":op.imm & 0xffffffff,"size":op.size})
+                      print(f"0x{i.address:X}: {i.mnemonic} {i.op_str}\t{json.dumps(ops)}")
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-compact-reader
+          path: questexcel71-compact-reader.txt
+          if-no-files-found: error
