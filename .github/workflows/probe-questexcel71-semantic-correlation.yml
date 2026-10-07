@@ -557,6 +557,93 @@ jobs:
           )
           PY
 
+      - name: Fit two-stage transforms for fixed core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check z3-solver
+          python - <<'PY' | tee questexcel71-core-transform-fit.txt
+          import json
+          from pathlib import Path
+          from z3 import BitVec, BitVecVal, Solver, sat
+          from genshinre.questexcel71 import parse_questexcel71_raw_export
+
+          table=parse_questexcel71_raw_export(Path("questexcel71.dat").read_bytes())
+          native={r.sub_id:r for r in table.rows}
+
+          controls={}
+          for path in sorted(Path("/tmp/dimbreath-71/BinOutput/Quest").glob("*.json")):
+              try: root=json.loads(path.read_text(encoding="utf-8"))
+              except Exception: continue
+              if not isinstance(root,dict): continue
+              rows=root.get("subQuests")
+              if not isinstance(rows,list): rows=root.get("JIJKODHIEED",[])
+              for row in rows:
+                  if not isinstance(row,dict): continue
+                  sid=row.get("subId")
+                  if not isinstance(sid,int): sid=row.get("NFGFDHPPBIF")
+                  if isinstance(sid,int): controls[sid]=row
+
+          common=sorted(set(native)&set(controls))
+          keys=sorted({
+              k
+              for sid in common
+              for k,v in controls[sid].items()
+              if isinstance(v,int) and not isinstance(v,bool)
+          })
+
+          forms={
+              "xor_then_add": lambda a,x,c: (a ^ x) + c,
+              "add_then_xor": lambda a,x,c: (a + c) ^ x,
+              "xor_then_sub": lambda a,x,c: (a ^ x) - c,
+              "sub_then_xor": lambda a,x,c: (a - c) ^ x,
+          }
+
+          MASK=0xffffffff
+          def verify(name,x,c,pairs):
+              for a,b in pairs:
+                  if name=="xor_then_add": y=((a^x)+c)&MASK
+                  elif name=="add_then_xor": y=((a+c)&MASK)^x
+                  elif name=="xor_then_sub": y=((a^x)-c)&MASK
+                  elif name=="sub_then_xor": y=((a-c)&MASK)^x
+                  else: raise AssertionError(name)
+                  if y!=(b&MASK): return False
+              return True
+
+          print("common",len(common))
+          for key in keys:
+              pairs=[
+                  (native[sid].unknown_core_u32,controls[sid][key])
+                  for sid in common
+                  if isinstance(controls[sid].get(key),int)
+                  and not isinstance(controls[sid].get(key),bool)
+              ]
+              if len(pairs)<10: continue
+              # A few diverse constraints are enough to solve candidate constants;
+              # full verification below remains the acceptance gate.
+              sample=[]
+              seen=set()
+              for p in pairs:
+                  if p not in seen:
+                      sample.append(p); seen.add(p)
+                  if len(sample)>=12: break
+              for name,form in forms.items():
+                  x=BitVec("x",32); c=BitVec("c",32)
+                  s=Solver()
+                  for a,b in sample:
+                      s.add(form(BitVecVal(a,32),x,c)==BitVecVal(b,32))
+                  if s.check()!=sat:
+                      continue
+                  m=s.model()
+                  xv=m[x].as_long() if m[x] is not None else 0
+                  cv=m[c].as_long() if m[c] is not None else 0
+                  ok=verify(name,xv,cv,pairs)
+                  print(
+                      key,name,"pairs",len(pairs),
+                      "x",hex(xv),"c",hex(cv),"full_verify",ok
+                  )
+          PY
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -565,4 +652,5 @@ jobs:
           path: |
             questexcel71-semantic-correlation.txt
             questexcel71-semantic-correlation.json
+            questexcel71-core-transform-fit.txt
           if-no-files-found: error
