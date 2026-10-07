@@ -196,6 +196,83 @@ jobs:
           Path("quest351-full-native.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
+      - name: Census native accept-condition candidate owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-acceptcond-census.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb=defaultdict(list); mb=defaultdict(list)
+          for f in fields: fb[int(f["type_definition_index"])].append(f)
+          for m in methods: mb[int(m["type_definition_index"])].append(m)
+
+          # First find record-like types that own a semantic QuestCondType field.
+          cond_records=[]
+          for tdi,ff in fb.items():
+              hits=[f for f in ff if "QuestCondType" in (f.get("field_type") or "")]
+              if hits:
+                  cond_records.append((tdi,tb.get(tdi,{}),hits))
+
+          print("QUEST_COND_RECORD_TYPES",len(cond_records))
+          cond_names=set()
+          for tdi,t,hits in cond_records:
+              name=t.get("type_name") or ""
+              if name: cond_names.add(name)
+              print("\n=== COND RECORD",name,tdi,"===")
+              print(json.dumps({
+                  "type":t,
+                  "cond_type_fields":hits,
+                  "all_fields":fb.get(tdi,[]),
+                  "binary_readers":[m for m in mb.get(tdi,[]) if "FNIAHJGHFAK" in (m.get("parameter_types") or "")],
+              },ensure_ascii=False,indent=2))
+
+          # Then find every type that contains one of those records, including
+          # arrays/lists. Those are the only plausible native acceptCond owners.
+          owners=[]
+          for tdi,ff in fb.items():
+              hits=[]
+              for f in ff:
+                  ft=f.get("field_type") or ""
+                  if any(name and name in ft for name in cond_names):
+                      hits.append(f)
+              if hits:
+                  owners.append((tdi,tb.get(tdi,{}),hits))
+
+          print("\nQUEST_COND_CONTAINER_OWNERS",len(owners))
+          for tdi,t,hits in owners:
+              print("\n=== COND OWNER",t.get("type_name"),tdi,"===")
+              print(json.dumps({
+                  "type":t,
+                  "candidate_fields":hits,
+                  "all_fields":fb.get(tdi,[]),
+                  "binary_readers":[m for m in mb.get(tdi,[]) if "FNIAHJGHFAK" in (m.get("parameter_types") or "")],
+              },ensure_ascii=False,indent=2))
+
+          # Broad sanity scan for any Quest-state/condition semantic field types
+          # that might use a different record class name.
+          semantic=[]
+          for f in fields:
+              ft=f.get("field_type") or ""
+              if any(x in ft for x in ("QuestCond","QuestState","QuestContent","QuestExec")):
+                  semantic.append({
+                      "owner":tb.get(int(f["type_definition_index"]),{}),
+                      "field":f,
+                  })
+          print("\nSEMANTIC_QUEST_FIELD_TYPES",len(semantic))
+          print(json.dumps(semantic,ensure_ascii=False,indent=2))
+          PY
+
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -204,4 +281,5 @@ jobs:
           path: |
             quest351-full-native.txt
             quest351-full-native.json
+            quest71-acceptcond-census.txt
           if-no-files-found: error
