@@ -103,6 +103,7 @@ def make_row(
     dmcmnplmckl_hidden: bool = False,
     ban_type: str | None = None,
     bit40: bool = False,
+    guide_hint: bytes = b"\x38\x93",
     tail: bytes = b"",
     guide: bytes | None = None,
     show_hidden: bool = False,
@@ -150,6 +151,7 @@ def make_row(
         out += u32(raw_by_ban_type[ban_type])
     if bit40:
         out.append(UNKNOWN_BIT40_RAW)
+    out += guide_hint
     out += tail
     out += make_guide() if guide is None else guide
     if show_hidden:
@@ -208,6 +210,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual("QUEST_HIDDEN", first.dmcmnplmckl)
         self.assertEqual("BAN_GROUP_TRANSPORT_MAP", first.ban_type)
         self.assertEqual(UNKNOWN_BIT40_RAW, first.unknown_bit40_raw)
+        self.assertEqual(0x9338, first.guide_hint.mask_raw)
+        self.assertEqual(0, first.guide_hint.mask)
         self.assertEqual(b"\xAA\xBB\xCC", first.raw_tail)
         self.assertEqual(first.guide.start, first.known_suffix_start)
         self.assertEqual(("1005", "QuestArrow", "", "", ""), first.guide.params)
@@ -226,6 +230,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIsNone(second.dmcmnplmckl)
         self.assertIsNone(second.ban_type)
         self.assertIsNone(second.unknown_bit40_raw)
+        self.assertEqual(0x9338, second.guide_hint.mask_raw)
+        self.assertEqual(0, second.guide_hint.mask)
         self.assertEqual(b"opaque", second.raw_tail)
         self.assertEqual(second.guide.start, second.known_suffix_start)
         self.assertEqual(("", "", "", "", ""), second.guide.params)
