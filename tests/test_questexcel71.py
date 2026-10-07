@@ -30,12 +30,16 @@ from genshinre.questexcel71 import (
     IS_MP_BLOCK_TRUE_RAW,
     LBEFPHGELAN_TRUE_RAW,
     LOW_ROW_MASKS,
+    MAIN_ID_ADD,
+    MAIN_ID_XOR,
     ORDER_RAW_SUB,
     PREFER_AREA2_GUIDE_SCENE_RAW,
     QuestExcel71ParseError,
     SHOW_GUIDE_BY_RAW,
     SHOW_TYPE_HIDDEN_RAW,
     STEP_DESC_TEXT_MAP_HASH_XOR,
+    SUB_ID_SET_ADD,
+    SUB_ID_SET_XOR,
     SUB_ID_XOR,
     UNKNOWN_BIT34_RAW,
     UNKNOWN_BIT40_RAW,
@@ -257,8 +261,14 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(UNKNOWN_BIT40_RAW, first.unknown_bit40_raw)
         self.assertEqual(0x9338, first.guide_hint.mask_raw)
         self.assertEqual(0, first.guide_hint.mask)
-        self.assertEqual(b"\xAA\xBB\xCC\xDD\x11\x22\x33\x44", first.raw_tail)
-        self.assertEqual(first.raw_tail, first.unknown_core8)
+        self.assertEqual(b"", first.raw_tail)
+        self.assertEqual(b"\xAA\xBB\xCC\xDD\x11\x22\x33\x44", first.unknown_core8)
+        self.assertEqual(0xDDCCBBAA, first.unknown_core_u32)
+        self.assertEqual(0x44332211, first.main_id_raw)
+        self.assertEqual(
+            ((0x44332211 + MAIN_ID_ADD) & 0xFFFFFFFF) ^ MAIN_ID_XOR,
+            first.main_id,
+        )
         self.assertEqual(first.guide.start, first.known_suffix_start)
         self.assertEqual(("1005", "QuestArrow", "", "", ""), first.guide.params)
         self.assertEqual(3, first.guide.guide_scene)
@@ -278,8 +288,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIsNone(second.unknown_bit40_raw)
         self.assertEqual(0x9338, second.guide_hint.mask_raw)
         self.assertEqual(0, second.guide_hint.mask)
-        self.assertEqual(b"opaque!!", second.raw_tail)
-        self.assertEqual(second.raw_tail, second.unknown_core8)
+        self.assertEqual(b"", second.raw_tail)
+        self.assertEqual(b"opaque!!", second.unknown_core8)
         self.assertEqual(second.guide.start, second.known_suffix_start)
         self.assertEqual(("", "", "", "", ""), second.guide.params)
         self.assertIsNone(second.show_type)
@@ -356,12 +366,18 @@ class QuestExcel71Tests(unittest.TestCase):
         ).rows[0]
 
         self.assertEqual(0xA1B2C3D4, parsed.sub_id_set_raw)
+        self.assertEqual(
+            ((0xA1B2C3D4 ^ SUB_ID_SET_XOR) + SUB_ID_SET_ADD) & 0xFFFFFFFF,
+            parsed.sub_id_set,
+        )
         self.assertEqual(3, parsed.eofpicjehlp)
         self.assertEqual("QUEST_HIDDEN", parsed.fail_parent_show)
         self.assertEqual("QUEST_GUIDE_ITEM_MOVE_HIDE", parsed.show_guide)
         self.assertEqual(0x13572468, parsed.dabnijghapj)
         self.assertEqual(b"12345678", parsed.unknown_core8)
-        self.assertEqual(b"12345678", parsed.raw_tail)
+        self.assertEqual(0x34333231, parsed.unknown_core_u32)
+        self.assertEqual(0x38373635, parsed.main_id_raw)
+        self.assertEqual(b"", parsed.raw_tail)
         self.assertIs(parsed.lbefphgelan, True)
 
     def test_rejects_duplicate_subids(self) -> None:
