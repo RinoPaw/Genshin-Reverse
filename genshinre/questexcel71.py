@@ -17,6 +17,13 @@ IS_MP_BLOCK_TRUE_RAW = 0xDA
 UNKNOWN_BIT34_RAW = 0x074282C5
 STEP_DESC_TEXT_MAP_HASH_XOR = 0xABB3B4F1
 GUIDE_TIPS_TEXT_MAP_HASH_XOR = 0x59B7A2F4
+DMCMNPLMCKL_HIDDEN_RAW = 0x53FAFAF9
+BAN_TYPE_BY_RAW = {
+    0x120C27E2: "BAN_GROUP_COMMON",
+    0x120C27E1: "BAN_GROUP_TRANSPORT_ONLY",
+    0x120C27E0: "BAN_GROUP_TRANSPORT_MAP",
+    0x120C27E7: "BAN_GROUP_TRANSPOR_GOTO_SCENE",
+}
 
 LOW_ROW_MASKS = frozenset({
     0x087EFDD5, 0x087EDDD5, 0x087FFDD5, 0x087EF9D5,
@@ -25,6 +32,8 @@ LOW_ROW_MASKS = frozenset({
     0x083FFDD5,
 })
 
+BIT_DMCMNPLMCKL = 10
+BIT_BAN_TYPE = 22
 BIT_PREFER_AREA2_GUIDE_SCENE = 29
 BIT_UNKNOWN_34 = 34
 BIT_EXCLUSIVE_PLACE_LIST = 37
@@ -45,6 +54,8 @@ class QuestExcel71Row:
     is_mp_block: bool | None
     unknown_bit34_raw: int | None
     step_desc_text_map_hash: int
+    dmcmnplmckl: str | None
+    ban_type: str | None
     known_prefix_end: int
     raw_tail: bytes
     known_suffix_start: int
@@ -171,6 +182,28 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
     )
     p += 4
 
+    dmcmnplmckl = None
+    if not ((mask64 >> BIT_DMCMNPLMCKL) & 1):
+        raw_value = _u32(payload, p, suffix_pos, "DMCMNPLMCKL")
+        if raw_value != DMCMNPLMCKL_HIDDEN_RAW:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected DMCMNPLMCKL raw "
+                f"0x{raw_value:08X}"
+            )
+        dmcmnplmckl = "QUEST_HIDDEN"
+        p += 4
+
+    ban_type = None
+    if not ((mask64 >> BIT_BAN_TYPE) & 1):
+        raw_value = _u32(payload, p, suffix_pos, "banType")
+        ban_type = BAN_TYPE_BY_RAW.get(raw_value)
+        if ban_type is None:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected banType raw "
+                f"0x{raw_value:08X}"
+            )
+        p += 4
+
     known_suffix_start = suffix_pos - 4
     if p > known_suffix_start:
         raise QuestExcel71ParseError(
@@ -193,6 +226,8 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         is_mp_block=is_mp_block,
         unknown_bit34_raw=unknown_bit34_raw,
         step_desc_text_map_hash=step_desc_text_map_hash,
+        dmcmnplmckl=dmcmnplmckl,
+        ban_type=ban_type,
         known_prefix_end=p,
         raw_tail=payload[p:known_suffix_start],
         known_suffix_start=known_suffix_start,
