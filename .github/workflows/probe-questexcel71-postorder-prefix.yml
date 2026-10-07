@@ -194,7 +194,9 @@ jobs:
           extra_examples = []
 
           step_total = step_exact_after_known = 0
+          step_all_exact = 0
           step_misses = []
+          step_all_misses = []
 
           for nr, row in aligned:
               mask64 = nr["mask64"]
@@ -242,12 +244,30 @@ jobs:
                   extra_values[str(row.get("FABHGLLGFHN"))] += 1
 
               step = row.get("stepDescTextMapHash")
+              if p + 4 <= nr["end"] - 4:
+                  decoded = struct.unpack_from("<I", payload, p)[0] ^ STEPDESC_XOR
+              else:
+                  decoded = None
+
+              expected_all = (
+                  step & 0xFFFFFFFF
+                  if isinstance(step, int) and not isinstance(step, bool)
+                  else 0
+              )
+              if decoded == expected_all:
+                  step_all_exact += 1
+              elif len(step_all_misses) < 100:
+                  step_all_misses.append({
+                      "subId": nr["subId"],
+                      "mask64": f"0x{mask64:016X}",
+                      "cursorRel": p - nr["start"],
+                      "decoded": decoded,
+                      "expected": expected_all,
+                      "fieldPresent": "stepDescTextMapHash" in row,
+                  })
+
               if isinstance(step, int) and not isinstance(step, bool) and step != 0:
                   step_total += 1
-                  if p + 4 <= nr["end"] - 4:
-                      decoded = struct.unpack_from("<I", payload, p)[0] ^ STEPDESC_XOR
-                  else:
-                      decoded = None
                   if decoded == (step & 0xFFFFFFFF):
                       step_exact_after_known += 1
                   elif len(step_misses) < 100:
@@ -296,10 +316,13 @@ jobs:
                   "examples": extra_examples,
               },
               "stepDescAfterKnownPrefix": {
-                  "eligible": step_total,
-                  "exact": step_exact_after_known,
-                  "ratio": step_exact_after_known / step_total if step_total else 0,
-                  "misses": step_misses,
+                  "eligibleNonzero": step_total,
+                  "exactNonzero": step_exact_after_known,
+                  "nonzeroRatio": step_exact_after_known / step_total if step_total else 0,
+                  "allRowsExactWithAbsentAsZero": step_all_exact,
+                  "allRowsRatio": step_all_exact / len(aligned),
+                  "missesNonzero": step_misses,
+                  "missesAllRows": step_all_misses,
               },
           }
 
