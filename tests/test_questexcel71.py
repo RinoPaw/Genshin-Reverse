@@ -21,6 +21,7 @@ from genshinre.questexcel71 import (
     BIT_UNKNOWN_34,
     BIT_UNKNOWN_40,
     DABNIJGHAPJ_XOR,
+    DESC_TEXT_MAP_HASH_XOR,
     EOFPICJEHLP_BY_RAW,
     EXCLUSIVE_PLACE_COUNT_XOR,
     DMCMNPLMCKL_HIDDEN_RAW,
@@ -250,6 +251,7 @@ class QuestExcel71Tests(unittest.TestCase):
 
         first = table.rows[0]
         self.assertEqual(0x12345678, first.unknown_prefix_u32)
+        self.assertEqual(0x12345678 ^ DESC_TEXT_MAP_HASH_XOR, first.desc_text_map_hash)
         self.assertEqual((3, 7), first.exclusive_place_list)
         self.assertFalse(first.prefer_area2_guide_scene)
         self.assertEqual(4, first.order)
@@ -277,6 +279,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(0x2468ACE0, first.guide_tips_text_map_hash)
 
         second = table.rows[1]
+        self.assertEqual(0x89ABCDEF ^ DESC_TEXT_MAP_HASH_XOR, second.desc_text_map_hash)
         self.assertIsNone(second.exclusive_place_list)
         self.assertFalse(second.prefer_area2_guide_scene)
         self.assertIsNone(second.order)
