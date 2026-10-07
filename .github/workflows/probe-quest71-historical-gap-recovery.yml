@@ -1,0 +1,292 @@
+name: Probe Quest 7.1 historical gap recovery
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-historical-gap-recovery.yml"
+
+concurrency:
+  group: probe-quest71-historical-gap-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download current unresolved manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/current-gap
+          mkdir -p /tmp/current-gap
+          gh run download 37615663201 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest71-tsv-recovery \
+            --dir /tmp/current-gap
+          test -s /tmp/current-gap/quest71-consensus-unresolved.json
+
+      - name: Fetch pinned historical Quest snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_sparse() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git init -q "$dir"
+            git -C "$dir" remote add origin "$url"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set \
+              'BinOutput/Quest/*.json' \
+              'Resources/BinOutput/Quest/*.json' \
+              'resources/BinOutput/Quest/*.json'
+            git -C "$dir" -c protocol.version=2 fetch -q \
+              --depth=1 --filter=blob:none origin "$sha"
+            git -C "$dir" checkout -q --detach FETCH_HEAD
+          }
+
+          fetch_sparse https://github.com/Hiro420/Binoutput_Deobfuscated.git \
+            /tmp/hdeob fe642068c3cdb2b9e3f0ca321e4ff401879341cf
+          fetch_sparse https://github.com/wangshengjj/Grasscutter3.4.git \
+            /tmp/gc34 8122c9aa59ad07560b2bea5ba380d7c95188f42e
+          fetch_sparse https://github.com/TomyJan/GCResource.git \
+            /tmp/gc37 609730bf63568baee1eb77a605b6c273a064dbc1
+          fetch_sparse https://github.com/Kei-Luna/LunaGC_Resources_4.6.0.git \
+            /tmp/gc46 e7e0204a273a82efd3c86507bb19cb0d9e760c53
+          fetch_sparse https://github.com/Rafs-kk/LunaGC-6.6-res.git \
+            /tmp/gc66 b0501c5d89767ead5f647869a2412521447f7682
+
+      - name: Census unresolved rows across historical snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-historical-gap-recovery.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          unresolved = json.loads(
+              Path("/tmp/current-gap/quest71-consensus-unresolved.json")
+              .read_text(encoding="utf-8")
+          )
+
+          SOURCES = {
+              "hiro-deob@fe642068": Path("/tmp/hdeob"),
+              "grasscutter3.4@8122c9aa": Path("/tmp/gc34"),
+              "gcresource3.7@609730bf": Path("/tmp/gc37"),
+              "luna4.6@e7e0204a": Path("/tmp/gc46"),
+              "luna6.6@b0501c5d": Path("/tmp/gc66"),
+          }
+
+          def load_rows(root: Path):
+              out = {}
+              files = []
+              for pat in (
+                  "BinOutput/Quest/*.json",
+                  "Resources/BinOutput/Quest/*.json",
+                  "resources/BinOutput/Quest/*.json",
+              ):
+                  files.extend(root.glob(pat))
+              for path in sorted(set(files)):
+                  try:
+                      obj = json.loads(path.read_text(encoding="utf-8"))
+                  except Exception:
+                      continue
+                  if not isinstance(obj, dict):
+                      continue
+                  rows = obj.get("subQuests")
+                  if not isinstance(rows, list):
+                      rows = obj.get("JIJKODHIEED")
+                  if not isinstance(rows, list):
+                      continue
+                  for row in rows:
+                      if not isinstance(row, dict):
+                          continue
+                      sid = row.get("subId")
+                      if not isinstance(sid, int):
+                          sid = row.get("NFGFDHPPBIF")
+                      if isinstance(sid, int):
+                          out[sid] = row
+              return out
+
+          source_rows = {label: load_rows(root) for label, root in SOURCES.items()}
+          print("SOURCE_ROW_COUNTS", {k: len(v) for k,v in source_rows.items()})
+
+          unresolved_ids = {
+              field: {
+                  int(sid)
+                  for sid,row in unresolved["rows"].items()
+                  if field in row.get("fields", {})
+              }
+              for field in ("acceptCond", "beginExec")
+          }
+
+          def normalize_entry(item):
+              if not isinstance(item, dict):
+                  return None
+              typ = item.get("type")
+              if not isinstance(typ, str):
+                  return None
+              param = item.get("param")
+              if not isinstance(param, list):
+                  param = []
+              pstr = item.get("param_str")
+              if pstr is None:
+                  pstr = item.get("paramStr")
+              out = {"type": typ, "param": param}
+              if isinstance(pstr, str) and pstr:
+                  out["param_str"] = pstr
+              if isinstance(item.get("count"), int):
+                  out["count"] = item["count"]
+              return out
+
+          def classify(row, field):
+              if row is None:
+                  return "no-row", []
+              if field not in row:
+                  return "absent-key", []
+              val = row.get(field)
+              if not isinstance(val, list):
+                  return "non-list", []
+              entries = [x for x in (normalize_entry(i) for i in val) if x is not None]
+              if not entries:
+                  return "empty", []
+              if field == "acceptCond" and all(
+                  e.get("type") == "QUEST_COND_UNKNOWN"
+                  and list(e.get("param") or [])[:2] == [0,0]
+                  for e in entries
+              ):
+                  return "placeholder-only", []
+              return "nonempty", entries
+
+          report = {
+              "sources": {k: len(v) for k,v in source_rows.items()},
+              "fields": {},
+              "rows": {},
+          }
+
+          for field in ("acceptCond","beginExec"):
+              ids = sorted(unresolved_ids[field])
+              status_counts = Counter()
+              resolved_empty = []
+              resolved_value = []
+              conflicts = []
+              still = []
+              per_reason = defaultdict(list)
+
+              for sid in ids:
+                  states = {
+                      label: classify(rows.get(sid), field)
+                      for label,rows in source_rows.items()
+                  }
+                  row_status = unresolved["rows"][str(sid)]["fields"][field]
+                  reason = row_status.get("reason","?")
+                  per_reason[reason].append(sid)
+
+                  present = {
+                      label: st for label,st in states.items()
+                      if st[0] != "no-row"
+                  }
+                  nonempty = {
+                      label: st[1] for label,st in present.items()
+                      if st[0] == "nonempty"
+                  }
+                  canon = {
+                      json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+                      for v in nonempty.values()
+                  }
+
+                  decision = "unresolved"
+                  chosen = None
+                  if nonempty and len(canon) == 1:
+                      decision = "historical-value"
+                      chosen = next(iter(nonempty.values()))
+                      resolved_value.append(sid)
+                  elif len(canon) > 1:
+                      decision = "historical-conflict"
+                      conflicts.append(sid)
+                  else:
+                      emptyish = {"absent-key","empty"}
+                      # For acceptCond, a placeholder is evidence-compatible with
+                      # empty but remains a distinct class. Require at least one
+                      # true absent/empty row plus two total historical rows.
+                      classes = [st[0] for st in present.values()]
+                      true_empty = sum(c in emptyish for c in classes)
+                      if (
+                          len(present) >= 2
+                          and true_empty >= 1
+                          and all(c in emptyish | {"placeholder-only"} for c in classes)
+                      ):
+                          decision = "historical-empty"
+                          resolved_empty.append(sid)
+                      else:
+                          still.append(sid)
+
+                  status_counts[decision] += 1
+                  report["rows"].setdefault(str(sid), {})[field] = {
+                      "current_reason": reason,
+                      "decision": decision,
+                      "value": chosen,
+                      "sources": {
+                          label: {"class": st[0], "value": st[1]}
+                          for label,st in states.items()
+                      },
+                  }
+
+              report["fields"][field] = {
+                  "input": len(ids),
+                  "decisions": dict(status_counts),
+                  "historical_empty_ids": resolved_empty,
+                  "historical_value_ids": resolved_value,
+                  "conflict_ids": conflicts,
+                  "still_unresolved_ids": still,
+                  "current_reason_counts": {
+                      reason: len(values) for reason,values in per_reason.items()
+                  },
+              }
+
+              print("\n=== FIELD",field,"===")
+              print("INPUT",len(ids))
+              print("DECISIONS",dict(status_counts))
+              print("HISTORICAL_EMPTY",len(resolved_empty),resolved_empty)
+              print("HISTORICAL_VALUE",len(resolved_value),resolved_value)
+              print("CONFLICT",len(conflicts),conflicts)
+              print("STILL",len(still),still)
+
+              # Print concise evidence for every non-unresolved decision and
+              # the first 80 remaining rows.
+              interesting = resolved_empty + resolved_value + conflicts + still[:80]
+              for sid in interesting:
+                  print(json.dumps({
+                      "subId":sid,
+                      field:report["rows"][str(sid)][field],
+                  },ensure_ascii=False))
+
+          Path("quest71-historical-gap-recovery.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-historical-gap-recovery
+          path: |
+            quest71-historical-gap-recovery.txt
+            quest71-historical-gap-recovery.json
+          if-no-files-found: error
