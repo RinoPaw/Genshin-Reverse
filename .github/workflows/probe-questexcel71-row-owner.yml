@@ -43,6 +43,8 @@ jobs:
           python - <<'PY' | tee questexcel71-row-owner.txt
           import bisect,csv,json
           from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_IMM,X86_OP_MEM
           from genshinre.nativeprofile import PROFILE_71
           from genshinre.pe import PEImage
           from genshinre.sampleidentity import require_sha256
@@ -128,8 +130,47 @@ jobs:
               }
               try:item["schema"]=BC.build(exe,rva,deser,cache={})
               except Exception as exc:item["schema_error"]=type(exc).__name__+":"+str(exc)
+
+              # Keep a native instruction trace for the candidate source row
+              # reader. Memory stores expose the destination object displacement;
+              # nearby reader calls identify which serialized field feeds it.
+              next_i=bisect.bisect_right(starts,rva)
+              method_end=starts[next_i] if next_i<len(starts) else rva+0x2000
+              method_end=min(method_end,rva+0x4000)
+              trace=[]
+              with PEImage(EXE) as image:
+                  body=image.read_rva(rva,method_end-rva)
+                  md=Cs(CS_ARCH_X86,CS_MODE_64); md.detail=True
+                  for ins in md.disasm(body,image.image_base+rva):
+                      rec={
+                          "rva":f"0x{ins.address-image.image_base:X}",
+                          "bytes":ins.bytes.hex(),
+                          "mnemonic":ins.mnemonic,
+                          "op_str":ins.op_str,
+                      }
+                      if ins.mnemonic=="call" and ins.operands and ins.operands[0].type==X86_OP_IMM:
+                          target=int(ins.operands[0].imm-image.image_base)
+                          rec["call_target"]=f"0x{target:X}"
+                          rec["call_meta"]=by_rva.get(target,[])
+                      stores=[]
+                      if ins.operands and ins.operands[0].type==X86_OP_MEM:
+                          mem=ins.operands[0].mem
+                          stores.append({
+                              "base":ins.reg_name(mem.base) if mem.base else "",
+                              "index":ins.reg_name(mem.index) if mem.index else "",
+                              "disp":mem.disp,
+                              "size":ins.operands[0].size,
+                          })
+                      if stores:
+                          rec["stores"]=stores
+                      trace.append(rec)
+              item["trace"]=trace
               report["intersection"].append(item)
               print("\nCANDIDATE",json.dumps(item,ensure_ascii=False))
+              print("\nSTORE_AND_CALL_TRACE",f"0x{rva:X}")
+              for rec in trace:
+                  if "stores" in rec or "call_target" in rec:
+                      print(json.dumps(rec,ensure_ascii=False))
 
           Path("questexcel71-row-owner.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
