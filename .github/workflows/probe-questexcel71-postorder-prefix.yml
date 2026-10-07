@@ -1,0 +1,268 @@
+name: Probe 7.1 QuestExcel post-order prefix
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-postorder-prefix.yml"
+
+concurrency:
+  group: probe-questexcel71-postorder-prefix-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch pinned same-version quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -d /tmp/asta-pr9/BinOutput/Quest
+
+      - name: Validate post-order prefix fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-postorder-prefix.txt
+          import collections
+          import json
+          import struct
+          from pathlib import Path
+
+          RAW = Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          QROOT = Path("/tmp/asta-pr9/BinOutput/Quest")
+
+          LOW_MASKS = {
+              0x087EFDD5, 0x087EDDD5, 0x087FFDD5, 0x087EF9D5,
+              0x083EFDD5, 0x087FDDD5, 0x287EFDD5, 0x087ED9D5,
+              0x083EDDD5, 0x007FFDD5, 0x087FF9D5, 0x083EF9D5,
+              0x083FFDD5,
+          }
+          SUBID_KEY = 0xB1571A55
+          PLACE_COUNT_KEY = 0xB51E6D91
+          PLACE_ELEM_SUB = 0x449FCFB9
+          PREFER_RAW = 0x8BFDD679
+          ORDER_SUB = 0x732ED834
+          STEPDESC_XOR = 0xABB3B4F1
+
+          raw = RAW.read_bytes()
+          declared = struct.unpack_from("<I", raw, 0)[0]
+          payload = raw[4:4 + declared]
+          if declared != len(raw) - 4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          starts = [
+              p for p in range(4, len(payload) - 7)
+              if struct.unpack_from("<I", payload, p)[0] in LOW_MASKS
+          ]
+          if len(starts) != 33214 or starts[0] != 4:
+              raise SystemExit(f"native framing drift: {len(starts)} rows")
+
+          native = []
+          for i, start in enumerate(starts):
+              end = starts[i + 1] if i + 1 < len(starts) else len(payload)
+              mask64 = struct.unpack_from("<Q", payload, start)[0]
+              sub_id = struct.unpack_from("<I", payload, end - 4)[0] ^ SUBID_KEY
+
+              p = start + 12
+              if (mask64 >> 37) & 1:
+                  count = struct.unpack_from("<I", payload, p)[0] ^ PLACE_COUNT_KEY
+                  if count > 64 or p + 4 + 4 * count > end - 4:
+                      raise SystemExit(f"bad exclusivePlaceList count for {sub_id}: {count}")
+                  p += 4 + 4 * count
+              if (mask64 >> 29) & 1:
+                  prefer = struct.unpack_from("<I", payload, p)[0]
+                  if prefer != PREFER_RAW:
+                      raise SystemExit(
+                          f"preferArea2GuideScene raw drift for {sub_id}: 0x{prefer:08X}"
+                      )
+                  p += 4
+
+              raw_order = struct.unpack_from("<I", payload, p)[0]
+              order_candidate = (raw_order - ORDER_SUB) & 0xFFFFFFFF
+              native.append({
+                  "subId": sub_id,
+                  "start": start,
+                  "end": end,
+                  "mask64": mask64,
+                  "orderCandidate": order_candidate,
+                  "post": p + 4,
+              })
+
+          controls = {}
+          for path in sorted(QROOT.glob("*.json")):
+              try:
+                  data = json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              if not isinstance(data, dict):
+                  continue
+              for row in data.get("subQuests", []):
+                  sub_id = row.get("subId")
+                  if isinstance(sub_id, int):
+                      controls[sub_id] = row
+
+          aligned = [(nr, controls[nr["subId"]]) for nr in native if nr["subId"] in controls]
+          if len(aligned) != 33214:
+              raise SystemExit(f"control alignment drift: {len(aligned)}")
+
+          order_misses = [
+              nr["subId"] for nr, row in aligned
+              if row.get("order") != nr["orderCandidate"]
+          ]
+
+          mp_present = mp_field_present = mp_true = 0
+          mp_raw = collections.Counter()
+          mp_misses = []
+          extra_present = extra_field_present = 0
+          extra_raw_at_post = collections.Counter()
+          extra_raw_after_mp = collections.Counter()
+          extra_values = collections.Counter()
+          extra_examples = []
+
+          step_total = step_exact_after_known = 0
+          step_misses = []
+
+          for nr, row in aligned:
+              mask64 = nr["mask64"]
+              p = nr["post"]
+
+              has_mp = bool((mask64 >> 52) & 1)
+              field_mp = "isMpBlock" in row
+              if has_mp:
+                  mp_present += 1
+                  value = payload[p]
+                  mp_raw[value] += 1
+                  p += 1
+              if field_mp:
+                  mp_field_present += 1
+                  if row.get("isMpBlock") is True:
+                      mp_true += 1
+              if has_mp != field_mp or (has_mp and row.get("isMpBlock") is not True):
+                  if len(mp_misses) < 100:
+                      mp_misses.append({
+                          "subId": nr["subId"],
+                          "bit52": has_mp,
+                          "field": row.get("isMpBlock", "<absent>"),
+                      })
+
+              has_extra = bool((mask64 >> 34) & 1)
+              field_extra = "FABHGLLGFHN" in row
+              if has_extra:
+                  extra_present += 1
+                  raw_post = struct.unpack_from("<I", payload, nr["post"])[0]
+                  raw_after_mp = struct.unpack_from("<I", payload, p)[0]
+                  extra_raw_at_post[raw_post] += 1
+                  extra_raw_after_mp[raw_after_mp] += 1
+                  if len(extra_examples) < 100:
+                      extra_examples.append({
+                          "subId": nr["subId"],
+                          "mask64": f"0x{mask64:016X}",
+                          "hasMp": has_mp,
+                          "rawAtPost": f"0x{raw_post:08X}",
+                          "rawAfterMp": f"0x{raw_after_mp:08X}",
+                          "value": row.get("FABHGLLGFHN"),
+                      })
+                  p += 4
+              if field_extra:
+                  extra_field_present += 1
+                  extra_values[str(row.get("FABHGLLGFHN"))] += 1
+
+              step = row.get("stepDescTextMapHash")
+              if isinstance(step, int) and not isinstance(step, bool) and step != 0:
+                  step_total += 1
+                  if p + 4 <= nr["end"] - 4:
+                      decoded = struct.unpack_from("<I", payload, p)[0] ^ STEPDESC_XOR
+                  else:
+                      decoded = None
+                  if decoded == (step & 0xFFFFFFFF):
+                      step_exact_after_known += 1
+                  elif len(step_misses) < 100:
+                      step_misses.append({
+                          "subId": nr["subId"],
+                          "mask64": f"0x{mask64:016X}",
+                          "cursorRel": p - nr["start"],
+                          "decoded": decoded,
+                          "expected": step,
+                      })
+
+          report = {
+              "nativeRows": len(native),
+              "aligned": len(aligned),
+              "orderMisses": order_misses,
+              "bit52_isMpBlock": {
+                  "bitPresent": mp_present,
+                  "fieldPresent": mp_field_present,
+                  "fieldTrue": mp_true,
+                  "rawByte": {
+                      f"0x{k:02X}": v for k, v in mp_raw.most_common()
+                  },
+                  "misses": mp_misses,
+              },
+              "bit34_extraShow": {
+                  "bitPresent": extra_present,
+                  "fieldPresent": extra_field_present,
+                  "values": dict(extra_values),
+                  "rawAtPost": {
+                      f"0x{k:08X}": v for k, v in extra_raw_at_post.most_common()
+                  },
+                  "rawAfterMp": {
+                      f"0x{k:08X}": v for k, v in extra_raw_after_mp.most_common()
+                  },
+                  "examples": extra_examples,
+              },
+              "stepDescAfterKnownPrefix": {
+                  "eligible": step_total,
+                  "exact": step_exact_after_known,
+                  "ratio": step_exact_after_known / step_total if step_total else 0,
+                  "misses": step_misses,
+              },
+          }
+
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          Path("questexcel71-postorder-prefix.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-postorder-prefix
+          path: |
+            questexcel71-postorder-prefix.txt
+            questexcel71-postorder-prefix.json
+          if-no-files-found: error
