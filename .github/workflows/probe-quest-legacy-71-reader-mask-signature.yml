@@ -1,0 +1,239 @@
+name: Locate 7.1 QuestExcel row reader by mask signature
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-reader-mask-signature.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-reader-mask-signature-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+
+      - name: Fetch exact pinned global 7.1 executable
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Rank one-reader methods by recovered QuestExcel mask signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-reader-mask-signature.txt
+          import csv
+          import json
+          from pathlib import Path
+
+          from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+          from capstone.x86 import X86_OP_IMM, X86_OP_MEM
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE = Path("inputs/7.1.0-global/GenshinImpact.exe")
+          ROOT = Path("versions/7.1.0-global/windows-x64/metadata")
+          READER = "FNIAHJGHFAK"
+          REFILL_RVA = 0x1269BFC0
+
+          # Bits which actually vary across the 33,214 recovered native rows.
+          # Six already correlate almost perfectly with public/materialized
+          # optional fields; bit57 is independently tied to order presence by
+          # the unique 7601112 row.
+          TARGET_BITS = {
+              10, 13, 16, 22, 27, 29,
+              34, 37, 40, 41, 45, 52, 57, 61, 63,
+          }
+
+          require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
+
+          def read_csv(name):
+              with (ROOT / name).open("r", encoding="utf-8-sig", newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods = read_csv("methods.csv")
+          types = read_csv("types.csv")
+          fields = read_csv("fields.csv")
+          type_by_tdi = {int(x["type_definition_index"]): x for x in types}
+          fields_by_tdi = {}
+          for x in fields:
+              try:
+                  fields_by_tdi.setdefault(int(x["type_definition_index"]), []).append(x)
+              except Exception:
+                  pass
+
+          candidates = []
+          for i, m in enumerate(methods):
+              try:
+                  rva = int(m.get("rva") or "0", 0)
+                  params = json.loads(m.get("parameter_types") or "[]")
+              except Exception:
+                  continue
+              if not rva or params != [READER]:
+                  continue
+              candidates.append((rva, m))
+
+          starts = sorted({int(m.get("rva") or "0", 0) for m in methods if m.get("rva")})
+          end_by_start = {}
+          for i, s in enumerate(starts):
+              end_by_start[s] = starts[i + 1] if i + 1 < len(starts) else s + 0x10000
+
+          md = Cs(CS_ARCH_X86, CS_MODE_64)
+          md.detail = True
+
+          def direct_target(ins, base):
+              if ins.mnemonic != "call" or not ins.operands:
+                  return None
+              op = ins.operands[0]
+              if op.type != X86_OP_IMM:
+                  return None
+              return int(op.imm - base)
+
+          out = []
+          with PEImage(EXE) as image:
+              base = image.image_base
+              for rva, meta in candidates:
+                  end = min(end_by_start.get(rva, rva + 0x1000), rva + 0x12000)
+                  if end <= rva:
+                      continue
+                  try:
+                      body = image.read_rva(rva, end - rva)
+                  except Exception:
+                      continue
+                  insns = list(md.disasm(body, base + rva))
+                  if not insns:
+                      continue
+
+                  bt_bits = []
+                  test_bits = []
+                  refill8 = []
+                  qword_stream_reads = []
+                  guards = []
+                  for ins in insns:
+                      if ins.mnemonic == "bt" and len(ins.operands) == 2 and ins.operands[1].type == X86_OP_IMM:
+                          bit = int(ins.operands[1].imm)
+                          if 0 <= bit < 64:
+                              bt_bits.append(bit)
+                              guards.append((ins.address - base, ins.bytes.hex(), ins.mnemonic, ins.op_str))
+                      elif ins.mnemonic == "test" and len(ins.operands) == 2 and ins.operands[1].type == X86_OP_IMM:
+                          imm = int(ins.operands[1].imm) & ((1 << (ins.operands[1].size * 8)) - 1)
+                          if imm and not (imm & (imm - 1)):
+                              bit = imm.bit_length() - 1
+                              test_bits.append(bit)
+                              guards.append((ins.address - base, ins.bytes.hex(), ins.mnemonic, ins.op_str))
+
+                      if direct_target(ins, base) == REFILL_RVA:
+                          # Locate the immediate size loaded shortly before the refill call.
+                          prev = insns[max(0, insns.index(ins)-8):insns.index(ins)]
+                          sizes = []
+                          for p in prev:
+                              for op in p.operands:
+                                  if op.type == X86_OP_IMM:
+                                      v = int(op.imm)
+                                      if v in (1,2,4,8):
+                                          sizes.append(v)
+                          if 8 in sizes:
+                              refill8.append(ins.address - base)
+
+                      for op in ins.operands:
+                          if op.type == X86_OP_MEM and op.size == 8:
+                              mm = op.mem
+                              if mm.disp == 0x20 and mm.base and mm.index and mm.scale == 1:
+                                  qword_stream_reads.append(ins.address - base)
+
+                  bset = set(bt_bits)
+                  overlap = sorted(bset & TARGET_BITS)
+                  unrelated = sorted(bset - TARGET_BITS)
+                  score = len(overlap) * 25
+                  score -= len(unrelated) * 2
+                  if refill8:
+                      score += 30
+                  if qword_stream_reads:
+                      score += 30
+                  if meta.get("method_name") in ("GMENPOPMKAA", "FromBinaryInner"):
+                      score += 10
+
+                  if len(overlap) < 2 and not (refill8 and qword_stream_reads):
+                      continue
+
+                  tdi = int(meta["type_definition_index"])
+                  out.append({
+                      "score": score,
+                      "rva": f"0x{rva:X}",
+                      "method_size": end - rva,
+                      "metadata": meta,
+                      "type": type_by_tdi.get(tdi, {}),
+                      "fields": fields_by_tdi.get(tdi, []),
+                      "bt_bits": sorted(bset),
+                      "target_overlap": overlap,
+                      "unrelated_bt_bits": unrelated,
+                      "test_bits_lowword_only": sorted(set(test_bits)),
+                      "refill8_sites": [f"0x{x:X}" for x in refill8],
+                      "qword_stream_read_sites": [f"0x{x:X}" for x in qword_stream_reads],
+                      "guards": [
+                          {
+                              "rva": f"0x{x[0]:X}",
+                              "bytes": x[1],
+                              "mnemonic": x[2],
+                              "op_str": x[3],
+                          }
+                          for x in guards
+                      ],
+                  })
+
+          out.sort(key=lambda x: (-x["score"], -len(x["target_overlap"]), x["rva"]))
+          report = {
+              "target_bits": sorted(TARGET_BITS),
+              "one_reader_candidates": len(candidates),
+              "ranked_count": len(out),
+              "ranked": out,
+          }
+
+          print("one_reader_candidates", len(candidates))
+          print("ranked_count", len(out))
+          for x in out[:60]:
+              m = x["metadata"]
+              print(json.dumps({
+                  "score": x["score"],
+                  "rva": x["rva"],
+                  "type_name": m.get("type_name"),
+                  "method_name": m.get("method_name"),
+                  "parameter_types": m.get("parameter_types"),
+                  "return_type": m.get("return_type"),
+                  "field_count": x["type"].get("field_count"),
+                  "target_overlap": x["target_overlap"],
+                  "bt_bits": x["bt_bits"],
+                  "refill8": bool(x["refill8_sites"]),
+                  "qword_stream_read": bool(x["qword_stream_read_sites"]),
+              }, ensure_ascii=False))
+
+          Path("quest-legacy-71-reader-mask-signature.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-reader-mask-signature
+          path: |
+            quest-legacy-71-reader-mask-signature.txt
+            quest-legacy-71-reader-mask-signature.json
+          if-no-files-found: error
