@@ -32,6 +32,21 @@ A temporary compatibility path may remain only for a concrete currently supporte
 
 CSV/JSON indexes are preferred over screenshots or prose-only dumps. Human-readable reports should point to the machine-readable source data.
 
+## Research lifecycle and status ownership
+
+Repository governance is defined in [docs/governance.md](docs/governance.md).
+
+The important maintenance rules are:
+
+- start new maintenance/research work from `rino` unless the task requires another base;
+- issues own scope and promotion gates; version analyses own durable sample-bound conclusions;
+- research queues and handoffs summarize those sources and must not become competing truth;
+- when a research gate closes, promote evidence/code/tests and synchronize the issue, analysis, queue and handoff in the same maintenance change;
+- temporary workflows need an owner and retirement condition, and must be removed after their useful result becomes durable;
+- do not continue unrelated work on a long-lived research branch merely because it already contains useful probes.
+
+Research branches are disposable work areas. Confirmed conclusions must not remain branch-only.
+
 ## Maintenance and research responsibilities
 
 Repository maintenance and focused reverse-engineering investigations are separate work streams.
