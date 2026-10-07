@@ -1,0 +1,178 @@
+name: Probe Quest 7.0 array semantics
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest70-array-semantics.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned Dimbreath snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in             "67 82e74382e7788e318ad41fca926739a752c0bed6"             "70 5930a9caf54a57ff2b60bb816a9c492dfaa6b488"             "71 9587d1afbd9ab0419cdd00dc05ecd114b9e3fe99"; do
+            set -- $spec
+            tag="$1"; ref="$2"
+            root="/tmp/agd$tag"
+            rm -rf "$root"
+            git clone --filter=blob:none --no-checkout https://github.com/DimbreathBot/AnimeGameData.git "$root"
+            git -C "$root" sparse-checkout init --no-cone
+            git -C "$root" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$root" checkout "$ref"
+          done
+
+      - name: Classify ordinary Quest array fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest70-array-semantics.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          ROOTS={
+              "6.7":Path("/tmp/agd67/BinOutput/Quest"),
+              "7.0":Path("/tmp/agd70/BinOutput/Quest"),
+              "7.1":Path("/tmp/agd71/BinOutput/Quest"),
+          }
+
+          def load(root):
+              rows={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  # Locate the subquest list without assuming its obfuscated key.
+                  seqs=[]
+                  for k,v in o.items():
+                      if not isinstance(v,list) or not v or not all(isinstance(x,dict) for x in v):
+                          continue
+                      score=0
+                      for r in v[:20]:
+                          vals=list(r.values())
+                          if any(isinstance(x,int) and 10000<=x<=99999999 for x in vals):
+                              score+=1
+                          if any(isinstance(x,list) for x in vals):
+                              score+=1
+                      seqs.append((score,k,v))
+                  if not seqs:continue
+                  seqs.sort(reverse=True,key=lambda x:x[0])
+                  _,key,seq=seqs[0]
+                  for r in seq:
+                      # Infer subId from common identity patterns: an integer that
+                      # appears in the row and whose //100-ish main relation is
+                      # plausible. Prefer known 7.1/legacy names when available.
+                      sid=r.get("subId")
+                      if not isinstance(sid,int):
+                          sid=r.get("NFGFDHPPBIF")
+                      if not isinstance(sid,int):
+                          # Dimbreath 6.7/7.0 names are obfuscated. Use the integer
+                          # field with the largest cardinality later; here keep all
+                          # rows with a stable synthetic key from file+position.
+                          sid=(p.stem,len(rows))
+                      rows[sid]=(p.stem,r)
+              return rows
+
+          def array_stats(rows):
+              st=defaultdict(lambda:{
+                  "rows":0,"nonempty":0,"elems":0,"prefix":Counter(),
+                  "types":Counter(),"shapes":Counter()
+              })
+              for _,r in rows.values():
+                  for k,v in r.items():
+                      if not isinstance(v,list) or not all(isinstance(x,dict) for x in v):
+                          continue
+                      x=st[k];x["rows"]+=1
+                      if v:x["nonempty"]+=1
+                      x["elems"]+=len(v)
+                      for e in v:
+                          typ=e.get("type")
+                          if not isinstance(typ,str):
+                              # Some dumps keep an obfuscated enum key. Look for a
+                              # QUEST_* string value inside the record.
+                              typ=next((z for z in e.values() if isinstance(z,str) and z.startswith("QUEST_")),None)
+                          if isinstance(typ,str):
+                              x["types"][typ]+=1
+                              if typ.startswith("QUEST_COND_"):pfx="COND"
+                              elif typ.startswith("QUEST_CONTENT_"):pfx="CONTENT"
+                              elif typ.startswith("QUEST_EXEC_"):pfx="EXEC"
+                              else:pfx="OTHER"
+                              x["prefix"][pfx]+=1
+                          x["shapes"][tuple(sorted(e.keys()))]+=1
+              return st
+
+          all_stats={}
+          all_rows={}
+          for ver,root in ROOTS.items():
+              rows=load(root); all_rows[ver]=rows
+              st=array_stats(rows);all_stats[ver]=st
+              print("\n### VERSION",ver,"ROWS",len(rows),"ARRAY_FIELDS",len(st))
+              for k,x in sorted(st.items(),key=lambda kv:(-kv[1]["elems"],kv[0])):
+                  if x["elems"]==0: continue
+                  print("\nFIELD",k,
+                        "rows",x["rows"],"nonempty",x["nonempty"],"elems",x["elems"],
+                        "prefix",dict(x["prefix"]))
+                  print("TOP_TYPES",x["types"].most_common(30))
+
+          # 7.0 fields that are pure quest semantic arrays are the main target.
+          print("\n### 7.0 QUEST-SEMANTIC ARRAY CANDIDATES")
+          for k,x in sorted(all_stats["7.0"].items()):
+              q=sum(x["prefix"].values())
+              if not q:continue
+              dominant=x["prefix"].most_common(1)[0]
+              print(k,"prefix",dict(x["prefix"]),"dominant",dominant,
+                    "nonempty",x["nonempty"],"elems",x["elems"])
+
+          # Print Quest351 rows with every list-of-dict field for 6.7/7.0/7.1.
+          # We locate them by any integer field in 35100..35107.
+          for ver,root in ROOTS.items():
+              print("\n### QUEST351",ver)
+              for p in [root/"351.json"]:
+                  if not p.exists():continue
+                  o=json.loads(p.read_text(encoding="utf-8"))
+                  for k,v in o.items():
+                      if not isinstance(v,list) or not all(isinstance(x,dict) for x in v):continue
+                      for r in v:
+                          sid=next((z for z in r.values() if isinstance(z,int) and 35100<=z<=35107),None)
+                          if sid is None:continue
+                          arr={}
+                          for fk,fv in r.items():
+                              if isinstance(fv,list) and all(isinstance(x,dict) for x in fv):
+                                  arr[fk]=fv
+                          print(json.dumps({"subId":sid,"arrays":arr},ensure_ascii=False))
+
+          # Persist compact stats.
+          out={}
+          for ver,st in all_stats.items():
+              out[ver]={}
+              for k,x in st.items():
+                  out[ver][k]={
+                      "rows":x["rows"],"nonempty":x["nonempty"],"elems":x["elems"],
+                      "prefix":dict(x["prefix"]),"types":dict(x["types"]),
+                  }
+          Path("quest70-array-semantics.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest70-array-semantics
+          path: |
+            quest70-array-semantics.txt
+            quest70-array-semantics.json
+          if-no-files-found: error
