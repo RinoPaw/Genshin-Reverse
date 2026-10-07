@@ -45,21 +45,21 @@ jobs:
             --dir evidence/q71
           test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
 
-      - name: Fetch exact Dimbreath 7.1 QuestExcel row ordering
+      - name: Fetch AstaPS PR9 resource for semantic controls only
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/agd
+          rm -rf /tmp/AstaPS-Resource
           git clone --filter=blob:none --no-checkout \
-            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
-          git -C /tmp/agd sparse-checkout init --no-cone
-          git -C /tmp/agd sparse-checkout set \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/AstaPS-Resource
+          git -C /tmp/AstaPS-Resource sparse-checkout init --no-cone
+          git -C /tmp/AstaPS-Resource sparse-checkout set \
             'ExcelBinOutput/QuestExcelConfigData.json'
-          git -C /tmp/agd checkout \
-            792978e5503ecfba73dcb3562ed44a0d35a2abe2
-          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+          git -C /tmp/AstaPS-Resource checkout \
+            7465e29b2d58058ab9973187c112abf2717ada03
+          test -s /tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json
 
-      - name: Checkout pinned 7.0 binconfig analyzer
+      - name: Checkout pinned binconfig analyzer
         shell: bash
         run: |
           set -euo pipefail
@@ -70,7 +70,7 @@ jobs:
           git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
             fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
 
-      - name: Rank readers by exact native row consumption
+      - name: Rank readers against complete native row framing
         shell: bash
         env:
           PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
@@ -88,9 +88,15 @@ jobs:
           EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
           META=Path("versions/7.1.0-global/windows-x64/metadata")
           RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
-          AGD=Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json")
+          RESOURCE=Path("/tmp/AstaPS-Resource/ExcelBinOutput/QuestExcelConfigData.json")
           READER="FNIAHJGHFAK"
           SUBID_KEY=0xB1571A55
+          MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
 
           def read_csv(name):
               with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
@@ -141,11 +147,7 @@ jobs:
                   fc=int(t.get("field_count") or "0")
               except ValueError:
                   fc=0
-              named=cls in {
-                  "RandomQuestExcelConfig","GPCFGOEJFJK",
-                  "LAIMPNDEFCL","AFIOOHMJHDM"
-              }
-              if 4 <= fc <= 64 or named:
+              if 4 <= fc <= 80:
                   candidates.append((rva,m,t,fc,tdi))
 
           row_deser={cls:rva for cls,(_priority,rva) in one_by_class.items()}
@@ -159,70 +161,58 @@ jobs:
           if n != len(raw)-4:
               raise SystemExit("MiHoYoBinData wrapper mismatch")
 
-          rows=json.loads(AGD.read_text(encoding="utf-8"))
-          if len(rows)!=17814:
-              raise SystemExit(f"unexpected Dimbreath row count {len(rows)}")
-
-          # Physical table record framing:
-          #   u32 encoded_subId  (container key)
-          #   GPCFGOEJFJK row body
-          #   u32 encoded_subId  (next record key)
+          # Complete native framing recovered independently of public row order:
           #
-          # The GPC row reader is invoked only after the table container has
-          # consumed the four-byte subId key.  Therefore the reader span is
-          # current_anchor+4 .. next_anchor, not anchor .. next_anchor and not
-          # previous_anchor+4 .. current_anchor+4.
-          encoded={}
-          for ordinal,row in enumerate(rows):
-              sid=row.get("subId")
-              if isinstance(sid,int):
-                  encoded.setdefault((sid^SUBID_KEY)&0xffffffff,[]).append((ordinal,sid))
+          #   payload[0:4]       table header
+          #   row := u64 mask ... encoded_subId:u32
+          #   next row begins at the next known low-mask word
+          starts=[]
+          for pos in range(4,len(payload)-7):
+              if struct.unpack_from("<I",payload,pos)[0] in MASKS:
+                  starts.append(pos)
 
-          wanted=set(encoded)
-          hits={x:[] for x in wanted}
-          for pos in range(len(payload)-3):
-              u=struct.unpack_from("<I",payload,pos)[0]
-              if u in hits:
-                  hits[u].append(pos)
+          if len(starts)!=33214:
+              raise SystemExit(f"unexpected native row count {len(starts)}")
+          if starts[0]!=4:
+              raise SystemExit(f"unexpected first row start {starts[0]}")
 
-          anchors={}
-          for enc,items in encoded.items():
-              if len(items)!=1 or len(hits[enc])!=1:
-                  continue
-              ordinal,sid=items[0]
-              anchors[ordinal]=(sid,hits[enc][0])
+          resource=json.loads(RESOURCE.read_text(encoding="utf-8"))
+          by_sid={
+              row["subId"]:row
+              for row in resource
+              if isinstance(row.get("subId"),int)
+          }
 
           spans=[]
-          for ordinal in range(0,len(rows)-1):
-              cur=anchors.get(ordinal)
-              nxt=anchors.get(ordinal+1)
-              if not cur or not nxt:
-                  continue
-              physical_start=cur[1]
-              start=physical_start+4
-              end=nxt[1]
-              if end<=start:
-                  continue
-              size=end-start
-              if not 8 <= size <= 4096:
-                  continue
-              if struct.unpack_from("<I",payload,physical_start)[0] != ((cur[0]^SUBID_KEY)&0xffffffff):
-                  continue
+          seen=set()
+          for ordinal,start in enumerate(starts):
+              end=starts[ordinal+1] if ordinal+1<len(starts) else len(payload)
+              if not 50 <= end-start <= 267:
+                  raise SystemExit(f"bad native row size {end-start} at {start:#x}")
+              raw_sid=struct.unpack_from("<I",payload,end-4)[0]
+              sid=raw_sid^SUBID_KEY
+              if sid in seen:
+                  raise SystemExit(f"duplicate native subId {sid}")
+              seen.add(sid)
               spans.append({
                   "ordinal":ordinal,
-                  "subId":cur[0],
-                  "physical_start":physical_start,
+                  "subId":sid,
                   "start":start,
                   "end":end,
-                  "size":size,
+                  "body_end":end-4,
+                  "size":end-start,
+                  "mask64":f"0x{struct.unpack_from('<Q',payload,start)[0]:016X}",
               })
 
-          if len(spans)<17000:
-              raise SystemExit(f"too few exact row spans: {len(spans)}")
+          if spans[-1]["end"]!=len(payload):
+              raise SystemExit("native rows do not fully consume payload")
+          if len(seen)!=33214:
+              raise SystemExit("native subId population mismatch")
 
-          print("row_framing","subId_key_then_GPC_body")
-          print("gpc_span","current_anchor+4 .. next_anchor")
-          # Deterministic distributed sample across the full table.
+          resource_matches=sum(1 for x in spans if x["subId"] in by_sid)
+          if resource_matches!=33214:
+              raise SystemExit(f"resource semantic controls incomplete: {resource_matches}")
+
           def quantile_sample(items,n):
               if len(items)<=n:
                   return list(items)
@@ -232,7 +222,8 @@ jobs:
               })
               return [items[i] for i in idxs]
 
-          stage1=quantile_sample(spans,64)
+          stage1=quantile_sample(spans,96)
+          stage2=quantile_sample(spans,4000)
 
           built=[]
           for rva,m,t,fc,tdi in candidates:
@@ -242,54 +233,93 @@ jobs:
                   continue
               built.append((rva,m,t,fc,tdi,schema))
 
-          print("dimbreath_rows",len(rows))
-          print("unique_subid_anchors",len(anchors))
-          print("exact_row_spans",len(spans))
+          print("native_rows",len(spans))
+          print("resource_matches",resource_matches)
+          print("full_payload_consumption",spans[-1]["end"]==len(payload))
           print("candidate_methods",len(candidates))
           print("built_schemas",len(built))
           print("stage1_rows",len(stage1))
+          print("stage2_rows",len(stage2))
 
-          def consume(schema,span):
+          def contains_value(x,target):
+              if isinstance(x,bool):
+                  return False
+              if isinstance(x,int):
+                  return x==target
+              if isinstance(x,str):
+                  return x==str(target)
+              if isinstance(x,list):
+                  return any(contains_value(v,target) for v in x)
+              if isinstance(x,dict):
+                  return any(contains_value(v,target) for v in x.values())
+              return False
+
+          def consume(schema,span,mode):
               reader=BC.Reader(payload)
               reader.p=span["start"]
               try:
                   value=reader.record(schema)
               except Exception as exc:
                   return False,reader.p,None,type(exc).__name__
-              return reader.p==span["end"],reader.p,value,None
+              target=span["end"] if mode=="full" else span["body_end"]
+              return reader.p==target,reader.p,value,None
+
+          def evaluate(schema,sample,mode,keep_misses=0):
+              exact=0
+              errors=0
+              sid_hits=0
+              main_hits=0
+              order_hits=0
+              misses=[]
+              for span in sample:
+                  ok,end,value,err=consume(schema,span,mode)
+                  if err:
+                      errors+=1
+                      if len(misses)<keep_misses:
+                          misses.append({**span,"kind":"error","error":err,"end":end})
+                      continue
+                  if ok:
+                      exact+=1
+                      row=by_sid[span["subId"]]
+                      if contains_value(value,span["subId"]):
+                          sid_hits+=1
+                      if contains_value(value,row.get("mainId")):
+                          main_hits+=1
+                      if contains_value(value,row.get("order")):
+                          order_hits+=1
+                  elif len(misses)<keep_misses:
+                      target=span["end"] if mode=="full" else span["body_end"]
+                      misses.append({
+                          **span,
+                          "kind":"under" if end<target else "over",
+                          "end":end,
+                          "delta":end-target,
+                      })
+              return {
+                  "mode":mode,
+                  "exact":exact,
+                  "total":len(sample),
+                  "ratio":exact/len(sample),
+                  "errors":errors,
+                  "subId_hits":sid_hits,
+                  "mainId_hits":main_hits,
+                  "order_hits":order_hits,
+                  "misses":misses,
+              }
 
           leaders=[]
           for rva,m,t,fc,tdi,schema in built:
-              exact=0
-              over=0
-              under=0
-              errors=0
-              deltas=[]
-              for span in stage1:
-                  ok,end,_value,err=consume(schema,span)
-                  if err:
-                      errors+=1
-                      continue
-                  delta=end-span["end"]
-                  deltas.append(delta)
-                  if ok:
-                      exact+=1
-                  elif delta>0:
-                      over+=1
-                  else:
-                      under+=1
-
-              if exact==0:
+              modes=[
+                  evaluate(schema,stage1,"full"),
+                  evaluate(schema,stage1,"without_subId"),
+              ]
+              best=max(
+                  modes,
+                  key=lambda x:(x["exact"],x["subId_hits"],x["mainId_hits"],x["order_hits"],-x["errors"]),
+              )
+              if best["exact"]==0:
                   continue
               leaders.append({
-                  "stage1_exact":exact,
-                  "stage1_total":len(stage1),
-                  "stage1_ratio":exact/len(stage1),
-                  "stage1_over":over,
-                  "stage1_under":under,
-                  "stage1_errors":errors,
-                  "stage1_delta_min":min(deltas) if deltas else None,
-                  "stage1_delta_max":max(deltas) if deltas else None,
                   "rva":f"0x{rva:X}",
                   "_rva_int":rva,
                   "method":m,
@@ -297,58 +327,47 @@ jobs:
                   "field_count_metadata":fc,
                   "type_fields":fields_by_tdi.get(tdi,[]),
                   "schema":schema,
+                  "stage1_modes":modes,
+                  "stage1_best":best,
               })
 
-          leaders.sort(key=lambda x:(-x["stage1_exact"],abs(x["field_count_metadata"]-16),x["rva"]))
+          leaders.sort(key=lambda x:(
+              -x["stage1_best"]["exact"],
+              -x["stage1_best"]["subId_hits"],
+              -x["stage1_best"]["mainId_hits"],
+              -x["stage1_best"]["order_hits"],
+              x["rva"],
+          ))
+
           print("\n=== stage1 leaders ===")
-          for x in leaders[:40]:
+          for x in leaders[:50]:
               print(json.dumps({
-                  k:v for k,v in x.items()
-                  if not k.startswith("_") and k not in {"schema","type_fields","method","type"}
-              } | {
+                  "rva":x["rva"],
                   "type_name":x["method"].get("type_name"),
                   "method_name":x["method"].get("method_name"),
+                  "metadata_fields":x["field_count_metadata"],
                   "schema_fields":sum(1 for st in x["schema"].get("steps",[]) if st.get("kind")!="base"),
+                  "modes":x["stage1_modes"],
               },ensure_ascii=False))
 
-          # Stage 2: exact-consumption validation on up to 2,000 rows for the
-          # strongest 20 stage-1 candidates.
-          stage2=quantile_sample(spans,2000)
           finalists=[]
-          for x in leaders[:20]:
-              schema=x["schema"]
-              exact=0
-              errors=0
-              first_misses=[]
-              for span in stage2:
-                  ok,end,_value,err=consume(schema,span)
-                  if err:
-                      errors+=1
-                      if len(first_misses)<20:
-                          first_misses.append({**span,"kind":"error","error":err,"end":end})
-                      continue
-                  if ok:
-                      exact+=1
-                  elif len(first_misses)<20:
-                      first_misses.append({
-                          **span,
-                          "kind":"under" if end<span["end"] else "over",
-                          "end":end,
-                          "delta":end-span["end"],
-                      })
-
-              y={k:v for k,v in x.items() if k not in {"schema","_rva_int"}}
-              y.update({
-                  "stage2_exact":exact,
-                  "stage2_total":len(stage2),
-                  "stage2_ratio":exact/len(stage2),
-                  "stage2_errors":errors,
-                  "stage2_first_misses":first_misses,
-                  "schema":schema,
+          for x in leaders[:30]:
+              mode=x["stage1_best"]["mode"]
+              result=evaluate(x["schema"],stage2,mode,keep_misses=8)
+              finalists.append({
+                  **{k:v for k,v in x.items() if k not in {"schema","_rva_int","type_fields"}},
+                  "stage2":result,
+                  "schema":x["schema"],
               })
-              finalists.append(y)
 
-          finalists.sort(key=lambda x:(-x["stage2_exact"],-x["stage1_exact"],x["rva"]))
+          finalists.sort(key=lambda x:(
+              -x["stage2"]["exact"],
+              -x["stage2"]["subId_hits"],
+              -x["stage2"]["mainId_hits"],
+              -x["stage2"]["order_hits"],
+              x["rva"],
+          ))
+
           print("\n=== stage2 finalists ===")
           for x in finalists:
               print(json.dumps({
@@ -356,60 +375,80 @@ jobs:
                   "type_name":x["method"].get("type_name"),
                   "method_name":x["method"].get("method_name"),
                   "metadata_fields":x["field_count_metadata"],
-                  "schema_fields":sum(1 for st in x["schema"].get("steps",[]) if st.get("kind")!="base"),
-                  "stage1_exact":x["stage1_exact"],
-                  "stage1_total":x["stage1_total"],
-                  "stage2_exact":x["stage2_exact"],
-                  "stage2_total":x["stage2_total"],
-                  "stage2_errors":x["stage2_errors"],
-                  "first_misses":x["stage2_first_misses"][:5],
+                  "stage1":x["stage1_best"],
+                  "stage2":x["stage2"],
               },ensure_ascii=False))
+
+          full_validation=[]
+          for x in finalists:
+              if x["stage2"]["ratio"]<0.95:
+                  continue
+              result=evaluate(x["schema"],spans,x["stage2"]["mode"],keep_misses=12)
+              full_validation.append({
+                  "rva":x["rva"],
+                  "type_name":x["method"].get("type_name"),
+                  "method_name":x["method"].get("method_name"),
+                  "metadata_fields":x["field_count_metadata"],
+                  "result":result,
+              })
+
+          print("\n=== full-table validation ===")
+          for x in full_validation:
+              print(json.dumps(x,ensure_ascii=False))
 
           report={
               "native":{
                   "raw_size":len(raw),
                   "payload_size":len(payload),
+                  "row_count":len(spans),
+                  "unique_subIds":len(seen),
+                  "first_row_start":spans[0]["start"],
+                  "last_row_end":spans[-1]["end"],
+                  "full_consumption":spans[-1]["end"]==len(payload),
               },
-              "agd":{
-                  "commit":"792978e5503ecfba73dcb3562ed44a0d35a2abe2",
-                  "rows":len(rows),
+              "framing":{
+                  "table_header_bytes":4,
+                  "row_start":"u64 presence-mask word",
+                  "row_suffix":"encoded subId u32",
+                  "subId_key":f"0x{SUBID_KEY:08X}",
+                  "tested_reader_spans":[
+                      "row start .. row end",
+                      "row start .. row end-4",
+                  ],
               },
-              "subId_key":f"0x{SUBID_KEY:08X}",
-              "unique_subid_anchors":len(anchors),
-              "exact_row_spans":len(spans),
-              "row_framing":"u32 encoded_subId key + GPC body",
-              "gpc_reader_span":"current_anchor+4 .. next_anchor",
-              "span_size":{
-                  "min":min(x["size"] for x in spans),
-                  "max":max(x["size"] for x in spans),
-                  "mean":sum(x["size"] for x in spans)/len(spans),
+              "resource":{
+                  "commit":"7465e29b2d58058ab9973187c112abf2717ada03",
+                  "rows":len(resource),
+                  "native_matches":resource_matches,
               },
               "candidate_methods":len(candidates),
               "built_schemas":len(built),
-              "stage1_sample":stage1,
-              "stage1_leaders":[
-                  {k:v for k,v in x.items() if not k.startswith("_")}
+              "stage1_sample_count":len(stage1),
+              "stage2_sample_count":len(stage2),
+              "leaders":[
+                  {k:v for k,v in x.items() if k not in {"schema","_rva_int","type_fields"}}
                   for x in leaders[:100]
               ],
-              "stage2_sample_count":len(stage2),
               "finalists":finalists,
+              "full_validation":full_validation,
           }
           Path("quest-legacy-71-exact-consumption.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",
               encoding="utf-8",
           )
 
-          if not finalists:
-              print("\nNo candidate reader exactly consumed even one distributed row.")
-          else:
+          if finalists:
               best=finalists[0]
               print(
                   "\nBEST",
                   best["rva"],
                   best["method"].get("type_name"),
                   best["method"].get("method_name"),
-                  f"{best['stage2_exact']}/{best['stage2_total']}",
+                  best["stage2"]["mode"],
+                  f"{best['stage2']['exact']}/{best['stage2']['total']}",
               )
+          else:
+              print("\nNo candidate reader exactly consumed even one complete native row.")
           PY
 
       - name: Upload evidence
