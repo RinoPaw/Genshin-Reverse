@@ -1,0 +1,217 @@
+name: Validate 7.1 QuestExcel prefix semantics
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-prefix-semantics.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-prefix-semantics-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch pinned 7.1 BinOutput Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+          test -d /tmp/asta-pr9/BinOutput/Quest
+
+      - name: Validate exclusivePlaceList and prefer-guide-scene wire
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-prefix-semantics.txt
+          import json,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          QROOT=Path("/tmp/asta-pr9/BinOutput/Quest")
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+          SUBID_KEY=0xB1571A55
+          PLACE_COUNT_KEY=0xB51E6D91
+          PLACE_ELEM_SUB=0x449FCFB9
+          PREFER_RAW=0x8BFDD679
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[p for p in range(4,len(payload)-7)
+                  if struct.unpack_from("<I",payload,p)[0] in LOW_MASKS]
+          if len(starts)!=33214:
+              raise SystemExit(f"framing drift {len(starts)}")
+
+          native=[]
+          for i,s in enumerate(starts):
+              e=starts[i+1] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,e-4)[0]^SUBID_KEY
+              native.append({
+                  "subId":sid,"start":s,"end":e,
+                  "mask64":struct.unpack_from("<Q",payload,s)[0],
+              })
+
+          controls={}
+          files=0
+          for path in sorted(QROOT.glob("*.json")):
+              try:data=json.loads(path.read_text(encoding="utf-8"))
+              except Exception:continue
+              files+=1
+              for row in data.get("subQuests",[]) if isinstance(data,dict) else []:
+                  sid=row.get("subId")
+                  if isinstance(sid,int):
+                      controls[sid]=row
+
+          print("quest_files",files)
+          print("control_subquests",len(controls))
+
+          place_total=place_control=place_exact=place_absent_exact=0
+          place_misses=[]
+          prefer_total=prefer_control=prefer_exact=prefer_absent_exact=0
+          prefer_misses=[]
+          raw_prefer_values={}
+
+          for nr in native:
+              sid=nr["subId"]
+              row=controls.get(sid)
+              if row is None:
+                  continue
+              m=nr["mask64"]
+              has_place=bool((m>>37)&1)
+              has_prefer=bool((m>>29)&1)
+
+              # Prefix after mask+desc scalar.
+              p=nr["start"]+12
+              decoded_place=[]
+              if has_place:
+                  rawc=struct.unpack_from("<I",payload,p)[0]
+                  count=rawc^PLACE_COUNT_KEY
+                  if count>64 or p+4+4*count>nr["end"]-4:
+                      raise SystemExit(f"bad place count sid={sid} count={count}")
+                  decoded_place=[
+                      (struct.unpack_from("<I",payload,p+4+4*i)[0]-PLACE_ELEM_SUB)&0xffffffff
+                      for i in range(count)
+                  ]
+                  p+=4+4*count
+
+              if has_prefer:
+                  raw_prefer=struct.unpack_from("<I",payload,p)[0]
+                  raw_prefer_values[f"0x{raw_prefer:08X}"]=raw_prefer_values.get(f"0x{raw_prefer:08X}",0)+1
+                  p+=4
+
+              # Same-version BinOutput control.
+              expected_place=row.get("exclusivePlaceList")
+              expected_place=expected_place if isinstance(expected_place,list) else []
+              place_total+=1
+              if "exclusivePlaceList" in row:
+                  place_control+=1
+              if decoded_place==expected_place:
+                  place_exact+=1
+              elif len(place_misses)<40:
+                  place_misses.append({
+                      "subId":sid,"bit37":has_place,
+                      "decoded":decoded_place,"expected":expected_place,
+                  })
+              if (not has_place)==(len(expected_place)==0):
+                  place_absent_exact+=1
+
+              expected_prefer=row.get("FJDKHGMJOPL")
+              prefer_active=expected_prefer=="PREFER_AREA2_GUIDE_SCENE"
+              prefer_total+=1
+              if "FJDKHGMJOPL" in row:
+                  prefer_control+=1
+              raw_ok=(not has_prefer) or raw_prefer==PREFER_RAW
+              if has_prefer==prefer_active and raw_ok:
+                  prefer_exact+=1
+              elif len(prefer_misses)<40:
+                  prefer_misses.append({
+                      "subId":sid,"bit29":has_prefer,
+                      "raw":f"0x{raw_prefer:08X}" if has_prefer else None,
+                      "expected":expected_prefer,
+                  })
+              if (not has_prefer)==(not prefer_active):
+                  prefer_absent_exact+=1
+
+          report={
+              "native_rows":len(native),
+              "quest_files":files,
+              "control_subquests":len(controls),
+              "exclusivePlaceList":{
+                  "count_key":f"0x{PLACE_COUNT_KEY:08X}",
+                  "element_decode":f"(raw - 0x{PLACE_ELEM_SUB:08X}) mod 2^32",
+                  "compared":place_total,
+                  "control_field_present":place_control,
+                  "exact":place_exact,
+                  "ratio":place_exact/place_total if place_total else 0,
+                  "presence_exact":place_absent_exact,
+                  "presence_ratio":place_absent_exact/place_total if place_total else 0,
+                  "misses":place_misses,
+              },
+              "preferArea2GuideScene":{
+                  "mask_bit":29,
+                  "raw_expected":f"0x{PREFER_RAW:08X}",
+                  "compared":prefer_total,
+                  "control_field_present":prefer_control,
+                  "exact":prefer_exact,
+                  "ratio":prefer_exact/prefer_total if prefer_total else 0,
+                  "presence_exact":prefer_absent_exact,
+                  "presence_ratio":prefer_absent_exact/prefer_total if prefer_total else 0,
+                  "raw_values":raw_prefer_values,
+                  "misses":prefer_misses,
+              },
+          }
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-prefix-semantics.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          # Do not hard-fail on public-control omissions. Native structural
+          # invariants above are authoritative; comparison misses are evidence.
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-prefix-semantics
+          path: |
+            quest-legacy-71-prefix-semantics.txt
+            quest-legacy-71-prefix-semantics.json
+          if-no-files-found: error
