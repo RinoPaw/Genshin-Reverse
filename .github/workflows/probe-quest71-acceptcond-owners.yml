@@ -1,0 +1,80 @@
+name: Probe Quest 7.1 acceptCond owners
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-acceptcond-owners.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Scan Quest content/exec array owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-acceptcond-owners.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb=defaultdict(list)
+          mb=defaultdict(list)
+          for f in fields:
+              fb[int(f["type_definition_index"])].append(f)
+          for m in methods:
+              mb[int(m["type_definition_index"])].append(m)
+
+          needles=("JPGNLOPMNHN","KIMCPAKMJMH","QuestContent","QuestExec")
+          owner_ids=set()
+          for f in fields:
+              ft=f.get("field_type") or ""
+              if any(n in ft for n in needles):
+                  owner_ids.add(int(f["type_definition_index"]))
+
+          print("owners",len(owner_ids))
+          out=[]
+          for tdi in sorted(owner_ids):
+              t=tb.get(tdi,{})
+              ff=fb.get(tdi,[])
+              mm=mb.get(tdi,[])
+              item={
+                  "type":t,
+                  "quest_fields":[f for f in ff if any(n in (f.get("field_type") or "") for n in needles)],
+                  "all_fields":ff,
+                  "binary_readers":[m for m in mm if "FNIAHJGHFAK" in (m.get("parameter_types") or "")],
+              }
+              out.append(item)
+              print("\n=== OWNER",t.get("type_name"),tdi,"===")
+              print(json.dumps(item,ensure_ascii=False,indent=2))
+
+          Path("quest71-acceptcond-owners.json").write_text(
+              json.dumps({"owners":out},ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-acceptcond-owners
+          path: |
+            quest71-acceptcond-owners.txt
+            quest71-acceptcond-owners.json
+          if-no-files-found: error
