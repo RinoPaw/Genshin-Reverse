@@ -41,7 +41,7 @@ jobs:
               echo "=== TYPE $type_name ==="
               python -m genshinre.cli query-fields "$F" --type "$type_name" || true
             done
-            for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO; do
+            for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO               AFEAMKOGMBF AHBDGODKBDF DJADGDCICCB FEBBDBPEFCE               HGDMKDGAJOM HGFFNBIGPJK IACKBAAICMK IBIILFJEHBC               IMGDIONBDMG INFDFLBGLPD KJBJDKALING KJOHNNANDBK               LCBNMMFPDFH LLHHDHNBAGG MNPJPMCNIIP; do
               echo "=== FIELD $field ==="
               python -m genshinre.cli query-fields "$F" --field-name "$field" || true
             done
