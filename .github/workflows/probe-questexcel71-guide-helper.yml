@@ -95,6 +95,24 @@ jobs:
               if tdi in wanted_types:
                   print(json.dumps(f,ensure_ascii=False))
 
+          print("=== NBLE FIELD OWNERS ===")
+          parent_tdis=set()
+          for f in fields:
+              if f.get("field_type")!="NBLEHPOBCEB":
+                  continue
+              try:ptdi=int(f["type_definition_index"])
+              except Exception:continue
+              parent_tdis.add(ptdi)
+              print(json.dumps({
+                  "field":f,
+                  "owner_type":type_by_tdi.get(ptdi),
+              },ensure_ascii=False))
+          for ptdi in sorted(parent_tdis):
+              print("OWNER METHODS",json.dumps({
+                  "type":type_by_tdi.get(ptdi),
+                  "methods":[m for m in methods if int(m.get("type_definition_index") or -1)==ptdi],
+              },ensure_ascii=False))
+
           print("=== METHODS ===")
           for m in methods:
               try:tdi=int(m["type_definition_index"])
