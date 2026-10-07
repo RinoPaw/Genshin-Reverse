@@ -1,0 +1,256 @@
+name: Probe 7.1 QuestExcel post-order wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-postorder-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-postorder-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447             --repo RinoPaw/Genshin-Reverse             --name quest-excel-asset-chain-probe             --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch pinned 7.1 BinOutput Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout             https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout             7465e29b2d58058ab9973187c112abf2717ada03
+          test -d /tmp/asta-pr9/BinOutput/Quest
+
+      - name: Correlate native mask and post-order scalar wire
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-postorder-wire.txt
+          import collections,json,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          QROOT=Path("/tmp/asta-pr9/BinOutput/Quest")
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+          SUBID_KEY=0xB1571A55
+          PLACE_COUNT_KEY=0xB51E6D91
+          ORDER_SUB=0x732ED834
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[p for p in range(4,len(payload)-7)
+                  if struct.unpack_from("<I",payload,p)[0] in LOW_MASKS]
+          if len(starts)!=33214:
+              raise SystemExit(f"framing drift {len(starts)}")
+
+          native=[]
+          for i,s in enumerate(starts):
+              e=starts[i+1] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,e-4)[0]^SUBID_KEY
+              m=struct.unpack_from("<Q",payload,s)[0]
+              p=s+12
+              if (m>>37)&1:
+                  c=struct.unpack_from("<I",payload,p)[0]^PLACE_COUNT_KEY
+                  if c>64 or p+4+4*c>e-4:
+                      raise SystemExit(f"bad bit37 count sid={sid} count={c}")
+                  p+=4+4*c
+              if (m>>29)&1:
+                  p+=4
+              order_raw=struct.unpack_from("<I",payload,p)[0]
+              order=(order_raw-ORDER_SUB)&0xffffffff
+              native.append({
+                  "subId":sid,"start":s,"end":e,"mask64":m,
+                  "order_off":p-s,"order":order,"post":p+4,
+              })
+
+          controls={}
+          files=0
+          for path in sorted(QROOT.glob("*.json")):
+              try:data=json.loads(path.read_text(encoding="utf-8"))
+              except Exception:continue
+              files+=1
+              if not isinstance(data,dict):continue
+              for row in data.get("subQuests",[]):
+                  sid=row.get("subId")
+                  if isinstance(sid,int):
+                      controls[sid]=row
+
+          aligned=[(nr,controls[nr["subId"]]) for nr in native if nr["subId"] in controls]
+          print("native_rows",len(native))
+          print("quest_files",files)
+          print("control_subquests",len(controls))
+          print("aligned",len(aligned))
+
+          order_exact=sum(1 for nr,row in aligned if nr["order"]==row.get("order"))
+          print("order_exact",order_exact)
+
+          # Presence correlation: current same-version BinOutput omits most inactive
+          # fields, so perfect/near-perfect bit correlations are strong semantic
+          # evidence. Ignore identity and always-present bookkeeping.
+          fields=collections.Counter()
+          for _nr,row in aligned:
+              fields.update(row.keys())
+          presence=[]
+          for field,total_present in fields.items():
+              if field in {"subId","mainId","order"}:
+                  continue
+              bybit=[]
+              for bit in range(64):
+                  p0=n0=p1=n1=0
+                  for nr,row in aligned:
+                      has=field in row
+                      if (nr["mask64"]>>bit)&1:
+                          n1+=1; p1+=int(has)
+                      else:
+                          n0+=1; p0+=int(has)
+                  if not n0 or not n1:continue
+                  r0=p0/n0; r1=p1/n1
+                  delta=r1-r0
+                  if abs(delta)>=0.95:
+                      bybit.append({
+                          "bit":bit,"rate0":r0,"rate1":r1,"delta":delta,
+                          "bit0_rows":n0,"bit1_rows":n1,
+                      })
+              if bybit:
+                  presence.append({
+                      "field":field,"present":total_present,
+                      "ratio":total_present/len(aligned),
+                      "strong_bits":sorted(bybit,key=lambda x:-abs(x["delta"]))[:8],
+                  })
+          presence.sort(key=lambda x:(-abs(x["strong_bits"][0]["delta"]),x["field"]))
+
+          # Find simple u32 fields after order. Search only values that are
+          # physically present in BinOutput and require one stable transform.
+          scalar_fields=collections.Counter()
+          for _nr,row in aligned:
+              for k,v in row.items():
+                  if isinstance(v,int) and not isinstance(v,bool) and k not in {"subId","mainId","order"}:
+                      scalar_fields[k]+=1
+
+          fingerprints=[]
+          for field,eligible in scalar_fields.items():
+              if eligible<20:
+                  continue
+              counters={op:collections.Counter() for op in ("xor","sub","add")}
+              pos_support=collections.Counter()
+              for nr,row in aligned:
+                  v=row.get(field)
+                  if not isinstance(v,int) or isinstance(v,bool):
+                      continue
+                  v&=0xffffffff
+                  post=nr["post"]
+                  limit=min(nr["end"]-4,post+64)
+                  # byte aligned u32 scan, because known post-order fields may
+                  # follow strings/arrays and need not remain 4-byte aligned.
+                  seen={op:set() for op in counters}
+                  for p in range(post,max(post,limit-3)):
+                      u=struct.unpack_from("<I",payload,p)[0]
+                      rel=p-post
+                      for op,key in (
+                          ("xor",u^v),
+                          ("sub",(u-v)&0xffffffff),
+                          ("add",(u+v)&0xffffffff),
+                      ):
+                          seen[op].add((rel,key))
+                  for op in counters:
+                      counters[op].update(seen[op])
+              best={}
+              for op,c in counters.items():
+                  best[op]=[
+                      {"rel":rel,"key":f"0x{key:08X}","support":n,
+                       "ratio":n/eligible}
+                      for (rel,key),n in c.most_common(12)
+                  ]
+              score=max((x["ratio"] for arr in best.values() for x in arr),default=0)
+              if score>=0.20:
+                  fingerprints.append({
+                      "field":field,"eligible":eligible,
+                      "best_ratio":score,**best,
+                  })
+          fingerprints.sort(key=lambda x:(-x["best_ratio"],-x["eligible"],x["field"]))
+
+          # Direct expected next-u32 checks for common text hashes.
+          direct={}
+          for field in ("stepDescTextMapHash","guideTipsTextMapHash"):
+              c=collections.Counter()
+              eligible=0
+              for nr,row in aligned:
+                  v=row.get(field)
+                  if not isinstance(v,int) or isinstance(v,bool) or not v:
+                      continue
+                  if nr["post"]+4>nr["end"]-4:continue
+                  eligible+=1
+                  u=struct.unpack_from("<I",payload,nr["post"])[0]
+                  c[u^(v&0xffffffff)]+=1
+              direct[field]={
+                  "eligible":eligible,
+                  "xor_keys":[
+                      {"key":f"0x{k:08X}","support":n,"ratio":n/eligible if eligible else 0}
+                      for k,n in c.most_common(12)
+                  ],
+              }
+
+          report={
+              "native_rows":len(native),
+              "control_subquests":len(controls),
+              "aligned":len(aligned),
+              "order_exact":order_exact,
+              "presence_correlations":presence,
+              "postorder_scalar_fingerprints":fingerprints[:80],
+              "direct_next_u32":direct,
+          }
+          print("\n=== strong presence correlations ===")
+          for x in presence:
+              print(json.dumps(x,ensure_ascii=False))
+          print("\n=== post-order scalar fingerprints ===")
+          for x in fingerprints[:40]:
+              print(json.dumps(x,ensure_ascii=False))
+          print("\n=== direct next u32 ===")
+          print(json.dumps(direct,ensure_ascii=False,indent=2))
+
+          Path("quest-legacy-71-postorder-wire.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-postorder-wire
+          path: |
+            quest-legacy-71-postorder-wire.txt
+            quest-legacy-71-postorder-wire.json
+          if-no-files-found: error
