@@ -239,6 +239,42 @@ jobs:
               for key in dim_controls[sid]:
                   dim_row_keys[key].add(sid)
 
+          print("\n=== UNKNOWN CORE DISTRIBUTION ===")
+          core_counts = Counter(native[sid].unknown_core_u32 for sid in dim_common)
+          print("distinct", len(core_counts), "rows", len(dim_common))
+          for value,count in core_counts.most_common(40):
+              print(hex(value), count)
+
+          # Cross-tab the fixed slot against every scalar/categorical Dimbreath
+          # field, treating absence as a value. Low raw-values-per-category
+          # suggests an enum/bool/defaulted field; high entropy suggests a hash/salt.
+          print("\n=== UNKNOWN CORE CATEGORICAL CROSS-TAB ===")
+          all_dim_keys = sorted({k for sid in dim_common for k in dim_controls[sid]})
+          cat_rank=[]
+          for key in all_dim_keys:
+              groups=defaultdict(set)
+              values=Counter()
+              for sid in dim_common:
+                  v=dim_controls[sid].get(key, "<ABSENT>")
+                  if isinstance(v,(dict,list)):
+                      continue
+                  try: hash(v)
+                  except Exception: continue
+                  groups[v].add(native[sid].unknown_core_u32)
+                  values[v]+=1
+              if not groups:
+                  continue
+              max_raw=max(len(vs) for vs in groups.values())
+              total_raw=sum(len(vs) for vs in groups.values())
+              cat_rank.append((max_raw,total_raw,len(groups),key,groups,values))
+          cat_rank.sort(key=lambda x:(x[0],x[1],x[2],x[3]))
+          for max_raw,total_raw,n_groups,key,groups,values in cat_rank[:40]:
+              print(key,"groups",n_groups,"max_raw_per_group",max_raw,"total_group_raws",total_raw)
+              for v in sorted(groups,key=lambda x:str(x))[:12]:
+                  vals=groups[v]
+                  sample=sorted(vals)[:8]
+                  print("  ",repr(v),"rows",values[v],"raw_count",len(vals),"raw_sample",[hex(x) for x in sample])
+
           print("\n=== DIMBREATH PRESENCE BIT40 ===")
           bit40_set_all = {sid for sid in dim_common if native[sid].unknown_bit40_raw is not None}
           dim_presence_rank = []
