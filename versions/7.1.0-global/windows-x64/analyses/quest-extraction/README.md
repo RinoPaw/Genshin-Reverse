@@ -520,3 +520,34 @@ The focused generation run was GitHub Actions run `37609718112`; its four
 unit tests passed and it emitted the recovery manifest plus unresolved set.
 The workflow shell is temporary orchestration only. The durable implementation
 is `genshinre.questrecovery71` plus `tests/test_questrecovery71.py`.
+## 2026-10-07 public community resource exhaustion
+
+Additional 7.0/7.1 community resource censuses do not recover more
+`acceptCond` or `beginExec` values.
+
+For pinned 7.0 resources:
+
+- `chenlin996/LunaGC-Resources7.0@0991d8a9...`: 22,557 rows;
+- `nyakochao/LunaGC-Resources-7.0@15e8fedc...`: 33,073 rows;
+- `Merprose2/LunaGCR-Resources@a64cf90a...`: 33,066 rows.
+
+Across the union, all three repositories agree on every non-empty
+`acceptCond` / `beginExec` value they expose. The only recovered non-empty
+sets remain exactly 15,384 `acceptCond` rows and 4,837 `beginExec` rows.
+There are zero cross-repository conflicts. The extra rows in the larger
+7.0 resources do not add another non-empty value for either missing field.
+
+For pinned 7.1 siblings:
+
+- `capyb2222/LunaGC-Resources@395a5ee6...`;
+- `invoker-bot/LunaGC-Resources@e2c1d3ca...`.
+
+Both expose the same 33,073 normalized rows and agree across all 33,214
+native subIds after missing rows are treated as empty lookup results.
+Both contain exactly the same 15,384 non-empty `acceptCond` rows and
+4,837 non-empty `beginExec` rows. Neither fills any gap left by the other.
+
+Therefore the remaining unresolved set cannot be reduced by searching these
+known Luna/Asta-derived public Quest JSON siblings. Further progress must come
+from a different evidence class: server-side source, independently preserved
+historical data, or semantic reconstruction from the Quest graph / scripts.
