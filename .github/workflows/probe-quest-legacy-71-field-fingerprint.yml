@@ -1,0 +1,169 @@
+name: Locate 7.1 QuestExcel row reader by field fingerprints
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-field-fingerprint.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-field-fingerprint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Scan field-transform immediates and map owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-field-fingerprint.txt
+          import bisect,csv,json,struct
+          from collections import defaultdict
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata/methods.csv")
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          TARGETS={
+              "subId_xor":0xB1571A55,
+              "order_sub":0x732ED834,
+              "order_add_neg":0x8CD127CC,
+              "mainId_add":0x0001D716,
+              "mainId_xor":0x3223AF7D,
+          }
+
+          with META.open("r",encoding="utf-8-sig",newline="") as fh:
+              methods=list(csv.DictReader(fh))
+          starts=[]; by={}
+          for row in methods:
+              try:r=int(row.get("rva") or "0",0)
+              except ValueError:continue
+              if r:
+                  starts.append(r); by.setdefault(r,[]).append(row)
+          starts=sorted(set(starts))
+
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]
+              e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not(s<=rva<e):return None
+              return s,e,by[s]
+
+          hits=defaultdict(list)
+          owners=defaultdict(lambda:{"targets":defaultdict(list),"metadata":None,"end":None})
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  for label,value in TARGETS.items():
+                      needle=struct.pack("<I",value)
+                      pos=0
+                      while True:
+                          k=blob.find(needle,pos)
+                          if k<0:break
+                          rva=sec.virtual_address+k
+                          ow=owner(rva)
+                          item={"rva":f"0x{rva:X}","section":sec.name}
+                          if ow:
+                              s,e,meta=ow
+                              item["owner_rva"]=f"0x{s:X}"
+                              item["owner_metadata"]=meta
+                              rec=owners[s]
+                              rec["metadata"]=meta; rec["end"]=e
+                              rec["targets"][label].append(rva)
+                          hits[label].append(item)
+                          pos=k+1
+
+              md=Cs(CS_ARCH_X86,CS_MODE_64)
+              grouped=[]
+              for s,rec in owners.items():
+                  labels=sorted(rec["targets"])
+                  meta=rec["metadata"] or []
+                  one_reader=any(
+                      m.get("method_name")=="GMENPOPMKAA"
+                      and "FNIAHJGHFAK" in (m.get("parameter_types") or "")
+                      for m in meta
+                  )
+                  if len(labels)<2 and not one_reader:
+                      continue
+                  end=min(rec["end"],s+0x10000)
+                  body=image.read_rva(s,end-s)
+                  ins=[]
+                  for x in md.disasm(body,image.image_base+s):
+                      rr=x.address-image.image_base
+                      if x.mnemonic in {
+                          "call","jmp","je","jne","ja","jae","jb","jbe",
+                          "mov","movzx","movsxd","lea","add","sub","xor","or","and",
+                          "cmp","test","bt","imul","shl","shr","sar"
+                      }:
+                          ins.append({"rva":f"0x{rr:X}","mnemonic":x.mnemonic,"op_str":x.op_str})
+                  grouped.append({
+                      "owner_rva":f"0x{s:X}",
+                      "metadata":meta,
+                      "target_labels":labels,
+                      "target_sites":{k:[f"0x{x:X}" for x in v] for k,v in rec["targets"].items()},
+                      "instructions":ins,
+                  })
+
+          grouped.sort(key=lambda x:(-len(x["target_labels"]),x["owner_rva"]))
+          report={
+              "targets":{k:f"0x{v:08X}" for k,v in TARGETS.items()},
+              "hit_counts":{k:len(v) for k,v in hits.items()},
+              "owners_with_hits":len(owners),
+              "grouped_candidates":grouped,
+              "raw_hits":hits,
+          }
+          print("TARGETS",json.dumps(report["targets"],sort_keys=True))
+          print("HIT_COUNTS",json.dumps(report["hit_counts"],sort_keys=True))
+          print("OWNERS_WITH_HITS",len(owners))
+          print("GROUPED_CANDIDATES",len(grouped))
+          for x in grouped[:80]:
+              print("\nCANDIDATE",json.dumps({
+                  "owner_rva":x["owner_rva"],
+                  "metadata":[{
+                      "type_name":m.get("type_name"),"method_name":m.get("method_name"),
+                      "parameter_types":m.get("parameter_types"),"rva":m.get("rva"),
+                      "type_definition_index":m.get("type_definition_index"),
+                  } for m in x["metadata"]],
+                  "target_labels":x["target_labels"],
+                  "target_sites":x["target_sites"],
+              },ensure_ascii=False))
+              for ins in x["instructions"]:
+                  if any(hex(v)[2:] in ins["op_str"].lower() for v in TARGETS.values()) or ins["mnemonic"] in {"call","jmp"}:
+                      print(ins["rva"],ins["mnemonic"],ins["op_str"])
+
+          Path("quest-legacy-71-field-fingerprint.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-field-fingerprint
+          path: |
+            quest-legacy-71-field-fingerprint.txt
+            quest-legacy-71-field-fingerprint.json
+          if-no-files-found: error
