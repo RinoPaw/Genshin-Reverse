@@ -74,6 +74,7 @@ jobs:
           PLACE_ELEM_SUB = 0x449FCFB9
           PREFER_RAW = 0x8BFDD679
           ORDER_SUB = 0x732ED834
+          DESC_XOR = 0x2AC0BB5D
           STEPDESC_XOR = 0xABB3B4F1
 
           raw = RAW.read_bytes()
@@ -109,15 +110,20 @@ jobs:
                       )
                   p += 4
 
-              raw_order = struct.unpack_from("<I", payload, p)[0]
-              order_candidate = (raw_order - ORDER_SUB) & 0xFFFFFFFF
+              has_order = bool((mask64 >> 57) & 1)
+              order_candidate = None
+              if has_order:
+                  raw_order = struct.unpack_from("<I", payload, p)[0]
+                  order_candidate = (raw_order - ORDER_SUB) & 0xFFFFFFFF
+                  p += 4
               native.append({
                   "subId": sub_id,
                   "start": start,
                   "end": end,
                   "mask64": mask64,
+                  "hasOrder": has_order,
                   "orderCandidate": order_candidate,
-                  "post": p + 4,
+                  "post": p,
               })
 
           controls = {}
@@ -137,31 +143,46 @@ jobs:
           if len(aligned) != 33214:
               raise SystemExit(f"control alignment drift: {len(aligned)}")
 
-          order_misses = [
-              nr["subId"] for nr, row in aligned
-              if row.get("order") != nr["orderCandidate"]
-          ]
-          order_miss_details = []
+          desc_misses = []
+          desc_exact = 0
+          order_presence_misses = []
+          order_value_misses = []
+          order_bit_present = 0
+          order_field_present = 0
+
           for nr, row in aligned:
-              if row.get("order") == nr["orderCandidate"]:
-                  continue
-              order_miss_details.append({
-                  "subId": nr["subId"],
-                  "mask64": f"0x{nr['mask64']:016X}",
-                  "candidate": nr["orderCandidate"],
-                  "expected": row.get("order"),
-                  "rowHex": payload[nr["start"]:nr["end"]].hex(),
-                  "keys": sorted(row.keys()),
-                  "values": {
-                      key: row[key]
-                      for key in (
-                          "exclusivePlaceList", "FJDKHGMJOPL", "FABHGLLGFHN",
-                          "isMpBlock", "showType", "DMCMNPLMCKL", "banType",
-                          "subIdSet", "stepDescTextMapHash",
-                      )
-                      if key in row
-                  },
-              })
+              raw_desc = struct.unpack_from("<I", payload, nr["start"] + 8)[0]
+              decoded_desc = raw_desc ^ DESC_XOR
+              expected_desc = row.get("descTextMapHash", 0)
+              if decoded_desc == expected_desc:
+                  desc_exact += 1
+              elif len(desc_misses) < 100:
+                  desc_misses.append({
+                      "subId": nr["subId"],
+                      "raw": f"0x{raw_desc:08X}",
+                      "decoded": decoded_desc,
+                      "expected": expected_desc,
+                  })
+
+              if nr["hasOrder"]:
+                  order_bit_present += 1
+              if "order" in row:
+                  order_field_present += 1
+              if nr["hasOrder"] != ("order" in row):
+                  if len(order_presence_misses) < 100:
+                      order_presence_misses.append({
+                          "subId": nr["subId"],
+                          "mask64": f"0x{nr['mask64']:016X}",
+                          "bit57": nr["hasOrder"],
+                          "fieldPresent": "order" in row,
+                      })
+              if nr["hasOrder"] and row.get("order") != nr["orderCandidate"]:
+                  if len(order_value_misses) < 100:
+                      order_value_misses.append({
+                          "subId": nr["subId"],
+                          "candidate": nr["orderCandidate"],
+                          "expected": row.get("order"),
+                      })
 
           mp_present = mp_field_present = mp_true = 0
           mp_raw = collections.Counter()
@@ -241,8 +262,18 @@ jobs:
           report = {
               "nativeRows": len(native),
               "aligned": len(aligned),
-              "orderMisses": order_misses,
-              "orderMissDetails": order_miss_details,
+              "descAtOffset8": {
+                  "xorKey": f"0x{DESC_XOR:08X}",
+                  "exact": desc_exact,
+                  "ratio": desc_exact / len(aligned),
+                  "misses": desc_misses,
+              },
+              "bit57_order": {
+                  "bitPresent": order_bit_present,
+                  "fieldPresent": order_field_present,
+                  "presenceMisses": order_presence_misses,
+                  "valueMisses": order_value_misses,
+              },
               "bit52_isMpBlock": {
                   "bitPresent": mp_present,
                   "fieldPresent": mp_field_present,
