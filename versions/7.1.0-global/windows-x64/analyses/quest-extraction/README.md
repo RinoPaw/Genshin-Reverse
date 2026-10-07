@@ -415,3 +415,74 @@ The resulting provenance chain is therefore:
 This closes the origin of the modern Asta predecessor chain inside the
 repository history. The remaining unknown is the external generator that
 created the pre-import flattened file before commit `8c85a82f`.
+## 2026-10-07 ordinary Quest content/exec ownership closure
+
+The remaining four ordinary Quest object-array semantics are now closed
+independently of the public field names.
+
+The exact 7.1 runtime type array resolves the four `LAIMPNDEFCL` array fields
+as:
+
+- `CNPOFCKIBDL : KIMCPAKMJMH[]` -> `failExec`;
+- `KHEBAEMAPPJ : JPGNLOPMNHN[]` -> `failCond`;
+- `DDFGFCPCNEH : JPGNLOPMNHN[]` -> `finishCond`;
+- `FAPCNCGCEBJ : KIMCPAKMJMH[]` -> `finishExec`.
+
+The semantic binding is verified against the pinned same-version Quest 351
+control. For example, `CNPOFCKIBDL` contains the rollback exec on 35101,
+`KHEBAEMAPPJ` contains its team-dead fail condition, and
+`FAPCNCGCEBJ` contains the lock-point / refresh-group finish execs on
+35106/35107.
+
+A full metadata/runtime-type census then resolves every `SZARRAY` field whose
+element type is either `KIMCPAKMJMH` or `JPGNLOPMNHN`. The entire 7.1
+client contains exactly **four** such array fields, all four on
+`LAIMPNDEFCL`. There is no second ordinary Quest row/container with another
+QuestExec or QuestContent array that could hide `beginExec`.
+
+Together with the separate condition-owner census, the client-side boundary is
+therefore closed:
+
+- native 7.1 ordinary Quest source retains `finishCond`, `failCond`,
+  `finishExec`, and `failExec`;
+- native 7.1 ordinary Quest source has no `acceptCond` owner;
+- native 7.1 ordinary Quest source has no fifth QuestExec array for
+  `beginExec`.
+
+This is an ownership result over the exact 7.1 runtime metadata and native
+reader, not an inference from missing JSON keys.
+
+## Historical carry-forward evidence boundary
+
+Later community resources must not be counted as independent version-native
+proof for `acceptCond` or `beginExec`.
+
+A direct Quest 351 check shows that the 4.6, 5.0, 6.6 and nominal 7.0 Luna
+resource snapshots all retain the old prerequisite graph that exact-client
+evidence shows was already removed from ordinary native Quest data by 3.0.
+For Quest 351:
+
+- TomyJan 3.7 and 4.0 refs share blob
+  `1349ca8a9f15fc5ca6590cd8ce4ecdb04d0fae61`;
+- Kei-Luna 4.6 and 5.0 plus Rafs-kk 6.6 share blob
+  `10aaff303a017090fb941f14e50c733a81d20a82`;
+- Merprose2's later resource has a different file blob but the same carried
+  Quest 351 prerequisite graph.
+
+Therefore agreement across those repositories/versions is useful evidence for
+a **historical compatibility graph**, but it is not independent evidence that
+the corresponding version's client still serialized the field.
+
+The recovery policy for private-server use should keep the sources distinct:
+
+1. `finishCond/failCond/finishExec/failExec`: decode from exact 7.1 native
+   ordinary Quest source;
+2. `acceptCond/beginExec`: use historical/community values only with explicit
+   provenance and compatibility status;
+3. never generate a physical previous-row `STATE_EQUAL` chain and label it as
+   recovered data;
+4. leave rows unresolved when no historical evidence exists rather than
+   silently fabricating prerequisites or begin execs.
+
+This preserves two separate products: a faithful 7.1 client-native dataset and
+an optional compatibility-restoration layer for server gameplay.
