@@ -377,6 +377,54 @@ jobs:
           Path("questexcel71-guidehint-types.json").write_text(
               json.dumps({"candidates":out},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
+      - name: Extract KPHLFFOELCG guide-hint schema
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-guide-hint-schema.txt
+          import csv,json
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGET=0xF08A330
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=rows("methods.csv")
+          deser={}
+          one_by_class={}
+          for m in methods:
+              try:rva=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if not rva:continue
+              try:params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:continue
+              if not params or params[0]!="FNIAHJGHFAK":continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or "").lower()
+                  pr=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or pr<prev[0]:
+                      one_by_class[cls]=(pr,rva)
+
+          row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+          schema=BC.build(exe,TARGET,deser,cache={})
+          print(json.dumps(schema,ensure_ascii=False,indent=2))
+          Path("questexcel71-guide-hint-schema.json").write_text(
+              json.dumps(schema,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
