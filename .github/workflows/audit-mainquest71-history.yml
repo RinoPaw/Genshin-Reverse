@@ -39,7 +39,7 @@ jobs:
           fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/TomyJan/GCResource.git /tmp/q37 609730bf63568baee1eb77a605b6c273a064dbc1 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_4.6.0.git /tmp/q46 e7e0204a273a82efd3c86507bb19cb0d9e760c53 'BinOutput/Quest/*.json'
-          fetch_repo https://github.com/Rafs-kk/LunaGC-6.6-res.git /tmp/q66 b0501c5d8f0f184caa95c12c99dc2f1da428145a 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/Rafs-kk/LunaGC-6.6-res.git /tmp/q66 b0501c5d89767ead5f647869a2412521447f7682 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/q70 a64cf90adbcbb4fec3ad1c00d94bfb455511e080 'BinOutput/Quest/*.json'
       - name: Audit historical mappings
         shell: bash
