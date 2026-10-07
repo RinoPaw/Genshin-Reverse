@@ -21,7 +21,8 @@ EXCLUSIVE_PLACE_ELEMENT_SUB = 0x449FCFB9
 PREFER_AREA2_GUIDE_SCENE_RAW = 0x8BFDD679
 ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
-UNKNOWN_BIT34_RAW = 0x074282C5
+FABHGLLGFHN_FOCUS_RAW = 0x074282C5
+UNKNOWN_BIT34_RAW = FABHGLLGFHN_FOCUS_RAW
 UNKNOWN_BIT40_RAW = 0x08
 FAIL_PARENT_SHOW_HIDDEN_RAW = 0x076DA7BF
 LBEFPHGELAN_TRUE_RAW = 0x87
@@ -65,7 +66,8 @@ BIT_SUB_ID_SET = 16
 BIT_BAN_TYPE = 22
 BIT_EOFPICJEHLP = 27
 BIT_PREFER_AREA2_GUIDE_SCENE = 29
-BIT_UNKNOWN_34 = 34
+BIT_FABHGLLGFHN = 34
+BIT_UNKNOWN_34 = BIT_FABHGLLGFHN
 BIT_EXCLUSIVE_PLACE_LIST = 37
 BIT_UNKNOWN_40 = 40
 BIT_DABNIJGHAPJ = 41
@@ -88,7 +90,7 @@ class QuestExcel71Row:
     prefer_area2_guide_scene: bool
     order: int | None
     is_mp_block: bool | None
-    unknown_bit34_raw: int | None
+    fabhgllgfhn: str | None
     step_desc_text_map_hash: int
     dmcmnplmckl: str | None
     ban_type: str | None
@@ -116,6 +118,10 @@ class QuestExcel71Row:
     @property
     def size(self) -> int:
         return self.end - self.start
+
+    @property
+    def unknown_bit34_raw(self) -> int | None:
+        return FABHGLLGFHN_FOCUS_RAW if self.fabhgllgfhn is not None else None
 
 
 @dataclass(frozen=True)
@@ -219,13 +225,14 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         is_mp_block = True
         p += 1
 
-    unknown_bit34_raw = None
-    if (mask64 >> BIT_UNKNOWN_34) & 1:
-        unknown_bit34_raw = _u32(payload, p, suffix_pos, "bit34 scalar")
-        if unknown_bit34_raw != UNKNOWN_BIT34_RAW:
+    fabhgllgfhn = None
+    if (mask64 >> BIT_FABHGLLGFHN) & 1:
+        raw_value = _u32(payload, p, suffix_pos, "FABHGLLGFHN")
+        if raw_value != FABHGLLGFHN_FOCUS_RAW:
             raise QuestExcel71ParseError(
-                f"row {index} subId {sub_id} has unexpected bit34 raw 0x{unknown_bit34_raw:08X}"
+                f"row {index} subId {sub_id} has unexpected FABHGLLGFHN raw 0x{raw_value:08X}"
             )
+        fabhgllgfhn = "QUEST_SHOW_ON_FOCUS_REQ"
         p += 4
 
     step_desc_text_map_hash = (
@@ -396,7 +403,7 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         prefer_area2_guide_scene=prefer_area2_guide_scene,
         order=order,
         is_mp_block=is_mp_block,
-        unknown_bit34_raw=unknown_bit34_raw,
+        fabhgllgfhn=fabhgllgfhn,
         step_desc_text_map_hash=step_desc_text_map_hash,
         dmcmnplmckl=dmcmnplmckl,
         ban_type=ban_type,
