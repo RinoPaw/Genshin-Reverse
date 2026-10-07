@@ -1,0 +1,191 @@
+name: Probe Quest 7.1 content/exec owners
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-content-exec-owners.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Enumerate Quest content/exec array owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-content-exec-owners.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv"); methods=rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb=defaultdict(list)
+          for f in fields: fb[int(f["type_definition_index"])].append(f)
+
+          with PEImage(EXE) as image:
+              base=image.image_base
+              type_array_va=int.from_bytes(
+                  image.read_rva(PROFILE_71.type_array_pointer_rva,8),"little"
+              )
+              type_array_rva=type_array_va-base
+              n=PROFILE_71.runtime_type_count
+              blob=image.read_rva(type_array_rva,n*16)
+              if len(blob)!=n*16:
+                  raise SystemExit("truncated runtime type array")
+
+              def entry(ix):
+                  if not (0<=ix<n): return None
+                  raw=blob[ix*16:(ix+1)*16]
+                  return {
+                      "index":ix,
+                      "kind":raw[10],
+                      "data_u32":int.from_bytes(raw[:4],"little"),
+                      "data_u64":int.from_bytes(raw[:8],"little"),
+                  }
+
+              def class_tdi(e):
+                  if e and e["kind"] in (0x11,0x12) and e["data_u32"] in tb:
+                      return e["data_u32"]
+                  return None
+
+              def resolve_szarray(ix):
+                  e=entry(ix)
+                  if not e or e["kind"]!=0x1D:return None
+                  candidates=[]
+                  ptr=e["data_u64"]
+                  if base<=ptr:
+                      delta=(ptr-base)-type_array_rva
+                      if delta>=0 and delta%16==0:
+                          candidates.append(delta//16)
+                  candidates.append(e["data_u32"])
+                  seen=set()
+                  for j in candidates:
+                      if j in seen:continue
+                      seen.add(j)
+                      tdi=class_tdi(entry(j))
+                      if tdi is not None:
+                          return {
+                              "runtime_type_index":ix,
+                              "element_runtime_type_index":j,
+                              "element_type_definition_index":tdi,
+                              "element_type_name":(tb.get(tdi) or {}).get("type_name"),
+                          }
+                  return None
+
+              arrays=[]
+              for f in fields:
+                  if (f.get("field_type") or "")!="kind_0x1D":continue
+                  try:ix=int(f.get("field_type_index") or "-1")
+                  except ValueError:continue
+                  r=resolve_szarray(ix)
+                  if not r:continue
+                  arrays.append({
+                      "owner":tb.get(int(f["type_definition_index"]),{}),
+                      "field":f,
+                      "resolved":r,
+                  })
+
+          ordinary=[
+              x for x in arrays
+              if x["owner"].get("type_name")=="LAIMPNDEFCL"
+          ]
+          print("ORDINARY_ARRAYS",len(ordinary))
+          print(json.dumps(ordinary,ensure_ascii=False,indent=2))
+
+          target_names={
+              x["resolved"]["element_type_name"] for x in ordinary
+              if x["field"].get("field_name") in {
+                  "CNPOFCKIBDL","KHEBAEMAPPJ","DDFGFCPCNEH","FAPCNCGCEBJ"
+              }
+          }
+          target_names.discard(None)
+          print("TARGET_ELEMENT_TYPES",json.dumps(sorted(target_names),ensure_ascii=False))
+
+          all_owners=[
+              x for x in arrays
+              if x["resolved"]["element_type_name"] in target_names
+          ]
+          print("ALL_MATCHING_ARRAY_FIELDS",len(all_owners))
+          for x in all_owners:
+              print(json.dumps(x,ensure_ascii=False))
+
+          # Any direct fields or method signatures naming the same record classes
+          # are useful even when the container is not a SZARRAY.
+          direct=[]
+          for f in fields:
+              ft=f.get("field_type") or ""
+              if any(name and name in ft for name in target_names):
+                  direct.append({
+                      "owner":tb.get(int(f["type_definition_index"]),{}),
+                      "field":f,
+                  })
+          print("DIRECT_FIELD_REFS",len(direct))
+          print(json.dumps(direct,ensure_ascii=False,indent=2))
+
+          mhits=[]
+          for m in methods:
+              hay=" ".join([
+                  m.get("return_type") or "",
+                  m.get("parameter_types") or "",
+              ])
+              if any(name and name in hay for name in target_names):
+                  mhits.append({
+                      "owner":tb.get(int(m["type_definition_index"]),{}),
+                      "method":m,
+                  })
+          print("METHOD_SIGNATURE_REFS",len(mhits))
+          print(json.dumps(mhits,ensure_ascii=False,indent=2))
+
+          # Condense owner types for quick review.
+          owners=defaultdict(list)
+          for x in all_owners:
+              name=x["owner"].get("type_name") or "?"
+              owners[name].append({
+                  "field_name":x["field"].get("field_name"),
+                  "element_type_name":x["resolved"].get("element_type_name"),
+                  "field_type_index":x["field"].get("field_type_index"),
+              })
+          print("OWNER_SUMMARY")
+          print(json.dumps(owners,ensure_ascii=False,indent=2))
+
+          Path("quest71-content-exec-owners.json").write_text(
+              json.dumps({
+                  "ordinary_arrays":ordinary,
+                  "target_element_types":sorted(target_names),
+                  "all_matching_array_fields":all_owners,
+                  "direct_field_refs":direct,
+                  "method_signature_refs":mhits,
+                  "owner_summary":owners,
+              },ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-content-exec-owners
+          path: |
+            quest71-content-exec-owners.txt
+            quest71-content-exec-owners.json
+          if-no-files-found: error
