@@ -1,0 +1,102 @@
+name: Snapshot QuestExcel comparison data
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-resource-snapshot.yml"
+
+concurrency:
+  group: probe-questexcel71-resource-snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned QuestExcel resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/agd /tmp/asta
+          git clone --filter=blob:none --no-checkout https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd
+          git -C /tmp/agd sparse-checkout init --no-cone
+          git -C /tmp/agd sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/agd checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          test -s /tmp/agd/ExcelBinOutput/QuestExcelConfigData.json
+
+          git clone --filter=blob:none --no-checkout https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta
+          git -C /tmp/asta sparse-checkout init --no-cone
+          git -C /tmp/asta sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta checkout 8c85a82f37341a422002a0352c89a142c4017e53
+          test -s /tmp/asta/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Normalize by subId
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          sources = [
+              (
+                  "dimbreath",
+                  Path("/tmp/agd/ExcelBinOutput/QuestExcelConfigData.json"),
+                  "DimbreathBot/AnimeGameData",
+                  "792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+              ),
+              (
+                  "asta_initial",
+                  Path("/tmp/asta/ExcelBinOutput/QuestExcelConfigData.json"),
+                  "MeChen618/AstaPS-Resource",
+                  "8c85a82f37341a422002a0352c89a142c4017e53",
+              ),
+          ]
+
+          out = {}
+          for name, path, repo, commit in sources:
+              data = json.loads(path.read_text(encoding="utf-8"))
+              rows = {}
+              dup = []
+              for row in data:
+                  sid = row.get("subId")
+                  if not isinstance(sid, int):
+                      continue
+                  if str(sid) in rows:
+                      dup.append(sid)
+                  rows[str(sid)] = row
+              if dup:
+                  raise SystemExit(f"{name}: duplicate subIds {dup[:20]}")
+              out[name] = {
+                  "repository": repo,
+                  "commit": commit,
+                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                  "rowCount": len(rows),
+                  "rows": rows,
+              }
+              print(name, "rows", len(rows), "sha256", out[name]["sha256"])
+
+          Path("questexcel71-resource-snapshot.json").write_text(
+              json.dumps(out, ensure_ascii=False, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          print("bytes", Path("questexcel71-resource-snapshot.json").stat().st_size)
+          PY
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-resource-snapshot
+          path: questexcel71-resource-snapshot.json
+          if-no-files-found: error
