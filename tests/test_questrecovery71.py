@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from genshinre.questrecovery71 import build_manifest
+from genshinre.questrecovery71 import build_consensus_manifest, build_manifest
 
 
 RAW_SOURCE = "DimbreathBot/AnimeGameData@792978e5"
@@ -540,6 +540,170 @@ class QuestRecovery71Tests(unittest.TestCase):
             "wander-in-wind/TsvParser@096da276",
         )
         self.assertNotIn("60004", unresolved["rows"])
+
+    def test_multi_source_consensus_recovers_agreed_value(self) -> None:
+        raw = {70001: {}}
+        value = [
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [69999, 3],
+            }
+        ]
+        manifest, unresolved = build_consensus_manifest(
+            raw,
+            {
+                "source-a": {70001: {"subId": 70001, "acceptCond": value}},
+                "source-b": {
+                    70001: {
+                        "subId": 70001,
+                        "acceptCond": [
+                            {
+                                "type": "QUEST_COND_STATE_EQUAL",
+                                "param": [69999, 3, 0],
+                            }
+                        ],
+                    }
+                },
+            },
+            raw_71_source=RAW_SOURCE,
+        )
+
+        row = manifest["rows"]["70001"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(
+            row["fields"]["acceptCond"]["provenance"]["kind"],
+            "community-consensus",
+        )
+        self.assertEqual(
+            row["fields"]["acceptCond"]["provenance"]["consensus_sources"],
+            ["source-a", "source-b"],
+        )
+        self.assertNotIn("70001", unresolved["rows"])
+
+    def test_multi_source_consensus_keeps_placeholder_unresolved(self) -> None:
+        raw = {70002: {}}
+        manifest, unresolved = build_consensus_manifest(
+            raw,
+            {
+                "source-a": {
+                    70002: {
+                        "subId": 70002,
+                        "acceptCond": [
+                            {
+                                "type": "QUEST_COND_UNKNOWN",
+                                "param": [0, 0],
+                            }
+                        ],
+                    }
+                },
+                "source-b": {70002: {"subId": 70002}},
+            },
+            raw_71_source=RAW_SOURCE,
+        )
+
+        row = manifest["rows"]["70002"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["reason"],
+            "community-placeholder-only",
+        )
+        self.assertIn("acceptCond", unresolved["rows"]["70002"]["fields"])
+
+    def test_multi_source_empty_consensus_is_compatibility_empty(self) -> None:
+        raw = {70003: {}}
+        manifest, unresolved = build_consensus_manifest(
+            raw,
+            {
+                "source-a": {70003: {"subId": 70003}},
+                "source-b": {70003: {"subId": 70003, "beginExec": []}},
+            },
+            raw_71_source=RAW_SOURCE,
+        )
+
+        row = manifest["rows"]["70003"]
+        self.assertEqual(
+            row["missing_field_status"]["beginExec"]["status"],
+            "compatibility-empty",
+        )
+        self.assertNotIn("70003", unresolved["rows"])
+
+    def test_tsv_fills_no_row_gap_in_multi_source_consensus(self) -> None:
+        raw = {70004: {}}
+        tsv = {
+            70004: {
+                "subId": 70004,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [70001, 3],
+                    }
+                ],
+                "beginExec": [
+                    {
+                        "type": "QUEST_EXEC_NOTIFY_GROUP_LUA",
+                        "param": ["3", "133000001"],
+                    }
+                ],
+            }
+        }
+        manifest, unresolved = build_consensus_manifest(
+            raw,
+            {
+                "source-a": {},
+                "source-b": {},
+            },
+            raw_71_source=RAW_SOURCE,
+            historical_tsv_rows=tsv,
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["70004"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(
+            row["fields"]["acceptCond"]["provenance"]["kind"],
+            "historical-server-source",
+        )
+        self.assertEqual(
+            row["missing_field_status"]["beginExec"]["status"],
+            "compatibility-value",
+        )
+        self.assertNotIn("70004", unresolved["rows"])
+
+    def test_tsv_does_not_override_multi_source_empty_consensus(self) -> None:
+        raw = {70005: {}}
+        manifest, unresolved = build_consensus_manifest(
+            raw,
+            {
+                "source-a": {70005: {"subId": 70005}},
+                "source-b": {70005: {"subId": 70005, "acceptCond": []}},
+            },
+            raw_71_source=RAW_SOURCE,
+            historical_tsv_rows={
+                70005: {
+                    "subId": 70005,
+                    "acceptCond": [
+                        {
+                            "type": "QUEST_COND_STATE_EQUAL",
+                            "param": [70004, 3],
+                        }
+                    ],
+                }
+            },
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["70005"]
+        self.assertNotIn("acceptCond", row["fields"])
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["reason"],
+            "historical-tsv-community-empty-diverged",
+        )
+        self.assertIn("acceptCond", unresolved["rows"]["70005"]["fields"])
 
     def test_unknown_accept_placeholder_is_not_recovered(self) -> None:
         raw = {40001: {}}
