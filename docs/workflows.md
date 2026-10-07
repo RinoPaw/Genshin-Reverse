@@ -56,6 +56,19 @@ The 2026-10-05 maintenance checkpoint retired the other one-off Quest/native pro
 
 Do not add another topic-specific workflow when a local command, an existing retained workflow, or a small reusable tool can answer the same question efficiently. CI is not the default interactive reverse-engineering loop.
 
+## `probe-quest71-structural-inference.yml`
+
+This is a temporary read-only research workflow for the active Quest recovery
+investigation. It benchmarks structural inference rules against pinned
+historical compatibility controls before any inferred values are considered
+for private-server use. In particular, it measures immediate-predecessor
+`acceptCond` accuracy and whether historical `beginExec` actions are
+represented by adjacent retained execution arrays.
+
+Its output is evidence only. It must not publish inferred values as native or
+recovered data, and the workflow must be retired after the benchmark result is
+recorded under the 7.1 Quest extraction analysis.
+
 ## Retirement rule
 
 Retire a workflow when all of the following are true:
