@@ -25,6 +25,13 @@ SUB_QUEST = {
     "FAPCNCGCEBJ": "finishExec",
     "KHEBAEMAPPJ": "failCond",
     "CNPOFCKIBDL": "failExec",
+    "BIHKOLLEDPE": "guideHint",
+    "HEMLAEELDFC": "isMpBlock",
+    "IILNPFILEGJ": "subIdSet",
+    "JFCJBBCEDGD": "sharedNpcList",
+    "FKKAEBOAMCN": "stepDescTextMapHash",
+    "KBDPGMJFJGO": "guideTipsTextMapHash",
+    "KIILAIEPKIA": "banType",
 }
 
 COND = {
@@ -35,6 +42,12 @@ GUIDE = {
     "IEOAOICBOLJ": "guideScene",
     "NAPKNCOFMKI": "guideStyle",
     "DANOJMJOHPI": "guideLayer",
+    "PHOCDKAEENN": "autoGuide",
+    "FPMPILEAIOL": "poiPointId",
+    "GJCMGJEFAGF": "poiRegionId",
+    "AMCLBMAOELH": "inSceneStyle",
+    "NJGODCNNNNJ": "indicatorStyle",
+    "ABIJICNCCOD": "areaStyle",
 }
 
 KNOWN_TOP = {
@@ -46,11 +59,13 @@ KNOWN_SUB = {
     "subId", "mainId", "order", "descTextMapHash", "showType", "showGuide",
     "guide", "isRewind", "finishParent", "finishCond", "failCond",
     "finishExec", "failExec", "acceptCond", "beginExec", "finishCondComb",
-    "failCondComb", "acceptCondComb",
+    "failCondComb", "acceptCondComb", "guideHint", "isMpBlock", "subIdSet",
+    "sharedNpcList", "stepDescTextMapHash", "guideTipsTextMapHash", "banType",
 }
 KNOWN_COND = {"type", "param", "param_str", "count"}
 KNOWN_GUIDE = {
-    "type", "param", "guideScene", "guideStyle", "guideLayer",
+    "type", "param", "guideScene", "guideStyle", "guideLayer", "autoGuide",
+    "poiPointId", "poiRegionId", "inSceneStyle", "indicatorStyle", "areaStyle",
 }
 
 
