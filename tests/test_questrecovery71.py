@@ -387,6 +387,160 @@ class QuestRecovery71Tests(unittest.TestCase):
             1,
         )
 
+    def test_historical_tsv_recovers_missing_compatibility_fields(self) -> None:
+        raw = {60001: {}}
+        historical = {
+            60001: {
+                "subId": 60001,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [59999, 3],
+                    }
+                ],
+                "beginExec": [
+                    {
+                        "type": "QUEST_EXEC_SET_GAME_TIME",
+                        "param": ["18", "0"],
+                    }
+                ],
+            }
+        }
+
+        manifest, unresolved = build_manifest(
+            raw,
+            {60001: {"subId": 60001}},
+            {},
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows=historical,
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["60001"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(
+            row["fields"]["acceptCond"]["provenance"]["kind"],
+            "historical-server-source",
+        )
+        self.assertFalse(
+            row["fields"]["acceptCond"]["provenance"]["native_7_1"]
+        )
+        self.assertEqual(
+            row["missing_field_status"]["beginExec"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(unresolved["summary"]["rows"], 0)
+
+    def test_historical_tsv_empty_can_resolve_missing_community_evidence(self) -> None:
+        raw = {60002: {}}
+
+        manifest, unresolved = build_manifest(
+            raw,
+            {60002: {"subId": 60002}},
+            {},
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows={60002: {"subId": 60002}},
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["60002"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-empty",
+        )
+        self.assertEqual(
+            row["missing_field_status"]["beginExec"]["status"],
+            "compatibility-empty",
+        )
+        self.assertNotIn("60002", unresolved["rows"])
+
+    def test_historical_tsv_conflict_does_not_override_community_consensus(self) -> None:
+        raw = {60003: {}}
+        community = {
+            60003: {
+                "subId": 60003,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [60001, 3],
+                    }
+                ],
+            }
+        }
+        historical = {
+            60003: {
+                "subId": 60003,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [60002, 3],
+                    }
+                ],
+            }
+        }
+
+        manifest, unresolved = build_manifest(
+            raw,
+            community,
+            community,
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows=historical,
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["60003"]
+        self.assertNotIn("acceptCond", row["fields"])
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "unresolved",
+        )
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["reason"],
+            "historical-tsv-community-diverged",
+        )
+        self.assertIn("acceptCond", unresolved["rows"]["60003"]["fields"])
+
+    def test_historical_tsv_can_support_existing_community_value(self) -> None:
+        raw = {60004: {}}
+        canonical = [
+            {
+                "type": "QUEST_EXEC_NOTIFY_GROUP_LUA",
+                "param": ["3", "133000001"],
+            }
+        ]
+        historical = canonical + [dict(canonical[0])]
+
+        manifest, unresolved = build_manifest(
+            raw,
+            {60004: {"subId": 60004, "beginExec": canonical}},
+            {60004: {"subId": 60004, "beginExec": canonical}},
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows={
+                60004: {"subId": 60004, "beginExec": historical}
+            },
+            historical_tsv_source="wander-in-wind/TsvParser@096da276",
+        )
+
+        row = manifest["rows"]["60004"]
+        provenance = row["fields"]["beginExec"]["provenance"]
+        self.assertTrue(provenance["historical_server_source_agrees"])
+        self.assertEqual(
+            provenance["historical_server_source"],
+            "wander-in-wind/TsvParser@096da276",
+        )
+        self.assertNotIn("60004", unresolved["rows"])
+
     def test_unknown_accept_placeholder_is_not_recovered(self) -> None:
         raw = {40001: {}}
         community_70 = {
