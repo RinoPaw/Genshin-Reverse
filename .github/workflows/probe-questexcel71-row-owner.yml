@@ -1,0 +1,145 @@
+name: Probe QuestExcel 7.1 row owner
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-row-owner.yml"
+
+concurrency:
+  group: probe-questexcel71-row-owner-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none https://github.com/owomocha/genshin-7.0-local-re-devkit.git /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+      - name: Intersect native guide and guideHint reader callers
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-row-owner.txt
+          import bisect,csv,json
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.pe import PEImage
+          from genshinre.sampleidentity import require_sha256
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={"guideHint":0xB208D40,"guide":0x1168F230}
+          require_sha256(EXE,PROFILE_71.exe_sha256,label="executable")
+
+          def read(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          methods=read("methods.csv")
+          fields=read("fields.csv")
+          types=read("types.csv")
+          tb={int(x["type_definition_index"]):x for x in types}
+          by_rva={}
+          starts=[]
+          for m in methods:
+              try:r=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if r:
+                  by_rva.setdefault(r,[]).append(m);starts.append(r)
+          starts=sorted(set(starts))
+          def owner(rva):
+              i=bisect.bisect_right(starts,rva)-1
+              if i<0:return None
+              s=starts[i]; e=starts[i+1] if i+1<len(starts) else s+0x10000
+              if not s<=rva<e:return None
+              return s
+
+          hits={k:[] for k in TARGETS}
+          with PEImage(EXE) as image:
+              for sec in image.sections:
+                  if not(sec.characteristics & 0x20000000):continue
+                  blob=image.read_rva(sec.virtual_address,sec.raw_size)
+                  off=0
+                  while True:
+                      off=blob.find(b"\xE8",off)
+                      if off<0 or off+5>len(blob):break
+                      rel=int.from_bytes(blob[off+1:off+5],"little",signed=True)
+                      site=sec.virtual_address+off
+                      target=site+5+rel
+                      for name,want in TARGETS.items():
+                          if target==want:
+                              hits[name].append({"site":site,"owner":owner(site)})
+                      off+=1
+
+          owner_sets={k:{x["owner"] for x in v if x["owner"] is not None} for k,v in hits.items()}
+          both=sorted(set.intersection(*owner_sets.values()))
+          print("guideHint callers",len(owner_sets["guideHint"]))
+          print("guide callers",len(owner_sets["guide"]))
+          print("intersection",len(both),[hex(x) for x in both])
+
+          deser={}
+          one={}
+          for m in methods:
+              try:rva=int(m.get("rva") or "0",0); params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:continue
+              if not rva or not params or params[0]!="FNIAHJGHFAK":continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or "").lower()
+                  pr=0 if m.get("method_name") in {"FromBinaryInner","GMENPOPMKAA"} else (1 if ret=="void" else 2)
+                  if cls not in one or pr<one[cls][0]:one[cls]=(pr,rva)
+          row_deser={cls:rva for cls,(_p,rva) in one.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          report={"targets":TARGETS,"hits":hits,"intersection":[]}
+          for rva in both:
+              meta=by_rva.get(rva,[])
+              tdis=sorted({int(x["type_definition_index"]) for x in meta if x.get("type_definition_index")})
+              item={
+                  "rva":f"0x{rva:X}",
+                  "methods":meta,
+                  "types":[tb.get(x,{}) for x in tdis],
+                  "fields":[f for f in fields if int(f.get("type_definition_index") or -1) in tdis],
+              }
+              try:item["schema"]=BC.build(exe,rva,deser,cache={})
+              except Exception as exc:item["schema_error"]=type(exc).__name__+":"+str(exc)
+              report["intersection"].append(item)
+              print("\nCANDIDATE",json.dumps(item,ensure_ascii=False))
+
+          Path("questexcel71-row-owner.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-row-owner
+          path: |
+            questexcel71-row-owner.txt
+            questexcel71-row-owner.json
+          if-no-files-found: error
