@@ -1,0 +1,105 @@
+name: Probe QuestExcel 7.1 field metadata
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-questexcel71-field-metadata.yml"
+
+concurrency:
+  group: probe-questexcel71-field-metadata-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Resolve correlated fields to metadata owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-field-metadata.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={
+              "FABHGLLGFHN","DABNIJGHAPJ","DMCMNPLMCKL","EOFPICJEHLP",
+              "LBEFPHGELAN","GCPCNAONCCJ","HBCFHMLPNDB","OEPAPDEPHDO",
+              "MIEPHKGCBKC","CPHABDHIDKC","AEJMPEBJIHE",
+              "IHOOIFBLPJK","FJDKHGMJOPL",
+              "mainId","subId","order","guide","guideHint","showGuide",
+              "showType","banType","stepDescTextMapHash","guideTipsTextMapHash",
+          }
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+          methods=rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb=defaultdict(list); mb=defaultdict(list)
+          for f in fields: fb[int(f["type_definition_index"])].append(f)
+          for m in methods: mb[int(m["type_definition_index"])].append(m)
+
+          def row_strings(row):
+              return {str(v) for v in row.values() if v is not None}
+
+          hits=[]
+          for f in fields:
+              vals=row_strings(f)
+              names=sorted(TARGETS & vals)
+              if names:
+                  hits.append((f,names))
+
+          owners=sorted({int(f["type_definition_index"]) for f,_ in hits})
+          print("TARGET_FIELD_HITS",len(hits))
+          for f,names in hits:
+              tdi=int(f["type_definition_index"])
+              print(json.dumps({
+                  "matched":names,
+                  "owner":tb.get(tdi,{}),
+                  "field":f,
+              },ensure_ascii=False))
+
+          print("\nOWNER_COUNT",len(owners))
+          for tdi in owners:
+              print("\n=== OWNER",tdi,(tb.get(tdi) or {}).get("type_name"),"===")
+              print(json.dumps({
+                  "type":tb.get(tdi,{}),
+                  "fields":fb.get(tdi,[]),
+                  "binary_readers":[
+                      m for m in mb.get(tdi,[])
+                      if "FNIAHJGHFAK" in (m.get("parameter_types") or "")
+                  ],
+                  "methods":mb.get(tdi,[]),
+              },ensure_ascii=False,indent=2))
+
+          # Also show exact types that own the recovered row/guide readers.
+          for name in ("LAIMPNDEFCL","NBLEHPOBCEB","OOPFBIEAILL","KPHLFFOELCG"):
+              for t in types:
+                  if t.get("type_name")!=name: continue
+                  tdi=int(t["type_definition_index"])
+                  print("\n=== NAMED TYPE",name,tdi,"===")
+                  print(json.dumps({
+                      "type":t,
+                      "fields":fb.get(tdi,[]),
+                      "binary_readers":[
+                          m for m in mb.get(tdi,[])
+                          if "FNIAHJGHFAK" in (m.get("parameter_types") or "")
+                      ],
+                  },ensure_ascii=False,indent=2))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: questexcel71-field-metadata
+          path: questexcel71-field-metadata.txt
+          if-no-files-found: error
