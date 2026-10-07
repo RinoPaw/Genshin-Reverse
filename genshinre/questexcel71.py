@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import struct
 
 from .questguide71 import QuestGuide71, QuestGuide71ParseError, find_questguide71
-
+from .questguidehint71 import (\n    QuestGuideHint71,\n    QuestGuideHint71ParseError,\n    parse_questguidehint71,\n)\n
 
 class QuestExcel71ParseError(ValueError):
     pass
@@ -224,6 +224,14 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
                 f"0x{unknown_bit40_raw:02X}"
             )
         p += 1
+
+    try:
+        guide_hint = parse_questguidehint71(payload, p, suffix_pos)
+    except QuestGuideHint71ParseError as exc:
+        raise QuestExcel71ParseError(
+            f"row {index} subId {sub_id}: {exc}"
+        ) from exc
+    p = guide_hint.end
 
     guide_tips_pos = suffix_pos - 4
     if p > guide_tips_pos:
