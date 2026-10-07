@@ -1,0 +1,195 @@
+name: Recover 7.1 QuestExcel prefix wire before order
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-prefix-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-prefix-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Download exact QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+      - name: Fetch AstaPS PR9 semantic controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
+      - name: Infer prefix container controlled by mask bits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-prefix-wire.txt
+          import collections,json,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES=Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+          MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,0x083EFDD5,
+              0x087FDDD5,0x287EFDD5,0x087ED9D5,0x083EDDD5,0x007FFDD5,
+              0x087FF9D5,0x083EF9D5,0x083FFDD5,
+          }
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[p for p in range(4,len(payload)-7)
+                  if struct.unpack_from("<I",payload,p)[0] in MASKS]
+          if len(starts)!=33214: raise SystemExit(f"framing drift {len(starts)}")
+          native=[]
+          for i,s in enumerate(starts):
+              e=starts[i+1] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,e-4)[0]^0xB1571A55
+              native.append({"start":s,"end":e,"subId":sid,
+                             "mask64":struct.unpack_from("<Q",payload,s)[0]})
+          rb={x["subId"]:x for x in json.loads(RES.read_text(encoding="utf-8"))
+              if isinstance(x.get("subId"),int)}
+
+          rows=[]
+          ambiguous=[]
+          missing=[]
+          for nr in native:
+              rr=rb[nr["subId"]]
+              want=rr["order"]&0xffffffff
+              hits=[]
+              # Order must follow the mask and precede the variable tail.
+              for off in range(8,min(96,nr["end"]-nr["start"]-7)):
+                  u=struct.unpack_from("<I",payload,nr["start"]+off)[0]
+                  if ((u-0x732ED834)&0xffffffff)==want:
+                      hits.append(off)
+              if not hits:
+                  missing.append(nr["subId"]); continue
+              # Empirically the genuine hit is the earliest one; record ambiguity.
+              off=min(hits)
+              if len(hits)>1: ambiguous.append({"subId":nr["subId"],"hits":hits})
+              rows.append({**nr,"order_off":off,"order":want})
+
+          print("rows_with_order",len(rows),"missing",len(missing),"ambiguous",len(ambiguous))
+          print("order_offset_distribution",collections.Counter(x["order_off"] for x in rows).most_common(30))
+
+          # Bits 29 and 37 are the two observed controls that move order in the prefix.
+          by_combo=collections.defaultdict(list)
+          for x in rows:
+              b29=(x["mask64"]>>29)&1
+              b37=(x["mask64"]>>37)&1
+              by_combo[(b29,b37)].append(x)
+          print("\n=== bit29/37 order offsets ===")
+          for k,v in sorted(by_combo.items()):
+              print(k,len(v),collections.Counter(x["order_off"] for x in v).most_common(30))
+
+          # If bit37 is an encoded uint32 array before order:
+          # array bytes = 4-byte count + 4*N.
+          # Test both possible relative orderings with bit29's 4-byte scalar.
+          def rank_count(label, selector, count_off_fn, n_fn):
+              cs={k:collections.Counter() for k in ("xor","sub","add")}
+              eligible=0; invalid=0
+              examples=[]
+              for x in rows:
+                  if not selector(x): continue
+                  co=count_off_fn(x)
+                  nn=n_fn(x)
+                  if co is None or nn is None or nn<0 or nn>1000 or co+4>x["order_off"]:
+                      invalid+=1; continue
+                  if nn*4+4 > x["order_off"]-co:
+                      invalid+=1; continue
+                  eligible+=1
+                  u=struct.unpack_from("<I",payload,x["start"]+co)[0]
+                  cs["xor"][u^nn]+=1
+                  cs["sub"][(u-nn)&0xffffffff]+=1
+                  cs["add"][(u+nn)&0xffffffff]+=1
+                  if len(examples)<12:
+                      examples.append({"subId":x["subId"],"mask64":f"0x{x['mask64']:016X}",
+                                       "order_off":x["order_off"],"count_off":co,
+                                       "derived_count":nn,"raw_count":f"0x{u:08X}"})
+              out={"label":label,"eligible":eligible,"invalid":invalid,"examples":examples}
+              for kind,c in cs.items():
+                  out[kind]=[{"key":f"0x{k:08X}","support":n,
+                              "ratio":n/eligible if eligible else 0}
+                             for k,n in c.most_common(12)]
+              return out
+
+          tests=[]
+          # b37=1,b29=0: only the candidate variable field precedes order.
+          tests.append(rank_count(
+              "bit37_only_array_at_0x0C",
+              lambda x:((x["mask64"]>>37)&1) and not ((x["mask64"]>>29)&1),
+              lambda x:12,
+              lambda x:(x["order_off"]-16)//4 if (x["order_off"]-16)%4==0 else None,
+          ))
+          # b37=1,b29=1. Hypothesis A: bit29 scalar, then bit37 array.
+          tests.append(rank_count(
+              "bit29_then_bit37_array_at_0x10",
+              lambda x:((x["mask64"]>>37)&1) and ((x["mask64"]>>29)&1),
+              lambda x:16,
+              lambda x:(x["order_off"]-20)//4 if (x["order_off"]-20)%4==0 else None,
+          ))
+          # Hypothesis B: bit37 array, then bit29 scalar.
+          tests.append(rank_count(
+              "bit37_array_at_0x0C_then_bit29",
+              lambda x:((x["mask64"]>>37)&1) and ((x["mask64"]>>29)&1),
+              lambda x:12,
+              lambda x:(x["order_off"]-20)//4 if (x["order_off"]-20)%4==0 else None,
+          ))
+
+          print("\n=== count transform hypotheses ===")
+          for x in tests:
+              print(json.dumps(x,ensure_ascii=False))
+
+          # bit29 alone should account for exactly one u32 before order if structural.
+          b29only=[x for x in rows if ((x["mask64"]>>29)&1) and not ((x["mask64"]>>37)&1)]
+          print("\nbit29_only",len(b29only),
+                collections.Counter(x["order_off"] for x in b29only).most_common(20))
+
+          report={
+              "rows_with_order":len(rows),"missing_order":missing,
+              "ambiguous_order":ambiguous[:200],
+              "order_offsets":dict(sorted(collections.Counter(x["order_off"] for x in rows).items())),
+              "bit29_37":{
+                  f"{a}{b}":{
+                      "rows":len(v),
+                      "offsets":dict(sorted(collections.Counter(x["order_off"] for x in v).items())),
+                  } for (a,b),v in by_combo.items()
+              },
+              "count_tests":tests,
+          }
+          Path("quest-legacy-71-prefix-wire.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-prefix-wire
+          path: |
+            quest-legacy-71-prefix-wire.txt
+            quest-legacy-71-prefix-wire.json
+          if-no-files-found: error
