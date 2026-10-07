@@ -12,6 +12,7 @@ from genshinre.questexcel71 import (
     BIT_ORDER,
     BIT_PREFER_AREA2_GUIDE_SCENE,
     BIT_UNKNOWN_34,
+    BIT_UNKNOWN_40,
     EXCLUSIVE_PLACE_COUNT_XOR,
     DMCMNPLMCKL_HIDDEN_RAW,
     EXCLUSIVE_PLACE_ELEMENT_SUB,
@@ -24,6 +25,7 @@ from genshinre.questexcel71 import (
     STEP_DESC_TEXT_MAP_HASH_XOR,
     SUB_ID_XOR,
     UNKNOWN_BIT34_RAW,
+    UNKNOWN_BIT40_RAW,
     parse_questexcel71_raw_export,
 )
 
@@ -47,6 +49,7 @@ def make_row(
     step_desc_text_map_hash: int = 0,
     dmcmnplmckl_hidden: bool = False,
     ban_type: str | None = None,
+    bit40: bool = False,
     tail: bytes = b"",
     guide_tips_text_map_hash: int = 0,
 ) -> bytes:
@@ -65,6 +68,8 @@ def make_row(
         mask64 &= ~(1 << BIT_DMCMNPLMCKL)
     if ban_type is not None:
         mask64 &= ~(1 << BIT_BAN_TYPE)
+    if bit40:
+        mask64 |= 1 << BIT_UNKNOWN_40
 
     out = bytearray(struct.pack("<Q", mask64))
     out += u32(unknown_prefix_u32)
@@ -86,6 +91,8 @@ def make_row(
     if ban_type is not None:
         raw_by_ban_type = {value: raw for raw, value in BAN_TYPE_BY_RAW.items()}
         out += u32(raw_by_ban_type[ban_type])
+    if bit40:
+        out.append(UNKNOWN_BIT40_RAW)
     out += tail
     out += u32(guide_tips_text_map_hash ^ GUIDE_TIPS_TEXT_MAP_HASH_XOR)
     out += u32(sub_id ^ SUB_ID_XOR)
@@ -109,6 +116,7 @@ class QuestExcel71Tests(unittest.TestCase):
             step_desc_text_map_hash=0x13579BDF,
             dmcmnplmckl_hidden=True,
             ban_type="BAN_GROUP_TRANSPORT_MAP",
+            bit40=True,
             tail=b"\xAA\xBB\xCC",
             guide_tips_text_map_hash=0x2468ACE0,
         )
@@ -134,6 +142,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(0x13579BDF, first.step_desc_text_map_hash)
         self.assertEqual("QUEST_HIDDEN", first.dmcmnplmckl)
         self.assertEqual("BAN_GROUP_TRANSPORT_MAP", first.ban_type)
+        self.assertEqual(UNKNOWN_BIT40_RAW, first.unknown_bit40_raw)
         self.assertEqual(b"\xAA\xBB\xCC", first.raw_tail)
         self.assertEqual(first.end - 8, first.known_suffix_start)
         self.assertEqual(0x2468ACE0, first.guide_tips_text_map_hash)
@@ -147,6 +156,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(0, second.step_desc_text_map_hash)
         self.assertIsNone(second.dmcmnplmckl)
         self.assertIsNone(second.ban_type)
+        self.assertIsNone(second.unknown_bit40_raw)
         self.assertEqual(b"opaque", second.raw_tail)
         self.assertEqual(second.end - 8, second.known_suffix_start)
         self.assertEqual(0, second.guide_tips_text_map_hash)
@@ -175,6 +185,14 @@ class QuestExcel71Tests(unittest.TestCase):
         row[raw_pos:raw_pos + 4] = u32(0)
         payload = u32(0) + row
         with self.assertRaisesRegex(QuestExcel71ParseError, "bit29 raw"):
+            parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
+
+    def test_rejects_unexpected_bit40_encoding(self) -> None:
+        row = bytearray(make_row(10001, unknown_prefix_u32=0, bit40=True))
+        bit40_pos = 8 + 4 + 4
+        row[bit40_pos] = 0
+        payload = u32(0) + row
+        with self.assertRaisesRegex(QuestExcel71ParseError, "bit40 raw"):
             parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
 
     def test_rejects_duplicate_subids(self) -> None:
