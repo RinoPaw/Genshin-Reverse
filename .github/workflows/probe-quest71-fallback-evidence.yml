@@ -1,0 +1,249 @@
+name: Probe Quest 7.1 fallback evidence
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-fallback-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71 395a5ee6442142a803691f60d541ee1706ae9cd7
+
+      - name: Measure prerequisite and beginExec fallback evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-fallback-evidence.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          def load_raw(root):
+              out={}
+              for p in Path(root).glob("*.json"):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  for r in o.get("JIJKODHIEED",[]):
+                      if isinstance(r,dict) and isinstance(r.get("NFGFDHPPBIF"),int):
+                          out[r["NFGFDHPPBIF"]]=r
+              return out
+
+          def load_comm(root):
+              out={}
+              for p in Path(root).glob("*.json"):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  for r in o.get("subQuests",[]):
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          out[r["subId"]]=r
+              return out
+
+          def norm_entries(v, *, field):
+              if not isinstance(v,list): return []
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict):continue
+                  typ=x.get("type")
+                  if not isinstance(typ,str) or not typ:continue
+                  if field=="acceptCond" and typ=="QUEST_COND_UNKNOWN":continue
+                  params=x.get("param",[])
+                  params=list(params) if isinstance(params,list) else []
+                  while params and params[-1] in (0,"0",""):params.pop()
+                  ps=x.get("param_str",x.get("paramStr",x.get("JBELGECAIIL",""))) or ""
+                  out.append((typ,tuple(str(z) for z in params),str(ps),int(x.get("count") or 0)))
+              return tuple(out)
+
+          raw=load_raw("/tmp/raw71/BinOutput/Quest")
+          comm=load_comm("/tmp/c71/BinOutput/Quest")
+          by_main=defaultdict(list)
+          meta={}
+          for sid,r in raw.items():
+              mid=r.get("PCOMHEOJPOO")
+              order=r.get("GBFIFKGFKHD")
+              if isinstance(mid,int) and isinstance(order,int):
+                  by_main[mid].append((order,sid))
+                  meta[sid]=(mid,order)
+          for mid in by_main:
+              by_main[mid].sort()
+
+          prev={}
+          prev_group={}
+          for mid,seq in by_main.items():
+              orders=defaultdict(list)
+              for order,sid in seq: orders[order].append(sid)
+              sorted_orders=sorted(orders)
+              for i,order in enumerate(sorted_orders):
+                  if i==0:continue
+                  po=sorted_orders[i-1]
+                  for sid in orders[order]:
+                      prev[sid]=orders[po][0] if len(orders[po])==1 else None
+                      prev_group[sid]=tuple(sorted(orders[po]))
+
+          # acceptCond structure and previous-order heuristic.
+          st=Counter(); type_counts=Counter(); comb_counts=Counter()
+          examples=defaultdict(list)
+          per_main=defaultdict(lambda:Counter())
+          known_accept={}
+          for sid,row in comm.items():
+              ac=norm_entries(row.get("acceptCond"),field="acceptCond")
+              if not ac:continue
+              known_accept[sid]=ac
+              st["known_nonempty"]+=1
+              for x in ac:type_counts[x[0]]+=1
+              comb_counts[str(row.get("acceptCondComb"))]+=1
+              mid_order=meta.get(sid)
+              if mid_order is None:
+                  st["no_raw_meta"]+=1
+                  continue
+              mid,order=mid_order
+              p=prev.get(sid)
+              pg=prev_group.get(sid,())
+              exact_prev = (
+                  p is not None and len(ac)==1 and
+                  ac[0][0]=="QUEST_COND_STATE_EQUAL" and
+                  len(ac[0][1])>=2 and
+                  ac[0][1][0]==str(p) and ac[0][1][1]=="3"
+              )
+              if exact_prev:
+                  st["exact_previous_order_finished"]+=1
+                  per_main[mid]["exact_prev"]+=1
+              else:
+                  per_main[mid]["non_prev"]+=1
+                  if len(examples["non_prev"])<80:
+                      examples["non_prev"].append({
+                          "subId":sid,"mainId":mid,"order":order,
+                          "previousOrderGroup":pg,"acceptCond":ac,
+                          "acceptCondComb":row.get("acceptCondComb"),
+                      })
+
+              if len(ac)==1 and ac[0][0]=="QUEST_COND_STATE_EQUAL":
+                  st["single_state_equal"]+=1
+                  params=ac[0][1]
+                  if len(params)>=2 and params[1]=="3":
+                      st["single_state_equal_finished"]+=1
+                      ref=int(params[0]) if params and params[0].isdigit() else None
+                      if ref in meta and meta[ref][0]==mid:
+                          st["single_finished_local_main"]+=1
+                          if meta[ref][1] < order:
+                              st["single_finished_earlier_order"]+=1
+              if all(x[0] in {"QUEST_COND_STATE_EQUAL","QUEST_COND_STATE_NOT_EQUAL"} for x in ac):
+                  st["all_state_conditions"]+=1
+              else:
+                  st["has_non_state_condition"]+=1
+
+          main_stats=Counter()
+          for mid,cs in per_main.items():
+              total=cs["exact_prev"]+cs["non_prev"]
+              if total==0:continue
+              main_stats["mains_with_known_accept"]+=1
+              if cs["non_prev"]==0:main_stats["mains_all_exact_prev"]+=1
+              if cs["exact_prev"]==0:main_stats["mains_no_exact_prev"]+=1
+
+          print("=== ACCEPTCOND FALLBACK ACCURACY ===")
+          print(dict(st))
+          if st["known_nonempty"]:
+              print("exact_previous_ratio",st["exact_previous_order_finished"]/st["known_nonempty"])
+          print("main_stats",dict(main_stats))
+          print("top_condition_types",type_counts.most_common(40))
+          print("acceptCondComb",comb_counts)
+          print("non_prev_examples",json.dumps(examples["non_prev"],ensure_ascii=False,indent=2))
+
+          # beginExec relation to native 7.1 finishExec.
+          bst=Counter(); btypes=Counter(); pair_types=Counter()
+          bexamples=defaultdict(list)
+          for sid,row in comm.items():
+              be=norm_entries(row.get("beginExec"),field="beginExec")
+              if not be:continue
+              bst["known_nonempty"]+=1
+              for x in be:btypes[x[0]]+=1
+
+              same_finish=norm_entries(raw.get(sid,{}).get("FAPCNCGCEBJ"),field="finishExec")
+              p=prev.get(sid)
+              prev_finish=norm_entries(raw.get(p,{}).get("FAPCNCGCEBJ"),field="finishExec") if p else ()
+              pg=prev_group.get(sid,())
+              group_finish=[]
+              for psid in pg:
+                  group_finish.extend(norm_entries(raw.get(psid,{}).get("FAPCNCGCEBJ"),field="finishExec"))
+              group_finish=tuple(group_finish)
+
+              if be==same_finish and be:bst["equals_same_row_finishExec"]+=1
+              if be==prev_finish and be:bst["equals_previous_order_finishExec"]+=1
+              if be==group_finish and be:bst["equals_previous_group_finishExec"]+=1
+
+              be_set=set(be); same_set=set(same_finish); prev_set=set(prev_finish); group_set=set(group_finish)
+              if be_set and be_set <= same_set:bst["subset_same_row_finishExec"]+=1
+              if be_set and be_set <= prev_set:bst["subset_previous_order_finishExec"]+=1
+              if be_set and be_set <= group_set:bst["subset_previous_group_finishExec"]+=1
+
+              for x in be:
+                  if x in prev_set:pair_types[x[0]]+=1
+
+              if len(bexamples["mismatch"])<80 and be != prev_finish:
+                  bexamples["mismatch"].append({
+                      "subId":sid,
+                      "mainOrder":meta.get(sid),
+                      "previous":p,
+                      "beginExec":be,
+                      "previousFinishExec":prev_finish,
+                      "sameFinishExec":same_finish,
+                  })
+
+          print("\n=== BEGINEXEC MIGRATION TEST ===")
+          print(dict(bst))
+          if bst["known_nonempty"]:
+              for key in (
+                  "equals_same_row_finishExec",
+                  "equals_previous_order_finishExec",
+                  "equals_previous_group_finishExec",
+                  "subset_same_row_finishExec",
+                  "subset_previous_order_finishExec",
+                  "subset_previous_group_finishExec",
+              ):
+                  print(key+"_ratio",bst[key]/bst["known_nonempty"])
+          print("top_beginExec_types",btypes.most_common(50))
+          print("begin_types_found_in_prev_finish",pair_types.most_common(50))
+          print("mismatch_examples",json.dumps(bexamples["mismatch"],ensure_ascii=False,indent=2))
+
+          Path("quest71-fallback-evidence.json").write_text(json.dumps({
+              "accept":dict(st),
+              "accept_main_stats":dict(main_stats),
+              "begin":dict(bst),
+          },indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-fallback-evidence
+          path: |
+            quest71-fallback-evidence.txt
+            quest71-fallback-evidence.json
+          if-no-files-found: error
