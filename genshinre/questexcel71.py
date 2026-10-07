@@ -15,6 +15,8 @@ PREFER_AREA2_GUIDE_SCENE_RAW = 0x8BFDD679
 ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
 UNKNOWN_BIT34_RAW = 0x074282C5
+STEP_DESC_TEXT_MAP_HASH_XOR = 0xABB3B4F1
+GUIDE_TIPS_TEXT_MAP_HASH_XOR = 0x59B7A2F4
 
 LOW_ROW_MASKS = frozenset({
     0x087EFDD5, 0x087EDDD5, 0x087FFDD5, 0x087EF9D5,
@@ -42,8 +44,11 @@ class QuestExcel71Row:
     order: int | None
     is_mp_block: bool | None
     unknown_bit34_raw: int | None
+    step_desc_text_map_hash: int
     known_prefix_end: int
     raw_tail: bytes
+    known_suffix_start: int
+    guide_tips_text_map_hash: int
     sub_id: int
 
     @property
@@ -94,7 +99,7 @@ def _row_starts(payload: bytes) -> list[int]:
 
 
 def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71Row:
-    if end - start < 16:
+    if end - start < 24:
         raise QuestExcel71ParseError(
             f"implausibly short QuestExcel row {index} at 0x{start:X}"
         )
@@ -160,10 +165,21 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             )
         p += 4
 
-    if p > suffix_pos:
+    step_desc_text_map_hash = (
+        _u32(payload, p, suffix_pos, "stepDescTextMapHash")
+        ^ STEP_DESC_TEXT_MAP_HASH_XOR
+    )
+    p += 4
+
+    known_suffix_start = suffix_pos - 4
+    if p > known_suffix_start:
         raise QuestExcel71ParseError(
-            f"row {index} subId {sub_id} known prefix overlaps subId suffix"
+            f"row {index} subId {sub_id} known prefix overlaps guideTipsTextMapHash"
         )
+    guide_tips_text_map_hash = (
+        _u32(payload, known_suffix_start, suffix_pos, "guideTipsTextMapHash")
+        ^ GUIDE_TIPS_TEXT_MAP_HASH_XOR
+    )
 
     return QuestExcel71Row(
         index=index,
@@ -176,8 +192,11 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         order=order,
         is_mp_block=is_mp_block,
         unknown_bit34_raw=unknown_bit34_raw,
+        step_desc_text_map_hash=step_desc_text_map_hash,
         known_prefix_end=p,
-        raw_tail=payload[p:suffix_pos],
+        raw_tail=payload[p:known_suffix_start],
+        known_suffix_start=known_suffix_start,
+        guide_tips_text_map_hash=guide_tips_text_map_hash,
         sub_id=sub_id,
     )
 
