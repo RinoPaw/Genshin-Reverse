@@ -105,9 +105,14 @@ jobs:
                   continue
               if not isinstance(root, dict):
                   continue
-              for row in root.get("subQuests", []):
+              subquests = root.get("subQuests")
+              if not isinstance(subquests, list):
+                  subquests = root.get("JIJKODHIEED", [])
+              for row in subquests:
                   if isinstance(row, dict):
-                      sid = row.get("subId", row.get("NFGFDHPPBIF"))
+                      sid = row.get("subId")
+                      if not isinstance(sid, int):
+                          sid = row.get("NFGFDHPPBIF")
                       if isinstance(sid, int):
                           dim_controls[sid] = row
 
