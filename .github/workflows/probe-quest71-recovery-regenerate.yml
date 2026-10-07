@@ -1,0 +1,64 @@
+name: Probe Quest 7.1 recovery regenerate
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-recovery-regenerate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Fetch pinned Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/community71 395a5ee6442142a803691f60d541ee1706ae9cd7
+          fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/community70 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
+      - name: Build corrected recovery manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m genshinre.questrecovery71             --raw-7-1-root /tmp/raw71/BinOutput/Quest             --community-7-1-root /tmp/community71/BinOutput/Quest             --community-7-0-root /tmp/community70/BinOutput/Quest             --raw-7-1-source 'DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2'             --community-7-1-source 'capyb2222/LunaGC-Resources@395a5ee6442142a803691f60d541ee1706ae9cd7'             --community-7-0-source 'chenlin996/LunaGC-Resources7.0@0991d8a9d82b37a7400774764c0b6e04e7c66a9d'             --output quest71-recovery-manifest.json             --unresolved-output quest71-unresolved.json
+          python - <<'PY'
+          import json
+          from collections import Counter
+          m=json.load(open("quest71-recovery-manifest.json",encoding="utf-8"))
+          u=json.load(open("quest71-unresolved.json",encoding="utf-8"))
+          print("MANIFEST_SUMMARY",json.dumps(m["summary"],ensure_ascii=False,sort_keys=True))
+          reasons={f:Counter() for f in ("acceptCond","beginExec")}
+          for row in m["rows"].values():
+              for f in reasons:
+                  st=row["missing_field_status"][f]
+                  reasons[f][(st.get("status"),st.get("reason",""))]+=1
+          for f,c in reasons.items():
+              print("FIELD_STATUS",f,json.dumps({str(k):v for k,v in c.items()},sort_keys=True))
+          print("UNRESOLVED_SUMMARY",json.dumps(u["summary"],sort_keys=True))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-recovery-corrected
+          path: |
+            quest71-recovery-manifest.json
+            quest71-unresolved.json
+          if-no-files-found: error
