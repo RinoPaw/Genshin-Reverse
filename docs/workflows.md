@@ -50,7 +50,7 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 There is currently no topic-specific workflow on the maintained branch.
 
-The former QuestExcel `probe-quest-table-assets.yml` reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
+The former QuestExcel table-assets probe reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
 
 New topic-specific workflows must follow `docs/governance.md`: one concrete owner, a stated hosted-orchestration need, a named output and an explicit retirement condition.
 
