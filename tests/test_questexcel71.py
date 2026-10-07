@@ -22,7 +22,7 @@ from genshinre.questexcel71 import (
 )
 
 
-LOW_MASK = min(LOW_ROW_MASKS)
+LOW_MASK = 0x087EFDD5
 
 
 def u32(value: int) -> bytes:
