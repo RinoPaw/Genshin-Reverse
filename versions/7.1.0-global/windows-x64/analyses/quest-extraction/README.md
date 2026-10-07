@@ -205,3 +205,60 @@ is semantic promotion and source ownership:
    condition and execution arrays;
 4. compare that path against AstaPS/resource merge logic to locate the exact
    prerequisite-corruption boundary.
+
+## 2026-10-07 exact 7.1 full-quest source checkpoint
+
+The separate full-quest source path is now byte-exactly demonstrated on Quest
+351.
+
+The exact `Data/_BinOutput/Quest/351` serialized payload is 920 bytes. After
+registering the exact 7.1 BinConfig string helper (RVA `0xFD53090`) and
+managed-array allocator (RVA `0x50B230`) with the pinned schema analyzer,
+the native `AFIOOHMJHDM` root reader at RVA `0x10409D40` consumes
+**920/920 bytes**.
+
+The ordinary sub-quest array begins at payload offset 59. Its count word is
+`0xA74F0AC3`; the native `LAIMPNDEFCL[]` wrapper at RVA
+`0x9C15C80` decodes it as:
+
+`0xA74F0AC3 XOR 0xA74F0ACB = 8`.
+
+That array consumes offsets 59..900 and yields the eight Quest 351 ordinary
+rows. The root reader consumes the remaining 20 bytes and ends exactly at
+offset 920.
+
+Native call-site writes bind the four object-array fields in
+`LAIMPNDEFCL.GMENPOPMKAA`:
+
+- `this + 0x58`: `KIMCPAKMJMH[]` / QuestExec array, matching
+  same-version `finishExec`;
+- `this + 0x18`: `JPGNLOPMNHN[]` / QuestContent array, matching
+  `failCond`;
+- `this + 0x10`: `KIMCPAKMJMH[]` / QuestExec array, matching
+  `failExec`;
+- `this + 0x20`: `JPGNLOPMNHN[]` / QuestContent array, matching
+  `finishCond`.
+
+The exact decoded values agree with the pinned same-version Quest 351
+BinOutput control. Representative native values include:
+
+- 35100 `finishCond`: type codes 4 and 6 with params
+  `[35100, 0]` and `[1053, 0]`;
+- 35101 `failCond`: type code 21 with params `[0, 0]`;
+- 35101 `failExec`: type code 14 with string params `["35100"]`;
+- 35106 `finishExec`: type code 17 with string params
+  `["3", "1720"]`;
+- 35106 `finishCond`: type code 23 with params `[3, 6]`;
+- 35107 `finishExec`: type code 19 with string params
+  `["3", "133003429,1"]`.
+
+The ordinary native row reader contains exactly these four QuestExec /
+QuestContent object-array calls. No fifth or sixth Quest object-array field is
+present for `acceptCond` or `beginExec`. This independently closes the
+same boundary already implied by complete QuestExcel row consumption:
+modern 7.1 ordinary Quest 351 source does not contain native
+`acceptCond` / `beginExec` object arrays in this row type.
+
+The remaining provenance question is downstream: identify the exact resource
+generation or merge step that re-materialized predecessor `acceptCond`
+chains in older Asta-derived QuestExcel data.
