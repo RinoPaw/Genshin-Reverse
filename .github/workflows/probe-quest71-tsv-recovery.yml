@@ -45,6 +45,10 @@ jobs:
             980c5c7569f07ccaa10d88772680bb64317f5520 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/c70c \
             a64cf90adbcbb4fec3ad1c00d94bfb455511e080 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/TomyJan/GCResource.git /tmp/gc3700 \
+            609730bf63568baee1eb77a605b6c273a064dbc1 'BinOutput/Quest/*.json'
+          fetch_repo https://github.com/TomyJan/GCResource.git /tmp/gc4000 \
+            ede70f1e23c1a494fe4258837d963b1d63004911 'BinOutput/Quest/*.json'
           fetch_repo https://github.com/wander-in-wind/TsvParser.git /tmp/tsv \
             096da276f5afc91a4a78517570806e520b5d7383 'src/main/resources/json/*.json'
 
@@ -68,6 +72,8 @@ jobs:
           C70=Path("/tmp/c70/BinOutput/Quest")
           C70B=Path("/tmp/c70b/BinOutput/Quest")
           C70C=Path("/tmp/c70c/BinOutput/Quest")
+          GC3700=Path("/tmp/gc3700/BinOutput/Quest")
+          GC4000=Path("/tmp/gc4000/BinOutput/Quest")
           TSV=Path("/tmp/tsv/src/main/resources/json")
 
           def load_raw(root):
@@ -299,6 +305,47 @@ jobs:
               print(
                   "CONSENSUS_FIELD",field,
                   consensus_manifest["summary"]["fields"][field],
+              )
+
+          expanded_manifest,expanded_unresolved=build_consensus_from_directories(
+              RAW,
+              {
+                  "capyb2222/LunaGC-Resources@395a5ee6":C71,
+                  "chenlin996/LunaGC-Resources7.0@0991d8a9":C70,
+                  "nyakochao/LunaGC-Resources-7.0@980c5c75":C70B,
+                  "Merprose2/LunaGCR-Resources@a64cf90a":C70C,
+                  "TomyJan/GCResource@3700:609730bf":GC3700,
+                  "TomyJan/GCResource@4000:ede70f1e":GC4000,
+              },
+              raw_71_source="DimbreathBot/AnimeGameData@792978e5",
+              historical_tsv_root=TSV,
+              historical_tsv_source="wander-in-wind/TsvParser@096da276",
+          )
+          print("\n=== EXPANDED HISTORICAL CONSENSUS SUMMARY ===")
+          print(json.dumps(expanded_manifest["summary"],ensure_ascii=False,indent=2))
+          print("EXPANDED_UNRESOLVED",expanded_unresolved["summary"])
+          for field in ("acceptCond","beginExec"):
+              print(
+                  "EXPANDED_FIELD",field,
+                  expanded_manifest["summary"]["fields"][field],
+              )
+          for field in ("acceptCond","beginExec"):
+              old={
+                  int(sid)
+                  for sid,row in consensus_unresolved["rows"].items()
+                  if field in row.get("fields",{})
+              }
+              new={
+                  int(sid)
+                  for sid,row in expanded_unresolved["rows"].items()
+                  if field in row.get("fields",{})
+              }
+              recovered=sorted(old-new)
+              regressed=sorted(new-old)
+              print(
+                  "EXPANDED_DELTA",field,
+                  "recovered",len(recovered),recovered[:500],
+                  "regressed",len(regressed),regressed[:100],
               )
 
           unresolved_by_field={"acceptCond":[],"beginExec":[]}
