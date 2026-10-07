@@ -34,11 +34,17 @@ jobs:
           fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
           fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/community71 395a5ee6442142a803691f60d541ee1706ae9cd7
           fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/community70 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
+
+          rm -rf /tmp/tsv
+          git clone --filter=blob:none --no-checkout https://github.com/wander-in-wind/TsvParser.git /tmp/tsv
+          git -C /tmp/tsv sparse-checkout init --no-cone
+          git -C /tmp/tsv sparse-checkout set 'src/main/resources/json/*.json'
+          git -C /tmp/tsv checkout 096da276f5afc91a4a78517570806e520b5d7383
       - name: Build corrected recovery manifest
         shell: bash
         run: |
           set -euo pipefail
-          python -m genshinre.questrecovery71             --raw-7-1-root /tmp/raw71/BinOutput/Quest             --community-7-1-root /tmp/community71/BinOutput/Quest             --community-7-0-root /tmp/community70/BinOutput/Quest             --raw-7-1-source 'DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2'             --community-7-1-source 'capyb2222/LunaGC-Resources@395a5ee6442142a803691f60d541ee1706ae9cd7'             --community-7-0-source 'chenlin996/LunaGC-Resources7.0@0991d8a9d82b37a7400774764c0b6e04e7c66a9d'             --output quest71-recovery-manifest.json             --unresolved-output quest71-unresolved.json
+          python -m genshinre.questrecovery71             --raw-7-1-root /tmp/raw71/BinOutput/Quest             --community-7-1-root /tmp/community71/BinOutput/Quest             --community-7-0-root /tmp/community70/BinOutput/Quest             --raw-7-1-source 'DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2'             --community-7-1-source 'capyb2222/LunaGC-Resources@395a5ee6442142a803691f60d541ee1706ae9cd7'             --community-7-0-source 'chenlin996/LunaGC-Resources7.0@0991d8a9d82b37a7400774764c0b6e04e7c66a9d'             --historical-tsv-root /tmp/tsv/src/main/resources/json             --historical-tsv-source 'wander-in-wind/TsvParser@096da276f5afc91a4a78517570806e520b5d7383'             --output quest71-recovery-manifest.json             --unresolved-output quest71-unresolved.json
           python - <<'PY'
           import json
           from collections import Counter
