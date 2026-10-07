@@ -54,9 +54,10 @@ jobs:
           OBJNEW=0x529A10
 
           # Exact 7.1 QuestExcel serialized payload starts with this u32.
-          # The same-version public ordering contains 17,814 rows.
+          # Native row framing now proves 33,214 rows with full payload
+          # consumption. Public 17,814-row exports are incomplete.
           RAW_HEAD=0x40233AB1
-          EXPECTED={17814,17812}
+          EXPECTED={33214}
           require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
 
           with (META/"methods.csv").open("r",encoding="utf-8-sig",newline="") as f:
@@ -265,7 +266,7 @@ jobs:
           parsed.sort(key=lambda x:(
               not x["exact_expected"],
               not x["plausible_count"],
-              abs((x["decoded_head"] or 0)-17814),
+              abs((x["decoded_head"] or 0)-33214),
               x["rva"],
           ))
 
