@@ -1,0 +1,206 @@
+name: Resolve 7.1 QuestExcel stepDesc prefix
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-stepdesc-prefix.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-stepdesc-prefix-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch pinned 7.1 BinOutput Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/asta-pr9 checkout \
+            7465e29b2d58058ab9973187c112abf2717ada03
+
+      - name: Identify fields before stepDesc
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-stepdesc-prefix.txt
+          import collections,json,struct
+          from pathlib import Path
+
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          QROOT=Path("/tmp/asta-pr9/BinOutput/Quest")
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+          SUBID_KEY=0xB1571A55
+          PLACE_COUNT_KEY=0xB51E6D91
+          ORDER_SUB=0x732ED834
+          STEPDESC_XOR=0xABB3B4F1
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[p for p in range(4,len(payload)-7)
+                  if struct.unpack_from("<I",payload,p)[0] in LOW_MASKS]
+          if len(starts)!=33214:
+              raise SystemExit(f"framing drift {len(starts)}")
+
+          native={}
+          for i,s in enumerate(starts):
+              e=starts[i+1] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,e-4)[0]^SUBID_KEY
+              m=struct.unpack_from("<Q",payload,s)[0]
+              p=s+12
+              if (m>>37)&1:
+                  c=struct.unpack_from("<I",payload,p)[0]^PLACE_COUNT_KEY
+                  p+=4+4*c
+              if (m>>29)&1:
+                  p+=4
+              order=(struct.unpack_from("<I",payload,p)[0]-ORDER_SUB)&0xffffffff
+              native[sid]={"subId":sid,"start":s,"end":e,"mask64":m,
+                           "order":order,"post":p+4}
+
+          controls={}
+          for path in sorted(QROOT.glob("*.json")):
+              try:data=json.loads(path.read_text(encoding="utf-8"))
+              except Exception:continue
+              if not isinstance(data,dict):continue
+              for row in data.get("subQuests",[]):
+                  sid=row.get("subId")
+                  if isinstance(sid,int):
+                      controls[sid]=row
+
+          groups=collections.defaultdict(list)
+          misses=[]
+          for sid,nr in native.items():
+              row=controls.get(sid)
+              if not row:continue
+              v=row.get("stepDescTextMapHash")
+              if not isinstance(v,int) or isinstance(v,bool) or v==0:
+                  continue
+              target=(v^STEPDESC_XOR)&0xffffffff
+              hits=[]
+              for rel in range(0,min(16,nr["end"]-4-nr["post"]+1)):
+                  p=nr["post"]+rel
+                  if p+4<=nr["end"]-4 and struct.unpack_from("<I",payload,p)[0]==target:
+                      hits.append(rel)
+              if len(hits)==1:
+                  rel=hits[0]
+                  groups[rel].append((nr,row))
+              elif len(misses)<100:
+                  misses.append({"subId":sid,"hits":hits,"mask64":f"0x{nr['mask64']:016X}"})
+
+          rel_report={}
+          all_fields=sorted({k for rows in groups.values() for _nr,row in rows for k in row})
+          baseline=groups.get(0,[])
+          for rel,items in sorted(groups.items()):
+              masks=collections.Counter(f"0x{nr['mask64']:016X}" for nr,_ in items)
+              bit_rates={}
+              for bit in range(64):
+                  n=sum((nr["mask64"]>>bit)&1 for nr,_ in items)
+                  if n:
+                      bit_rates[str(bit)]=n/len(items)
+              field_rates={}
+              for field in all_fields:
+                  n=sum(field in row for _nr,row in items)
+                  if n:
+                      field_rates[field]=n/len(items)
+              examples=[]
+              for nr,row in items[:80]:
+                  pre=payload[nr["post"]:nr["post"]+rel]
+                  examples.append({
+                      "subId":nr["subId"],
+                      "mask64":f"0x{nr['mask64']:016X}",
+                      "pre_hex":pre.hex(),
+                      "keys":sorted(row.keys()),
+                      "values":{
+                          k:row[k] for k in (
+                              "banType","DMCMNPLMCKL","DABNIJGHAPJ","EOFPICJEHLP",
+                              "FABHGLLGFHN","showType","showGuide","failParentShow",
+                              "isMpBlock","subIdSet"
+                          ) if k in row
+                      },
+                  })
+              rel_report[str(rel)]={
+                  "rows":len(items),
+                  "top_masks":masks.most_common(20),
+                  "bit_rates":bit_rates,
+                  "field_rates":field_rates,
+                  "examples":examples,
+              }
+
+          # Relative deltas against rel0 reveal the inserted field.
+          deltas={}
+          if baseline:
+              for rel,items in groups.items():
+                  if rel==0:continue
+                  fd=[]; bd=[]
+                  for field in all_fields:
+                      r0=sum(field in row for _nr,row in baseline)/len(baseline)
+                      r1=sum(field in row for _nr,row in items)/len(items)
+                      if abs(r1-r0)>=0.20:
+                          fd.append((field,r0,r1,r1-r0))
+                  for bit in range(64):
+                      r0=sum((nr["mask64"]>>bit)&1 for nr,_ in baseline)/len(baseline)
+                      r1=sum((nr["mask64"]>>bit)&1 for nr,_ in items)/len(items)
+                      if abs(r1-r0)>=0.20:
+                          bd.append((bit,r0,r1,r1-r0))
+                  deltas[str(rel)]={
+                      "field":sorted(fd,key=lambda x:-abs(x[3]))[:30],
+                      "bit":sorted(bd,key=lambda x:-abs(x[3]))[:30],
+                  }
+
+          report={
+              "stepDesc_xor":f"0x{STEPDESC_XOR:08X}",
+              "groups":rel_report,
+              "deltas_vs_rel0":deltas,
+              "misses":misses,
+          }
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          Path("quest-legacy-71-stepdesc-prefix.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-stepdesc-prefix
+          path: |
+            quest-legacy-71-stepdesc-prefix.txt
+            quest-legacy-71-stepdesc-prefix.json
+          if-no-files-found: error
