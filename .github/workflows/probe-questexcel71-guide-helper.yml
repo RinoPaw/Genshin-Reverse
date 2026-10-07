@@ -177,6 +177,33 @@ jobs:
           print("=== GUIDE STRING FINGERPRINT ===")
           print(json.dumps(report["guide_string_fingerprint"],ensure_ascii=False,indent=2))
 
+          # Find direct native callers of the now-bound serialized guide reader.
+          target=0x1168F230
+          callers=[]
+          with PEImage(EXE) as image:
+              base=image.image_base
+              for start in starts:
+                  end=starts[bisect.bisect_right(starts,start)] if bisect.bisect_right(starts,start)<len(starts) else start+0x1800
+                  if end-start<=0 or end-start>0x20000:
+                      continue
+                  try:
+                      body=image.read_rva(start,end-start)
+                  except Exception:
+                      continue
+                  for ins in md.disasm(body,base+start):
+                      if ins.mnemonic!="call" or not ins.operands or ins.operands[0].type!=X86_OP_IMM:
+                          continue
+                      tr=int(ins.operands[0].imm-base)
+                      if tr==target:
+                          callers.append({
+                              "caller_rva":f"0x{start:X}",
+                              "call_rva":f"0x{ins.address-base:X}",
+                              "metadata":methods_by_rva.get(start,[]),
+                          })
+          report["guide_reader_callers"]=callers
+          print("=== GUIDE READER CALLERS ===")
+          print(json.dumps(callers,ensure_ascii=False,indent=2))
+
           Path("questexcel71-guide-helper.json").write_text(
               json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
