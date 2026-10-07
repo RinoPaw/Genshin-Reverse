@@ -52,6 +52,8 @@ Issue #8 still has one temporary exact-sample workflow on the default branch: `p
 
 It reconstructs small pinned 7.1 AssetBundle block entries for the active QuestExcel storage investigation. The current handoff still depends on the hosted reconstruction artifacts from this path, so it remains `active-temporary`. It uses same-ref stale-run cancellation and must be retired as soon as the block/index relationship and required evidence become durable.
 
+Issue #8 also has `probe-questexcel71-postorder-prefix.yml` on `decoder/questexcel-native-71` while the 7.1 QuestExcel row wire is being recovered. It reuses the already extracted exact QuestExcel artifact and pinned same-version Quest controls to validate row-prefix presence bits and field transforms. It is branch-scoped, read-only, uses same-ref stale-run cancellation, and must be retired once the verified decoder logic and evidence are durable in `genshinre/` and `versions/`.
+
 The 2026-10-05 maintenance checkpoint retired the other one-off Quest/native probe shells after their reusable operations or exploratory parameters were preserved in generic tools, durable notes, or Git history. The classification and retained anchors are recorded under `versions/7.1.0-global/windows-x64/analyses/quest-extraction/` and issue #13.
 
 Do not add another topic-specific workflow when a local command, an existing retained workflow, or a small reusable tool can answer the same question efficiently. CI is not the default interactive reverse-engineering loop.
