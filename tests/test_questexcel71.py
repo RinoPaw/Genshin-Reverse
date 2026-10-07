@@ -6,23 +6,34 @@ import unittest
 from genshinre.questexcel71 import (
     BAN_TYPE_BY_RAW,
     BIT_BAN_TYPE,
+    BIT_DABNIJGHAPJ,
     BIT_DMCMNPLMCKL,
+    BIT_EOFPICJEHLP,
     BIT_EXCLUSIVE_PLACE_LIST,
+    BIT_FAIL_PARENT_SHOW,
     BIT_IS_MP_BLOCK,
+    BIT_LBEFPHGELAN,
     BIT_ORDER,
     BIT_PREFER_AREA2_GUIDE_SCENE,
+    BIT_SHOW_GUIDE,
     BIT_SHOW_TYPE,
+    BIT_SUB_ID_SET,
     BIT_UNKNOWN_34,
     BIT_UNKNOWN_40,
+    DABNIJGHAPJ_XOR,
+    EOFPICJEHLP_BY_RAW,
     EXCLUSIVE_PLACE_COUNT_XOR,
     DMCMNPLMCKL_HIDDEN_RAW,
     EXCLUSIVE_PLACE_ELEMENT_SUB,
+    FAIL_PARENT_SHOW_HIDDEN_RAW,
     GUIDE_TIPS_TEXT_MAP_HASH_XOR,
     IS_MP_BLOCK_TRUE_RAW,
+    LBEFPHGELAN_TRUE_RAW,
     LOW_ROW_MASKS,
     ORDER_RAW_SUB,
     PREFER_AREA2_GUIDE_SCENE_RAW,
     QuestExcel71ParseError,
+    SHOW_GUIDE_BY_RAW,
     SHOW_TYPE_HIDDEN_RAW,
     STEP_DESC_TEXT_MAP_HASH_XOR,
     SUB_ID_XOR,
@@ -104,7 +115,13 @@ def make_row(
     ban_type: str | None = None,
     bit40: bool = False,
     guide_hint: bytes = b"\x38\x93",
-    tail: bytes = b"",
+    sub_id_set_raw: int | None = None,
+    eofpicjehlp: int | None = None,
+    fail_parent_show: bool = False,
+    show_guide: str | None = None,
+    dabnijghapj: int | None = None,
+    tail: bytes = b"\0" * 8,
+    lbefphgelan: bool = False,
     guide: bytes | None = None,
     show_hidden: bool = False,
     guide_tips_text_map_hash: int = 0,
@@ -126,6 +143,18 @@ def make_row(
         mask64 &= ~(1 << BIT_BAN_TYPE)
     if bit40:
         mask64 |= 1 << BIT_UNKNOWN_40
+    if sub_id_set_raw is not None:
+        mask64 |= 1 << BIT_SUB_ID_SET
+    if eofpicjehlp is not None:
+        mask64 &= ~(1 << BIT_EOFPICJEHLP)
+    if fail_parent_show:
+        mask64 |= 1 << BIT_FAIL_PARENT_SHOW
+    if show_guide is not None:
+        mask64 |= 1 << BIT_SHOW_GUIDE
+    if dabnijghapj is not None:
+        mask64 |= 1 << BIT_DABNIJGHAPJ
+    if lbefphgelan:
+        mask64 |= 1 << BIT_LBEFPHGELAN
     if show_hidden:
         mask64 &= ~(1 << BIT_SHOW_TYPE)
 
@@ -152,7 +181,23 @@ def make_row(
     if bit40:
         out.append(UNKNOWN_BIT40_RAW)
     out += guide_hint
+    if sub_id_set_raw is not None:
+        out += u32(sub_id_set_raw)
+    if eofpicjehlp is not None:
+        raw_by_value = {value: raw for raw, value in EOFPICJEHLP_BY_RAW.items()}
+        out += u32(raw_by_value[eofpicjehlp])
+    if fail_parent_show:
+        out += u32(FAIL_PARENT_SHOW_HIDDEN_RAW)
+    if show_guide is not None:
+        raw_by_show_guide = {value: raw for raw, value in SHOW_GUIDE_BY_RAW.items()}
+        out += u32(raw_by_show_guide[show_guide])
+    if dabnijghapj is not None:
+        out += u32(dabnijghapj ^ DABNIJGHAPJ_XOR)
+    if len(tail) != 8:
+        raise ValueError("QuestExcel71 synthetic fixed core must be exactly 8 bytes")
     out += tail
+    if lbefphgelan:
+        out.append(LBEFPHGELAN_TRUE_RAW)
     out += make_guide() if guide is None else guide
     if show_hidden:
         out += u32(SHOW_TYPE_HIDDEN_RAW)
@@ -179,7 +224,7 @@ class QuestExcel71Tests(unittest.TestCase):
             dmcmnplmckl_hidden=True,
             ban_type="BAN_GROUP_TRANSPORT_MAP",
             bit40=True,
-            tail=b"\xAA\xBB\xCC",
+            tail=b"\xAA\xBB\xCC\xDD\x11\x22\x33\x44",
             guide=make_guide(
                 params=("1005", "QuestArrow", "", "", ""),
                 guide_scene=3,
@@ -190,7 +235,7 @@ class QuestExcel71Tests(unittest.TestCase):
         row1 = make_row(
             7601112,
             unknown_prefix_u32=0x89ABCDEF,
-            tail=b"opaque",
+            tail=b"opaque!!",
         )
         payload = u32(0xCAFEBABE) + row0 + row1
 
@@ -212,7 +257,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(UNKNOWN_BIT40_RAW, first.unknown_bit40_raw)
         self.assertEqual(0x9338, first.guide_hint.mask_raw)
         self.assertEqual(0, first.guide_hint.mask)
-        self.assertEqual(b"\xAA\xBB\xCC", first.raw_tail)
+        self.assertEqual(b"\xAA\xBB\xCC\xDD\x11\x22\x33\x44", first.raw_tail)
+        self.assertEqual(first.raw_tail, first.unknown_core8)
         self.assertEqual(first.guide.start, first.known_suffix_start)
         self.assertEqual(("1005", "QuestArrow", "", "", ""), first.guide.params)
         self.assertEqual(3, first.guide.guide_scene)
@@ -232,7 +278,8 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIsNone(second.unknown_bit40_raw)
         self.assertEqual(0x9338, second.guide_hint.mask_raw)
         self.assertEqual(0, second.guide_hint.mask)
-        self.assertEqual(b"opaque", second.raw_tail)
+        self.assertEqual(b"opaque!!", second.raw_tail)
+        self.assertEqual(second.raw_tail, second.unknown_core8)
         self.assertEqual(second.guide.start, second.known_suffix_start)
         self.assertEqual(("", "", "", "", ""), second.guide.params)
         self.assertIsNone(second.show_type)
@@ -290,6 +337,32 @@ class QuestExcel71Tests(unittest.TestCase):
         payload = u32(0) + row
         with self.assertRaisesRegex(QuestExcel71ParseError, "showType raw"):
             parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
+
+    def test_decodes_outer_optional_fields_around_fixed_core(self) -> None:
+        row = make_row(
+            10001,
+            unknown_prefix_u32=0,
+            sub_id_set_raw=0xA1B2C3D4,
+            eofpicjehlp=3,
+            fail_parent_show=True,
+            show_guide="QUEST_GUIDE_ITEM_MOVE_HIDE",
+            dabnijghapj=0x13572468,
+            tail=b"12345678",
+            lbefphgelan=True,
+        )
+        payload = u32(0) + row
+        parsed = parse_questexcel71_raw_export(
+            raw_export(payload), expected_row_count=1
+        ).rows[0]
+
+        self.assertEqual(0xA1B2C3D4, parsed.sub_id_set_raw)
+        self.assertEqual(3, parsed.eofpicjehlp)
+        self.assertEqual("QUEST_HIDDEN", parsed.fail_parent_show)
+        self.assertEqual("QUEST_GUIDE_ITEM_MOVE_HIDE", parsed.show_guide)
+        self.assertEqual(0x13572468, parsed.dabnijghapj)
+        self.assertEqual(b"12345678", parsed.unknown_core8)
+        self.assertEqual(b"12345678", parsed.raw_tail)
+        self.assertIs(parsed.lbefphgelan, True)
 
     def test_rejects_duplicate_subids(self) -> None:
         payload = (
