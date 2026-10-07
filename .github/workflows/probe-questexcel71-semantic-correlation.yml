@@ -54,6 +54,13 @@ jobs:
           git -C /tmp/asta-pr9 sparse-checkout set 'BinOutput/Quest/*.json'
           git -C /tmp/asta-pr9 checkout 7465e29b2d58058ab9973187c112abf2717ada03
 
+          rm -rf /tmp/agd-71
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd-71
+          git -C /tmp/agd-71 sparse-checkout init --no-cone
+          git -C /tmp/agd-71 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/agd-71 checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
       - name: Correlate unresolved native slots
         shell: bash
         run: |
@@ -248,6 +255,115 @@ jobs:
                   "order":c.get("order"),
                   "row_fields":{k:c.get(k) for k in candidate_row_fields if k in c},
                   "guideHint":c.get("guideHint"),
+              },ensure_ascii=False))
+
+          # Dimbreath's same-version BinOutput retains many obfuscated runtime
+          # fields that the normalized Asta snapshot omits. Use it only as a
+          # same-version control for field identity/value correlation.
+          raw_controls={}
+          for path in sorted(Path("/tmp/agd-71/BinOutput/Quest").glob("*.json")):
+              try:
+                  root=json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+              if not isinstance(root,dict):
+                  continue
+              rows=root.get("JIJKODHIEED")
+              if not isinstance(rows,list):
+                  rows=root.get("subQuests",[])
+              for row in rows:
+                  if not isinstance(row,dict):
+                      continue
+                  sid=row.get("NFGFDHPPBIF")
+                  if not isinstance(sid,int):
+                      sid=row.get("subId")
+                  if isinstance(sid,int):
+                      raw_controls[sid]=row
+
+          raw_common=sorted(set(native)&set(raw_controls))
+          print("\n=== RAW 7.1 CONTROL SUMMARY ===")
+          print("raw_control_rows",len(raw_controls),"intersection",len(raw_common))
+
+          raw_key_sets=defaultdict(set)
+          for sid in raw_common:
+              for key in raw_controls[sid]:
+                  raw_key_sets[key].add(sid)
+
+          print("\n=== BIT40 RAW 7.1 PRESENCE ===")
+          raw_scores=[]
+          for key,ks in raw_key_sets.items():
+              inter=len(bit40_set&ks); union=len(bit40_set|ks)
+              raw_scores.append((
+                  1 if bit40_set==ks else 0,
+                  inter/union if union else 1.0,
+                  inter,len(ks),key,
+                  len(bit40_set-ks),len(ks-bit40_set),
+              ))
+          raw_scores.sort(reverse=True)
+          for exact,jacc,inter,nk,key,miss,extra in raw_scores[:40]:
+              print(
+                  key,"exact",exact,f"jacc={jacc:.6f}",
+                  "inter",inter,"control",nk,
+                  "native_only",miss,"control_only",extra
+              )
+
+          print("\n=== FIXED CORE VS RAW 7.1 UINT32 ===")
+          raw_numeric_keys=sorted({
+              key
+              for sid in raw_common
+              for key,val in raw_controls[sid].items()
+              if isinstance(val,int) and not isinstance(val,bool)
+          })
+          for key in raw_numeric_keys:
+              pairs=[
+                  (native[sid].unknown_core_u32,raw_controls[sid][key])
+                  for sid in raw_common
+                  if isinstance(raw_controls[sid].get(key),int)
+                  and not isinstance(raw_controls[sid].get(key),bool)
+              ]
+              if len(pairs)<10:
+                  continue
+              xors={a^b for a,b in pairs}
+              adds={(b-a)&0xffffffff for a,b in pairs}
+              subs={(a-b)&0xffffffff for a,b in pairs}
+              if len(xors)==1 or len(adds)==1 or len(subs)==1:
+                  print(
+                      key,"pairs",len(pairs),
+                      "xor",hex(next(iter(xors))) if len(xors)==1 else "",
+                      "add",hex(next(iter(adds))) if len(adds)==1 else "",
+                      "sub",hex(next(iter(subs))) if len(subs)==1 else "",
+                  )
+
+          # Also test obvious canonical identities that normalized controls know.
+          for key,getter in (
+              ("subId",lambda sid: sid),
+              ("mainId",lambda sid: controls[sid].get("mainId")),
+              ("order",lambda sid: controls[sid].get("order")),
+              ("descTextMapHash",lambda sid: controls[sid].get("descTextMapHash")),
+          ):
+              pairs=[]
+              for sid in common:
+                  v=getter(sid)
+                  if isinstance(v,int) and not isinstance(v,bool):
+                      pairs.append((native[sid].unknown_core_u32,v))
+              xors={a^b for a,b in pairs}
+              adds={(b-a)&0xffffffff for a,b in pairs}
+              subs={(a-b)&0xffffffff for a,b in pairs}
+              print(
+                  "CANON",key,"pairs",len(pairs),
+                  "xor_constants",len(xors),
+                  "xor",hex(next(iter(xors))) if len(xors)==1 else "",
+                  "add_constants",len(adds),
+                  "add",hex(next(iter(adds))) if len(adds)==1 else "",
+                  "sub_constants",len(subs),
+                  "sub",hex(next(iter(subs))) if len(subs)==1 else "",
+              )
+
+          print("\n=== BIT40 RAW 7.1 ROWS ===")
+          for sid in sorted(bit40_set):
+              print(json.dumps({
+                  "subId":sid,
+                  "raw":raw_controls.get(sid),
               },ensure_ascii=False))
 
           # Show selected high-information rows.
