@@ -194,6 +194,65 @@ jobs:
                   )
               print("OVERLAP_EXAMPLES",json.dumps(overlap_examples[:12],ensure_ascii=False))
 
+          def has_unknown_accept_placeholder(row):
+              if not isinstance(row,dict):
+                  return False
+              value=row.get("acceptCond")
+              return isinstance(value,list) and any(
+                  isinstance(item,dict)
+                  and item.get("type")=="QUEST_COND_UNKNOWN"
+                  and list(item.get("param") or [])[:2]==[0,0]
+                  for item in value
+              )
+
+          placeholder_70={
+              sid for sid,row in c70.items()
+              if has_unknown_accept_placeholder(row)
+          }
+          placeholder_71={
+              sid for sid,row in c71.items()
+              if has_unknown_accept_placeholder(row)
+          }
+          placeholder_ids=placeholder_70 | placeholder_71
+          ph=Counter()
+          ph_examples_nonempty=[]
+          ph_examples_empty=[]
+          for sid in sorted(placeholder_ids):
+              ph["total_union"]+=1
+              if sid in placeholder_70: ph["in_c70"]+=1
+              if sid in placeholder_71: ph["in_c71"]+=1
+              if sid in placeholder_70 and sid in placeholder_71:
+                  ph["in_both"]+=1
+              if sid not in tsv:
+                  ph["no_tsv_row"]+=1
+                  continue
+              ph["tsv_row"]+=1
+              tv=norm(tsv[sid],"acceptCond")
+              if tv:
+                  ph["tsv_nonempty"]+=1
+                  if len(ph_examples_nonempty)<80:
+                      ph_examples_nonempty.append({
+                          "subId":sid,
+                          "tsv":tv,
+                          "c70":c70.get(sid,{}).get("acceptCond"),
+                          "c71":c71.get(sid,{}).get("acceptCond"),
+                      })
+              else:
+                  ph["tsv_empty"]+=1
+                  if len(ph_examples_empty)<40:
+                      ph_examples_empty.append(sid)
+
+          print("\n=== UNKNOWN ACCEPT PLACEHOLDER BENCHMARK ===")
+          print("PLACEHOLDER_STATS",dict(ph))
+          print("PLACEHOLDER_TSV_NONEMPTY_EXAMPLES",
+                json.dumps(ph_examples_nonempty,ensure_ascii=False,indent=2))
+          print("PLACEHOLDER_TSV_EMPTY_SAMPLE",ph_examples_empty)
+          # A single independently preserved non-empty TSV value under a
+          # placeholder proves that the placeholder cannot globally mean
+          # "explicit empty".
+          print("PLACEHOLDER_CAN_MEAN_EXPLICIT_EMPTY_ONLY",
+                ph["tsv_nonempty"]==0)
+
           integrated_manifest,integrated_unresolved=build_from_directories(
               RAW,C71,C70,
               raw_71_source="DimbreathBot/AnimeGameData@792978e5",
