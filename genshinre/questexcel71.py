@@ -102,8 +102,6 @@ class QuestExcel71Row:
     main_id_raw: int
     main_id: int
     unknown_core8: bytes
-    unknown_core_u32_a: int
-    unknown_core_u32_b: int
     lbefphgelan: bool | None
     known_prefix_end: int
     raw_tail: bytes
