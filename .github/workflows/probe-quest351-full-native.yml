@@ -478,8 +478,8 @@ jobs:
               for h in hits:
                   print(json.dumps(h,ensure_ascii=False))
 
-              qc=[h for h in hits if h["resolved"]["element_type_name"]=="QuestCond"]
-              print("QUESTCOND_ARRAY_FIELDS",len(qc))
+              qc=[h for h in hits if h["resolved"]["element_type_name"] in cond_record_names]
+              print("QUESTCOND_RECORD_ARRAY_FIELDS",len(qc))
               print(json.dumps(qc,ensure_ascii=False,indent=2))
 
               cond_arrays=[h for h in hits if h["resolved"]["element_type_name"] in cond_record_names]
@@ -512,7 +512,14 @@ jobs:
                   return list(csv.DictReader(f))
           types=rows("types.csv"); fields=rows("fields.csv")
           tb={int(t["type_definition_index"]):t for t in types}
-          QUESTCOND_TDI=54128
+          cond_record_tdis={
+              int(f["type_definition_index"])
+              for f in fields
+              if (f.get("field_type") or "")=="QuestCondType"
+              and (f.get("type_name") or "")!="QuestCondType"
+          }
+          cond_record_names={tdi:(tb.get(tdi) or {}).get("type_name","") for tdi in cond_record_tdis}
+          print("COND_RECORD_TDIS",json.dumps(cond_record_names,ensure_ascii=False,sort_keys=True))
 
           with PEImage(EXE) as image:
               base=image.image_base
@@ -533,16 +540,18 @@ jobs:
                   if not (0<=i<n):return None
                   return type_blob[i*16:(i+1)*16]
 
-              qc_indices=[]
+              cond_indices={}
               for i in range(n):
                   raw=raw_entry(i)
                   if raw is None:continue
                   kind=raw[0x0A]
-                  if kind in (0x11,0x12) and int.from_bytes(raw[:4],"little")==QUESTCOND_TDI:
-                      qc_indices.append(i)
-              qc_vas={type_array_va+i*16 for i in qc_indices}
-              print("QUESTCOND_TYPE_INDICES",qc_indices)
-              print("QUESTCOND_TYPE_VAS",[hex(x) for x in sorted(qc_vas)])
+                  tdi=int.from_bytes(raw[:4],"little")
+                  if kind in (0x11,0x12) and tdi in cond_record_tdis:
+                      cond_indices[i]=tdi
+              cond_vas={type_array_va+i*16 for i in cond_indices}
+              va_to_tdi={type_array_va+i*16:tdi for i,tdi in cond_indices.items()}
+              print("QUESTCOND_RECORD_TYPE_INDICES",json.dumps(cond_indices,sort_keys=True))
+              print("QUESTCOND_RECORD_TYPE_VAS",[hex(x) for x in sorted(cond_vas)])
 
               def read_va(va,size):
                   if va<base:return None
@@ -569,13 +578,17 @@ jobs:
                       argv=read_va(argv_va,argc*8)
                       if argv is None:continue
                       args=[int.from_bytes(argv[j*8:j*8+8],"little") for j in range(argc)]
-                      if any(a in qc_vas for a in args):
+                      if any(a in cond_vas for a in args):
                           found.append({
                               "generic_class_offset":off,
                               "generic_inst_va":hex(inst_va),
                               "argc":argc,
                               "argv_va":hex(argv_va),
                               "args":[hex(a) for a in args],
+                              "condition_args":[
+                                  {"va":hex(a),"tdi":va_to_tdi[a],"type_name":cond_record_names.get(va_to_tdi[a],"")}
+                                  for a in args if a in cond_vas
+                              ],
                           })
                   return found
 
@@ -593,12 +606,16 @@ jobs:
                       ab=read_va(data,0x20)
                       if ab is not None:
                           etype=int.from_bytes(ab[:8],"little")
-                          if etype in qc_vas:
-                              array_type_indices[i]={"array_type_va":hex(data),"element_type_va":hex(etype)}
+                          if etype in cond_vas:
+                              tdi=va_to_tdi[etype]
+                              array_type_indices[i]={
+                                  "array_type_va":hex(data),"element_type_va":hex(etype),
+                                  "element_tdi":tdi,"element_type_name":cond_record_names.get(tdi,"")
+                              }
 
-              print("QUESTCOND_GENERIC_TYPE_INDICES",len(generic_type_indices))
+              print("QUESTCOND_RECORD_GENERIC_TYPE_INDICES",len(generic_type_indices))
               print(json.dumps(generic_type_indices,ensure_ascii=False,indent=2))
-              print("QUESTCOND_MDARRAY_TYPE_INDICES",len(array_type_indices))
+              print("QUESTCOND_RECORD_MDARRAY_TYPE_INDICES",len(array_type_indices))
               print(json.dumps(array_type_indices,ensure_ascii=False,indent=2))
 
               field_hits=[]
@@ -613,7 +630,7 @@ jobs:
                       "generic":generic_type_indices.get(ix),
                       "mdarray":array_type_indices.get(ix),
                   })
-              print("QUESTCOND_GENERIC_OR_ARRAY_FIELDS",len(field_hits))
+              print("QUESTCOND_RECORD_GENERIC_OR_ARRAY_FIELDS",len(field_hits))
               print(json.dumps(field_hits,ensure_ascii=False,indent=2))
           PY
 
