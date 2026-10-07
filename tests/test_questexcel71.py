@@ -11,11 +11,13 @@ from genshinre.questexcel71 import (
     BIT_UNKNOWN_34,
     EXCLUSIVE_PLACE_COUNT_XOR,
     EXCLUSIVE_PLACE_ELEMENT_SUB,
+    GUIDE_TIPS_TEXT_MAP_HASH_XOR,
     IS_MP_BLOCK_TRUE_RAW,
     LOW_ROW_MASKS,
     ORDER_RAW_SUB,
     PREFER_AREA2_GUIDE_SCENE_RAW,
     QuestExcel71ParseError,
+    STEP_DESC_TEXT_MAP_HASH_XOR,
     SUB_ID_XOR,
     UNKNOWN_BIT34_RAW,
     parse_questexcel71_raw_export,
@@ -38,7 +40,9 @@ def make_row(
     order: int | None = None,
     is_mp_block: bool = False,
     bit34: bool = False,
+    step_desc_text_map_hash: int = 0,
     tail: bytes = b"",
+    guide_tips_text_map_hash: int = 0,
 ) -> bytes:
     mask64 = LOW_MASK
     if places is not None:
@@ -66,7 +70,9 @@ def make_row(
         out.append(IS_MP_BLOCK_TRUE_RAW)
     if bit34:
         out += u32(UNKNOWN_BIT34_RAW)
+    out += u32(step_desc_text_map_hash ^ STEP_DESC_TEXT_MAP_HASH_XOR)
     out += tail
+    out += u32(guide_tips_text_map_hash ^ GUIDE_TIPS_TEXT_MAP_HASH_XOR)
     out += u32(sub_id ^ SUB_ID_XOR)
     return bytes(out)
 
@@ -85,7 +91,9 @@ class QuestExcel71Tests(unittest.TestCase):
             order=4,
             is_mp_block=True,
             bit34=True,
+            step_desc_text_map_hash=0x13579BDF,
             tail=b"\xAA\xBB\xCC",
+            guide_tips_text_map_hash=0x2468ACE0,
         )
         row1 = make_row(
             7601112,
@@ -106,7 +114,10 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(4, first.order)
         self.assertIs(first.is_mp_block, True)
         self.assertEqual(UNKNOWN_BIT34_RAW, first.unknown_bit34_raw)
+        self.assertEqual(0x13579BDF, first.step_desc_text_map_hash)
         self.assertEqual(b"\xAA\xBB\xCC", first.raw_tail)
+        self.assertEqual(first.end - 8, first.known_suffix_start)
+        self.assertEqual(0x2468ACE0, first.guide_tips_text_map_hash)
 
         second = table.rows[1]
         self.assertIsNone(second.exclusive_place_list)
@@ -114,7 +125,10 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertIsNone(second.order)
         self.assertIsNone(second.is_mp_block)
         self.assertIsNone(second.unknown_bit34_raw)
+        self.assertEqual(0, second.step_desc_text_map_hash)
         self.assertEqual(b"opaque", second.raw_tail)
+        self.assertEqual(second.end - 8, second.known_suffix_start)
+        self.assertEqual(0, second.guide_tips_text_map_hash)
 
     def test_rejects_unexpected_bit52_encoding(self) -> None:
         row = bytearray(
