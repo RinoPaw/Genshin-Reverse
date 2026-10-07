@@ -1,0 +1,249 @@
+name: Probe Quest 7.1 acceptCond inference quality
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-accept-inference.yml"
+
+concurrency:
+  group: probe-quest71-accept-inference-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned Quest sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71 395a5ee6442142a803691f60d541ee1706ae9cd7
+          fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
+
+      - name: Evaluate prerequisite graph heuristics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-accept-inference.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          def load_raw(root):
+              rows={}
+              groups=defaultdict(list)
+              for p in sorted(Path(root).glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for idx,r in enumerate(seq):
+                      if not isinstance(r,dict):continue
+                      sid=r.get("NFGFDHPPBIF")
+                      if not isinstance(sid,int):continue
+                      mid=r.get("PCOMHEOJPOO")
+                      if not isinstance(mid,int):
+                          try: mid=int(p.stem)
+                          except ValueError: mid=None
+                      order=r.get("GBFIFKGFKHD")
+                      rows[sid]={"row":r,"mainId":mid,"order":order,"file":p.stem,"index":idx}
+                      if isinstance(mid,int):groups[mid].append(sid)
+              return rows,groups
+
+          def load_normal(root):
+              rows={}
+              groups=defaultdict(list)
+              for p in sorted(Path(root).glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  mid=o.get("id")
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for idx,r in enumerate(seq):
+                      if not isinstance(r,dict):continue
+                      sid=r.get("subId")
+                      if not isinstance(sid,int):continue
+                      rm=r.get("mainId")
+                      if not isinstance(rm,int):rm=mid
+                      rows[sid]={"row":r,"mainId":rm,"order":r.get("order"),"file":p.stem,"index":idx}
+                      if isinstance(rm,int):groups[rm].append(sid)
+              return rows,groups
+
+          def norm_accept(v):
+              if not isinstance(v,list):return []
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict):continue
+                  typ=x.get("type")
+                  if not typ or typ=="QUEST_COND_UNKNOWN":continue
+                  p=list(x.get("param",[]) or [])
+                  while len(p)>2 and p[-1] in (0,"0",""):
+                      p.pop()
+                  if len(p)>2 and p[-1] in (0,"0",""):
+                      p.pop()
+                  # State conditions use target,state; converter padding beyond
+                  # that is irrelevant to graph identity.
+                  if typ in ("QUEST_COND_STATE_EQUAL","QUEST_COND_STATE_NOT_EQUAL") and len(p)>2:
+                      p=p[:2]
+                  out.append({"type":typ,"param":p,
+                              "param_str":x.get("param_str",x.get("paramStr","")) or ""})
+              return out
+
+          raw,raw_groups=load_raw("/tmp/raw71/BinOutput/Quest")
+          c71,c71_groups=load_normal("/tmp/c71/BinOutput/Quest")
+          c70,_=load_normal("/tmp/c70/BinOutput/Quest")
+          ids=set(raw)
+          labeled=ids & set(c70) & set(c71)
+          unresolved=ids-labeled
+          print("ROWS",len(ids),"LABELED",len(labeled),"UNRESOLVED",len(unresolved))
+          print("GROUPS",len(raw_groups))
+
+          # Use exact raw 7.1 file order and decoded order to build two predecessor maps.
+          pred_physical={}
+          pred_order={}
+          first_physical=set()
+          first_order=set()
+          for mid,sids in raw_groups.items():
+              if sids:
+                  first_physical.add(sids[0])
+                  for a,b in zip(sids,sids[1:]):pred_physical[b]=a
+              ordered=sorted(
+                  sids,
+                  key=lambda sid:(
+                      raw[sid]["order"] if isinstance(raw[sid]["order"],int) else 2**63,
+                      raw[sid]["index"],sid
+                  )
+              )
+              if ordered:
+                  first_order.add(ordered[0])
+                  for a,b in zip(ordered,ordered[1:]):pred_order[b]=a
+
+          labels={sid:norm_accept(c71[sid]["row"].get("acceptCond")) for sid in labeled}
+
+          def expected_chain(pred, sid, first_mode):
+              if sid not in pred:
+                  if first_mode=="zero":
+                      return [{"type":"QUEST_COND_STATE_EQUAL","param":[0,3],"param_str":""}]
+                  return []
+              return [{"type":"QUEST_COND_STATE_EQUAL","param":[pred[sid],3],"param_str":""}]
+
+          print("\n=== LABEL SHAPE ===")
+          shape=Counter()
+          types=Counter()
+          for sid,v in labels.items():
+              if not v:shape["empty"]+=1
+              elif len(v)==1 and v[0]["type"]=="QUEST_COND_STATE_EQUAL":shape["single_state_equal"]+=1
+              elif len(v)==1:shape["single_other"]+=1
+              else:shape["multi"]+=1
+              for x in v:types[x["type"]]+=1
+          print("shape",dict(shape))
+          print("types",types.most_common(30))
+
+          print("\n=== HEURISTIC ROW ACCURACY ===")
+          heuristics={}
+          for pname,pred in (("physical",pred_physical),("order",pred_order)):
+              for first_mode in ("empty","zero"):
+                  key=f"{pname}_{first_mode}"
+                  st=Counter()
+                  mm=[]
+                  for sid in labeled:
+                      got=expected_chain(pred,sid,first_mode)
+                      actual=labels[sid]
+                      st["rows"]+=1
+                      if got==actual:st["exact"]+=1
+                      else:
+                          st["different"]+=1
+                          if len(mm)<30:
+                              mm.append({"subId":sid,"mainId":raw[sid]["mainId"],
+                                         "order":raw[sid]["order"],"pred":pred.get(sid),
+                                         "expected":got,"actual":actual})
+                  st["accuracy"]=st["exact"]/st["rows"]
+                  heuristics[key]={"stats":dict(st),"examples":mm}
+                  print(key,dict(st))
+                  print("examples",json.dumps(mm[:12],ensure_ascii=False))
+
+          # Group confidence: determine whether all labeled rows in a main quest
+          # are explained by one heuristic. Then quantify how many unresolved rows
+          # sit inside such groups and can be extended without changing policy.
+          print("\n=== GROUP EXTENSION COVERAGE ===")
+          for pname,pred in (("physical",pred_physical),("order",pred_order)):
+              for first_mode in ("empty","zero"):
+                  key=f"{pname}_{first_mode}"
+                  st=Counter()
+                  examples=[]
+                  for mid,sids in raw_groups.items():
+                      lab=[sid for sid in sids if sid in labeled]
+                      unk=[sid for sid in sids if sid in unresolved]
+                      if not lab:
+                          if unk: st["all_unlabeled_groups"]+=1;st["all_unlabeled_rows"]+=len(unk)
+                          continue
+                      good=all(expected_chain(pred,sid,first_mode)==labels[sid] for sid in lab)
+                      if good:
+                          st["matching_groups"]+=1
+                          st["matching_labeled_rows"]+=len(lab)
+                          st["extendable_unresolved_rows"]+=len(unk)
+                          if unk and len(examples)<40:
+                              examples.append({"mainId":mid,"labeled":len(lab),"unresolved":len(unk),
+                                               "unresolved_ids":unk[:30]})
+                      else:
+                          st["nonmatching_groups"]+=1
+                          st["nonmatching_labeled_rows"]+=len(lab)
+                          st["blocked_unresolved_rows"]+=len(unk)
+                  print(key,dict(st))
+                  print("extendable_examples",json.dumps(examples[:20],ensure_ascii=False))
+
+          # On known labels, classify only the simple chain subset. This gives an
+          # upper bound on how much can be inferred by predecessor policy.
+          print("\n=== SIMPLE CHAIN TARGET IDENTITY ===")
+          for pname,pred in (("physical",pred_physical),("order",pred_order)):
+              st=Counter()
+              for sid,v in labels.items():
+                  if len(v)!=1 or v[0]["type"]!="QUEST_COND_STATE_EQUAL":
+                      continue
+                  p=v[0]["param"]
+                  if len(p)<2 or p[1]!=3:continue
+                  st["state_equal_3"]+=1
+                  if p[0]==pred.get(sid):st["target_matches_pred"]+=1
+                  elif p[0]==0:st["target_zero"]+=1
+                  else:st["target_other"]+=1
+              print(pname,dict(st),
+                    "pred_ratio",st["target_matches_pred"]/st["state_equal_3"] if st["state_equal_3"] else 0)
+
+          Path("quest71-accept-inference.json").write_text(
+              json.dumps({
+                  "rows":{"raw":len(ids),"labeled":len(labeled),"unresolved":len(unresolved)},
+                  "label_shape":dict(shape),
+                  "heuristics":heuristics,
+              },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-accept-inference
+          path: |
+            quest71-accept-inference.txt
+            quest71-accept-inference.json
+          if-no-files-found: error
