@@ -397,12 +397,14 @@ jobs:
               )
               type_array_rva=type_array_va-base
               n=PROFILE_71.runtime_type_count
+              type_blob=image.read_rva(type_array_rva,n*16)
+              if len(type_blob)!=n*16:
+                  raise SystemExit("truncated runtime type array")
               print("TYPE_ARRAY",hex(type_array_rva),"COUNT",n)
 
               def entry(index):
                   if not (0<=index<n): return None
-                  raw=image.read_rva(type_array_rva+index*16,16)
-                  if len(raw)!=16:return None
+                  raw=type_blob[index*16:(index+1)*16]
                   return {
                       "index":index,
                       "data_u64":int.from_bytes(raw[:8],"little"),
@@ -519,12 +521,17 @@ jobs:
               )
               type_array_rva=type_array_va-base
               n=PROFILE_71.runtime_type_count
+              type_blob=image.read_rva(type_array_rva,n*16)
+              if len(type_blob)!=n*16:
+                  raise SystemExit("truncated runtime type array")
+              referenced_indices=set()
+              for f in fields:
+                  try:referenced_indices.add(int(f.get("field_type_index") or "-1"))
+                  except ValueError:pass
 
               def raw_entry(i):
                   if not (0<=i<n):return None
-                  raw=image.read_rva(type_array_rva+i*16,16)
-                  if len(raw)!=16:return None
-                  return raw
+                  return type_blob[i*16:(i+1)*16]
 
               qc_indices=[]
               for i in range(n):
@@ -574,7 +581,7 @@ jobs:
 
               generic_type_indices={}
               array_type_indices={}
-              for i in range(n):
+              for i in sorted(x for x in referenced_indices if 0<=x<n):
                   raw=raw_entry(i)
                   if raw is None:continue
                   kind=raw[0x0A]
