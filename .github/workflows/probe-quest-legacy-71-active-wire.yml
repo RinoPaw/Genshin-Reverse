@@ -257,7 +257,7 @@ jobs:
               eligible=0
               for r, nr in items:
                   v=r.get(field)
-                  if not numeric(v):
+                  if not numeric(v) or v == 0:
                       continue
                   eligible += 1
                   v &= 0xffffffff
@@ -291,6 +291,7 @@ jobs:
           def rank_accept_target(items, limit=16):
               counters={k:collections.Counter() for k in ("xor","sub","add")}
               endc={k:collections.Counter() for k in ("xor","sub","add")}
+              anywhere={k:collections.Counter() for k in ("xor","sub","add")}
               eligible=0
               for r,nr in items:
                   v=first_accept_target(r)
@@ -299,11 +300,20 @@ jobs:
                   eligible += 1
                   data=payload[nr["start"]:nr["end"]]
                   # Start-relative offsets, excluding final proven subId word.
+                  rowkeys={k:set() for k in anywhere}
                   for off in range(0, len(data)-7):
                       u=struct.unpack_from("<I",data,off)[0]
-                      counters["xor"][(off,u^v)] += 1
-                      counters["sub"][(off,(u-v)&0xffffffff)] += 1
-                      counters["add"][(off,(u+v)&0xffffffff)] += 1
+                      kx=u^v
+                      ks=(u-v)&0xffffffff
+                      ka=(u+v)&0xffffffff
+                      counters["xor"][(off,kx)] += 1
+                      counters["sub"][(off,ks)] += 1
+                      counters["add"][(off,ka)] += 1
+                      rowkeys["xor"].add(kx)
+                      rowkeys["sub"].add(ks)
+                      rowkeys["add"].add(ka)
+                  for kind,keys in rowkeys.items():
+                      anywhere[kind].update(keys)
                   # End-relative offsets catch fixed trailing fields.
                   for back in range(8, min(len(data),68)+1):
                       off=len(data)-back
@@ -326,6 +336,12 @@ jobs:
                        "ratio":(n/eligible if eligible else 0)}
                       for (back,key),n in c.most_common(limit)
                   ]
+              for kind,c in anywhere.items():
+                  out[f"any_{kind}"]=[
+                      {"key":f"0x{key:08X}","support":n,
+                       "ratio":(n/eligible if eligible else 0)}
+                      for key,n in c.most_common(limit)
+                  ]
               return out
 
           accept_by_mask=[]
@@ -336,6 +352,59 @@ jobs:
                   "rows":len(groups[mask]),
                   **result,
               })
+
+          # Known scalar formula controls, searched at any row offset.
+          # These measure whether the statistically recovered transforms behave
+          # like real row fields across the full aligned population.
+          def formula_control(name, field, decode, require_nonzero=False):
+              support=0
+              eligible=0
+              offsets=collections.Counter()
+              for r,nr in matched:
+                  v=r.get(field)
+                  if not isinstance(v,int) or isinstance(v,bool):
+                      continue
+                  if require_nonzero and v == 0:
+                      continue
+                  eligible += 1
+                  vv=v & 0xffffffff
+                  data=payload[nr["start"]:nr["end"]-4]
+                  hits=[]
+                  for off in range(0,len(data)-3):
+                      u=struct.unpack_from("<I",data,off)[0]
+                      if decode(u) == vv:
+                          hits.append(off)
+                  if hits:
+                      support += 1
+                      for off in set(hits):
+                          offsets[off] += 1
+              return {
+                  "name":name,
+                  "field":field,
+                  "eligible":eligible,
+                  "support":support,
+                  "ratio":support/eligible if eligible else 0,
+                  "offsets":[
+                      {"offset":off,"support":n,"ratio":n/eligible if eligible else 0}
+                      for off,n in offsets.most_common(20)
+                  ],
+              }
+
+          formula_controls=[
+              formula_control(
+                  "order_sub_0x732ED834","order",
+                  lambda u:(u-0x732ED834)&0xffffffff,
+              ),
+              formula_control(
+                  "desc_xor_0x2AC0BB5D","descTextMapHash",
+                  lambda u:u^0x2AC0BB5D,
+                  require_nonzero=True,
+              ),
+              formula_control(
+                  "main_add_xor","mainId",
+                  lambda u:((u+0x1D716)&0xffffffff)^0x3223AF7D,
+              ),
+          ]
 
           # Control: final subId transform must be exact over the full population.
           subid_control = collections.Counter()
@@ -366,6 +435,7 @@ jobs:
               "matched":len(matched),
               "only_resource":only_resource,
               "full_consumption":native[-1]["end"]==len(payload),
+              "formula_controls":formula_controls,
               "subId_control":[
                   {"key":f"0x{k:08X}","support":n,"ratio":n/len(matched)}
                   for k,n in subid_control.most_common(8)
@@ -410,7 +480,12 @@ jobs:
                   "mask64":x["mask64"],"rows":x["rows"],"eligible":x["eligible"],
                   "start_xor":best("start_xor"),"start_sub":best("start_sub"),
                   "start_add":best("start_add"),"end_xor":best("end_xor"),
+                  "any_xor":best("any_xor"),"any_sub":best("any_sub"),
+                  "any_add":best("any_add"),
               },ensure_ascii=False))
+          print("\n=== known scalar formula controls ===")
+          for x in formula_controls:
+              print(json.dumps(x,ensure_ascii=False))
           print("\n=== scalar fixed-mask leaders ===")
           for group in scalar_by_mask[:4]:
               print("MASK",group["mask64"],"rows",group["rows"])
