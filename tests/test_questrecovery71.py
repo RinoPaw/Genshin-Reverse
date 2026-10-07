@@ -8,6 +8,7 @@ from genshinre.questrecovery71 import build_manifest
 RAW_SOURCE = "DimbreathBot/AnimeGameData@792978e5"
 COMMUNITY_71 = "capyb2222/LunaGC-Resources@395a5ee6"
 COMMUNITY_70 = "chenlin996/LunaGC-Resources7.0@0991d8a9"
+HISTORICAL_TSV = "wander-in-wind/TsvParser@096da276"
 
 
 class QuestRecovery71Tests(unittest.TestCase):
@@ -256,6 +257,135 @@ class QuestRecovery71Tests(unittest.TestCase):
         )
         self.assertEqual(row["fields"]["acceptCond"]["value"], canonical)
         self.assertNotIn("50001", unresolved["rows"])
+
+
+    def test_historical_tsv_recovers_missing_value_and_empty_slot(self) -> None:
+        raw = {60001: {}}
+        community_71 = {
+            60001: {
+                "subId": 60001,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [59999, 3],
+                    }
+                ],
+            }
+        }
+        historical_tsv = {
+            60001: {
+                "subId": 60001,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [59999, 3],
+                    }
+                ],
+                # beginExec is absent because the source TSV slot is empty and
+                # the serializer uses NON_DEFAULT.
+            }
+        }
+
+        manifest, unresolved = build_manifest(
+            raw,
+            community_71,
+            {},
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows=historical_tsv,
+            historical_tsv_source=HISTORICAL_TSV,
+        )
+
+        row = manifest["rows"]["60001"]
+        self.assertEqual(
+            row["fields"]["acceptCond"]["provenance"]["kind"],
+            "historical-server-source",
+        )
+        self.assertFalse(
+            row["fields"]["acceptCond"]["provenance"]["native_7_1"]
+        )
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(
+            row["missing_field_status"]["beginExec"]["status"],
+            "compatibility-empty",
+        )
+        self.assertEqual(unresolved["summary"]["rows"], 0)
+        self.assertEqual(
+            manifest["summary"]["fields"]["acceptCond"]["unresolved"],
+            0,
+        )
+        self.assertEqual(
+            manifest["summary"]["fields"]["acceptCond"]["compatibility_value"],
+            1,
+        )
+        self.assertEqual(
+            manifest["summary"]["fields"]["beginExec"]["unresolved"],
+            0,
+        )
+        self.assertEqual(
+            manifest["summary"]["fields"]["beginExec"]["compatibility_empty"],
+            1,
+        )
+
+    def test_historical_tsv_conflict_remains_unresolved(self) -> None:
+        raw = {61001: {}}
+        community = {
+            61001: {
+                "subId": 61001,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [61000, 3],
+                    }
+                ],
+            }
+        }
+        historical_tsv = {
+            61001: {
+                "subId": 61001,
+                "acceptCond": [
+                    {
+                        "type": "QUEST_COND_STATE_EQUAL",
+                        "param": [60999, 3],
+                    }
+                ],
+            }
+        }
+
+        manifest, unresolved = build_manifest(
+            raw,
+            community,
+            community,
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+            historical_tsv_rows=historical_tsv,
+            historical_tsv_source=HISTORICAL_TSV,
+        )
+
+        row = manifest["rows"]["61001"]
+        self.assertNotIn("acceptCond", row["fields"])
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "unresolved",
+        )
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["reason"],
+            "historical-tsv-community-diverged",
+        )
+        self.assertIn("acceptCond", unresolved["rows"]["61001"]["fields"])
+        self.assertEqual(
+            manifest["summary"]["fields"]["acceptCond"]["compatibility_value"],
+            0,
+        )
+        self.assertEqual(
+            manifest["summary"]["fields"]["acceptCond"]["unresolved"],
+            1,
+        )
 
     def test_unknown_accept_placeholder_is_not_recovered(self) -> None:
         raw = {40001: {}}
