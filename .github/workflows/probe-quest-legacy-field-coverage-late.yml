@@ -39,6 +39,7 @@ jobs:
           fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_4.6.0.git /tmp/gc46 e7e0204a273a82efd3c86507bb19cb0d9e760c53
           fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_5.0.0.git /tmp/gc50 e7a7cf1fbe4f9d44f7bb70e284f8be9a3ce6e076
           fetch_repo https://github.com/Rafs-kk/LunaGC-6.6-res.git /tmp/gc66 b0501c5d89767ead5f647869a2412521447f7682
+          fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/gc70 a64cf90adbcbb4fec3ad1c00d94bfb455511e080
 
       - name: Cross-version recovery census
         shell: bash
@@ -55,6 +56,7 @@ jobs:
               "4.6":Path("/tmp/gc46/BinOutput/Quest"),
               "5.0":Path("/tmp/gc50/BinOutput/Quest"),
               "6.6":Path("/tmp/gc66/BinOutput/Quest"),
+              "7.0":Path("/tmp/gc70/BinOutput/Quest"),
           }
 
           def load(root):
@@ -133,15 +135,15 @@ jobs:
                   if best_val:
                       support[len(best_versions)]+=1
                       # High confidence: at least two historical versions agree,
-                      # or the value comes from the latest 6.6 snapshot and all
-                      # overlapping older non-empty values agree with it.
+                      # or the value comes from the latest available snapshot and
+                      # all overlapping older non-empty values agree with it.
                       all_nonempty=[(v,nv) for v,nv in vals if nv]
                       latest_ver=vals[-1][0]
                       unanimous_nonempty=all(
                           json.dumps(nv,sort_keys=True)==json.dumps(best_val,sort_keys=True)
                           for _v,nv in all_nonempty
                       )
-                      high=(len(best_versions)>=2) or (latest_ver=="6.6" and unanimous_nonempty)
+                      high=(len(best_versions)>=2) or (latest_ver=="7.0" and unanimous_nonempty)
                       if high:
                           chosen[sid]={"value":best_val,"versions":best_versions}
                   if len(groups)>1 and any(payload[k] for k in groups):
