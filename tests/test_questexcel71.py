@@ -256,6 +256,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertFalse(first.prefer_area2_guide_scene)
         self.assertEqual(4, first.order)
         self.assertIs(first.is_mp_block, True)
+        self.assertEqual("QUEST_SHOW_ON_FOCUS_REQ", first.fabhgllgfhn)
         self.assertEqual(UNKNOWN_BIT34_RAW, first.unknown_bit34_raw)
         self.assertEqual(0x13579BDF, first.step_desc_text_map_hash)
         self.assertEqual("QUEST_HIDDEN", first.dmcmnplmckl)
@@ -284,6 +285,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertFalse(second.prefer_area2_guide_scene)
         self.assertIsNone(second.order)
         self.assertIsNone(second.is_mp_block)
+        self.assertIsNone(second.fabhgllgfhn)
         self.assertIsNone(second.unknown_bit34_raw)
         self.assertEqual(0, second.step_desc_text_map_hash)
         self.assertIsNone(second.dmcmnplmckl)
@@ -313,7 +315,7 @@ class QuestExcel71Tests(unittest.TestCase):
         raw_pos = 8 + 4
         row[raw_pos:raw_pos + 4] = u32(0xDEADBEEF)
         payload = u32(0) + row
-        with self.assertRaisesRegex(QuestExcel71ParseError, "bit34 raw"):
+        with self.assertRaisesRegex(QuestExcel71ParseError, "FABHGLLGFHN raw"):
             parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
 
     def test_rejects_unexpected_prefer_encoding(self) -> None:
