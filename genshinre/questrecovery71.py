@@ -111,10 +111,25 @@ def _comparison_entry(item: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _comparison_value(value: Any, *, field: str) -> list[dict[str, Any]]:
-    return [
-        _comparison_entry(item)
-        for item in _typed_entries(value, field=field)
-    ]
+    # Some leaked/source-table serializers repeat an identical logical slot
+    # when adjacent physical TSV columns contain the same entry. Keep source
+    # values exact in manifests, but collapse exact duplicates for evidence
+    # comparison so a duplicate column does not become a semantic conflict.
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in _typed_entries(value, field=field):
+        normalized = _comparison_entry(item)
+        key = json.dumps(
+            normalized,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(normalized)
+    return out
 
 
 def _has_unknown_accept_placeholder(value: Any) -> bool:
