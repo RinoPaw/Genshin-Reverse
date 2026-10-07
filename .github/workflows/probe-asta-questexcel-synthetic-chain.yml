@@ -1,0 +1,123 @@
+name: Probe Asta QuestExcel synthetic prerequisite chain
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-asta-questexcel-synthetic-chain.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Fetch initial imported Asta QuestExcel
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            -o questexcel-initial.json \
+            https://raw.githubusercontent.com/MeChen618/AstaPS-Resource/8c85a82f37341a422002a0352c89a142c4017e53/ExcelBinOutput/QuestExcelConfigData.json
+          sha256sum questexcel-initial.json
+          du -h questexcel-initial.json
+      - name: Measure previous-row prerequisite synthesis
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee asta-questexcel-synthetic-chain.txt
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          rows=json.loads(Path("questexcel-initial.json").read_text(encoding="utf-8"))
+          if not isinstance(rows,list):
+              raise SystemExit("QuestExcel root is not a list")
+
+          STATE_EQUAL="QUEST_COND_STATE_EQUAL"
+          def meaningful(row):
+              value=row.get("acceptCond")
+              if not isinstance(value,list):
+                  return []
+              return [x for x in value if isinstance(x,dict) and x.get("type")]
+
+          by_main=defaultdict(list)
+          for idx,row in enumerate(rows):
+              if not isinstance(row,dict): continue
+              by_main[int(row.get("mainId") or 0)].append((idx,row))
+
+          exact=0
+          exact_nonfirst=0
+          nonfirst=0
+          first_exact=0
+          groups_full=0
+          groups_checked=0
+          mismatches=[]
+          for main_id,items in by_main.items():
+              if main_id<=0: continue
+              groups_checked+=1
+              full=True
+              prev=0
+              for j,(idx,row) in enumerate(items):
+                  sub=int(row.get("subId") or 0)
+                  conds=meaningful(row)
+                  expected=prev if j else 0
+                  ok=(
+                      len(conds)==1
+                      and conds[0].get("type")==STATE_EQUAL
+                      and isinstance(conds[0].get("param"),list)
+                      and len(conds[0]["param"])>=2
+                      and conds[0]["param"][0]==expected
+                      and conds[0]["param"][1]==3
+                  )
+                  if ok:
+                      exact+=1
+                      if j: exact_nonfirst+=1
+                      else: first_exact+=1
+                  else:
+                      full=False
+                      if len(mismatches)<40:
+                          mismatches.append({
+                              "index":idx,"mainId":main_id,"subId":sub,
+                              "position":j,"expected_predecessor":expected,
+                              "acceptCond":row.get("acceptCond"),
+                          })
+                  if j: nonfirst+=1
+                  prev=sub
+              if full: groups_full+=1
+
+          print("ROWS",len(rows))
+          print("MAIN_GROUPS",groups_checked)
+          print("EXACT_SYNTHETIC_ROWS",exact)
+          print("EXACT_SYNTHETIC_PERCENT",round(exact*100/len(rows),6))
+          print("FIRST_ROWS_EXACT_ZERO",first_exact)
+          print("NONFIRST_ROWS",nonfirst)
+          print("NONFIRST_EXACT_PREVIOUS_ROW",exact_nonfirst)
+          print("NONFIRST_EXACT_PERCENT",round(exact_nonfirst*100/nonfirst,6) if nonfirst else 0)
+          print("FULLY_SYNTHETIC_GROUPS",groups_full)
+          print("FULLY_SYNTHETIC_GROUP_PERCENT",round(groups_full*100/groups_checked,6) if groups_checked else 0)
+
+          q351=[row for row in rows if isinstance(row,dict) and int(row.get("mainId") or 0)==351]
+          print("QUEST351_ROWS")
+          for row in q351:
+              print(json.dumps({
+                  "subId":row.get("subId"),
+                  "order":row.get("order"),
+                  "acceptCond":meaningful(row),
+              },ensure_ascii=False,separators=(",",":")))
+
+          print("FIRST_MISMATCHES")
+          print(json.dumps(mismatches,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: asta-questexcel-synthetic-chain
+          path: asta-questexcel-synthetic-chain.txt
+          if-no-files-found: error
