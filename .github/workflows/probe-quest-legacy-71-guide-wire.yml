@@ -1,0 +1,218 @@
+name: Resolve 7.1 QuestExcel guide object wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-guide-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-guide-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none \
+            https://github.com/owomocha/genshin-7.0-local-re-devkit.git \
+            /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach \
+            fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+
+      - name: Decode Quest 351 guide objects with native guide reader
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-guide-wire.txt
+          import csv,json,struct
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          RAW=Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          GUIDE_RVA=0xB8B0230
+          GUIDE_TYPE="OOPFBIEAILL"
+          SUBID_KEY=0xB1571A55
+          ORDER_SUB=0x732ED834
+          PLACE_COUNT_KEY=0xB51E6D91
+          LOW_MASKS={
+              0x087EFDD5,0x087EDDD5,0x087FFDD5,0x087EF9D5,
+              0x083EFDD5,0x087FDDD5,0x287EFDD5,0x087ED9D5,
+              0x083EDDD5,0x007FFDD5,0x087FF9D5,0x083EF9D5,
+              0x083FFDD5,
+          }
+          EXPECTED={
+              35100:["1005"],
+              35101:["1005","QuestArrow"],
+              35102:["Q351ClimbEnd"],
+              35103:["1005","QuestArrow"],
+              35104:["1005"],
+              35105:["1005","QuestArrow"],
+              35106:["Q351Trans"],
+              35107:[],
+          }
+
+          def read_csv(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+
+          methods=read_csv("methods.csv")
+          deser={}
+          one_by_class={}
+          for m in methods:
+              try:rva=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if not rva:continue
+              try:params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:continue
+              if not params or params[0]!="FNIAHJGHFAK":continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or "").lower()
+                  pr=0 if m.get("method_name")=="FromBinaryInner" else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or pr<prev[0]:
+                      one_by_class[cls]=(pr,rva)
+          row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
+
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+          schema=BC.build(exe,GUIDE_RVA,deser,cache={})
+
+          print("guide_type",GUIDE_TYPE)
+          print("guide_rva",f"0x{GUIDE_RVA:X}")
+          print("guide_schema",json.dumps(schema,ensure_ascii=False))
+
+          raw=RAW.read_bytes()
+          n=struct.unpack_from("<I",raw,0)[0]
+          payload=raw[4:4+n]
+          starts=[p for p in range(4,len(payload)-7)
+                  if struct.unpack_from("<I",payload,p)[0] in LOW_MASKS]
+          if len(starts)!=33214:
+              raise SystemExit(f"framing drift {len(starts)}")
+
+          rows={}
+          for i,s in enumerate(starts):
+              e=starts[i+1] if i+1<len(starts) else len(payload)
+              sid=struct.unpack_from("<I",payload,e-4)[0]^SUBID_KEY
+              if sid not in EXPECTED:continue
+              m=struct.unpack_from("<Q",payload,s)[0]
+              p=s+12
+              if (m>>37)&1:
+                  c=struct.unpack_from("<I",payload,p)[0]^PLACE_COUNT_KEY
+                  p+=4+4*c
+              if (m>>29)&1:p+=4
+              order=(struct.unpack_from("<I",payload,p)[0]-ORDER_SUB)&0xffffffff
+              rows[sid]={"start":s,"end":e,"post_order":p+4,"order":order,"mask64":m}
+
+          def flatten_strings(x):
+              out=[]
+              if isinstance(x,str):out.append(x)
+              elif isinstance(x,list):
+                  for v in x:out.extend(flatten_strings(v))
+              elif isinstance(x,dict):
+                  for v in x.values():out.extend(flatten_strings(v))
+              return out
+
+          report={"schema":schema,"rows":{}}
+          for sid in sorted(rows):
+              nr=rows[sid]
+              expected=EXPECTED[sid]
+              candidates=[]
+              for p in range(nr["post_order"],nr["end"]-4):
+                  r=BC.Reader(payload)
+                  r.p=p
+                  try:value=r.record(schema)
+                  except Exception:continue
+                  if r.p>nr["end"]-4:continue
+                  strings=flatten_strings(value)
+                  nonempty=[x for x in strings if x]
+                  if expected and all(x in nonempty for x in expected):
+                      candidates.append({
+                          "start_rel":p-nr["start"],
+                          "end_rel":r.p-nr["start"],
+                          "consumed":r.p-p,
+                          "strings":strings,
+                          "value":value,
+                      })
+              # Also test the visually suggested +0x14 start even when no guide.
+              direct=None
+              p=nr["start"]+0x14
+              r=BC.Reader(payload);r.p=p
+              try:
+                  value=r.record(schema)
+                  direct={
+                      "ok":r.p<=nr["end"]-4,
+                      "start_rel":0x14,
+                      "end_rel":r.p-nr["start"],
+                      "strings":flatten_strings(value),
+                      "value":value,
+                  }
+              except Exception as exc:
+                  direct={"ok":False,"error":type(exc).__name__+":"+str(exc)[:160]}
+
+              report["rows"][str(sid)]={
+                  **{k:(f"0x{v:016X}" if k=="mask64" else v) for k,v in nr.items()},
+                  "expected_params":expected,
+                  "matches":candidates,
+                  "direct_0x14":direct,
+              }
+              print("\nROW",sid,"order",nr["order"],"mask",f"0x{nr['mask64']:016X}")
+              print("matches",json.dumps(candidates,ensure_ascii=False))
+              print("direct_0x14",json.dumps(direct,ensure_ascii=False))
+
+          Path("quest-legacy-71-guide-wire.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-guide-wire
+          path: |
+            quest-legacy-71-guide-wire.txt
+            quest-legacy-71-guide-wire.json
+          if-no-files-found: error
