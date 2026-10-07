@@ -486,3 +486,37 @@ The recovery policy for private-server use should keep the sources distinct:
 
 This preserves two separate products: a faithful 7.1 client-native dataset and
 an optional compatibility-restoration layer for server gameplay.
+## 2026-10-07 provenance-preserving recovery manifest
+
+`genshinre.questrecovery71` now turns the ownership boundary above into a
+machine-readable recovery layer. It deliberately keeps client-native and
+compatibility-only data separate.
+
+The pinned full run used:
+
+- raw 7.1 client projection:
+  `DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2`;
+- community 7.1 merged resource:
+  `capyb2222/LunaGC-Resources@395a5ee6442142a803691f60d541ee1706ae9cd7`;
+- community 7.0 predecessor:
+  `chenlin996/LunaGC-Resources7.0@0991d8a9d82b37a7400774764c0b6e04e7c66a9d`.
+
+The full 33,214-row result is:
+
+- `finishCond`: 32,683 non-empty native 7.1 rows;
+- `failCond`: 5,156 non-empty native 7.1 rows;
+- `finishExec`: 12,326 non-empty native 7.1 rows;
+- `failExec`: 3,896 non-empty native 7.1 rows;
+- `acceptCond`: 15,384 compatibility carry-forward values, 7,173 proven
+  compatibility-empty rows, and 10,657 unresolved rows;
+- `beginExec`: 4,837 compatibility carry-forward values, 17,720 proven
+  compatibility-empty rows, and 10,657 unresolved rows.
+
+The unresolved file therefore contains 10,657 rows / 21,314 field
+occurrences. No previous-row prerequisite synthesis is performed.
+`QUEST_COND_UNKNOWN [0,0]` placeholders are filtered rather than promoted.
+
+The focused generation run was GitHub Actions run `37609718112`; its four
+unit tests passed and it emitted the recovery manifest plus unresolved set.
+The workflow shell is temporary orchestration only. The durable implementation
+is `genshinre.questrecovery71` plus `tests/test_questrecovery71.py`.
