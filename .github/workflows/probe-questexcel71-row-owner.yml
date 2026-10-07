@@ -99,7 +99,52 @@ jobs:
           both=sorted(set.intersection(*owner_sets.values()))
           print("guideHint callers",len(owner_sets["guideHint"]))
           print("guide callers",len(owner_sets["guide"]))
-          print("intersection",len(both),[hex(x) for x in both])
+          print("direct_call_intersection",len(both),[hex(x) for x in both])
+
+          # Direct calls may disappear behind wrappers. Resolve each target RVA
+          # back to its metadata type, then find types that own both fields.
+          target_type_names={}
+          for label,target in TARGETS.items():
+              exact=by_rva.get(target,[])
+              target_type_names[label]=sorted({
+                  m.get("type_name") for m in exact if m.get("type_name")
+              })
+          print("target_type_names",json.dumps(target_type_names,ensure_ascii=False))
+          guide_types=set(target_type_names.get("guide",[]))
+          hint_types=set(target_type_names.get("guideHint",[]))
+          metadata_candidates=[]
+          fields_by_tdi={}
+          for fld in fields:
+              fields_by_tdi.setdefault(int(fld["type_definition_index"]),[]).append(fld)
+          for tdi,ff in fields_by_tdi.items():
+              ftypes={x.get("field_type") for x in ff}
+              if guide_types & ftypes and hint_types & ftypes:
+                  metadata_candidates.append(tdi)
+          print("metadata_owner_candidates",[
+              {
+                  "tdi":tdi,
+                  "type":(tb.get(tdi) or {}).get("type_name"),
+                  "guide_fields":[x for x in fields_by_tdi[tdi] if x.get("field_type") in guide_types],
+                  "guide_hint_fields":[x for x in fields_by_tdi[tdi] if x.get("field_type") in hint_types],
+              }
+              for tdi in metadata_candidates
+          ])
+
+          # Promote candidate binary readers to the actual disassembly target.
+          metadata_reader_rvas=[]
+          for tdi in metadata_candidates:
+              for m in methods:
+                  if int(m.get("type_definition_index") or -1)!=tdi:
+                      continue
+                  try:params=json.loads(m.get("parameter_types") or "[]")
+                  except Exception:continue
+                  if params and params[0]=="FNIAHJGHFAK":
+                      try:rr=int(m.get("rva") or "0",0)
+                      except Exception:rr=0
+                      if rr:
+                          metadata_reader_rvas.append(rr)
+          both=sorted(set(both)|set(metadata_reader_rvas))
+          print("candidate_reader_rvas",[hex(x) for x in both])
 
           deser={}
           one={}
