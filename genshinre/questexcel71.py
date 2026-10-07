@@ -15,6 +15,7 @@ PREFER_AREA2_GUIDE_SCENE_RAW = 0x8BFDD679
 ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
 UNKNOWN_BIT34_RAW = 0x074282C5
+UNKNOWN_BIT40_RAW = 0x08
 STEP_DESC_TEXT_MAP_HASH_XOR = 0xABB3B4F1
 GUIDE_TIPS_TEXT_MAP_HASH_XOR = 0x59B7A2F4
 DMCMNPLMCKL_HIDDEN_RAW = 0x53FAFAF9
@@ -37,6 +38,7 @@ BIT_BAN_TYPE = 22
 BIT_PREFER_AREA2_GUIDE_SCENE = 29
 BIT_UNKNOWN_34 = 34
 BIT_EXCLUSIVE_PLACE_LIST = 37
+BIT_UNKNOWN_40 = 40
 BIT_IS_MP_BLOCK = 52
 BIT_ORDER = 57
 
@@ -56,6 +58,7 @@ class QuestExcel71Row:
     step_desc_text_map_hash: int
     dmcmnplmckl: str | None
     ban_type: str | None
+    unknown_bit40_raw: int | None
     known_prefix_end: int
     raw_tail: bytes
     known_suffix_start: int
@@ -204,6 +207,18 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             )
         p += 4
 
+    unknown_bit40_raw = None
+    if (mask64 >> BIT_UNKNOWN_40) & 1:
+        if p >= suffix_pos:
+            raise QuestExcel71ParseError(f"row {index} subId {sub_id} truncates bit40 scalar")
+        unknown_bit40_raw = payload[p]
+        if unknown_bit40_raw != UNKNOWN_BIT40_RAW:
+            raise QuestExcel71ParseError(
+                f"row {index} subId {sub_id} has unexpected bit40 raw "
+                f"0x{unknown_bit40_raw:02X}"
+            )
+        p += 1
+
     known_suffix_start = suffix_pos - 4
     if p > known_suffix_start:
         raise QuestExcel71ParseError(
@@ -228,6 +243,7 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         step_desc_text_map_hash=step_desc_text_map_hash,
         dmcmnplmckl=dmcmnplmckl,
         ban_type=ban_type,
+        unknown_bit40_raw=unknown_bit40_raw,
         known_prefix_end=p,
         raw_tail=payload[p:known_suffix_start],
         known_suffix_start=known_suffix_start,
