@@ -50,6 +50,10 @@ jobs:
               echo "=== USERS OF $type_name ==="
               python -m genshinre.cli query-fields "$F" --field-type "$type_name" || true
             done
+            for type_index in 629809 439214 629808 629811 629813 440618; do
+              echo "=== TYPE-INDEX USERS $type_index ==="
+              python -m genshinre.cli query-fields "$F" --field-type-index "$type_index" || true
+            done
             for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO               AFEAMKOGMBF AHBDGODKBDF DJADGDCICCB FEBBDBPEFCE               HGDMKDGAJOM HGFFNBIGPJK IACKBAAICMK IBIILFJEHBC               IMGDIONBDMG INFDFLBGLPD KJBJDKALING KJOHNNANDBK               LCBNMMFPDFH LLHHDHNBAGG MNPJPMCNIIP; do
               echo "=== FIELD $field ==="
               python -m genshinre.cli query-fields "$F" --field-name "$field" || true
