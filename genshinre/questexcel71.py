@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import struct
 
-from .questguide71 import QuestGuide71, QuestGuide71ParseError, find_questguide71
+from .questguide71 import QuestGuide71, QuestGuide71ParseError, parse_questguide71
 from .questguidehint71 import (
     QuestGuideHint71,
     QuestGuideHint71ParseError,
@@ -102,6 +102,8 @@ class QuestExcel71Row:
     main_id_raw: int
     main_id: int
     unknown_core8: bytes
+    unknown_core_u32_a: int
+    unknown_core_u32_b: int
     lbefphgelan: bool | None
     known_prefix_end: int
     raw_tail: bytes
@@ -375,17 +377,12 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             f"row {index} subId {sub_id} known prefix overlaps QuestGuide71"
         )
     try:
-        guide = find_questguide71(payload, p, guide_end)
+        guide = parse_questguide71(payload, p, guide_end)
     except QuestGuide71ParseError as exc:
         raise QuestExcel71ParseError(
             f"row {index} subId {sub_id}: {exc}"
         ) from exc
-    if p != guide.start:
-        raise QuestExcel71ParseError(
-            f"row {index} subId {sub_id} outer fields consume through 0x{p:X}, "
-            f"guide starts at 0x{guide.start:X}"
-        )
-    known_suffix_start = guide.start
+    known_suffix_start = p
 
     return QuestExcel71Row(
         index=index,
