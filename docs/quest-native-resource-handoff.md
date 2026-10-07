@@ -1,6 +1,6 @@
 # Quest native-resource research handoff
 
-Checkpoint: 2026-10-06
+Checkpoint: 2026-10-07
 
 This file is the authoritative resumable handoff for the current Quest investigation.
 Refetch the branch head before editing because focused probes may still advance it.
@@ -9,7 +9,13 @@ Refetch the branch head before editing because focused probes may still advance 
 
 - Repository: `RinoPaw/Genshin-Reverse`
 - Branch: `probe/quest-blb3-binoutput`
-- Latest fully green checkpoint before this handoff edit:
+- Latest fully green QuestExcel wire checkpoint before this handoff edit:
+  - head `066a14f2e8880cc76115bd50c4b8afa5695fce71`
+  - commit: `probe: resolve QuestExcel guide object wire`
+  - CI #1210 / run `37559308097`: SUCCESS
+  - `Resolve 7.1 QuestExcel guide object wire` #1 / run `37559308133`: SUCCESS
+  - artifact `quest-legacy-71-guide-wire` id `11455917837`
+- Last historical-provenance green checkpoint:
   - head `728479dcdf216b0de8bda4d98c737b4577324276`
   - CI #1175 / run `37491875319`: SUCCESS
   - `Verify 3.0 native Quest 351 prerequisites` #2 / run `37491875548`: SUCCESS
@@ -138,47 +144,229 @@ spuriously.
 ---
 
 
-### Latest 7.1 structural progress
+### Latest 7.1 structural progress — 2026-10-07 checkpoint
 
-Same-version Dimbreath 7.1 row ordering was validated against the exact native
-`3b87ae83.dat` using only the independently recovered `subId` transform:
+The previous Dimbreath-derived 17,760 adjacent spans are now **superseded as the
+primary framing model**. They remain useful historical evidence, but native framing is
+now much stronger and covers the complete payload.
 
-```text
-Dimbreath rows          17,814
-unique native subId     17,812
-adjacent exact spans    17,760
-subId transform         raw_u32 XOR 0xB1571A55
-row framing             row[N].start = subId[N-1] + 4
-                        row[N].end   = subId[N] + 4
-```
+#### Full native row framing — CONFIRMED
 
-This strongly establishes row identity and row boundaries. It does **not** validate
-Dimbreath field names. In Quest 351, several Dimbreath columns are visibly shifted
-or semantically wrong (for example fields labelled `acceptCondComb` contain guide
-objects), so Dimbreath may be used as a row-order oracle, not as a field-schema oracle.
-
-The exact-consumption scan then built **3,831** one-argument binary-reader schemas and
-tested them against 2,000 distributed native row spans. No candidate was universal:
+The exact 7.1 payload can be partitioned directly into **33,214 native rows**:
 
 ```text
-best candidate:
-  OMHJBJAKIFK.GMENPOPMKAA @ 0x7BE9F20
-  388 / 2000 exact rows
+payload bytes       2,824,188
+table prefix        payload[0:4]
+first row start     4
+native rows         33,214
+unique native subId 33,214
+last row end        2,824,188
+full consumption    YES
 
-next:
-  KMKHHMFDNKI.GMENPOPMKAA @ 0x11F76150
-  384 / 2000
-
-  FKBFEDEMEOJ.GMENPOPMKAA @ 0xA2D06E0
-  384 / 2000
+row size:
+  min    50
+  max    267
+  median 80
+  mean   85.0299
 ```
 
-A separate transform scan built 1,621 plausible schemas and found **0 exact 8/8**
-reader-field transforms for the eight Quest 351 `subId` anchors.
+Each row begins with a recognizable 64-bit mask-shaped prefix and ends with the
+encoded `subId`:
 
-Interpretation: the native row framing is now strong, while the current binconfig
-model still misses part of the 7.1 reader/transform family. Do not promote the partial
-reader leaders to the QuestExcel reader.
+```text
+subId = raw_u32 XOR 0xB1571A55
+subId location = row.end - 4
+```
+
+The low 32 bits of the row mask use only 13 observed values across all 33,214 rows.
+The combined 64-bit prefix has 113 observed values. This gives a native row-start
+oracle independent of Dimbreath ordering.
+
+The first payload u32 is still `0x40233AB1`. The transform from that value to the
+native row count 33,214 is **not yet identified**. Do not invent a table-count transform.
+
+#### Native row set vs public/materialized resources
+
+Exact `subId` set comparison:
+
+```text
+Dimbreath 7.1:
+  rows                 17,814
+  all 17,814 exist natively
+  native-only          15,400
+
+AstaPS initial:
+  rows                 25,261
+  all 25,261 exist natively
+  native-only           7,953
+
+AstaPS PR #9 result:
+  rows                 33,217
+  native intersection  33,214
+  native-only               0
+  resource-only IDs:
+    1080001
+    1180301
+    1680201
+```
+
+Therefore PR #9's 33,217-row materialization is extremely close to the native 7.1
+row population, but the three IDs above have no row in the exact native asset.
+
+#### 64-bit row mask semantics — several bits CONFIRMED
+
+Using the 33,214 native rows against the materialized control, the following presence
+relations are exact or effectively exact:
+
+```text
+bit 10  -> DMCMNPLMCKL absent when bit=1        exact
+bit 13  -> showType present when bit=0           exact
+bit 16  -> subIdSet present when bit=1           exact
+bit 22  -> banType present when bit=0             exact
+bit 27  -> EOFPICJEHLP present when bit=0         exact
+bit 29  -> preferArea2GuideScene present          exact
+bit 34  -> FABHGLLGFHN present                    exact
+bit 37  -> exclusivePlaceList present             exact
+bit 41  -> DABNIJGHAPJ present                    exact
+bit 45  -> failParentShow present                 exact
+bit 52  -> isMpBlock present                      exact
+bit 61  -> LBEFPHGELAN present                    exact
+bit 63  -> showGuide present                      exact
+```
+
+This is much stronger than the earlier Dimbreath-only presence correlation. It confirms
+that the first eight bytes are meaningful row-presence/framing state, although not every
+field has been assigned yet.
+
+#### Prefix before `order` — partially decoded with full-table invariants
+
+The `order` scalar transform is:
+
+```text
+order = (raw_u32 - 0x732ED834) mod 2^32
+```
+
+It is found unambiguously in 33,210 / 33,214 native rows.
+
+The four current exceptions are:
+
+```text
+4019509
+4019510
+4019511
+7601112
+```
+
+Most rows have `order` at relative offset `0x0C`. Optional prefix fields move it
+forward.
+
+Two prefix fields are now decoded exactly:
+
+```text
+bit 37 = exclusivePlaceList
+
+count:
+  count = raw_u32 XOR 0xB51E6D91
+
+elements:
+  value = (raw_u32 - 0x449FCFB9) mod 2^32
+
+presence + values:
+  exact 33,214 / 33,214
+```
+
+and:
+
+```text
+bit 29 = preferArea2GuideScene
+
+stored raw u32:
+  0x8BFDD679
+
+presence + value:
+  exact 33,214 / 33,214
+```
+
+When only bit 29 is present before `order`, `order` moves from `0x0C` to `0x10`.
+When bit 37 is present, the variable-length `exclusivePlaceList` accounts for the
+corresponding 4-byte count plus 4 bytes per element before `order`.
+
+Also:
+
+```text
+mainId == subId // 100
+33,214 / 33,214
+```
+
+This relation is exact, but a distinct physical `mainId` slot in the 7.1 legacy row has
+not yet been proven. It may be derivable rather than serialized.
+
+#### Post-order scalar progress
+
+For rows whose materialized `stepDescTextMapHash` is present, the native scalar uses:
+
+```text
+stepDescTextMapHash = raw_u32 XOR 0xABB3B4F1
+```
+
+The field occurs immediately after the decoded prefix/order region in the dominant
+layout. The focused probe covers all 1,875 control rows through three offset groups:
+
+```text
+relative shift 0: 1,757 rows
+relative shift 1:   116 rows
+relative shift 4:     2 rows
+misses:               0
+```
+
+The +1 group correlates with `isMpBlock`; the +4 group is a rare special layout
+associated with `FABHGLLGFHN` / `showType`.
+
+Additional post-order mask correlations are already strong enough to guide the next
+layout recovery, but their scalar transforms are not all closed yet.
+
+#### Boolean/value fields still unresolved
+
+The mask establishes presence for fields such as `isMpBlock`, but the separate
+`isRewind` value is not explained by a simple mask bit or fixed scalar transform.
+Do not collapse presence and boolean value semantics.
+
+Likewise, `subIdSet` presence is confirmed by bit 16, while its physical numeric value
+encoding remains unresolved.
+
+#### Reader-search interpretation changed
+
+Earlier exact-consumption leaders were mostly artifacts of matching common row lengths.
+After full 33,214-row framing and excluding the final 4-byte `subId` suffix, no
+anonymous one-argument reader has become a universal QuestExcel row reader.
+
+The body-reader probe tested 3,838 built schemas; the best partial candidates still
+consume only subsets of rows. Do not promote them.
+
+Current direction: reconstruct the row directly from the now-confirmed native framing,
+mask bits, prefix fields, and scalar transforms. Use native method/type evidence to
+validate each recovered field. A single universal anonymous-reader lookup is no longer
+the primary strategy.
+
+#### Guide-object status
+
+Native type/reader evidence identifies:
+
+```text
+guide type   OOPFBIEAILL
+reader RVA   0xB8B0230
+mask width   32-bit
+mask op      raw + 0xA7E9110E
+fields       18
+```
+
+The reader schema itself is recovered. However, scanning the Quest 351 legacy rows with
+this schema did **not** locate the expected public guide strings (`1005`, `QuestArrow`,
+`Q351ClimbEnd`, `Q351Trans`) at a unique row position. Therefore the guide object's
+embedding/semantic position inside the legacy QuestExcel row is still unresolved.
+
+Do not claim that the published Dimbreath `acceptCondComb` guide-shaped object is a
+directly decoded native `acceptCondComb`.
 
 
 ## 3. Historical native QuestExcel — decisive provenance evidence
@@ -441,14 +629,18 @@ Quest 351 is a strong candidate for removing/replacing the synthetic chain becau
 
 If continuing exact 7.1 legacy decoding:
 
-1. start from the 17,760 recovered exact row spans and the final-field `subId` framing;
-2. use current native registration / table container evidence;
-3. do not search by obsolete 3.x field names alone;
-4. treat Dimbreath 7.1 as row ordering only; its semantic column labels are not trustworthy;
-5. investigate why partial readers consume subsets of rows exactly — inheritance/variant
-   row families or a missing outer discriminator are the current leading possibilities;
-6. require near-full-table exact consumption or an equally strong invariant before assigning
-   field semantics.
+1. start from the 33,214-row full native framing and final-field `subId` invariant;
+2. continue assigning the 64-bit mask bits and decode the variable prefix deterministically;
+3. extend the post-order field map from the confirmed `stepDescTextMapHash` transform;
+4. use native registration/type/consumer evidence to validate each semantic assignment;
+5. treat Dimbreath only as a limited semantic/control source; its 17,814 rows are a strict
+   subset of the 33,214 native rows and its column labels are misaligned;
+6. use AstaPS PR #9 as a near-complete row-population/control source while excluding the
+   three resource-only IDs 1080001, 1180301, 1680201;
+7. do not resume blind anonymous-reader ranking unless a candidate explains the confirmed
+   mask/prefix/scalar invariants and approaches full-table consumption;
+8. keep physical legacy `acceptCond` status UNRESOLVED until its native field/wire is
+   directly identified.
 
 Do not use:
 - old 3.x row schema by assumption;
