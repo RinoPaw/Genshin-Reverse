@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/audit_mainquest71_history_mapping.py             /tmp/raw71/BinOutput/Quest             q37=/tmp/q37/BinOutput/Quest             q46=/tmp/q46/BinOutput/Quest             q70=/tmp/q70/BinOutput/Quest             --output mainquest71-history.json | tee mainquest71-history.txt
+          python tools/audit_mainquest71_history_mapping.py             /tmp/raw71/BinOutput/Quest             q37=/tmp/q37/BinOutput/Quest             q46=/tmp/q46/BinOutput/Quest             q66=/tmp/q66/BinOutput/Quest             q70=/tmp/q70/BinOutput/Quest             --output mainquest71-history.json | tee mainquest71-history.txt
       - uses: actions/upload-artifact@v6
         with:
           name: mainquest71-history
