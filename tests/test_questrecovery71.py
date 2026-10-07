@@ -212,6 +212,51 @@ class QuestRecovery71Tests(unittest.TestCase):
         self.assertNotIn("acceptCond", manifest["rows"]["30001"]["fields"])
         self.assertIn("acceptCond", unresolved["rows"]["30001"]["fields"])
 
+
+    def test_comparison_ignores_exact_duplicate_source_slots(self) -> None:
+        raw = {50001: {}}
+        duplicated = [
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [49999, 3],
+            },
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [49998, 3],
+            },
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [49998, 3],
+            },
+        ]
+        canonical = [
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [49999, 3],
+            },
+            {
+                "type": "QUEST_COND_STATE_EQUAL",
+                "param": [49998, 3],
+            },
+        ]
+
+        manifest, unresolved = build_manifest(
+            raw,
+            {50001: {"subId": 50001, "acceptCond": canonical}},
+            {50001: {"subId": 50001, "acceptCond": duplicated}},
+            raw_71_source=RAW_SOURCE,
+            community_71_source=COMMUNITY_71,
+            community_70_source=COMMUNITY_70,
+        )
+
+        row = manifest["rows"]["50001"]
+        self.assertEqual(
+            row["missing_field_status"]["acceptCond"]["status"],
+            "compatibility-value",
+        )
+        self.assertEqual(row["fields"]["acceptCond"]["value"], canonical)
+        self.assertNotIn("50001", unresolved["rows"])
+
     def test_unknown_accept_placeholder_is_not_recovered(self) -> None:
         raw = {40001: {}}
         community_70 = {
