@@ -1,0 +1,344 @@
+name: Probe Quest 7.1 structural inference
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-structural-inference.yml"
+
+concurrency:
+  group: probe-quest71-structural-inference-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned Quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+
+          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git \
+            /tmp/community70 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git \
+            /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+      - name: Benchmark prerequisite and begin-exec inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-structural-inference.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          C70=Path("/tmp/community70/BinOutput/Quest")
+          RAW71=Path("/tmp/raw71/BinOutput/Quest")
+
+          def load70(root):
+              rows={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          rows[r["subId"]]=r
+              return rows
+
+          def load71(root):
+              rows={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("NFGFDHPPBIF"),int):
+                          rows[r["NFGFDHPPBIF"]]=r
+              return rows
+
+          def typed(v, field):
+              if not isinstance(v,list):return []
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict):continue
+                  typ=x.get("type")
+                  if not isinstance(typ,str) or not typ:continue
+                  if field=="acceptCond" and typ=="QUEST_COND_UNKNOWN":continue
+                  out.append(dict(x))
+              return out
+
+          def canon_cond(x):
+              p=list(x.get("param",[])) if isinstance(x.get("param"),list) else []
+              while p and p[-1] in (0,"0",""):
+                  p.pop()
+              return {
+                  "type":x.get("type"),
+                  "param":p,
+                  "param_str":x.get("param_str",x.get("paramStr","")) or "",
+              }
+
+          def canon_exec(x):
+              return {
+                  "type":x.get("type"),
+                  "param":list(x.get("param",[])) if isinstance(x.get("param"),list) else [],
+              }
+
+          c70=load70(C70)
+          raw71=load71(RAW71)
+          print("ROWS",{"community70":len(c70),"raw71":len(raw71)})
+
+          groups=defaultdict(list)
+          for sid,r in c70.items():
+              mid=r.get("mainId"); order=r.get("order")
+              if isinstance(mid,int) and isinstance(order,int):
+                  groups[mid].append((order,sid))
+          prev={}
+          position={}
+          group_members={}
+          first=set()
+          for mid,arr in groups.items():
+              arr.sort(key=lambda x:(x[0],x[1]))
+              ids=[sid for _,sid in arr]
+              group_members[mid]=ids
+              for i,(_order,sid) in enumerate(arr):
+                  position[sid]=i
+                  if i==0:first.add(sid)
+                  else:prev[sid]=arr[i-1][1]
+
+          known_accept={}
+          explicit_accept_ids=set()
+          known_begin={}
+          explicit_begin_ids=set()
+          for sid,r in c70.items():
+              if isinstance(r.get("acceptCond"),list):
+                  explicit_accept_ids.add(sid)
+              ac=typed(r.get("acceptCond"),"acceptCond")
+              if ac:known_accept[sid]=[canon_cond(x) for x in ac]
+              if isinstance(r.get("beginExec"),list):
+                  explicit_begin_ids.add(sid)
+              be=typed(r.get("beginExec"),"beginExec")
+              if be:known_begin[sid]=[canon_exec(x) for x in be]
+
+          print("KNOWN",{
+              "explicit_accept_rows":len(explicit_accept_ids),
+              "meaningful_accept_rows":len(known_accept),
+              "explicit_begin_rows":len(explicit_begin_ids),
+              "meaningful_begin_rows":len(known_begin),
+          })
+
+          # Benchmark the immediate previous-order STATE_EQUAL heuristic only
+          # against historical compatibility values that actually exist.
+          ac_stats=Counter()
+          ac_type_counts=Counter()
+          by_pos=defaultdict(lambda:Counter())
+          mismatch_examples=[]
+          for sid,conds in known_accept.items():
+              r=c70[sid]
+              mid=r.get("mainId")
+              pos=position.get(sid)
+              is_first=sid in first
+              ac_stats["rows"]+=1
+              ac_stats["first" if is_first else "nonfirst"]+=1
+              for c in conds:ac_type_counts[c["type"]]+=1
+              if len(conds)>1:ac_stats["multi_condition"]+=1
+
+              exact=False
+              if not is_first and len(conds)==1:
+                  c=conds[0]; p=c["param"]
+                  exact=(
+                      c["type"]=="QUEST_COND_STATE_EQUAL"
+                      and len(p)>=2
+                      and p[0]==prev.get(sid)
+                      and p[1]==3
+                  )
+              if exact:
+                  ac_stats["immediate_prev_exact"]+=1
+                  by_pos[pos]["exact"]+=1
+              elif not is_first:
+                  ac_stats["nonfirst_mismatch"]+=1
+                  by_pos[pos]["mismatch"]+=1
+                  if len(mismatch_examples)<120:
+                      mismatch_examples.append({
+                          "subId":sid,"mainId":mid,"order":r.get("order"),
+                          "position":pos,"previous":prev.get(sid),
+                          "acceptCond":conds,
+                      })
+
+              # Classify single STATE_EQUAL edges.
+              if len(conds)==1 and conds[0]["type"]=="QUEST_COND_STATE_EQUAL":
+                  p=conds[0]["param"]
+                  target=p[0] if p else None
+                  state=p[1] if len(p)>1 else None
+                  ac_stats["single_state_equal"]+=1
+                  if state==3:ac_stats["single_state_equal_finish"]+=1
+                  if target==prev.get(sid) and state==3:
+                      ac_stats["single_state_equal_immediate_prev"]+=1
+                  elif target in group_members.get(mid,[]) and position.get(target,-1)<position.get(sid,-1):
+                      ac_stats["single_state_equal_earlier_same_main"]+=1
+                  else:
+                      ac_stats["single_state_equal_external_or_other"]+=1
+              elif len(conds)>1:
+                  ac_stats["multi"]+=1
+              else:
+                  ac_stats["non_state_or_other"]+=1
+
+          nonfirst=ac_stats["nonfirst"]
+          exact=ac_stats["immediate_prev_exact"]
+          print("\n=== ACCEPTCOND HEURISTIC ===")
+          print(json.dumps(dict(ac_stats),indent=2))
+          print("immediate_prev_precision_on_known_nonfirst",
+                exact/nonfirst if nonfirst else None)
+          print("condition_types",ac_type_counts.most_common(50))
+          print("by_position",json.dumps({
+              str(k):dict(v) for k,v in sorted(by_pos.items())[:40]
+          },indent=2))
+          print("mismatch_examples",
+                json.dumps(mismatch_examples,ensure_ascii=False,indent=2))
+
+          # Apply topology classification to the 10,657 rows without explicit
+          # historical acceptCond/beginExec evidence.
+          unresolved=set(raw71)-explicit_accept_ids
+          ur_stats=Counter()
+          ur_groups=Counter()
+          unresolved_examples=[]
+          for sid in sorted(unresolved):
+              if sid not in c70:
+                  ur_stats["no_7_0_normalized_row"]+=1
+                  continue
+              r=c70[sid];mid=r.get("mainId")
+              ur_stats["with_topology"]+=1
+              if sid in first:
+                  ur_stats["first"]+=1
+              else:
+                  ur_stats["nonfirst"]+=1
+                  ur_stats["immediate_prev_candidate"]+=1
+              ids=group_members.get(mid,[])
+              known_in_group=sum(1 for x in ids if x in explicit_accept_ids)
+              unresolved_in_group=sum(1 for x in ids if x in unresolved)
+              if known_in_group and unresolved_in_group:
+                  ur_groups["mixed_groups"]+=1
+              elif unresolved_in_group:
+                  ur_groups["fully_unresolved_groups"]+=1
+              if len(unresolved_examples)<80:
+                  unresolved_examples.append({
+                      "subId":sid,"mainId":mid,"order":r.get("order"),
+                      "position":position.get(sid),
+                      "previous":prev.get(sid),
+                      "group_size":len(ids),
+                      "known_accept_rows_in_group":known_in_group,
+                  })
+          # Counters above count groups repeatedly by row; also report true group sets.
+          unresolved_mids={
+              c70[sid].get("mainId") for sid in unresolved if sid in c70
+              and isinstance(c70[sid].get("mainId"),int)
+          }
+          mixed_mids=set(); full_mids=set()
+          for mid in unresolved_mids:
+              ids=group_members.get(mid,[])
+              if any(x in explicit_accept_ids for x in ids):mixed_mids.add(mid)
+              else:full_mids.add(mid)
+          print("\n=== UNRESOLVED TOPOLOGY ===")
+          print(json.dumps(dict(ur_stats),indent=2))
+          print("main_groups",{
+              "total":len(unresolved_mids),
+              "mixed":len(mixed_mids),
+              "fully_unresolved":len(full_mids),
+          })
+          print("examples",json.dumps(unresolved_examples,ensure_ascii=False,indent=2))
+
+          # Benchmark whether historical beginExec can be represented by the
+          # previous quest's finishExec. This tests a migration hypothesis;
+          # it does not infer a value by itself.
+          be_stats=Counter()
+          be_examples=[]
+          for sid,begin in known_begin.items():
+              be_stats["rows"]+=1
+              psid=prev.get(sid)
+              if psid is None:
+                  be_stats["first"]+=1
+                  continue
+              be_stats["nonfirst"]+=1
+              p70=[canon_exec(x) for x in typed(c70.get(psid,{}).get("finishExec"),"finishExec")]
+              p71=[canon_exec(x) for x in typed(raw71.get(psid,{}).get("FAPCNCGCEBJ"),"finishExec")]
+              sbegin={json.dumps(x,sort_keys=True,ensure_ascii=False) for x in begin}
+              s70={json.dumps(x,sort_keys=True,ensure_ascii=False) for x in p70}
+              s71={json.dumps(x,sort_keys=True,ensure_ascii=False) for x in p71}
+
+              if begin==p70:be_stats["prev_finish70_exact_list"]+=1
+              if sbegin and sbegin<=s70:be_stats["prev_finish70_contains_all"]+=1
+              if sbegin&s70:be_stats["prev_finish70_any_overlap"]+=1
+
+              if begin==p71:be_stats["prev_finish71_exact_list"]+=1
+              if sbegin and sbegin<=s71:be_stats["prev_finish71_contains_all"]+=1
+              if sbegin&s71:be_stats["prev_finish71_any_overlap"]+=1
+
+              if len(be_examples)<100 and not (sbegin and sbegin<=s71):
+                  be_examples.append({
+                      "subId":sid,"previous":psid,
+                      "beginExec":begin,
+                      "previous_finishExec_7_0":p70,
+                      "previous_finishExec_7_1":p71,
+                  })
+
+          print("\n=== BEGINEXEC MIGRATION HYPOTHESIS ===")
+          print(json.dumps(dict(be_stats),indent=2))
+          denom=be_stats["nonfirst"]
+          for k in (
+              "prev_finish70_exact_list","prev_finish70_contains_all",
+              "prev_finish70_any_overlap","prev_finish71_exact_list",
+              "prev_finish71_contains_all","prev_finish71_any_overlap",
+          ):
+              print(k+"_ratio",be_stats[k]/denom if denom else None)
+          print("nonmatching_examples",
+                json.dumps(be_examples,ensure_ascii=False,indent=2))
+
+          report={
+              "rows":{"community70":len(c70),"raw71":len(raw71)},
+              "accept":dict(ac_stats),
+              "accept_precision_known_nonfirst":exact/nonfirst if nonfirst else None,
+              "unresolved":dict(ur_stats),
+              "unresolved_main_groups":{
+                  "total":len(unresolved_mids),
+                  "mixed":len(mixed_mids),
+                  "fully_unresolved":len(full_mids),
+              },
+              "begin_exec":dict(be_stats),
+          }
+          Path("quest71-structural-inference.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-structural-inference
+          path: |
+            quest71-structural-inference.txt
+            quest71-structural-inference.json
+          if-no-files-found: error
