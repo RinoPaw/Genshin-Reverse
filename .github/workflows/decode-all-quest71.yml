@@ -1,0 +1,47 @@
+name: Decode all Quest 7.1 JSON
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - "tools/decode_quest_json71.py"
+      - ".github/workflows/decode-all-quest71.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned 7.1 Quest source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/DimbreathBot/AnimeGameData.git /tmp/ag
+          git -C /tmp/ag sparse-checkout init --no-cone
+          git -C /tmp/ag sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/ag checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+      - name: Decode all Quest files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/decode_quest_json71.py             /tmp/ag/BinOutput/Quest             decoded/Quest             --report decoded/report.json
+          tar -C decoded -czf quest71-decoded.tar.gz Quest report.json
+
+      - name: Upload decoded Quest files
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-decoded
+          path: |
+            quest71-decoded.tar.gz
+            decoded/report.json
+          if-no-files-found: error
