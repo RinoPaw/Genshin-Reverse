@@ -134,3 +134,74 @@ The next target is the real serialized QuestExcel table/row reader or an
 equivalent byte-exact reconstruction of its remaining row body. Public
 QuestExcel/BinOutput JSON remains comparison evidence only. A field is not
 promoted solely because a public label correlates with a raw offset.
+
+## 2026-10-07 complete QuestExcel row-consumption checkpoint
+
+This checkpoint supersedes the earlier statement that 2,074,613 row-body bytes
+remain opaque. The exact 7.1 `3b87ae83.dat` row body is now structurally
+consumed end to end by `genshinre.questexcel71`.
+
+Exact-client invariants now include:
+
+- all 33,214 rows still use the previously proven framing and unique transformed
+  `subId` suffix;
+- the physical guide boundary is derived directly from the outer row mask and
+  preceding fields; the maintained parser no longer searches for a plausible
+  guide start;
+- `QuestGuideHint71` and `QuestGuide71` are decoded with their recovered
+  native masks, scalar transforms, string lengths, block transforms, and field
+  order;
+- the outer row sequence between guide-hint and guide is closed as
+  `subIdSet -> EOFPICJEHLP -> failParentShow -> showGuide -> DABNIJGHAPJ ->
+  fixed u32 A -> mainId -> optional LBEFPHGELAN`, with absent optional fields
+  skipped according to the recovered row mask;
+- the sole bit-61 row uses one byte `0x87` for `LBEFPHGELAN = true`;
+- `mainId = ((raw + 0x0001B716) mod 2^32) XOR 0x32238F7D` matches
+  33,214/33,214 same-version controls;
+- present `subIdSet` decodes as
+  `((raw XOR 0x01B9521A) + 0xA5772739) mod 2^32` and matches
+  1,570/1,570 same-version controls;
+- the row +8 slot decodes as
+  `descTextMapHash = raw XOR 0x2AC0BB5D`; all 29,124 controls that retain
+  that field match exactly. The remaining 4,090 downstream controls omit the
+  field even though the native slot still carries a value;
+- `stepDescTextMapHash = raw XOR 0xABB3B4F1` and the trailing
+  `guideTipsTextMapHash = raw XOR 0x59B7A2F4` are fixed physical slots even
+  when downstream projections omit them;
+- after parsing the recovered fields and preserving the one still-unresolved
+  fixed-core u32 structurally, every row has `raw_tail == b""`.
+
+The last point is a byte-consumption result, not a claim that every obfuscated
+scalar already has a semantic name. Unknown values remain explicit raw
+fields until their native ownership is proved.
+
+### Consequence for condition and execution arrays
+
+The complete native row layout has no remaining unparsed byte region that can
+hold in-row object arrays corresponding to downstream
+`acceptCond`, `beginExec`, `finishCond`, `failCond`, `finishExec`,
+or `failExec`.
+
+This does not prove that the game has no such quest logic. It proves that those
+downstream arrays are not serialized as unparsed arrays inside this exact
+`3b87ae83.dat` QuestExcel row wire. They must be supplied by another source,
+a downstream full-quest materialization path, or a merge/projection stage.
+
+That boundary is consistent with the independent historical evidence:
+Quest 351 has native prerequisite conditions in the exact 2.8 QuestExcel
+asset, while exact 3.0/3.2/3.4 controls no longer carry those Quest 351
+prerequisites, and Asta-derived modern resources later re-materialize a
+predecessor chain.
+
+### Remaining semantic work
+
+The direct 7.1 QuestExcel decoder is now structurally complete. Remaining work
+is semantic promotion and source ownership:
+
+1. identify the first fixed-core u32 that remains structurally preserved;
+2. close the native names for bit 34, bit 40, and any still-obfuscated guide
+   scalars;
+3. trace the separate full-quest source/materialization path that supplies
+   condition and execution arrays;
+4. compare that path against AstaPS/resource merge logic to locate the exact
+   prerequisite-corruption boundary.
