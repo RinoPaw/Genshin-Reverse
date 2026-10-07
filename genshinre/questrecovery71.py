@@ -265,6 +265,7 @@ def build_manifest(
             # The leaked TSV is an independent historical server/design-table
             # source. It can strengthen a compatibility value or fill a gap,
             # but it never upgrades acceptCond/beginExec to native 7.1.
+            pre_tsv_status = status["status"]
             if compat_tsv is not None:
                 raw_tsv = compat_tsv.get(field)
                 value_tsv = _comparison_value(raw_tsv, field=field)
@@ -467,9 +468,15 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--raw-7-1-source", required=True)
     parser.add_argument("--community-7-1-source", required=True)
     parser.add_argument("--community-7-0-source", required=True)
+    parser.add_argument("--historical-tsv-root", type=Path)
+    parser.add_argument("--historical-tsv-source")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--unresolved-output", type=Path, required=True)
     args = parser.parse_args(list(argv) if argv is not None else None)
+    if (args.historical_tsv_root is None) != (args.historical_tsv_source is None):
+        parser.error(
+            "--historical-tsv-root and --historical-tsv-source must be provided together"
+        )
 
     manifest, unresolved = build_from_directories(
         args.raw_7_1_root,
@@ -478,6 +485,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         raw_71_source=args.raw_7_1_source,
         community_71_source=args.community_7_1_source,
         community_70_source=args.community_7_0_source,
+        historical_tsv_root=args.historical_tsv_root,
+        historical_tsv_source=args.historical_tsv_source,
     )
     _write_json(args.output, manifest)
     _write_json(args.unresolved_output, unresolved)
