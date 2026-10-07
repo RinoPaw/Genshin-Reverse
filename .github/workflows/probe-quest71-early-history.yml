@@ -1,0 +1,215 @@
+name: Probe Quest 7.1 early history recovery
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-early-history.yml"
+
+concurrency:
+  group: probe-quest71-early-history-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download unresolved 7.1 manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/qrec
+          mkdir -p /tmp/qrec
+          gh run download 37609718112 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest71-recovery-manifest \
+            --dir /tmp/qrec
+          test -s /tmp/qrec/quest71-unresolved.json
+
+      - name: Fetch pinned early Quest resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/gcres
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/233-Jerry/Grasscutter-Resources.git /tmp/gcres
+          git -C /tmp/gcres sparse-checkout init --cone
+          git -C /tmp/gcres sparse-checkout set Resources/BinOutput/Quest
+          for spec in \
+            "2.8:4215df023af06d816563a915da0c48cda105e36e" \
+            "3.0:3c219f39d0c16b253a552d1e233b5c4ed6c6e3f6" \
+            "3.1:d194150e3f7db26072ecc24f86a96c482b79f10b" \
+            "3.2:9f0f27d5262fde9d8defaf9420462fd026a5a481"
+          do
+            label="${spec%%:*}"
+            sha="${spec#*:}"
+            git -C /tmp/gcres checkout -f "$sha"
+            rm -rf "/tmp/early-$label"
+            mkdir -p "/tmp/early-$label"
+            cp -a /tmp/gcres/Resources/BinOutput/Quest/. "/tmp/early-$label/"
+          done
+
+      - name: Scan unresolved rows against early snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-early-history.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          unresolved = json.loads(
+              Path("/tmp/qrec/quest71-unresolved.json").read_text(encoding="utf-8")
+          )
+          target = {int(k) for k in unresolved["rows"]}
+          print("TARGET_UNRESOLVED", len(target))
+
+          sources = [
+              ("2.8", "4215df023af06d816563a915da0c48cda105e36e", Path("/tmp/early-2.8")),
+              ("3.0", "3c219f39d0c16b253a552d1e233b5c4ed6c6e3f6", Path("/tmp/early-3.0")),
+              ("3.1", "d194150e3f7db26072ecc24f86a96c482b79f10b", Path("/tmp/early-3.1")),
+              ("3.2", "9f0f27d5262fde9d8defaf9420462fd026a5a481", Path("/tmp/early-3.2")),
+          ]
+
+          def load_rows(root):
+              out={}
+              for p in sorted(root.glob("*.json")):
+                  try: obj=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception: continue
+                  if not isinstance(obj,dict): continue
+                  rows=obj.get("subQuests")
+                  if not isinstance(rows,list): continue
+                  for row in rows:
+                      if isinstance(row,dict) and isinstance(row.get("subId"),int):
+                          out[row["subId"]]=row
+              return out
+
+          all_rows={}
+          for label,sha,root in sources:
+              rows=load_rows(root)
+              all_rows[label]=rows
+              present=target & set(rows)
+              print("\nSOURCE",label,sha,"rows",len(rows),"target_rows",len(present))
+              for field in ("acceptCond","beginExec"):
+                  key_present={sid for sid in present if field in rows[sid]}
+                  nonempty={
+                      sid for sid in key_present
+                      if isinstance(rows[sid].get(field),list) and rows[sid][field]
+                  }
+                  explicit_empty={
+                      sid for sid in key_present
+                      if isinstance(rows[sid].get(field),list) and not rows[sid][field]
+                  }
+                  print(
+                      field,
+                      "key_present",len(key_present),
+                      "nonempty",len(nonempty),
+                      "explicit_empty",len(explicit_empty),
+                  )
+
+          report={"sources":[],"rows":{}}
+          for label,sha,_root in sources:
+              report["sources"].append({"label":label,"commit":sha})
+
+          for sid in sorted(target):
+              evidence={}
+              for field in ("acceptCond","beginExec"):
+                  vals=[]
+                  empties=[]
+                  for label,sha,_root in sources:
+                      row=all_rows[label].get(sid)
+                      if not isinstance(row,dict) or field not in row:
+                          continue
+                      val=row.get(field)
+                      if isinstance(val,list) and val:
+                          vals.append({"source":label,"commit":sha,"value":val})
+                      elif isinstance(val,list):
+                          empties.append({"source":label,"commit":sha})
+                  if vals or empties:
+                      evidence[field]={"values":vals,"explicit_empty":empties}
+              if evidence:
+                  report["rows"][str(sid)]={"subId":sid,"fields":evidence}
+
+          print("\nROWS_WITH_ANY_EARLY_FIELD_EVIDENCE",len(report["rows"]))
+
+          # Normalize only for consensus counting. Preserve exact values above.
+          def norm_entry(item):
+              if not isinstance(item,dict): return item
+              params=list(item.get("param") or [])
+              while params and params[-1] in (0,"0",""):
+                  params.pop()
+              return {
+                  "type":item.get("type"),
+                  "param":params,
+                  "param_str":item.get("param_str",item.get("paramStr","")) or "",
+                  "count":int(item.get("count") or 0),
+              }
+          def norm(v):
+              return [norm_entry(x) for x in v] if isinstance(v,list) else []
+
+          for field in ("acceptCond","beginExec"):
+              nonempty_any=set()
+              explicit_empty_any=set()
+              conflict=set()
+              consensus={}
+              source_counts=Counter()
+              for sid_s,row in report["rows"].items():
+                  sid=int(sid_s)
+                  ev=row["fields"].get(field)
+                  if not ev: continue
+                  vals=ev["values"]
+                  if vals:
+                      nonempty_any.add(sid)
+                      nv={}
+                      for x in vals:
+                          k=json.dumps(norm(x["value"]),sort_keys=True,ensure_ascii=False)
+                          nv.setdefault(k,[]).append(x["source"])
+                          source_counts[x["source"]]+=1
+                      if len(nv)==1:
+                          k,next_sources=next(iter(nv.items()))
+                          consensus[sid]={
+                              "value":json.loads(k),
+                              "sources":next_sources,
+                          }
+                      else:
+                          conflict.add(sid)
+                  elif ev["explicit_empty"]:
+                      explicit_empty_any.add(sid)
+              print(
+                  "\nSUMMARY",field,
+                  "nonempty_any",len(nonempty_any),
+                  "consensus_nonempty",len(consensus),
+                  "conflicts",len(conflict),
+                  "explicit_empty_only",len(explicit_empty_any),
+                  "source_nonempty",dict(source_counts),
+              )
+              print("NONEMPTY_IDS_SAMPLE",sorted(nonempty_any)[:100])
+              print("EXPLICIT_EMPTY_IDS_SAMPLE",sorted(explicit_empty_any)[:100])
+
+          Path("quest71-early-history.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-early-history
+          path: |
+            quest71-early-history.txt
+            quest71-early-history.json
+          if-no-files-found: error
