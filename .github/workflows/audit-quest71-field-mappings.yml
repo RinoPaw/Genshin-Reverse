@@ -1,0 +1,58 @@
+name: Audit Quest 7.1 field mappings
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - "tools/audit_quest71_field_mapping.py"
+      - ".github/workflows/audit-quest71-field-mappings.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned 7.1 and 7.0 Quest resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/q70 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
+
+      - name: Decode 7.1 field names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/decode_quest_json71.py             /tmp/raw71/BinOutput/Quest             /tmp/q71
+
+      - name: Audit mappings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/audit_quest71_field_mapping.py             /tmp/q71             /tmp/q70/BinOutput/Quest             --output quest71-field-mapping.json | tee quest71-field-mapping.txt
+
+      - name: Upload mapping report
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-field-mapping
+          path: |
+            quest71-field-mapping.json
+            quest71-field-mapping.txt
+          if-no-files-found: error
