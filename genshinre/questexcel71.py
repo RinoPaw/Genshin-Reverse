@@ -18,7 +18,8 @@ SUB_ID_XOR = 0xB1571A55
 DESC_TEXT_MAP_HASH_XOR = 0x2AC0BB5D
 EXCLUSIVE_PLACE_COUNT_XOR = 0xB51E6D91
 EXCLUSIVE_PLACE_ELEMENT_SUB = 0x449FCFB9
-PREFER_AREA2_GUIDE_SCENE_RAW = 0x8BFDD679
+FJDKHGMJOPL_PREFER_AREA2_RAW = 0x8BFDD679
+PREFER_AREA2_GUIDE_SCENE_RAW = FJDKHGMJOPL_PREFER_AREA2_RAW
 ORDER_RAW_SUB = 0x732ED834
 IS_MP_BLOCK_TRUE_RAW = 0xDA
 FABHGLLGFHN_FOCUS_RAW = 0x074282C5
@@ -65,7 +66,8 @@ BIT_SHOW_TYPE = 13
 BIT_SUB_ID_SET = 16
 BIT_BAN_TYPE = 22
 BIT_EOFPICJEHLP = 27
-BIT_PREFER_AREA2_GUIDE_SCENE = 29
+BIT_FJDKHGMJOPL = 29
+BIT_PREFER_AREA2_GUIDE_SCENE = BIT_FJDKHGMJOPL
 BIT_FABHGLLGFHN = 34
 BIT_UNKNOWN_34 = BIT_FABHGLLGFHN
 BIT_EXCLUSIVE_PLACE_LIST = 37
@@ -87,7 +89,7 @@ class QuestExcel71Row:
     unknown_prefix_u32: int
     desc_text_map_hash: int
     exclusive_place_list: tuple[int, ...] | None
-    prefer_area2_guide_scene: bool
+    fjdkhgmjopl: str | None
     order: int | None
     is_mp_block: bool | None
     fabhgllgfhn: str | None
@@ -118,6 +120,10 @@ class QuestExcel71Row:
     @property
     def size(self) -> int:
         return self.end - self.start
+
+    @property
+    def prefer_area2_guide_scene(self) -> bool:
+        return self.fjdkhgmjopl == "PREFER_AREA2_GUIDE_SCENE"
 
     @property
     def unknown_bit34_raw(self) -> int | None:
@@ -198,13 +204,15 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
             p += 4
         exclusive_place_list = tuple(values)
 
-    prefer_area2_guide_scene = bool((mask64 >> BIT_PREFER_AREA2_GUIDE_SCENE) & 1)
-    if prefer_area2_guide_scene:
-        raw_value = _u32(payload, p, suffix_pos, "bit29 scalar")
-        if raw_value != PREFER_AREA2_GUIDE_SCENE_RAW:
+    fjdkhgmjopl = None
+    if (mask64 >> BIT_FJDKHGMJOPL) & 1:
+        raw_value = _u32(payload, p, suffix_pos, "FJDKHGMJOPL")
+        if raw_value != FJDKHGMJOPL_PREFER_AREA2_RAW:
             raise QuestExcel71ParseError(
-                f"row {index} subId {sub_id} has unexpected bit29 raw 0x{raw_value:08X}"
+                f"row {index} subId {sub_id} has unexpected FJDKHGMJOPL raw "
+                f"0x{raw_value:08X}"
             )
+        fjdkhgmjopl = "PREFER_AREA2_GUIDE_SCENE"
         p += 4
 
     order = None
@@ -400,7 +408,7 @@ def _parse_row(payload: bytes, index: int, start: int, end: int) -> QuestExcel71
         unknown_prefix_u32=unknown_prefix_u32,
         desc_text_map_hash=desc_text_map_hash,
         exclusive_place_list=exclusive_place_list,
-        prefer_area2_guide_scene=prefer_area2_guide_scene,
+        fjdkhgmjopl=fjdkhgmjopl,
         order=order,
         is_mp_block=is_mp_block,
         fabhgllgfhn=fabhgllgfhn,
