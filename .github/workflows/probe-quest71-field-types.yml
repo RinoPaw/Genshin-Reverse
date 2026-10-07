@@ -40,6 +40,8 @@ jobs:
               AOBIFAGCPLE KPHLFFOELCG MIFLGIOOBAJ KAABNOHKKEP; do
               echo "=== TYPE $type_name ==="
               python -m genshinre.cli query-fields "$F" --type "$type_name" || true
+              echo "=== USERS OF $type_name ==="
+              python -m genshinre.cli query-fields "$F" --field-type "$type_name" || true
             done
             for field in               FABHGLLGFHN DABNIJGHAPJ EOFPICJEHLP DMCMNPLMCKL               LBEFPHGELAN EINOPNJGDNM HJFALMFICOM IHOOIFBLPJK               AEJMPEBJIHE CPHABDHIDKC GCPCNAONCCJ GNKEAKGMNBN               HBCFHMLPNDB MIEPHKGCBKC OEPAPDEPHDO               AFEAMKOGMBF AHBDGODKBDF DJADGDCICCB FEBBDBPEFCE               HGDMKDGAJOM HGFFNBIGPJK IACKBAAICMK IBIILFJEHBC               IMGDIONBDMG INFDFLBGLPD KJBJDKALING KJOHNNANDBK               LCBNMMFPDFH LLHHDHNBAGG MNPJPMCNIIP; do
               echo "=== FIELD $field ==="
