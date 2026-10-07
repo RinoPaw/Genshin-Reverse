@@ -1,0 +1,219 @@
+name: Probe Quest legacy field coverage
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest-legacy-field-coverage.yml"
+
+concurrency:
+  group: probe-quest-legacy-field-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned quest controls
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf /tmp/agd71 /tmp/gc3700 /tmp/gc4000
+
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd71
+          git -C /tmp/agd71 sparse-checkout init --no-cone
+          git -C /tmp/agd71 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/agd71 checkout 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/TomyJan/GCResource.git /tmp/gc3700
+          git -C /tmp/gc3700 sparse-checkout init --no-cone
+          git -C /tmp/gc3700 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/gc3700 checkout 609730bf63568baee1eb77a605b6c273a064dbc1
+
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/TomyJan/GCResource.git /tmp/gc4000
+          git -C /tmp/gc4000 sparse-checkout init --no-cone
+          git -C /tmp/gc4000 sparse-checkout set 'BinOutput/Quest/*.json'
+          git -C /tmp/gc4000 checkout ede70f1e23c1a494fe4258837d963b1d63004911
+
+      - name: Audit acceptCond and beginExec coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-field-coverage.txt
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          ROOTS={
+              "7.1":Path("/tmp/agd71/BinOutput/Quest"),
+              "3.7":Path("/tmp/gc3700/BinOutput/Quest"),
+              "4.0":Path("/tmp/gc4000/BinOutput/Quest"),
+          }
+
+          def meaningful(value):
+              if not isinstance(value,list):
+                  return []
+              return [x for x in value if isinstance(x,dict) and x.get("type")]
+
+          def norm_cond(value):
+              out=[]
+              for x in meaningful(value):
+                  out.append({
+                      "type":x.get("type"),
+                      "param":x.get("param",[]),
+                      "param_str":x.get("param_str",x.get("paramStr","")) or "",
+                  })
+              return out
+
+          def norm_exec(value):
+              out=[]
+              for x in meaningful(value):
+                  out.append({
+                      "type":x.get("type"),
+                      "param":x.get("param",[]),
+                      "param_str":x.get("param_str",x.get("paramStr","")) or "",
+                  })
+              return out
+
+          def load(root, modern=False):
+              rows={}
+              mains={}
+              for path in sorted(root.glob("*.json")):
+                  try:
+                      obj=json.loads(path.read_text(encoding="utf-8"))
+                  except Exception:
+                      continue
+                  if not isinstance(obj,dict):
+                      continue
+                  main=obj.get("id")
+                  seq=obj.get("JIJKODHIEED") if modern else obj.get("subQuests")
+                  if not isinstance(seq,list):
+                      seq=obj.get("subQuests",[])
+                  for row in seq:
+                      if not isinstance(row,dict):
+                          continue
+                      sid=row.get("NFGFDHPPBIF") if modern else row.get("subId")
+                      if not isinstance(sid,int):
+                          sid=row.get("subId")
+                      if not isinstance(sid,int):
+                          continue
+                      rows[sid]=row
+                      mids=row.get("PCOMHEOJPOO") if modern else row.get("mainId")
+                      if not isinstance(mids,int):
+                          mids=main if isinstance(main,int) else None
+                      mains[sid]=mids
+              return rows,mains
+
+          current,current_main=load(ROOTS["7.1"],modern=True)
+          old37,old37_main=load(ROOTS["3.7"])
+          old40,old40_main=load(ROOTS["4.0"])
+
+          print("ROWS",{"7.1":len(current),"3.7":len(old37),"4.0":len(old40)})
+          ids71=set(current); ids37=set(old37); ids40=set(old40)
+          both_old=ids37&ids40
+          print("INTERSECTION_7.1_3.7",len(ids71&ids37))
+          print("INTERSECTION_7.1_4.0",len(ids71&ids40))
+          print("INTERSECTION_7.1_BOTH",len(ids71&both_old))
+          print("7.1_WITH_NO_OLD_MATCH",len(ids71-(ids37|ids40)))
+
+          report={
+              "rows":{"7.1":len(current),"3.7":len(old37),"4.0":len(old40)},
+              "fields":{},
+          }
+
+          for field,norm in (("acceptCond",norm_cond),("beginExec",norm_exec)):
+              stats=Counter()
+              disagreements=[]
+              recoverable={}
+              for sid in sorted(ids71):
+                  a=norm(old37.get(sid,{}).get(field)) if sid in old37 else None
+                  b=norm(old40.get(sid,{}).get(field)) if sid in old40 else None
+                  if a is not None: stats["has_3.7_row"]+=1
+                  if b is not None: stats["has_4.0_row"]+=1
+                  if a is not None and b is not None:
+                      stats["has_both_rows"]+=1
+                      if a==b:
+                          stats["old_consensus_rows"]+=1
+                          if a:
+                              stats["old_consensus_meaningful"]+=1
+                              recoverable[sid]=a
+                          else:
+                              stats["old_consensus_empty"]+=1
+                      else:
+                          stats["old_disagreement"]+=1
+                          if len(disagreements)<100:
+                              disagreements.append({
+                                  "subId":sid,
+                                  "mainId":current_main.get(sid),
+                                  "3.7":a,
+                                  "4.0":b,
+                              })
+                  elif a:
+                      stats["only_3.7_meaningful"]+=1
+                  elif b:
+                      stats["only_4.0_meaningful"]+=1
+
+              # How much of current 7.1 actually needs historical recovery?
+              # Current ordinary source has no acceptCond/beginExec owner; every
+              # meaningful old value is therefore a candidate historical field.
+              by_type=Counter()
+              by_main=defaultdict(int)
+              for sid,entries in recoverable.items():
+                  for e in entries:
+                      by_type[e["type"]]+=1
+                  by_main[current_main.get(sid)]+=1
+
+              print(f"\n=== {field} ===")
+              for k,v in sorted(stats.items()):
+                  print(k,v)
+              print("recoverable_meaningful_rows",len(recoverable))
+              print("top_types",by_type.most_common(30))
+              print("top_mainIds",sorted(by_main.items(),key=lambda x:(-x[1],x[0] or -1))[:50])
+              print("disagreement_examples",json.dumps(disagreements,ensure_ascii=False,indent=2))
+
+              report["fields"][field]={
+                  "stats":dict(stats),
+                  "recoverable_meaningful_rows":len(recoverable),
+                  "type_counts":dict(by_type),
+                  "disagreements":disagreements,
+                  "recoverable":{str(k):v for k,v in recoverable.items()},
+              }
+
+          # Joint recovery set, useful for generating a provenance manifest.
+          accept=report["fields"]["acceptCond"]["recoverable"]
+          begin=report["fields"]["beginExec"]["recoverable"]
+          joint=sorted(set(accept)|set(begin),key=int)
+          print("\nJOINT_RECOVERABLE_ROWS",len(joint))
+          print("ACCEPT_ONLY",len(set(accept)-set(begin)))
+          print("BEGIN_ONLY",len(set(begin)-set(accept)))
+          print("BOTH_FIELDS",len(set(accept)&set(begin)))
+
+          Path("quest-legacy-field-coverage.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-field-coverage
+          path: |
+            quest-legacy-field-coverage.txt
+            quest-legacy-field-coverage.json
+          if-no-files-found: error
