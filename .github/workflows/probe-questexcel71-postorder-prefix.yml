@@ -143,6 +143,49 @@ jobs:
           if len(aligned) != 33214:
               raise SystemExit(f"control alignment drift: {len(aligned)}")
 
+          def presence_bits(field):
+              out = []
+              for bit in range(64):
+                  n0 = n1 = p0 = p1 = 0
+                  for nr, row in aligned:
+                      present = field in row
+                      if (nr["mask64"] >> bit) & 1:
+                          n1 += 1
+                          p1 += int(present)
+                      else:
+                          n0 += 1
+                          p0 += int(present)
+                  if not n0 or not n1:
+                      continue
+                  r0 = p0 / n0
+                  r1 = p1 / n1
+                  if abs(r1 - r0) >= 0.90:
+                      out.append({
+                          "bit": bit,
+                          "bit0Present": p0,
+                          "bit0Rows": n0,
+                          "bit0Rate": r0,
+                          "bit1Present": p1,
+                          "bit1Rows": n1,
+                          "bit1Rate": r1,
+                          "delta": r1 - r0,
+                      })
+              return sorted(out, key=lambda x: (-abs(x["delta"]), x["bit"]))
+
+          presence_report = {
+              field: {
+                  "fieldPresent": sum(field in row for _nr, row in aligned),
+                  "strongBits": presence_bits(field),
+              }
+              for field in (
+                  "descTextMapHash",
+                  "stepDescTextMapHash",
+                  "guideTipsTextMapHash",
+                  "isMpBlock",
+                  "FABHGLLGFHN",
+              )
+          }
+
           desc_misses = []
           desc_exact = 0
           order_presence_misses = []
@@ -282,6 +325,7 @@ jobs:
           report = {
               "nativeRows": len(native),
               "aligned": len(aligned),
+              "presenceBitCorrelations": presence_report,
               "descAtOffset8": {
                   "xorKey": f"0x{DESC_XOR:08X}",
                   "exact": desc_exact,
