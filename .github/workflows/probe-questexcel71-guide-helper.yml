@@ -113,6 +113,25 @@ jobs:
                   "methods":[m for m in methods if int(m.get("type_definition_index") or -1)==ptdi],
               },ensure_ascii=False))
 
+          print("=== HCFA FIELD OWNERS ===")
+          hcfa_parent_tdis=set()
+          for f in fields:
+              if f.get("field_type")!="HCFAOAJBPHB":
+                  continue
+              try:ptdi=int(f["type_definition_index"])
+              except Exception:continue
+              hcfa_parent_tdis.add(ptdi)
+              print(json.dumps({
+                  "field":f,
+                  "owner_type":type_by_tdi.get(ptdi),
+              },ensure_ascii=False))
+          for ptdi in sorted(hcfa_parent_tdis):
+              print("HCFA OWNER METHODS",json.dumps({
+                  "type":type_by_tdi.get(ptdi),
+                  "fields":[f for f in fields if int(f.get("type_definition_index") or -1)==ptdi],
+                  "methods":[m for m in methods if int(m.get("type_definition_index") or -1)==ptdi],
+              },ensure_ascii=False))
+
           print("=== METHODS ===")
           for m in methods:
               try:tdi=int(m["type_definition_index"])
