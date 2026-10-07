@@ -1,0 +1,202 @@
+name: Probe Quest 7.1 multi-predecessor consensus
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-multi-predecessor-consensus.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned Quest resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70a 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
+          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
+          fetch_repo https://github.com/Merprose2/LunaGCR-Resources.git /tmp/c70c a64cf90a0dca864ca4fa35f9c30ed3d4cffb237c
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71a 395a5ee6442142a803691f60d541ee1706ae9cd7
+          fetch_repo https://github.com/invoker-bot/LunaGC-Resources.git /tmp/c71b e2c1d3ca75f931572325e9f3d8f02a2e7ef2e7e7
+
+      - name: Build multi-source census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-multi-predecessor-consensus.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          def load_raw(root):
+              out={}
+              for p in Path(root).glob("*.json"):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("NFGFDHPPBIF"),int):
+                          out[r["NFGFDHPPBIF"]]=r
+              return out
+
+          def load_norm(root):
+              out={}
+              for p in Path(root).glob("*.json"):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          out[r["subId"]]=r
+              return out
+
+          def norm_item(x):
+              if not isinstance(x,dict):return None
+              typ=x.get("type")
+              if not isinstance(typ,str) or not typ:return None
+              p=list(x.get("param") or [])
+              while p and p[-1] in (0,"0",""):p.pop()
+              if typ in ("QUEST_COND_STATE_EQUAL","QUEST_COND_STATE_NOT_EQUAL") and len(p)>2:
+                  p=p[:2]
+              return {
+                  "type":typ,
+                  "param":p,
+                  "param_str":x.get("param_str",x.get("paramStr","")) or "",
+                  "count":int(x.get("count") or 0),
+              }
+
+          def classify(row,field):
+              if row is None:return ("no-row",None)
+              if field not in row:return ("absent-key",None)
+              v=row.get(field)
+              if not isinstance(v,list):return ("non-list",v)
+              if not v:return ("explicit-empty",[])
+              items=[]
+              placeholder=False
+              for x in v:
+                  if isinstance(x,dict) and field=="acceptCond" and x.get("type")=="QUEST_COND_UNKNOWN":
+                      placeholder=True
+                      continue
+                  y=norm_item(x)
+                  if y:items.append(y)
+              if items:return ("nonempty",items)
+              if placeholder:return ("placeholder-only",None)
+              return ("empty-after-normalize",[])
+
+          raw=load_raw("/tmp/raw71/BinOutput/Quest")
+          sources={
+              "c70a":load_norm("/tmp/c70a/BinOutput/Quest"),
+              "c70b":load_norm("/tmp/c70b/BinOutput/Quest"),
+              "c70c":load_norm("/tmp/c70c/BinOutput/Quest"),
+              "c71a":load_norm("/tmp/c71a/BinOutput/Quest"),
+              "c71b":load_norm("/tmp/c71b/BinOutput/Quest"),
+          }
+          print("ROWS",{"raw71":len(raw), **{k:len(v) for k,v in sources.items()}})
+
+          report={"rows":{},"summary":{}}
+          for field in ("acceptCond","beginExec"):
+              st=Counter()
+              by_pattern=Counter()
+              true_new=[]
+              conflicts=[]
+              consensus_nonempty=[]
+              absence_consensus=[]
+              placeholders=[]
+              one_source_only=[]
+              for sid in sorted(raw):
+                  cls={name:classify(rows.get(sid),field) for name,rows in sources.items()}
+                  kinds={name:v[0] for name,v in cls.items()}
+                  by_pattern[tuple(kinds[name] for name in sources)]+=1
+
+                  present_sources=[n for n,(k,_v) in cls.items() if k!="no-row"]
+                  nonempty={n:json.dumps(v,sort_keys=True,ensure_ascii=False,separators=(",",":"))
+                            for n,(k,v) in cls.items() if k=="nonempty"}
+                  placeholders_here=[n for n,(k,_v) in cls.items() if k=="placeholder-only"]
+                  emptyish=[n for n,(k,_v) in cls.items()
+                            if k in {"absent-key","explicit-empty","empty-after-normalize"}]
+
+                  if not present_sources:
+                      st["no_community_row_anywhere"]+=1
+                      true_new.append(sid)
+                  elif nonempty:
+                      vals=set(nonempty.values())
+                      if len(vals)==1:
+                          st["nonempty_consensus"]+=1
+                          consensus_nonempty.append(sid)
+                      else:
+                          st["nonempty_conflict"]+=1
+                          conflicts.append({"subId":sid,"classes":cls})
+                  elif placeholders_here:
+                      # Keep placeholder separate even if another sibling simply
+                      # omits the key; omission does not resolve unknown semantics.
+                      st["placeholder_unresolved"]+=1
+                      placeholders.append(sid)
+                  elif len(present_sources)>=2 and len(emptyish)==len(present_sources):
+                      st["multi_source_absence_consensus"]+=1
+                      absence_consensus.append(sid)
+                  elif len(present_sources)==1 and len(emptyish)==1:
+                      st["single_source_absence_only"]+=1
+                      one_source_only.append(sid)
+                  else:
+                      st["other"]+=1
+
+                  if sid in true_new or sid in placeholders or sid in conflicts:
+                      report["rows"].setdefault(str(sid),{})[field]={
+                          "classes":{n:k for n,(k,_v) in cls.items()},
+                      }
+
+              report["summary"][field]=dict(st)
+              print("\nFIELD",field,dict(st))
+              print("true_new_count",len(true_new),"sample",true_new[:300])
+              print("placeholder_count",len(placeholders),"sample",placeholders[:100])
+              print("absence_consensus_count",len(absence_consensus),"sample",absence_consensus[:100])
+              print("nonempty_consensus_count",len(consensus_nonempty))
+              print("conflict_count",len(conflicts))
+              print("single_source_absence_count",len(one_source_only))
+              print("TOP_PATTERNS")
+              for p,n in by_pattern.most_common(20):
+                  print(n,p)
+
+          # Which raw 7.1 rows have no row in any 7.0 source specifically?
+          old_union=set().union(*(set(sources[k]) for k in ("c70a","c70b","c70c")))
+          new71=sorted(set(raw)-old_union)
+          print("\nNO_7_0_ROW_UNION",len(new71),new71[:1000])
+          report["new_7_1_vs_7_0_union"]=new71
+
+          Path("quest71-multi-predecessor-consensus.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-multi-predecessor-consensus
+          path: |
+            quest71-multi-predecessor-consensus.txt
+            quest71-multi-predecessor-consensus.json
+          if-no-files-found: error
