@@ -42,6 +42,14 @@ jobs:
             python -m genshinre.cli query-fields "$F" --type AFIOOHMJHDM || true
             echo '=== OWNER OOPFBIEAILL ==='
             python -m genshinre.cli query-fields "$F" --type OOPFBIEAILL || true
+            echo '=== OWNER RandomQuestExcelConfig ==='
+            python -m genshinre.cli query-fields "$F" --type RandomQuestExcelConfig || true
+            echo '=== OWNER RandomMainQuestExcelConfig ==='
+            python -m genshinre.cli query-fields "$F" --type RandomMainQuestExcelConfig || true
+            for semantic_field in _showType _unfinishedHintShow _failParentShow _finishCondComb _failCondComb _forcePaimonGuidePriority _exclusiveNpcPriority _titleTextMapHash; do
+              echo "=== SEMANTIC FIELD $semantic_field ==="
+              python -m genshinre.cli query-fields "$F" --field-name "$semantic_field" || true
+            done
             for type_name in QuestShowType QuestExtraShowType QuestResidentGuideType \
               GNOFDPCJNJM JKGOAFAGMFO OFLILKIBBEK NINNEBHPPCH \
               AOBIFAGCPLE KPHLFFOELCG MIFLGIOOBAJ KAABNOHKKEP; do
