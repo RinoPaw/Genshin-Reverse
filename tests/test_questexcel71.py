@@ -14,6 +14,7 @@ from genshinre.questexcel71 import (
     BIT_IS_MP_BLOCK,
     BIT_LBEFPHGELAN,
     BIT_ORDER,
+    BIT_FJDKHGMJOPL,
     BIT_PREFER_AREA2_GUIDE_SCENE,
     BIT_SHOW_GUIDE,
     BIT_SHOW_TYPE,
@@ -34,6 +35,7 @@ from genshinre.questexcel71 import (
     MAIN_ID_ADD,
     MAIN_ID_XOR,
     ORDER_RAW_SUB,
+    FJDKHGMJOPL_PREFER_AREA2_RAW,
     PREFER_AREA2_GUIDE_SCENE_RAW,
     QuestExcel71ParseError,
     SHOW_GUIDE_BY_RAW,
@@ -253,6 +255,7 @@ class QuestExcel71Tests(unittest.TestCase):
         self.assertEqual(0x12345678, first.unknown_prefix_u32)
         self.assertEqual(0x12345678 ^ DESC_TEXT_MAP_HASH_XOR, first.desc_text_map_hash)
         self.assertEqual((3, 7), first.exclusive_place_list)
+        self.assertIsNone(first.fjdkhgmjopl)
         self.assertFalse(first.prefer_area2_guide_scene)
         self.assertEqual(4, first.order)
         self.assertIs(first.is_mp_block, True)
@@ -282,6 +285,7 @@ class QuestExcel71Tests(unittest.TestCase):
         second = table.rows[1]
         self.assertEqual(0x89ABCDEF ^ DESC_TEXT_MAP_HASH_XOR, second.desc_text_map_hash)
         self.assertIsNone(second.exclusive_place_list)
+        self.assertIsNone(second.fjdkhgmjopl)
         self.assertFalse(second.prefer_area2_guide_scene)
         self.assertIsNone(second.order)
         self.assertIsNone(second.is_mp_block)
@@ -318,12 +322,26 @@ class QuestExcel71Tests(unittest.TestCase):
         with self.assertRaisesRegex(QuestExcel71ParseError, "FABHGLLGFHN raw"):
             parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
 
+    def test_decodes_fjdkhgmjopl_prefer_area2_guide_scene(self) -> None:
+        row = make_row(10001, unknown_prefix_u32=0, prefer=True)
+        payload = u32(0) + row
+        parsed = parse_questexcel71_raw_export(
+            raw_export(payload), expected_row_count=1
+        ).rows[0]
+        self.assertEqual("PREFER_AREA2_GUIDE_SCENE", parsed.fjdkhgmjopl)
+        self.assertTrue(parsed.prefer_area2_guide_scene)
+        self.assertEqual(BIT_FJDKHGMJOPL, BIT_PREFER_AREA2_GUIDE_SCENE)
+        self.assertEqual(
+            FJDKHGMJOPL_PREFER_AREA2_RAW,
+            PREFER_AREA2_GUIDE_SCENE_RAW,
+        )
+
     def test_rejects_unexpected_prefer_encoding(self) -> None:
         row = bytearray(make_row(10001, unknown_prefix_u32=0, prefer=True))
         raw_pos = 8 + 4
         row[raw_pos:raw_pos + 4] = u32(0)
         payload = u32(0) + row
-        with self.assertRaisesRegex(QuestExcel71ParseError, "bit29 raw"):
+        with self.assertRaisesRegex(QuestExcel71ParseError, "FJDKHGMJOPL raw"):
             parse_questexcel71_raw_export(raw_export(payload), expected_row_count=1)
 
     def test_rejects_unexpected_bit40_encoding(self) -> None:
