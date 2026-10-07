@@ -1,0 +1,41 @@
+name: Probe Quest 7.1 generic type reuse
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest71-generic-type-reuse.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Find every field using the two full-Quest generic type indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-generic-type-reuse.txt
+          import csv,json
+          from pathlib import Path
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={629808,577923}
+          with (META/"fields.csv").open("r",encoding="utf-8-sig",newline="") as f:
+              rows=[
+                  r for r in csv.DictReader(f)
+                  if int(r.get("field_type_index") or "-1") in TARGETS
+              ]
+          print("FIELD_HITS",len(rows))
+          print(json.dumps(rows,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest71-generic-type-reuse
+          path: quest71-generic-type-reuse.txt
+          if-no-files-found: error
