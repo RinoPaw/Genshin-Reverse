@@ -42,7 +42,7 @@ jobs:
 
           EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
           META=Path("versions/7.1.0-global/windows-x64/metadata")
-          TARGETS=[0xFD53090,0xB8B0230]
+          TARGETS=[0xFD53090,0xB8B0230,0x1168F230]
           NAMES={"OOPFBIEAILL","NBLEHPOBCEB","KPHLFFOELCG","HCFAOAJBPHB","LNNJKAPJIEH"}
 
           require_sha256(EXE, PROFILE_71.exe_sha256, label="executable")
