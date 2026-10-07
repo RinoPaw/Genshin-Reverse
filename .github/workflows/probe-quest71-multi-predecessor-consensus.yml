@@ -34,7 +34,7 @@ jobs:
           }
           fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
           fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70a 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
-          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
+          fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b 980c5c7569f07ccaa10d88772680bb64317f5520
           fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71a 395a5ee6442142a803691f60d541ee1706ae9cd7
 
       - name: Build multi-source census
