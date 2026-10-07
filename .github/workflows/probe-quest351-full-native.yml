@@ -1,0 +1,169 @@
+name: Probe Quest 351 full native decode
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest351-full-native.yml"
+
+concurrency:
+  group: probe-quest351-full-native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone pefile zstandard
+      - name: Fetch exact pinned global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Download exact Quest 351 payload evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf evidence/q71
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest351-payload.bin
+          sha256sum evidence/q71/quest351-payload.bin
+      - name: Checkout pinned binconfig analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/genshin-7.0-local-re-devkit
+          git clone --filter=blob:none https://github.com/owomocha/genshin-7.0-local-re-devkit.git /tmp/genshin-7.0-local-re-devkit
+          git -C /tmp/genshin-7.0-local-re-devkit checkout --detach fb91dfad1f6047e30dea2f98727e5af45d9bd6e0
+      - name: Decode exact Quest 351 full payload
+        shell: bash
+        env:
+          PYTHONPATH: /tmp/genshin-7.0-local-re-devkit/src:/tmp/genshin-7.0-local-re-devkit/research
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest351-full-native.txt
+          import csv,json
+          from pathlib import Path
+          from genshin_re import binconfig as BC
+          import gamedata_binconfig_ext as EXT
+
+          EXE=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          PAYLOAD=Path("evidence/q71/quest351-payload.bin")
+          TARGETS={
+              "full_root_AFIOOHMJHDM":0x10409D40,
+              "ordinary_row_LAIMPNDEFCL":0x9C15DF0,
+              "quest_exec_scalar":0x1386F2A0,
+              "quest_content_scalar":0xB407BB0,
+          }
+          FOCUS_TYPES={
+              "AFIOOHMJHDM","LAIMPNDEFCL","KIMCPAKMJMH","JPGNLOPMNHN",
+              "OOPFBIEAILL","KPHLFFOELCG",
+          }
+
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+          methods=rows("methods.csv")
+          types=rows("types.csv")
+          fields=rows("fields.csv")
+
+          deser={}
+          one_by_class={}
+          for m in methods:
+              try:rva=int(m.get("rva") or "0",0)
+              except Exception:continue
+              if not rva:continue
+              try:params=json.loads(m.get("parameter_types") or "[]")
+              except Exception:continue
+              if not params or params[0]!="FNIAHJGHFAK":continue
+              cls=m.get("type_name") or "?"
+              deser[rva]=(cls,m.get("method_name") or "?",str(params))
+              if len(params)==1:
+                  ret=(m.get("return_type") or "").lower()
+                  pr=0 if m.get("method_name") in {"FromBinaryInner","GMENPOPMKAA"} else (1 if ret=="void" else 2)
+                  prev=one_by_class.get(cls)
+                  if prev is None or pr<prev[0]:one_by_class[cls]=(pr,rva)
+
+          row_deser={cls:rva for cls,(_pr,rva) in one_by_class.items()}
+          exe=BC.Exe(str(EXE))
+          EXT.install(exe,deser,row_deser,clsfields={},deser1=row_deser)
+          EXT.install2()
+
+          schemas={}
+          for name,rva in TARGETS.items():
+              try:
+                  sch=BC.build(exe,rva,deser,cache={})
+                  schemas[name]=sch
+                  print("\n=== SCHEMA",name,hex(rva),"===")
+                  print(json.dumps(sch,ensure_ascii=False,indent=2))
+              except Exception as exc:
+                  schemas[name]={"error":type(exc).__name__+":"+str(exc)}
+                  print("SCHEMA_ERROR",name,repr(exc))
+
+          print("\n=== FOCUS TYPE METADATA ===")
+          focus_tdis={int(t["type_definition_index"]) for t in types if t.get("type_name") in FOCUS_TYPES}
+          focus={
+              "types":[t for t in types if int(t["type_definition_index"]) in focus_tdis],
+              "fields":[f for f in fields if int(f.get("type_definition_index") or -1) in focus_tdis],
+              "methods":[m for m in methods if int(m.get("type_definition_index") or -1) in focus_tdis],
+          }
+          print(json.dumps(focus,ensure_ascii=False,indent=2))
+
+          payload=PAYLOAD.read_bytes()
+          root=schemas.get("full_root_AFIOOHMJHDM",{})
+          decode={}
+          if "error" not in root:
+              rd=BC.Reader(payload);rd.p=0
+              try:
+                  value=rd.record(root)
+                  decode={
+                      "ok":True,
+                      "consumed":rd.p,
+                      "payload_size":len(payload),
+                      "full_consume":rd.p==len(payload),
+                      "value":value,
+                  }
+              except Exception as exc:
+                  decode={
+                      "ok":False,
+                      "consumed":rd.p,
+                      "payload_size":len(payload),
+                      "error":type(exc).__name__+":"+str(exc),
+                  }
+          print("\n=== QUEST351 ROOT DECODE ===")
+          print(json.dumps(decode,ensure_ascii=False,indent=2))
+
+          report={
+              "payload_size":len(payload),
+              "targets":{k:f"0x{v:X}" for k,v in TARGETS.items()},
+              "schemas":schemas,
+              "focus_metadata":focus,
+              "decode":decode,
+          }
+          Path("quest351-full-native.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest351-full-native
+          path: |
+            quest351-full-native.txt
+            quest351-full-native.json
+          if-no-files-found: error
