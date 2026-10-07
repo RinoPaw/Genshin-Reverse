@@ -51,6 +51,9 @@ jobs:
               "order_add_neg":0x8CD127CC,
               "mainId_add":0x0001D716,
               "mainId_xor":0x3223AF7D,
+              "desc_xor":0x2AC0BB5D,
+              "step_desc_xor":0xABB3B4F1,
+              "guide_tips_xor":0x59B7A2F4,
           }
 
           with META.open("r",encoding="utf-8-sig",newline="") as fh:
