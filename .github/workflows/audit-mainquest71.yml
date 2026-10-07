@@ -1,0 +1,53 @@
+name: Audit MainQuest 7.1 mappings
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - "tools/audit_mainquest71_same_version_mapping.py"
+      - ".github/workflows/audit-mainquest71.yml"
+
+concurrency:
+  group: audit-mainquest71-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Fetch pinned 7.1 Quest resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/raw71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/community71 395a5ee6442142a803691f60d541ee1706ae9cd7
+      - name: Audit MainQuest mappings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/audit_mainquest71_same_version_mapping.py             /tmp/raw71/BinOutput/Quest             /tmp/community71/BinOutput/Quest             --output mainquest71-mapping.json | tee mainquest71-mapping.txt
+      - name: Upload report
+        uses: actions/upload-artifact@v6
+        with:
+          name: mainquest71-mapping
+          path: |
+            mainquest71-mapping.json
+            mainquest71-mapping.txt
+          if-no-files-found: error
