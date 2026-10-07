@@ -1,0 +1,425 @@
+name: Probe 7.1 QuestExcel active field wire
+
+on:
+  push:
+    branches:
+      - probe/quest-blb3-binoutput
+    paths:
+      - ".github/workflows/probe-quest-legacy-71-active-wire.yml"
+
+concurrency:
+  group: probe-quest-legacy-71-active-wire-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download exact 7.1 QuestExcel object
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/q71
+          gh run download 37440823447 \
+            --repo RinoPaw/Genshin-Reverse \
+            --name quest-excel-asset-chain-probe \
+            --dir evidence/q71
+          test -s evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat
+
+      - name: Fetch exact AstaPS PR9 materialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/asta-pr9
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/MeChen618/AstaPS-Resource.git /tmp/asta-pr9
+          git -C /tmp/asta-pr9 sparse-checkout init --no-cone
+          git -C /tmp/asta-pr9 sparse-checkout set \
+            'ExcelBinOutput/QuestExcelConfigData.json'
+          git -C /tmp/asta-pr9 checkout \
+            7465e29b2d58058ab9973187c112abf2717ada03
+          test -s /tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json
+
+      - name: Correlate active fields and synthetic prerequisites with native wire
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-legacy-71-active-wire.txt
+          import collections
+          import json
+          import math
+          import statistics
+          import struct
+          from pathlib import Path
+
+          RAW = Path("evidence/q71/quest-output/MiHoYoBinData/3b87ae83.dat")
+          RES = Path("/tmp/asta-pr9/ExcelBinOutput/QuestExcelConfigData.json")
+          SUBID_KEY = 0xB1571A55
+          MASKS = {
+              0x087EFDD5, 0x087EDDD5, 0x087FFDD5, 0x087EF9D5,
+              0x083EFDD5, 0x087FDDD5, 0x287EFDD5, 0x087ED9D5,
+              0x083EDDD5, 0x007FFDD5, 0x087FF9D5, 0x083EF9D5,
+              0x083FFDD5,
+          }
+
+          raw = RAW.read_bytes()
+          declared = struct.unpack_from("<I", raw, 0)[0]
+          payload = raw[4:4 + declared]
+          if declared != len(raw) - 4:
+              raise SystemExit("MiHoYoBinData wrapper mismatch")
+
+          starts = []
+          for pos in range(len(payload) - 3):
+              u = struct.unpack_from("<I", payload, pos)[0]
+              if u in MASKS:
+                  starts.append((pos, u))
+          if len(starts) != 33214 or starts[0][0] != 4:
+              raise SystemExit(f"native framing drift: count={len(starts)} first={starts[:1]}")
+
+          native = []
+          for ordinal, (start, lowmask) in enumerate(starts):
+              end = starts[ordinal + 1][0] if ordinal + 1 < len(starts) else len(payload)
+              sid = struct.unpack_from("<I", payload, end - 4)[0] ^ SUBID_KEY
+              native.append({
+                  "ordinal": ordinal,
+                  "start": start,
+                  "end": end,
+                  "size": end - start,
+                  "mask64": struct.unpack_from("<Q", payload, start)[0],
+                  "subId": sid,
+              })
+          if native[-1]["end"] != len(payload):
+              raise SystemExit("native rows do not fully consume payload")
+          native_by_sid = {x["subId"]: x for x in native}
+          if len(native_by_sid) != len(native):
+              raise SystemExit("duplicate native subId")
+
+          resource = json.loads(RES.read_text(encoding="utf-8"))
+          resource_by_sid = {
+              x["subId"]: x for x in resource
+              if isinstance(x, dict) and isinstance(x.get("subId"), int)
+          }
+          matched = [
+              (resource_by_sid[sid], nr)
+              for sid, nr in native_by_sid.items()
+              if sid in resource_by_sid
+          ]
+          only_resource = sorted(set(resource_by_sid) - set(native_by_sid))
+          if len(matched) != 33214:
+              raise SystemExit(f"matched row drift: {len(matched)}")
+
+          def meaningful(v):
+              if v is None or v is False:
+                  return False
+              if isinstance(v, (int, float)) and not isinstance(v, bool):
+                  return v != 0
+              if isinstance(v, str):
+                  s = v.strip()
+                  if not s:
+                      return False
+                  upper = s.upper()
+                  if upper in {"NONE", "NULL", "QUEST_NONE"}:
+                      return False
+                  return True
+              if isinstance(v, list):
+                  return any(meaningful(x) for x in v)
+              if isinstance(v, dict):
+                  return any(meaningful(x) for x in v.values())
+              return True
+
+          def typed_items(v):
+              if not isinstance(v, list):
+                  return False
+              for x in v:
+                  if not isinstance(x, dict):
+                      continue
+                  t = x.get("type")
+                  if isinstance(t, str) and t.strip():
+                      return True
+              return False
+
+          def first_accept_target(row):
+              arr = row.get("acceptCond")
+              if not isinstance(arr, list) or not arr:
+                  return None
+              x = arr[0]
+              if not isinstance(x, dict):
+                  return None
+              if x.get("type") != "QUEST_COND_STATE_EQUAL":
+                  return None
+              p = x.get("param")
+              if not isinstance(p, list) or not p:
+                  return None
+              v = p[0]
+              if isinstance(v, bool):
+                  return None
+              if isinstance(v, int):
+                  return v & 0xffffffff
+              if isinstance(v, str):
+                  try:
+                      return int(v, 10) & 0xffffffff
+                  except ValueError:
+                      return None
+              return None
+
+          # Top-level meaningful activity.
+          top_fields = sorted({k for r, _ in matched for k in r.keys()})
+          predicates = {}
+          for key in top_fields:
+              predicates[f"active:{key}"] = lambda r, k=key: meaningful(r.get(k))
+
+          # More semantic predicates for always-present materialized arrays.
+          for key in ("acceptCond", "beginExec", "finishCond", "failCond", "finishExec", "failExec"):
+              predicates[f"typed:{key}"] = lambda r, k=key: typed_items(r.get(k))
+
+          predicates["accept:state_equal_target"] = lambda r: first_accept_target(r) is not None
+          predicates["showType:SHOW"] = lambda r: r.get("showType") == "QUEST_SHOW"
+          predicates["showType:HIDDEN"] = lambda r: r.get("showType") == "QUEST_HIDDEN"
+          predicates["isRewind:true"] = lambda r: r.get("isRewind") is True
+          predicates["guide:typed"] = lambda r: (
+              isinstance(r.get("guide"), dict)
+              and isinstance(r["guide"].get("type"), str)
+              and bool(r["guide"]["type"].strip())
+          )
+
+          def bit_correlation(name, pred):
+              bins = {0: [0, 0], 1: [0, 0]}
+              true_count = 0
+              rows = []
+              values = []
+              for r, nr in matched:
+                  active = bool(pred(r))
+                  true_count += active
+                  values.append((active, nr["mask64"]))
+              if true_count == 0 or true_count == len(values):
+                  return {"name": name, "true": true_count, "rows": len(values), "best": []}
+              best = []
+              for bit in range(64):
+                  b0t=b0n=b1t=b1n=0
+                  for active, mask in values:
+                      b=(mask >> bit) & 1
+                      if b:
+                          b1n += 1
+                          b1t += active
+                      else:
+                          b0n += 1
+                          b0t += active
+                  if not b0n or not b1n:
+                      continue
+                  p0=b0t/b0n
+                  p1=b1t/b1n
+                  delta=p1-p0
+                  if abs(delta) >= 0.50:
+                      best.append({
+                          "bit": bit,
+                          "bit0_true": b0t, "bit0_total": b0n,
+                          "bit1_true": b1t, "bit1_total": b1n,
+                          "delta": delta,
+                      })
+              best.sort(key=lambda x:(-abs(x["delta"]), x["bit"]))
+              return {"name": name, "true": true_count, "rows": len(values), "best": best[:12]}
+
+          correlations = [bit_correlation(name, pred) for name, pred in predicates.items()]
+          strong = [
+              x for x in correlations
+              if x["best"] and abs(x["best"][0]["delta"]) >= 0.90
+          ]
+          strong.sort(key=lambda x:(-abs(x["best"][0]["delta"]), x["name"]))
+
+          # Per-mask fixed-layout transform ranking for selected scalar fields.
+          # A fixed mask removes most optional-field offset drift.
+          scalar_fields = [
+              "mainId", "order", "descTextMapHash", "stepDescTextMapHash",
+              "guideTipsTextMapHash", "exclusiveNpcPriority", "subIdSet",
+          ]
+          groups = collections.defaultdict(list)
+          for r, nr in matched:
+              groups[nr["mask64"]].append((r, nr))
+          top_masks = sorted(groups, key=lambda m: -len(groups[m]))[:12]
+
+          def numeric(v):
+              return isinstance(v, int) and not isinstance(v, bool)
+
+          def rank_scalar(items, field, limit=8):
+              counters = {k: collections.Counter() for k in ("xor", "sub", "add")}
+              eligible=0
+              for r, nr in items:
+                  v=r.get(field)
+                  if not numeric(v):
+                      continue
+                  eligible += 1
+                  v &= 0xffffffff
+                  data=payload[nr["start"]:nr["end"]-4]
+                  for off in range(0, len(data)-3):
+                      u=struct.unpack_from("<I", data, off)[0]
+                      counters["xor"][(off, u ^ v)] += 1
+                      counters["sub"][(off, (u - v) & 0xffffffff)] += 1
+                      counters["add"][(off, (u + v) & 0xffffffff)] += 1
+              out={"field":field,"eligible":eligible}
+              for kind,c in counters.items():
+                  out[kind]=[
+                      {"offset":off,"key":f"0x{key:08X}","support":n,
+                       "ratio":(n/eligible if eligible else 0)}
+                      for (off,key),n in c.most_common(limit)
+                  ]
+              return out
+
+          scalar_by_mask=[]
+          for mask in top_masks:
+              items=groups[mask]
+              scalar_by_mask.append({
+                  "mask64":f"0x{mask:016X}",
+                  "rows":len(items),
+                  "fields":[rank_scalar(items,f) for f in scalar_fields],
+              })
+
+          # Synthetic prerequisite target search. If the generated previous-row
+          # target is physically encoded, a stable fixed-position transform
+          # should emerge within a fixed mask family.
+          def rank_accept_target(items, limit=16):
+              counters={k:collections.Counter() for k in ("xor","sub","add")}
+              endc={k:collections.Counter() for k in ("xor","sub","add")}
+              eligible=0
+              for r,nr in items:
+                  v=first_accept_target(r)
+                  if v is None:
+                      continue
+                  eligible += 1
+                  data=payload[nr["start"]:nr["end"]]
+                  # Start-relative offsets, excluding final proven subId word.
+                  for off in range(0, len(data)-7):
+                      u=struct.unpack_from("<I",data,off)[0]
+                      counters["xor"][(off,u^v)] += 1
+                      counters["sub"][(off,(u-v)&0xffffffff)] += 1
+                      counters["add"][(off,(u+v)&0xffffffff)] += 1
+                  # End-relative offsets catch fixed trailing fields.
+                  for back in range(8, min(len(data),68)+1):
+                      off=len(data)-back
+                      if off<0 or off+4>len(data):
+                          continue
+                      u=struct.unpack_from("<I",data,off)[0]
+                      endc["xor"][(back,u^v)] += 1
+                      endc["sub"][(back,(u-v)&0xffffffff)] += 1
+                      endc["add"][(back,(u+v)&0xffffffff)] += 1
+              out={"eligible":eligible}
+              for kind,c in counters.items():
+                  out[f"start_{kind}"]=[
+                      {"offset":off,"key":f"0x{key:08X}","support":n,
+                       "ratio":(n/eligible if eligible else 0)}
+                      for (off,key),n in c.most_common(limit)
+                  ]
+              for kind,c in endc.items():
+                  out[f"end_{kind}"]=[
+                      {"back":back,"key":f"0x{key:08X}","support":n,
+                       "ratio":(n/eligible if eligible else 0)}
+                      for (back,key),n in c.most_common(limit)
+                  ]
+              return out
+
+          accept_by_mask=[]
+          for mask in top_masks:
+              result=rank_accept_target(groups[mask])
+              accept_by_mask.append({
+                  "mask64":f"0x{mask:016X}",
+                  "rows":len(groups[mask]),
+                  **result,
+              })
+
+          # Control: final subId transform must be exact over the full population.
+          subid_control = collections.Counter()
+          for r,nr in matched:
+              raw_sid=struct.unpack_from("<I",payload,nr["end"]-4)[0]
+              subid_control[raw_sid ^ (r["subId"] & 0xffffffff)] += 1
+
+          quest351=[]
+          for sid in (35104,35100,35107,35101,35106,35105,35103,35102):
+              nr=native_by_sid[sid]
+              rr=resource_by_sid[sid]
+              quest351.append({
+                  "subId":sid,
+                  "start":nr["start"],
+                  "end":nr["end"],
+                  "size":nr["size"],
+                  "mask64":f"0x{nr['mask64']:016X}",
+                  "acceptCond":rr.get("acceptCond"),
+                  "beginExec":rr.get("beginExec"),
+                  "showType":rr.get("showType"),
+                  "isRewind":rr.get("isRewind"),
+                  "row_hex":payload[nr["start"]:nr["end"]].hex(),
+              })
+
+          report={
+              "native_rows":len(native),
+              "resource_rows":len(resource),
+              "matched":len(matched),
+              "only_resource":only_resource,
+              "full_consumption":native[-1]["end"]==len(payload),
+              "subId_control":[
+                  {"key":f"0x{k:08X}","support":n,"ratio":n/len(matched)}
+                  for k,n in subid_control.most_common(8)
+              ],
+              "strong_activity_correlations":strong,
+              "all_activity_correlations":correlations,
+              "top_mask_counts":[
+                  {"mask64":f"0x{m:016X}","rows":len(groups[m])}
+                  for m in top_masks
+              ],
+              "scalar_by_mask":scalar_by_mask,
+              "accept_target_by_mask":accept_by_mask,
+              "quest351":quest351,
+          }
+          Path("quest-legacy-71-active-wire.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8",
+          )
+
+          print("native_rows",len(native))
+          print("resource_rows",len(resource))
+          print("matched",len(matched))
+          print("only_resource",only_resource)
+          print("subId_control",json.dumps(report["subId_control"][:3]))
+          print("\n=== strong activity/mask correlations ===")
+          for x in strong:
+              print(json.dumps(x,ensure_ascii=False))
+          print("\n=== accept target fixed-mask leaders ===")
+          for x in accept_by_mask[:8]:
+              def best(name):
+                  arr=x.get(name,[])
+                  return arr[0] if arr else None
+              print(json.dumps({
+                  "mask64":x["mask64"],"rows":x["rows"],"eligible":x["eligible"],
+                  "start_xor":best("start_xor"),"start_sub":best("start_sub"),
+                  "start_add":best("start_add"),"end_xor":best("end_xor"),
+              },ensure_ascii=False))
+          print("\n=== scalar fixed-mask leaders ===")
+          for group in scalar_by_mask[:4]:
+              print("MASK",group["mask64"],"rows",group["rows"])
+              for f in group["fields"]:
+                  picks={}
+                  for kind in ("xor","sub","add"):
+                      arr=f[kind]
+                      picks[kind]=arr[0] if arr else None
+                  print(json.dumps({"field":f["field"],"eligible":f["eligible"],**picks},ensure_ascii=False))
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-legacy-71-active-wire
+          path: |
+            quest-legacy-71-active-wire.txt
+            quest-legacy-71-active-wire.json
+          if-no-files-found: error
