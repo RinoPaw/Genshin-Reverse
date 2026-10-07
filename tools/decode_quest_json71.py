@@ -16,6 +16,7 @@ TOP_LEVEL = {
     "DKKIDDFEHMD": "forcePreloadLuaList",
     "PCIAMAFDDAA": "dialogList",
     "IMGDIONBDMG": "pauseResDestroyType",
+    "AHBDGODKBDF": "unlockDescTextMapHash",
 }
 
 SUB_QUEST = {
@@ -60,6 +61,7 @@ GUIDE = {
     "NJGODCNNNNJ": "indicatorStyle",
     "ABIJICNCCOD": "areaStyle",
     "GNKEAKGMNBN": "residentGuideType",
+    "AEJMPEBJIHE": "progressGuideId",
 }
 
 KNOWN_TOP = {
@@ -69,7 +71,7 @@ KNOWN_TOP = {
     "activeMode", "activityId", "chapterId", "mainQuestTag", "recommendLevel",
     "repeatable", "showRedPoint", "showType", "specialShowCondIdList",
     "specialShowQuestId", "specialShowRewardId", "suggestTrackOutOfOrder",
-    "taskID", "type", "pauseResDestroyType",
+    "taskID", "type", "pauseResDestroyType", "unlockDescTextMapHash",
 }
 KNOWN_SUB = {
     "subId", "mainId", "order", "descTextMapHash", "showType", "showGuide",
@@ -84,6 +86,7 @@ KNOWN_COND = {"type", "param", "param_str", "count"}
 KNOWN_GUIDE = {
     "type", "param", "guideScene", "guideStyle", "guideLayer", "autoGuide",
     "poiPointId", "poiRegionId", "inSceneStyle", "indicatorStyle", "areaStyle",
+    "residentGuideType", "progressGuideId",
 }
 
 
