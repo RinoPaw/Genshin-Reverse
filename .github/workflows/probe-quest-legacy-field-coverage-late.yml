@@ -1,0 +1,189 @@
+name: Probe Quest late legacy field coverage
+
+on:
+  push:
+    branches:
+      - decoder/questexcel-native-71
+    paths:
+      - ".github/workflows/probe-quest-legacy-field-coverage-late.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned quest snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetch_repo() {
+            local url="$1" dir="$2" sha="$3"
+            rm -rf "$dir"
+            git clone --filter=blob:none --no-checkout "$url" "$dir"
+            git -C "$dir" sparse-checkout init --no-cone
+            git -C "$dir" sparse-checkout set 'BinOutput/Quest/*.json'
+            git -C "$dir" checkout "$sha"
+          }
+
+          fetch_repo https://github.com/DimbreathBot/AnimeGameData.git /tmp/agd71 792978e5503ecfba73dcb3562ed44a0d35a2abe2
+          fetch_repo https://github.com/TomyJan/GCResource.git /tmp/gc37 609730bf63568baee1eb77a605b6c273a064dbc1
+          fetch_repo https://github.com/TomyJan/GCResource.git /tmp/gc40 ede70f1e23c1a494fe4258837d963b1d63004911
+          fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_4.6.0.git /tmp/gc46 e7e0204a273a82efd3c86507bb19cb0d9e760c53
+          fetch_repo https://github.com/Kei-Luna/LunaGC_Resources_5.0.0.git /tmp/gc50 e7a7cf1fbe4f9d44f7bb70e284f8be9a3ce6e076
+          fetch_repo https://github.com/Rafs-kk/LunaGC-6.6-res.git /tmp/gc66 b0501c5d89767ead5f647869a2412521447f7682
+
+      - name: Cross-version recovery census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest-late-legacy-field-coverage.txt
+          import json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          ROOTS={
+              "3.7":Path("/tmp/gc37/BinOutput/Quest"),
+              "4.0":Path("/tmp/gc40/BinOutput/Quest"),
+              "4.6":Path("/tmp/gc46/BinOutput/Quest"),
+              "5.0":Path("/tmp/gc50/BinOutput/Quest"),
+              "6.6":Path("/tmp/gc66/BinOutput/Quest"),
+          }
+
+          def load(root):
+              rows={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("subQuests",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if isinstance(r,dict) and isinstance(r.get("subId"),int):
+                          rows[r["subId"]]=r
+              return rows
+
+          def load71(root):
+              rows={}
+              for p in sorted(root.glob("*.json")):
+                  try:o=json.loads(p.read_text(encoding="utf-8"))
+                  except Exception:continue
+                  if not isinstance(o,dict):continue
+                  seq=o.get("JIJKODHIEED",[])
+                  if not isinstance(seq,list):continue
+                  for r in seq:
+                      if not isinstance(r,dict):continue
+                      sid=r.get("NFGFDHPPBIF")
+                      if isinstance(sid,int):rows[sid]=r
+              return rows
+
+          def norm(v):
+              if not isinstance(v,list):return None
+              out=[]
+              for x in v:
+                  if not isinstance(x,dict):continue
+                  t=x.get("type")
+                  if not t:continue
+                  out.append({
+                      "type":t,
+                      "param":x.get("param",[]),
+                      "param_str":x.get("param_str",x.get("paramStr","")) or "",
+                      "count":x.get("count"),
+                  })
+              return out
+
+          cur=load71(Path("/tmp/agd71/BinOutput/Quest"))
+          snaps={v:load(p) for v,p in ROOTS.items()}
+          print("ROWS 7.1",len(cur))
+          for v,r in snaps.items():
+              print("ROWS",v,len(r),"OVERLAP",len(set(cur)&set(r)))
+
+          report={"rows_71":len(cur),"snapshots":{v:len(r) for v,r in snaps.items()},"fields":{}}
+          for field in ("acceptCond","beginExec"):
+              print("\n===",field,"===")
+              # For each 7.1 row, collect every historical meaningful value.
+              support=Counter()
+              chosen={}
+              conflicts=[]
+              version_meaningful=Counter()
+              for sid in sorted(cur):
+                  vals=[]
+                  for ver,rows in snaps.items():
+                      if sid not in rows:continue
+                      nv=norm(rows[sid].get(field))
+                      if nv is None:continue
+                      if nv:version_meaningful[ver]+=1
+                      vals.append((ver,nv))
+                  if not vals:continue
+                  # Group normalized values by exact JSON form.
+                  groups=defaultdict(list)
+                  payload={}
+                  for ver,nv in vals:
+                      key=json.dumps(nv,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+                      groups[key].append(ver);payload[key]=nv
+                  best_key,best_versions=max(groups.items(),key=lambda kv:(len(kv[1]),kv[1][-1]))
+                  best_val=payload[best_key]
+                  if best_val:
+                      support[len(best_versions)]+=1
+                      # High confidence: at least two historical versions agree,
+                      # or the value comes from the latest 6.6 snapshot and all
+                      # overlapping older non-empty values agree with it.
+                      all_nonempty=[(v,nv) for v,nv in vals if nv]
+                      latest_ver=vals[-1][0]
+                      unanimous_nonempty=all(
+                          json.dumps(nv,sort_keys=True)==json.dumps(best_val,sort_keys=True)
+                          for _v,nv in all_nonempty
+                      )
+                      high=(len(best_versions)>=2) or (latest_ver=="6.6" and unanimous_nonempty)
+                      if high:
+                          chosen[sid]={"value":best_val,"versions":best_versions}
+                  if len(groups)>1 and any(payload[k] for k in groups):
+                      conflicts.append({
+                          "subId":sid,
+                          "values":[{"versions":vs,"value":payload[k]} for k,vs in groups.items()]
+                      })
+              print("meaningful_by_version",dict(version_meaningful))
+              print("high_confidence_rows",len(chosen))
+              print("support_histogram",dict(sorted(support.items())))
+              print("conflict_rows",len(conflicts))
+              print("conflict_examples",json.dumps(conflicts[:30],ensure_ascii=False,indent=2))
+
+              # Rows new after 4.0 that became recoverable from 4.6/5.0/6.6.
+              old40=set(snaps["4.0"])
+              late={sid:x for sid,x in chosen.items() if sid not in old40}
+              print("late_recovered_after_4.0",len(late))
+              print("late_examples",json.dumps(
+                  [{"subId":sid,**late[sid]} for sid in sorted(late)[:50]],
+                  ensure_ascii=False,indent=2
+              ))
+              report["fields"][field]={
+                  "high_confidence_rows":len(chosen),
+                  "late_recovered_after_4.0":len(late),
+                  "conflict_rows":len(conflicts),
+                  "meaningful_by_version":dict(version_meaningful),
+                  "support_histogram":dict(support),
+                  "chosen":{str(k):v for k,v in chosen.items()},
+                  "conflicts":conflicts,
+              }
+
+          Path("quest-late-legacy-field-coverage.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: quest-late-legacy-field-coverage
+          path: |
+            quest-late-legacy-field-coverage.txt
+            quest-late-legacy-field-coverage.json
+          if-no-files-found: error
