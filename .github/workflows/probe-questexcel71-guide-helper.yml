@@ -341,6 +341,42 @@ jobs:
               json.dumps({"qword_sub":f"0x{QWORD_SUB:016X}","len_xor":f"0x{LEN_XOR:04X}","hits":hits},
                          ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
+      - name: Find native guideHint-shaped reader types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee questexcel71-guidehint-types.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as fh:
+                  return list(csv.DictReader(fh))
+          types=rows("types.csv"); fields=rows("fields.csv"); methods=rows("methods.csv")
+          fb=defaultdict(list); mb=defaultdict(list)
+          for f in fields: fb[int(f["type_definition_index"])].append(f)
+          for m in methods: mb[int(m["type_definition_index"])].append(m)
+          out=[]
+          for t in types:
+              tdi=int(t["type_definition_index"]); ff=fb.get(tdi,[])
+              ftypes=[x.get("field_type") or "" for x in ff]
+              strings=sum(x=="string" for x in ftypes)
+              hint=sum("QuestGuideHintType" in x for x in ftypes)
+              if strings<2 or hint<1: continue
+              readers=[]
+              for m in mb.get(tdi,[]):
+                  try:params=json.loads(m.get("parameter_types") or "[]")
+                  except Exception:continue
+                  if params and params[0]=="FNIAHJGHFAK":
+                      readers.append(m)
+              if not readers:continue
+              out.append({"type":t,"fields":ff,"readers":readers})
+          print("candidates",len(out))
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          Path("questexcel71-guidehint-types.json").write_text(
+              json.dumps({"candidates":out},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -351,4 +387,6 @@ jobs:
             questexcel71-guide-helper.json
             questexcel71-guidehint-reader.txt
             questexcel71-guidehint-reader.json
+            questexcel71-guidehint-types.txt
+            questexcel71-guidehint-types.json
           if-no-files-found: error
