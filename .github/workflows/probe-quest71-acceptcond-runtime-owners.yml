@@ -441,6 +441,64 @@ jobs:
                   json.dumps(resolved,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           PY
 
+      - name: Inspect Quest root generic reader types
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee quest71-root-generic-readers.txt
+          import csv,json
+          from collections import defaultdict
+          from pathlib import Path
+
+          META=Path("versions/7.1.0-global/windows-x64/metadata")
+          TARGETS={"LDABEPAGBGK","PAMGBICKEOA"}
+          def rows(name):
+              with (META/name).open("r",encoding="utf-8-sig",newline="") as f:
+                  return list(csv.DictReader(f))
+          types=rows("types.csv"); fields=rows("fields.csv"); methods=rows("methods.csv")
+          tb={int(t["type_definition_index"]):t for t in types}
+          fb=defaultdict(list); mb=defaultdict(list)
+          for f in fields: fb[int(f["type_definition_index"])].append(f)
+          for m in methods: mb[int(m["type_definition_index"])].append(m)
+
+          report=[]
+          for t in types:
+              if t.get("type_name") not in TARGETS: continue
+              tdi=int(t["type_definition_index"])
+              item={
+                  "type":t,
+                  "fields":fb.get(tdi,[]),
+                  "methods":mb.get(tdi,[]),
+              }
+              report.append(item)
+              print("\n=== TYPE",t.get("type_name"),tdi,"===")
+              print(json.dumps(item,ensure_ascii=False,indent=2))
+
+          # Also include types referenced directly by their fields.
+          refs=set()
+          for item in report:
+              for f in item["fields"]:
+                  ft=f.get("field_type") or ""
+                  if ft and not ft.startswith("kind_") and ft not in {
+                      "bool","byte","sbyte","short","ushort","int32","uint32",
+                      "int64","uint64","float","double","string","object",
+                  }:
+                      refs.add(ft)
+          print("\nDIRECT_FIELD_TYPE_REFS",sorted(refs))
+          for t in types:
+              if t.get("type_name") not in refs:continue
+              tdi=int(t["type_definition_index"])
+              print("\n=== REF TYPE",t.get("type_name"),tdi,"===")
+              print(json.dumps({
+                  "type":t,
+                  "fields":fb.get(tdi,[]),
+                  "methods":mb.get(tdi,[]),
+              },ensure_ascii=False,indent=2))
+
+          Path("quest71-root-generic-readers.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          PY
+
       - name: Upload evidence
         uses: actions/upload-artifact@v6
         with:
@@ -452,4 +510,6 @@ jobs:
             quest71-acceptcond-generic-owners.json
             quest71-acceptcond-generic-registration.txt
             quest71-acceptcond-generic-registration.json
+            quest71-root-generic-readers.txt
+            quest71-root-generic-readers.json
           if-no-files-found: error
