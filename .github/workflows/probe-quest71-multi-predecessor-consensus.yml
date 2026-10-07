@@ -36,7 +36,6 @@ jobs:
           fetch_repo https://github.com/chenlin996/LunaGC-Resources7.0.git /tmp/c70a 0991d8a9d82b37a7400774764c0b6e04e7c66a9d
           fetch_repo https://github.com/nyakochao/LunaGC-Resources-7.0.git /tmp/c70b 15e8fedc1fcc1547e4a0175e7cd6501c808c3241
           fetch_repo https://github.com/capyb2222/LunaGC-Resources.git /tmp/c71a 395a5ee6442142a803691f60d541ee1706ae9cd7
-          fetch_repo https://github.com/invoker-bot/LunaGC-Resources.git /tmp/c71b e2c1d3ca75f931572325e9f3d8f02a2e7ef2e7e7
 
       - name: Build multi-source census
         shell: bash
@@ -111,7 +110,6 @@ jobs:
               "c70a":load_norm("/tmp/c70a/BinOutput/Quest"),
               "c70b":load_norm("/tmp/c70b/BinOutput/Quest"),
               "c71a":load_norm("/tmp/c71a/BinOutput/Quest"),
-              "c71b":load_norm("/tmp/c71b/BinOutput/Quest"),
           }
           print("ROWS",{"raw71":len(raw), **{k:len(v) for k,v in sources.items()}})
 
