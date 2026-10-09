@@ -33,11 +33,20 @@ jobs:
           PYTHONPATH=. python tools/research_amber_pause_71.py \
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --output versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/native-probe.json
+      - name: Find native pause-state consumers in client receiver
+        run: |
+          PYTHONPATH=. python tools/scan_field_displacements.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/client-pause-field-xrefs.json \
+            --type-name LLCGIEDMIIG \
+            --offset 0x1D0 \
+            --expected-sha256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d
       - name: Publish only static evidence
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/native-probe.json
+          git add versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/native-probe.json versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/client-pause-field-xrefs.json
           if ! git diff --cached --quiet; then
             git commit -m 'research: record exact 7.1 Amber pause static registry evidence'
             git push origin HEAD:research/amber-pause-ack-71
