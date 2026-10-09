@@ -16,6 +16,10 @@ from .questrecovery71 import (
 )
 
 
+COMPAT_CONTROL_FIELDS = ("acceptCondComb", "finishCondComb", "failCondComb")
+LEGACY_COMPAT_SLOTS = ("gainItems", "trialAvatarList")
+
+
 _CONFLICT_STATUSES = {
     "resource-missing-native",
     "resource-extra-vs-native",
@@ -164,6 +168,36 @@ def audit_quest_rows(
             )
             counts[status] += 1
 
+        for field in COMPAT_CONTROL_FIELDS:
+            if field in resource_row:
+                fields[field] = {
+                    "status": "compatibility-control-present",
+                    "native_7_1": False,
+                    "resource_value": resource_row.get(field),
+                    "evidence": {
+                        "reason": (
+                            "ordinary 7.1 Quest row has no native logic-combination owner; "
+                            "RandomQuestExcelConfig retains these controls"
+                        )
+                    },
+                }
+                counts["compatibility-control-present"] += 1
+
+        for field in LEGACY_COMPAT_SLOTS:
+            if field in resource_row:
+                fields[field] = {
+                    "status": "legacy-compatibility-slot-present",
+                    "native_7_1": False,
+                    "resource_value": resource_row.get(field),
+                    "evidence": {
+                        "reason": (
+                            "current 7.1 ordinary Quest has no native owner for this slot; "
+                            "a named compatibility/source provenance is required"
+                        )
+                    },
+                }
+                counts["legacy-compatibility-slot-present"] += 1
+
         problems = sorted(
             field
             for field, item in fields.items()
@@ -191,6 +225,8 @@ def audit_quest_rows(
         "policy": {
             "ordinary_native_fields": list(RAW_71_FIELD_KEYS),
             "compatibility_fields": list(COMPAT_FIELDS),
+            "compatibility_control_fields": list(COMPAT_CONTROL_FIELDS),
+            "legacy_compatibility_slots": list(LEGACY_COMPAT_SLOTS),
             "compatibility_fields_are_native_7_1": False,
             "unknown_compatibility_evidence_is_not_accepted": True,
         },
