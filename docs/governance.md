@@ -14,19 +14,22 @@ Use one authoritative layer for each kind of state:
 
 When these disagree, the issue and durable version analysis must be corrected first, then the queue/handoff must be synchronized in the same maintenance change.
 
-## Branch lifecycle
+## Branch policy
 
-Start new maintenance and research branches from `rino` unless the task explicitly requires another base.
+Ordinary research lands directly on `main`.
 
-Use:
+Use a separate branch only when isolation has a concrete benefit, for example:
 
-- `maintenance/<topic>` for repository structure, tooling, promotion and cleanup;
-- `research/<topic>` for focused investigations;
-- `decoder/<topic>` only while a decoder is actively being recovered.
+- a destructive or wide refactor whose intermediate commits would break the maintained tree;
+- a decoder/probe that needs several knowingly incomplete checkpoints before it can pass normal tests;
+- an experiment that creates temporary workflows or generated artifacts that should not appear on `main`;
+- an upstream contribution that needs an independently reviewable patch series.
 
-Every non-durable branch needs a named exit condition in its issue or analysis. A branch is ready to retire when its useful conclusions are durable, reusable code is promoted, and no active workflow depends on it.
+When a branch is needed, branch from current `main` and use `research/<topic>`, `decoder/<topic>`, or `maintenance/<topic>` as appropriate. Do not create `rino-*` topic branches.
 
-Do not continue unrelated work on an old research branch. Create a new branch from current `rino` and carry forward only the required durable pieces.
+Every temporary branch needs a named exit condition in its issue or analysis. Retire it as soon as its useful result is represented on `main`. Do not use a branch as a long-lived second source of truth.
+
+The `rino` branch is a compatibility/work pointer only. Keep it aligned with `main`; do not queue ordinary research there for later promotion.
 
 ## Research promotion
 
@@ -69,7 +72,7 @@ Never relabel compatibility, inferred or synthetic values as client-native. Unkn
 
 ## Status synchronization
 
-A material status change must update all affected durable surfaces in the same maintenance branch:
+A material status change must update all affected durable surfaces in the same change on `main` (or in the same temporary branch when isolation is required):
 
 - tracking issue;
 - version analysis;
@@ -80,7 +83,7 @@ Examples of material status changes: `UNRESOLVED -> HIGH_CONFIDENCE`, promotion-
 
 ## Maintenance review checklist
 
-Before merging a maintenance/promotion branch:
+Before completing a maintenance/promotion change:
 
 - no durable conclusion exists only in a handoff or research branch;
 - no active issue asks a question already answered by current evidence;
