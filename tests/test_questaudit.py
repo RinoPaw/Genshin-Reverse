@@ -133,5 +133,31 @@ class QuestAuditTests(unittest.TestCase):
         self.assertIn("3", result["rows"])
 
 
+    def test_legacy_compatibility_controls_are_not_native(self) -> None:
+        result = audit_quest_rows(
+            {10: {}},
+            {
+                10: {
+                    "subId": 10,
+                    "finishCondComb": "LOGIC_OR",
+                    "failCondComb": "LOGIC_OR",
+                    "gainItems": [{"itemId": 1021, "count": 1}],
+                }
+            },
+        )
+        row = result["rows"]["10"]["fields"]
+        self.assertEqual(
+            row["finishCondComb"]["status"],
+            "compatibility-control-present",
+        )
+        self.assertFalse(row["finishCondComb"]["native_7_1"])
+        self.assertEqual(
+            row["gainItems"]["status"],
+            "legacy-compatibility-slot-present",
+        )
+        self.assertFalse(row["gainItems"]["native_7_1"])
+        self.assertEqual(result["summary"]["conflicts"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
