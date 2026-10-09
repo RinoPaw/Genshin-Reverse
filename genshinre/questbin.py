@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-import struct
 from typing import Any, Callable
 
+from .binconfig import BinaryConfigReader, decode_native_chunks as _decode_chunks
 from .questaction import QuestActionParseError, parse_quest_action_config
 
 _U16 = 0xFFFF
@@ -475,33 +475,9 @@ QUEST_EXEC_NAMES = {
 }
 
 
-class _Reader:
+class _Reader(BinaryConfigReader):
     def __init__(self, data: bytes):
-        self.data = data
-        self.pos = 0
-
-    def take(self, count: int) -> bytes:
-        end = self.pos + count
-        if count < 0 or end > len(self.data):
-            raise QuestBinParseError(
-                f"truncated Quest BinOutput at 0x{self.pos:X}: need {count} bytes, "
-                f"have {len(self.data) - self.pos}"
-            )
-        out = self.data[self.pos:end]
-        self.pos = end
-        return out
-
-    def u8(self) -> int:
-        return self.take(1)[0]
-
-    def u16(self) -> int:
-        return struct.unpack("<H", self.take(2))[0]
-
-    def u32(self) -> int:
-        return struct.unpack("<I", self.take(4))[0]
-
-    def u64(self) -> int:
-        return struct.unpack("<Q", self.take(8))[0]
+        super().__init__(data, error_type=QuestBinParseError, label="Quest BinOutput")
 
 
 def _bits(value: int, width: int) -> tuple[int, ...]:
@@ -514,21 +490,6 @@ def _add16(value: int, constant: int) -> int:
 
 def _add32(value: int, constant: int) -> int:
     return (value + constant) & _U32
-
-
-def _decode_chunks(data: bytes, key: int, op: str) -> bytes:
-    out = bytearray()
-    for offset in range(0, len(data), 8):
-        chunk = data[offset : offset + 8]
-        value = int.from_bytes(chunk, "little")
-        if op == "xor":
-            value ^= key
-        elif op == "add":
-            value = (value + key) & _U64
-        else:
-            raise AssertionError(op)
-        out += value.to_bytes(8, "little")[: len(chunk)]
-    return bytes(out)
 
 
 def _native_string(

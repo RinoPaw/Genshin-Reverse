@@ -1,18 +1,19 @@
 # Client Dungeon-config candidate
 
-Status: **PARTIAL**. The exact 7.1 Windows client contains a 67-field config
-candidate with a native reader. The drop-root interpretation remains
-**HIGH_CONFIDENCE**, pending a complete native asset row decode and a consumer/loader binding.
-The native Dungeon payload is now extracted and identified in the design index.
-This trace does not resolve any of the 140 missing resource roots.
+Status: **PARTIAL**. The 67-field native reader is implemented as a reusable
+row wire decoder. The exact 426,891-byte payload scans into **2,377 rows**, with
+zero trailing bytes after an opaque four-byte prefix. Its table-header count
+transform and a typed consumer/loader binding remain **UNRESOLVED**. The root
+field interpretation remains source-dependent; no missing resource root,
+drop quantity or probability is recovered.
 
 ## Target and evidence
 
 The source example is talent Dungeon **4434**: scene `40764`, level gate `25`,
 reward preview `25220`, resin cost `20`, and source key
 `IAOMJCLOIEL = 82162700`. That root is absent from the pinned resource DropTable.
-These are observations from `AstaPS-Resource@b0f3a279`; they are not values read
-from a native client asset.
+These values now also match the native row wire scan. Their semantic aliases
+come from the pinned `AstaPS-Resource@b0f3a279` projection.
 
 The canonical metadata field `165131` names `IAOMJCLOIEL`, owned by
 `LGLHLMDKIEO` (type definition `33015`). Multiple exact obfuscated keys shared
@@ -124,11 +125,28 @@ an empty/broken extraction. This rules out the listed identities in this index;
 it does **not** rule out alternative names, another index, transformed/embedded
 data or server-only tables.
 
-A source-selected byte search of the Dungeon payload found `82162700 XOR
-0x2DBB0C2F` once at payload offset 215,120, and the corresponding candidate for
-`82165000` once at 215,787. Both are **CANDIDATE_BYTE_MATCH** only. Without full
-row framing they establish neither Dungeon 4434/4437 ownership nor the field's
-semantic meaning. Do not promote these into native decoded JSON.
+The previous byte-only leads are now row-bound. Dungeon ID candidate 4434
+occupies `[214970, 215179)` and its `0xE8` value **82162700** occupies
+`[215120, 215124)`. ID candidate 4437 occupies `[215637, 215886)` and value
+**82165000** occupies `[215787, 215791)`. All 2,377 candidate IDs are unique and
+match the pinned resource's ID set. Twenty-six selected scalar/string/array
+aliases match the resource for every present field (counts in the JSON).
+This corroborates the ID/scene/cost/preview/root binding across rows; it does
+not establish a native drop-table consumer or a distribution algorithm.
+
+`genshinre.dungeonbin` implements native read order, presence polarity,
+modular transforms, three string formats, arrays, ordered dictionary pairs,
+and nested value-type masks. It emits object offsets, unsigned wire values,
+and byte spans. Absent fields are omitted; dictionary pairs retain duplicates.
+Enum names and wrapper in-memory representations are not fabricated.
+`genshinre.binconfig` supplies bounded reads and chunk transforms shared with
+Quest decoding. Dungeon is a separate decoder beside Quest.
+
+The raw prefix is `be7bde4c`; the row count is **observed**, not decoded from
+this prefix. `decode-dungeon-bin` requires `--allow-opaque-header` and labels
+its output `ROW_WIRE_DECODED_HEADER_UNRESOLVED`. Full consumption alone is not
+a proof of header framing or semantics. Inputs and decoded full tables remain
+local; the committed snapshot contains provenance and summary evidence only.
 
 A local displacement/nearby-wrapper-call probe also produced unrelated owners,
 including `MusicEditorTimeLineComponent.SetupBeatDivisionDropDown`: its method
@@ -148,7 +166,8 @@ dotnet /path/to/AnimeStudio.CLI.dll inputs/7.1.0-global/31049741.blk \
 dotnet /path/to/AnimeStudio.CLI.dll inputs/7.1.0-global/25539185.blk \
   inputs/7.1.0-global/excel-export --game GI --types MiHoYoBinData \
   --export_type Raw --logger_flags Error
-python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --check
+python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global \
+  --dungeon-resource ../AstaPS-Resource/ExcelBinOutput/DungeonExcelConfigData.json --check
 genshinre query-assets inputs/7.1.0-global/design-index-export/MiHoYoBinData/0000006f.dat \
   Data/_ExcelBinOutput/DungeonExcelConfigData \
   Data/_ExcelBinOutput/DropTableExcelConfigData
@@ -159,7 +178,13 @@ parser used by Quest extraction. It explicitly distinguishes absent hashes,
 ambiguous names, incomplete references and resolved locations. The raw client
 assets remain local inputs and are not redistributed.
 
-Next evidence gates: fully decode the Dungeon table without trailing bytes;
-validate the candidate root field on actual rows; bind a typed consumer and
-lookup target. Only a recovered drop table plus its selection algorithm could
-close quantities/probabilities. No missing-root status is changed by this probe.
+To scan an already unwrapped payload:
+
+```sh
+genshinre decode-dungeon-bin /path/to/DungeonExcel.payload \
+  --allow-opaque-header --output /path/to/local-dungeon-wire.json
+```
+
+Next evidence gates: recover the table-header count transform; bind a typed
+consumer and lookup target; recover the actual drop table and selection
+algorithm. The 140 missing-root statuses remain unchanged.

@@ -95,3 +95,15 @@ hash and tested path list. A 40-bit hash match locates a candidate resource but
 does not independently prove semantics. Validate the actual export and full
 schema before promoting a decoded table. Absence of a finite candidate set
 does not establish that a whole data category is absent from the client.
+
+
+## Partial table framing
+
+A native row reader can be recovered before its containing table header.
+Expose this distinction in the decoder API and output: the 7.1 Dungeon scan
+requires explicit `--allow-opaque-header`, retains the raw four-byte prefix,
+and reports an observed row count. Do not promote an EOF scan to decoded
+header-count validation. Use native read order and independent pinned resource
+agreements to corroborate rows, while preserving consumer/semantic gaps.
+Shared bounded readers and native string chunk transforms live in
+`genshinre.binconfig`; Quest and Dungeon keep separate schema decoders.

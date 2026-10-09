@@ -173,6 +173,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("research-status", help="summarize machine-readable analysis state and open claims")
     p.add_argument("path", type=Path)
 
+    p = sub.add_parser("decode-dungeon-bin", help="scan 7.1 Dungeon rows with opaque table header")
+    p.add_argument("input", type=Path, help="unwrapped DungeonExcel payload")
+    p.add_argument("--allow-opaque-header", action="store_true", required=True)
+    p.add_argument("--output", type=Path)
+
     p = sub.add_parser(
         "decode-quest-bin",
         help="decode a Genshin 7.1 native Data/_BinOutput/Quest payload",
@@ -492,6 +497,16 @@ def main() -> None:
         from .analysis import research_status
 
         print(json.dumps(research_status(args.path), indent=2, ensure_ascii=False))
+    elif args.command == "decode-dungeon-bin":
+        from .dungeonbin import scan_dungeon_table
+
+        result = scan_dungeon_table(args.input.read_bytes(), allow_opaque_header=args.allow_opaque_header)
+        rendered = json.dumps(result.to_dict(), indent=2, ensure_ascii=False) + "\n"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+        else:
+            print(rendered, end="")
     elif args.command == "decode-quest-bin":
         from .questbin import parse_main_quest
 

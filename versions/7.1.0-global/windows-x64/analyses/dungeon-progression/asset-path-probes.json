@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "target": "Genshin Impact 7.1.0 Global Windows x64",
-  "scope": "exact path-hash membership and raw-export identities; no full Dungeon decode or native drop distribution",
+  "scope": "exact asset identities and Dungeon row wire scan; table header and drop distribution unresolved",
   "source": {
     "manifestUrl": "https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d",
     "chunkPrefix": "https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu",
@@ -40,11 +40,13 @@
   "generator": {
     "script": "scripts/collect-7.1-dungeon-assets.py",
     "toolGitBlobShas": {
-      "scripts/collect-7.1-dungeon-assets.py": "648a55f7a453ca24af9e20f3bae281f23b144f12",
+      "scripts/collect-7.1-dungeon-assets.py": "d04ec7df9ae27b9a8a9ef292886275a4e98d0bfe",
       "genshinre/assetindex.py": "50168d68c68e8e2704006dd6880386624017b9ee",
-      "genshinre/nativeprofile.py": "e127a95f395c5f29e177486b36268fb4e6631602"
+      "genshinre/nativeprofile.py": "e127a95f395c5f29e177486b36268fb4e6631602",
+      "genshinre/binconfig.py": "ed53d04f42c7af2547b105acedcec2bd84f261d8",
+      "genshinre/dungeonbin.py": "994e690e2497be0bbc221d029231458e0c15772d"
     },
-    "command": "python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --check"
+    "command": "python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --dungeon-resource ../AstaPS-Resource/ExcelBinOutput/DungeonExcelConfigData.json --check"
   },
   "controls": [
     {
@@ -546,31 +548,373 @@
     "dropPathCount": 66,
     "dropPathHashAbsentCount": 66
   },
-  "byteLeads": [
-    {
-      "sourceRootId": 82162700,
-      "encodedNeedleHex": "23b85e29",
-      "payloadOffsets": [
-        215120
-      ],
-      "status": "CANDIDATE_BYTE_MATCH",
-      "limit": "no row boundary, Dungeon ID binding or field identity established"
+  "dungeonRowWire": {
+    "status": "ROW_WIRE_DECODED_HEADER_UNRESOLVED",
+    "reader": {
+      "owner": "LGLHLMDKIEO",
+      "method": "GMENPOPMKAA",
+      "rva": "0x12CA3BA0",
+      "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+      "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
     },
-    {
-      "sourceRootId": 82165000,
-      "encodedNeedleHex": "27b15e29",
-      "payloadOffsets": [
-        215787
+    "headerHex": "be7bde4c",
+    "headerCountDecoded": false,
+    "observedRowCount": 2377,
+    "bytesConsumed": 426891,
+    "payloadSize": 426891,
+    "trailingBytes": 0,
+    "uniqueIdCandidateCount": 2377,
+    "fieldReadOrder": [
+      "0x8C",
+      "0x84",
+      "0x104",
+      "0x108",
+      "0x8D",
+      "0xA3",
+      "0x58",
+      "0x8E",
+      "0xDA",
+      "0x88",
+      "0xC4",
+      "0x28",
+      "0x74",
+      "0xF4",
+      "0x5C",
+      "0xE4",
+      "0x38",
+      "0xAC",
+      "0x70",
+      "0xEC",
+      "0x98",
+      "0x40",
+      "0xB8",
+      "0xA0",
+      "0xDB",
+      "0x90",
+      "0xF9",
+      "0xBC",
+      "0x100",
+      "0x7C",
+      "0x110",
+      "0x20",
+      "0xFA",
+      "0x10",
+      "0xD0",
+      "0xA4",
+      "0xD4",
+      "0xA2",
+      "0xFC",
+      "0xC0",
+      "0x9C",
+      "0xB0",
+      "0xB4",
+      "0xE8",
+      "0x80",
+      "0x8F",
+      "0xE0",
+      "0xD8",
+      "0xF8",
+      "0x50",
+      "0xD9",
+      "0x6C",
+      "0x68",
+      "0x30",
+      "0x60",
+      "0x94",
+      "0x48",
+      "0xDC",
+      "0xC8",
+      "0xA1",
+      "0x64",
+      "0x18",
+      "0xF0",
+      "0x10C",
+      "0xCC",
+      "0xA8",
+      "0x78"
+    ],
+    "fieldPresentCounts": {
+      "0x8C": 137,
+      "0x84": 378,
+      "0x104": 2377,
+      "0x108": 1940,
+      "0x8D": 2377,
+      "0xA3": 1,
+      "0x58": 2377,
+      "0x8E": 849,
+      "0xDA": 20,
+      "0x88": 2377,
+      "0xC4": 7,
+      "0x28": 2377,
+      "0x74": 2299,
+      "0xF4": 5,
+      "0x5C": 2377,
+      "0xE4": 2377,
+      "0x38": 849,
+      "0xAC": 1525,
+      "0x70": 2248,
+      "0xEC": 36,
+      "0x98": 1387,
+      "0x40": 1029,
+      "0xB8": 1,
+      "0xA0": 2,
+      "0xDB": 16,
+      "0x90": 66,
+      "0xF9": 27,
+      "0xBC": 2359,
+      "0x100": 22,
+      "0x7C": 1525,
+      "0x110": 112,
+      "0x20": 2377,
+      "0xFA": 12,
+      "0x10": 51,
+      "0xD0": 2376,
+      "0xA4": 754,
+      "0xD4": 2377,
+      "0xA2": 2,
+      "0xFC": 159,
+      "0xC0": 2377,
+      "0x9C": 2377,
+      "0xB0": 2297,
+      "0xB4": 89,
+      "0xE8": 306,
+      "0x80": 2377,
+      "0x8F": 177,
+      "0xE0": 256,
+      "0xD8": 643,
+      "0xF8": 1,
+      "0x50": 245,
+      "0xD9": 5,
+      "0x6C": 0,
+      "0x68": 643,
+      "0x30": 768,
+      "0x60": 2377,
+      "0x94": 2273,
+      "0x48": 2377,
+      "0xDC": 2377,
+      "0xC8": 66,
+      "0xA1": 3,
+      "0x64": 9,
+      "0x18": 148,
+      "0xF0": 54,
+      "0x10C": 2377,
+      "0xCC": 1598,
+      "0xA8": 307,
+      "0x78": 2377
+    },
+    "targetBindings": [
+      {
+        "dungeonIdCandidate": 4434,
+        "rowStart": 214970,
+        "rowEnd": 215179,
+        "rootFieldOffset": "0xE8",
+        "decodedRoot": 82162700,
+        "rootSpan": [
+          215120,
+          215124
+        ],
+        "sceneIdCandidate": 40764,
+        "limitLevelCandidate": 25,
+        "previewIdCandidate": 25220,
+        "costCountCandidate": 20,
+        "status": "ROW_WIRE_BOUND_SEMANTICS_SOURCE_DEPENDENT"
+      },
+      {
+        "dungeonIdCandidate": 4437,
+        "rowStart": 215637,
+        "rowEnd": 215886,
+        "rootFieldOffset": "0xE8",
+        "decodedRoot": 82165000,
+        "rootSpan": [
+          215787,
+          215791
+        ],
+        "sceneIdCandidate": 40767,
+        "limitLevelCandidate": 45,
+        "previewIdCandidate": 25223,
+        "costCountCandidate": 20,
+        "status": "ROW_WIRE_BOUND_SEMANTICS_SOURCE_DEPENDENT"
+      }
+    ],
+    "sourceComparison": {
+      "repository": "RinoPaw/AstaPS-Resource",
+      "commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+      "path": "ExcelBinOutput/DungeonExcelConfigData.json",
+      "gitBlobSha": "92983c5d9d46bccf486b803b7cf65f2cdf9088cb",
+      "idSetsEqual": true,
+      "rowCount": 2377,
+      "fieldAgreement": [
+        {
+          "offset": "0xD4",
+          "sourceAlias": "id",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xDC",
+          "sourceAlias": "sceneId",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xE8",
+          "sourceAlias": "IAOMJCLOIEL",
+          "presentRowsCompared": 306,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xD0",
+          "sourceAlias": "limitLevel",
+          "presentRowsCompared": 2376,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x5C",
+          "sourceAlias": "passRewardPreviewID",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x68",
+          "sourceAlias": "statueCostCount",
+          "presentRowsCompared": 643,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x104",
+          "sourceAlias": "nameTextMapHash",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x108",
+          "sourceAlias": "levelRevise",
+          "presentRowsCompared": 1940,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x40",
+          "sourceAlias": "entryPicPath",
+          "presentRowsCompared": 1029,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x88",
+          "sourceAlias": "cityID",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xCC",
+          "sourceAlias": "dayEnterCount",
+          "presentRowsCompared": 1598,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x58",
+          "sourceAlias": "gearDescTextMapHash",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xE4",
+          "sourceAlias": "displayNameTextMapHash",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xC0",
+          "sourceAlias": "descTextMapHash",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x70",
+          "sourceAlias": "quitSettleCountdownTime",
+          "presentRowsCompared": 2248,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x74",
+          "sourceAlias": "passCond",
+          "presentRowsCompared": 2299,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x94",
+          "sourceAlias": "failSettleCountdownTime",
+          "presentRowsCompared": 2273,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xB0",
+          "sourceAlias": "settleCountdownTime",
+          "presentRowsCompared": 2297,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xBC",
+          "sourceAlias": "showLevel",
+          "presentRowsCompared": 2359,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x7C",
+          "sourceAlias": "reviveMaxCount",
+          "presentRowsCompared": 1525,
+          "mismatches": 0
+        },
+        {
+          "offset": "0xA8",
+          "sourceAlias": "statueCostID",
+          "presentRowsCompared": 307,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x98",
+          "sourceAlias": "LBFFJMPGCBN",
+          "presentRowsCompared": 1387,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x110",
+          "sourceAlias": "KNKLKDNGEGI",
+          "presentRowsCompared": 112,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x80",
+          "sourceAlias": "PHGJMAKCFHE",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x10C",
+          "sourceAlias": "EHLOPBNGBIM",
+          "presentRowsCompared": 2377,
+          "mismatches": 0
+        },
+        {
+          "offset": "0x18",
+          "sourceAlias": "DILPLNIBBJF",
+          "presentRowsCompared": 148,
+          "mismatches": 0
+        }
       ],
-      "status": "CANDIDATE_BYTE_MATCH",
-      "limit": "no row boundary, Dungeon ID binding or field identity established"
-    }
-  ],
+      "limit": "aliases validated against this projection; native consumer semantics unproven"
+    },
+    "limits": [
+      "opaque four-byte table header; scanning to EOF does not decode its count",
+      "unsigned scalar wire values, not enum names or wrapper memory representation",
+      "semantic aliases require independently pinned source comparison",
+      "source root reference is not the drop table or a native consumer"
+    ]
+  },
   "limitations": [
     "40-bit hash membership alone is not semantic path ownership",
     "absence applies only to listed paths in this exact design index",
     "alternative names, separate indexes and server-only tables remain possible",
-    "Dungeon row framing and full reader schema remain unresolved",
+    "Dungeon table header count and native consumer remain unresolved",
     "no missing roots, item quantities or native probabilities recovered"
   ]
 }

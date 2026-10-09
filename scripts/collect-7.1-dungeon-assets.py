@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from genshinre.assetindex import parse_asset_index, query_asset_paths, unwrap_mihoyo_bin_data
 from genshinre.nativeprofile import PROFILE_71
+from genshinre.dungeonbin import SCHEMA, scan_dungeon_table
 
 OUTPUT = ROOT / 'versions/7.1.0-global/windows-x64/analyses/dungeon-progression/asset-path-probes.json'
 INDEX_SHA256 = 'fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712'
@@ -34,7 +35,7 @@ def git_blob(raw: bytes) -> str:
     return hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
 
 
-def build(samples: Path) -> dict:
+def build(samples: Path, dungeon_resource: Path) -> dict:
     blocks = {}
     for block, expected in BLOCK_MD5.items():
         raw = (samples / f'{block}.blk').read_bytes()
@@ -60,25 +61,78 @@ def build(samples: Path) -> dict:
         raise ValueError('independent published QuestExcel payload control mismatch')
     probes = query_asset_paths(index, [prefix+name for prefix in PREFIXES for name in DROP_NAMES])
     payload = asset_payloads['Data/_ExcelBinOutput/DungeonExcelConfigData']
-    leads = []
-    for root in [82162700, 82165000]:
-        # Source-selected byte searches are leads, not parsed rows or ID ownership.
-        encoded = (root ^ 0x2DBB0C2F).to_bytes(4, 'little')
-        offsets = []
-        pos = 0
-        while True:
-            pos = payload.find(encoded, pos)
-            if pos < 0:
-                break
-            offsets.append(pos)
-            pos += 1
-        leads.append({'sourceRootId': root, 'encodedNeedleHex': encoded.hex(),
-                      'payloadOffsets': offsets, 'status': 'CANDIDATE_BYTE_MATCH',
-                      'limit': 'no row boundary, Dungeon ID binding or field identity established'})
-    tools = ['scripts/collect-7.1-dungeon-assets.py', 'genshinre/assetindex.py', 'genshinre/nativeprofile.py']
+    scan = scan_dungeon_table(payload, allow_opaque_header=True)
+    ids = [row.fields.get(0xD4) for row in scan.rows]
+    if None in ids or len(set(ids)) != len(ids):
+        raise ValueError('Dungeon scan has absent or duplicate ID candidates')
+    resource_raw = dungeon_resource.read_bytes()
+    expected_blob = '92983c5d9d46bccf486b803b7cf65f2cdf9088cb'
+    if git_blob(resource_raw) != expected_blob:
+        raise ValueError('pinned Dungeon resource blob mismatch')
+    source_rows = json.loads(resource_raw)
+    source_by_id = {row['id']: row for row in source_rows}
+    if set(ids) != set(source_by_id) or len(ids) != len(source_rows):
+        raise ValueError('native candidate ID set differs from pinned resource')
+    aliases = {0xD4: 'id', 0xDC: 'sceneId', 0xE8: 'IAOMJCLOIEL',
+               0xD0: 'limitLevel', 0x5C: 'passRewardPreviewID', 0x68: 'statueCostCount',
+               0x104: 'nameTextMapHash', 0x108: 'levelRevise', 0x40: 'entryPicPath',
+               0x88: 'cityID', 0xCC: 'dayEnterCount', 0x58: 'gearDescTextMapHash',
+               0xE4: 'displayNameTextMapHash', 0xC0: 'descTextMapHash',
+               0x70: 'quitSettleCountdownTime', 0x74: 'passCond', 0x94: 'failSettleCountdownTime',
+               0xB0: 'settleCountdownTime', 0xBC: 'showLevel', 0x7C: 'reviveMaxCount',
+               0xA8: 'statueCostID', 0x98: 'LBFFJMPGCBN', 0x110: 'KNKLKDNGEGI',
+               0x80: 'PHGJMAKCFHE', 0x10C: 'EHLOPBNGBIM', 0x18: 'DILPLNIBBJF'}
+    agreement = []
+    for offset, alias in aliases.items():
+        compared = 0
+        for row in scan.rows:
+            source_row = source_by_id[row.fields[0xD4]]
+            if offset in row.fields:
+                if row.fields[offset] != source_row.get(alias, 0):
+                    raise ValueError(f'wire/source disagreement: {row.fields[0xD4]} {alias}')
+                compared += 1
+        agreement.append({'offset': f'0x{offset:X}', 'sourceAlias': alias,
+                          'presentRowsCompared': compared, 'mismatches': 0})
+    bindings = []
+    for dungeon_id in [4434, 4437]:
+        row = next(row for row in scan.rows if row.fields[0xD4] == dungeon_id)
+        bindings.append({
+            'dungeonIdCandidate': dungeon_id, 'rowStart': row.start, 'rowEnd': row.end,
+            'rootFieldOffset': '0xE8', 'decodedRoot': row.fields[0xE8],
+            'rootSpan': list(row.spans[0xE8]),
+            'sceneIdCandidate': row.fields[0xDC], 'limitLevelCandidate': row.fields[0xD0],
+            'previewIdCandidate': row.fields[0x5C], 'costCountCandidate': row.fields[0x68],
+            'status': 'ROW_WIRE_BOUND_SEMANTICS_SOURCE_DEPENDENT',
+        })
+    row_wire = {
+        'status': 'ROW_WIRE_DECODED_HEADER_UNRESOLVED',
+        'reader': {'owner': 'LGLHLMDKIEO', 'method': 'GMENPOPMKAA', 'rva': '0x12CA3BA0',
+                   'exeSha256': PROFILE_71.exe_sha256,
+                   'metadataSha256': PROFILE_71.metadata_sha256},
+        'headerHex': scan.header_hex, 'headerCountDecoded': False,
+        'observedRowCount': len(scan.rows), 'bytesConsumed': scan.bytes_consumed,
+        'payloadSize': len(payload), 'trailingBytes': len(payload)-scan.bytes_consumed,
+        'uniqueIdCandidateCount': len(set(ids)),
+        'fieldReadOrder': [f'0x{field[0]:X}' for field in SCHEMA],
+        'fieldPresentCounts': {f'0x{field[0]:X}': sum(field[0] in row.fields for row in scan.rows)
+                               for field in SCHEMA},
+        'targetBindings': bindings,
+        'sourceComparison': {
+            'repository': 'RinoPaw/AstaPS-Resource',
+            'commit': 'b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd',
+            'path': 'ExcelBinOutput/DungeonExcelConfigData.json', 'gitBlobSha': expected_blob,
+            'idSetsEqual': True, 'rowCount': len(source_rows), 'fieldAgreement': agreement,
+            'limit': 'aliases validated against this projection; native consumer semantics unproven',
+        },
+        'limits': ['opaque four-byte table header; scanning to EOF does not decode its count',
+                   'unsigned scalar wire values, not enum names or wrapper memory representation',
+                   'semantic aliases require independently pinned source comparison',
+                   'source root reference is not the drop table or a native consumer'],
+    }
+    tools = ['scripts/collect-7.1-dungeon-assets.py', 'genshinre/assetindex.py', 'genshinre/nativeprofile.py', 'genshinre/binconfig.py', 'genshinre/dungeonbin.py']
     return {
         'schemaVersion': 1, 'target': 'Genshin Impact 7.1.0 Global Windows x64',
-        'scope': 'exact path-hash membership and raw-export identities; no full Dungeon decode or native drop distribution',
+        'scope': 'exact asset identities and Dungeon row wire scan; table header and drop distribution unresolved',
         'source': {'manifestUrl': PROFILE_71.sophon_manifest_url,
                    'chunkPrefix': PROFILE_71.sophon_chunk_prefix, 'blocks': blocks,
                    'index': {'exportedName': '0000006f', 'rawSize': len(raw_index), 'rawSha256': sha(raw_index),
@@ -91,15 +145,15 @@ def build(samples: Path) -> dict:
                      'runtime': 'Microsoft.NETCore.App 10.0.0 Linux x64',
                      'arguments': '--game GI --types MiHoYoBinData --export_type Raw --logger_flags Error'},
         'generator': {'script': tools[0], 'toolGitBlobShas': {p:git_blob((ROOT/p).read_bytes()) for p in tools},
-                      'command': 'python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --check'},
+                      'command': 'python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --dungeon-resource ../AstaPS-Resource/ExcelBinOutput/DungeonExcelConfigData.json --check'},
         'controls': rows, 'dropPathProbes': probes,
         'summary': {'controlCount': len(rows), 'dropPathCount': len(probes),
                     'dropPathHashAbsentCount': sum(r['status']=='HASH_ABSENT' for r in probes)},
-        'byteLeads': leads,
+        'dungeonRowWire': row_wire,
         'limitations': ['40-bit hash membership alone is not semantic path ownership',
                         'absence applies only to listed paths in this exact design index',
                         'alternative names, separate indexes and server-only tables remain possible',
-                        'Dungeon row framing and full reader schema remain unresolved',
+                        'Dungeon table header count and native consumer remain unresolved',
                         'no missing roots, item quantities or native probabilities recovered'],
     }
 
@@ -107,10 +161,11 @@ def build(samples: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--samples', required=True, type=Path)
+    parser.add_argument('--dungeon-resource', required=True, type=Path)
     parser.add_argument('--output', type=Path, default=OUTPUT)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    result = build(args.samples)
+    result = build(args.samples, args.dungeon_resource)
     if args.check:
         if json.loads(args.output.read_text()) != result:
             raise SystemExit('Dungeon asset probes differ from snapshot')
