@@ -10,83 +10,105 @@
   "questions": [
     "Who decides that Barbara C6 should trigger after an eligible death?",
     "Where is the 15-minute cooldown represented and who authoritatively validates it?",
-    "Which 7.1 network/Ability path commits the dead avatar back to the alive state?"
+    "Which exact 7.1 AbilityInvokeEntry reports the revive action and how is the authoritative alive state committed?"
   ],
   "claims": [
     {
       "id": "client-trigger-chain",
       "status": "CONFIRMED",
-      "statement": "The 7.1 Barbara C6 talent installs an off-stage DoReviveMixin chain that starts hidden skill 10076 and executes ReviveAvatar for player avatars at full target max HP.",
+      "statement": "Current 7.1 resource data shows Barbara C6 installing an off-stage DoReviveMixin chain that starts hidden skill 10076 and executes ReviveAvatar for AllPlayerAvatars with HealHP = 1.0.",
       "evidence": [
         {
-          "kind": "client-resource",
-          "source": "iam-akuzihs/binout@6736c676c273ea5da50712e1c5a6d58aa0e69749",
-          "locator": "v7.1.0-9587d1afbd/BinOutput/Talent/AvatarTalents/ConfigTalent_Barbara.json",
-          "note": "Barbara_Constellation_6 attaches the dedicated ReBorn abilities."
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "BinOutput/Talent/AvatarTalents/ConfigTalent_Barbara.json",
+          "note": "Barbara_Constellation_6 installs the ReBorn ability family."
         },
         {
-          "kind": "client-resource",
-          "source": "iam-akuzihs/binout@6736c676c273ea5da50712e1c5a6d58aa0e69749",
-          "locator": "v7.1.0-9587d1afbd/BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json",
-          "note": "DoReviveMixin -> skill 10076 -> ReviveAvatar chain."
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json",
+          "note": "ReBorn_Pre uses OffStage DoReviveMixin; kill-side actions start skill 10076; ReBorn runs AvatarSkillStart(10076) and ReviveAvatar."
         }
       ]
     },
     {
       "id": "skill-10076-cooldown-carrier",
-      "status": "HIGH_CONFIDENCE",
-      "statement": "Hidden skill 10076 is the cooldown carrier for Barbara C6 and is expected to retain the 900-second cooldown in 7.1.",
+      "status": "CONFIRMED",
+      "statement": "Current 7.1 AvatarSkill data identifies skill 10076 as Avatar_Barbara_ReBorn with cdTime = 900 seconds, making it the concrete cooldown identity used by the C6 resource chain.",
       "evidence": [
         {
-          "kind": "client-resource",
-          "source": "iam-akuzihs/binout@6736c676c273ea5da50712e1c5a6d58aa0e69749",
-          "locator": "v7.1.0-9587d1afbd/BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json",
-          "note": "The C6 chain starts AvatarSkillStart(10076)."
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "ExcelBinOutput/AvatarSkillExcelConfigData.json id=10076",
+          "note": "abilityName=Avatar_Barbara_ReBorn; cdTime=900.0; buffIcon=Skill_B_Barbara_01."
         },
         {
-          "kind": "historical-resource",
-          "source": "Ahanlei123/2.8_live_data@f25e3155e38f9dc8f647493bf23a935147caf59e",
-          "locator": "txt/AvatarSkillData.txt",
-          "note": "Skills 10076/10079/10080 have 900-second cooldowns; exact 7.1 skill-table row remains to be recovered."
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json",
+          "note": "The C6 execution chain starts skill 10076 with AvatarSkillStart."
         }
       ]
     },
     {
-      "id": "client-ability-reporting-path",
+      "id": "ability-c2s-channel",
       "status": "HIGH_CONFIDENCE",
-      "statement": "The revive trigger is expected to cross the normal client-to-server Ability invocation path after the client executes the C6 resource chain.",
+      "statement": "The current 7.1 Ability invocation channel used by AstaPS is AbilityInvocationsNotify / CmdId 6622, and the local 7.1 registry binds CmdId 6622 to obfuscated type ALPCFFANJPJ.",
       "evidence": [
         {
-          "kind": "cross-project",
-          "source": "Grasscutters/Grasscutter",
-          "locator": "src/main/java/emu/grasscutter/server/packet/recv/HandlerAbilityInvocationsNotify.java",
-          "note": "AbilityInvocationsNotify carries client AbilityInvokeEntry values into server Ability processing; the exact Barbara argument remains unidentified."
+          "kind": "current-registry",
+          "source": "../../registry/registry.csv",
+          "locator": "cmd_id=6622",
+          "note": "Provides exact current numeric/type identity."
+        },
+        {
+          "kind": "integration-context",
+          "source": "README.md#network-boundary",
+          "note": "The current AstaPS receive path parses AbilityInvocationsNotify entries and dispatches them through AbilityManager."
         }
       ],
-      "notes": "This does not yet identify the exact 7.1 AbilityInvokeEntry emitted by ReviveAvatar."
+      "notes": "The exact Barbara C6 AbilityInvokeEntry carried on this channel is still unresolved, so this is not yet a canonical semantic opcode promotion."
+    },
+    {
+      "id": "barbara-wire-entry",
+      "status": "UNRESOLVED",
+      "statement": "The exact AbilityInvokeEntry emitted when Barbara C6 fires, including local_id, argument_type and ability_data, has not yet been recovered.",
+      "evidence": []
     },
     {
       "id": "official-server-cooldown-authority",
       "status": "UNRESOLVED",
-      "statement": "It is not yet known whether the official server independently stores or validates Barbara C6 skill 10076 cooldown state.",
+      "statement": "It is not yet known how the official server validates, stores or restores the cooldown state for hidden skill 10076.",
       "evidence": []
     },
     {
       "id": "authoritative-life-state-commit",
       "status": "UNRESOLVED",
-      "statement": "The exact 7.1 path that commits the revived avatar to authoritative LIFE_ALIVE state is not yet identified.",
+      "statement": "The exact official 7.1 path that commits the revived avatar from dead to authoritative alive state remains unresolved.",
       "evidence": []
     }
   ],
   "rejected_paths": [
     {
-      "statement": "Use a generic ReviveDeadAvatar action or its byServer field as direct evidence for Barbara C6 in 7.1.",
-      "reason": "The concrete 7.1 Barbara C6 action recovered from BinOutput is ReviveAvatar, and this block has no visible byServer field.",
+      "statement": "Treat a Barbara-specific wall-clock timer in generic server death handling as the native C6 trigger model.",
+      "reason": "Current 7.1 resources contain a dedicated off-stage Ability trigger chain and hidden skill 10076; the server timer is at most an integration fallback/anti-replay mechanism.",
       "evidence": [
         {
-          "kind": "client-resource",
-          "source": "iam-akuzihs/binout@6736c676c273ea5da50712e1c5a6d58aa0e69749",
-          "locator": "v7.1.0-9587d1afbd/BinOutput/Ability/Temp/AvatarAbilities/ConfigAbility_Avatar_Barbara.json"
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "ConfigTalent_Barbara.json + ConfigAbility_Avatar_Barbara.json + AvatarSkillExcelConfigData id=10076"
+        }
+      ]
+    },
+    {
+      "statement": "Use generic/historical ReviveDeadAvatar naming as the concrete Barbara C6 action name in 7.1.",
+      "reason": "The current Barbara resource chain uses ReviveAvatar.",
+      "evidence": [
+        {
+          "kind": "current-version-resource",
+          "source": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2",
+          "locator": "ConfigAbility_Avatar_Barbara.json"
         }
       ]
     }
@@ -96,9 +118,9 @@
     "evidence.json"
   ],
   "next_steps": [
-    "Recover exact 7.1 AvatarSkillExcelConfigData rows for skills 10076, 10079 and 10080.",
-    "Recover the 7.1 AbilityInvocationsNotify CmdId/type identity and its receive path.",
-    "Capture or statically trace the AbilityInvokeEntry values emitted when Barbara C6 triggers.",
-    "Compare off-cooldown and on-cooldown lethal events, then test reconnect/scene-transition cooldown persistence."
+    "Capture otherwise identical lethal events with Barbara C6 ready, Barbara C6 cooling down, and Barbara/C6 unavailable.",
+    "Decode every CmdId 6622 AbilityInvokeEntry around those events and identify the sequence unique to the ready-C6 case.",
+    "Resolve the captured local_id through the instanced ability/action tables and bind it to Avatar_Barbara_ReBorn / ReviveAvatar.",
+    "After the exact wire path is proven, evaluate removal of the Barbara-specific trigger fallback while retaining authoritative revive-state synchronization and cooldown validation."
   ]
 }
