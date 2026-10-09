@@ -233,6 +233,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("audit", help="audit server resources against preserved evidence")
     audit_sub = p.add_subparsers(dest="audit_target", required=True)
+    q = audit_sub.add_parser("dungeon", help="audit pinned AstaPS configured Dungeon rewards")
+    q.add_argument("resource_root", type=Path)
+    q.add_argument("server_root", type=Path)
+    q.add_argument("--resource-source", required=True, help="repository/revision label for these resources")
+    q.add_argument("--output", type=Path)
+    q.add_argument("--check", type=Path, help="compare against a generated snapshot")
+
     q = audit_sub.add_parser(
         "quest",
         help="audit AstaPS-style Quest JSON against Genshin 7.1 ordinary Quest evidence",
@@ -590,7 +597,23 @@ def main() -> None:
                 )
             )
     elif args.command == "audit":
-        if args.audit_target == "quest":
+        if args.audit_target == "dungeon":
+            from .dungeonaudit import audit_dungeon_directories
+
+            result = audit_dungeon_directories(args.resource_root, args.server_root,
+                                               resource_source=args.resource_source)
+            if args.check:
+                if result != json.loads(args.check.read_text(encoding="utf-8")):
+                    raise SystemExit("Dungeon reward audit differs from snapshot")
+                print("PASS: pinned Dungeon reward audit")
+                return
+            rendered = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(rendered, encoding="utf-8")
+            else:
+                print(rendered, end="")
+        elif args.audit_target == "quest":
             from .questaudit import audit_quest_directories
 
             result = audit_quest_directories(
