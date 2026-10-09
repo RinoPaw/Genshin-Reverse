@@ -19,7 +19,7 @@ The canonical current-client registry binds `CmdId 5963` to `GLIHKBGFALC`:
 - `AEGNNPENLNM` (GetCmdId) @ `0x0A580740`, registry load `0x07F8255C`, store `0x07F82563`.
 - One `bool` field `PJHLOKDIPNO`; the generated serializer `IENGFLPCLNM` @ `0x0A580610` writes tag `0x58` at `0x0A58066E`, proving **protobuf field 11, wire type 0**. Its value is loaded from message object offset `+0x18`.
 
-The external type-slot consumer is `EDKMMIPJHJA.GHNMMIIFKIG(bool)` @ `0x07262BC0`. The slot load at `0x07262BD5`, message field write at `0x07262BF5` and tail send to `EDKMMIPJHJA.DMLCLHCBOBJ` @ `0x147246860` establish a current-client **C2S bool message construction/sender**. Together with AstaPS's observed `PlayerSetPauseReq=5963` and `Miscs.PauseLevelTime` entry point, this supports the request's semantic identity. It is not evidence for the *response* identity.
+The external type-slot consumer is `EDKMMIPJHJA.GHNMMIIFKIG(bool)` @ `0x07262BC0`. The slot load at `0x07262BD5`, message field write at `0x07262BF5` and tail send to `EDKMMIPJHJA.DMLCLHCBOBJ` @ RVA `0x07246860` establish a current-client **C2S bool message construction/sender**. Together with AstaPS's observed `PlayerSetPauseReq=5963` and `Miscs.PauseLevelTime` entry point, this supports the request's semantic identity. It is not evidence for the *response* identity.
 
 All three exact-client direct callers of `GHNMMIIFKIG(bool)` are:
 
