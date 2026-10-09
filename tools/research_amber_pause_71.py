@@ -141,9 +141,35 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
             result["request_sender_methods"] = list(unique_senders.values())
             result["request_sender_call_xrefs"] = call_refs["matches"]
             result["request_sender_native_disassembly"] = {
-                rva: disassemble_rva(exe, int(rva, 0), 0x110)["instructions"]
+                rva: disassemble_rva(exe, int(rva, 0), 0x90)["instructions"]
                 for rva in unique_senders
             }
+            caller_methods = {}
+            for group in call_refs["matches"].values():
+                for hit in group:
+                    for method in hit.get("caller_methods", []):
+                        if method.get("rva"):
+                            caller_methods[method["rva"]] = method
+            result["request_sender_callers"] = list(caller_methods.values())
+            result["request_sender_caller_disassembly"] = {
+                rva: disassemble_rva(exe, int(rva, 0), 0x220)["instructions"]
+                for rva in caller_methods
+            }
+            result["request_parser_disassembly"] = disassemble_rva(
+                exe, 0xA580610, 0x130
+            )["instructions"]
+            caller_param_types = set()
+            from genshinre.metadatacsv import parse_parameter_types
+            for method in caller_methods.values():
+                caller_param_types.update(parse_parameter_types(method.get("parameter_types", "")))
+            result["caller_input_registry"] = [
+                registry_by_type[name] for name in sorted(caller_param_types)
+                if name in registry_by_type
+            ]
+            result["caller_input_fields"] = [
+                field for field in load_csv(fields_path)
+                if field.get("type_name") in caller_param_types
+            ]
     return result
 
 
