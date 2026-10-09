@@ -229,23 +229,23 @@ def _parse_camera_move_action(reader: _Reader) -> dict[str, Any]:
     if 8 in active:
         out["NMEENCOHBNC"] = reader.u8() != 0x18
     if 62 in active:
-        out["ABKEMCCALEC"] = _parse_vector(reader)
+        out["camPosOffset"] = _parse_vector(reader)
     if 52 in active:
         out["NEGBDDEAAAH"] = _raw_native_string(
             reader, lambda raw: (raw + 0x9D47) & 0xFFFF
         )
     if 19 in active:
-        out["CEDPMBHLGHM"] = reader.u8() != 0x79
+        out["needZAxisRotate"] = reader.u8() != 0x79
     if 28 in active:
         ease_id = _add32(reader.u32(), 0x490ADE52)
         try:
-            out["NKJJGKEABGO"] = _CAMERA_EASE_NAMES[ease_id]
+            out["cameraBlendType"] = _CAMERA_EASE_NAMES[ease_id]
         except KeyError as exc:
             raise QuestActionParseError(
                 f"unsupported GEEOEPCPODO easing id {ease_id} at 0x{reader.pos - 4:X}"
             ) from exc
     if 26 in active:
-        out["PGONIBOPIND"] = _parse_camera_rotate_setting(reader)
+        out["cutFrameTrans"] = _parse_camera_rotate_setting(reader)
     if 45 in active:
         out["BDPMLAKINNK"] = reader.u8() != 0x73
     if 2 in active:
@@ -253,7 +253,7 @@ def _parse_camera_move_action(reader: _Reader) -> dict[str, Any]:
             _add32(reader.u32() ^ 0xD4305273, 0x1BA953C7)
         )
     if 57 in active:
-        out["DLLHPFNMJPN"] = _parse_vector(reader)
+        out["camForwardTargetOffset"] = _parse_vector(reader)
     if 21 in active:
         out["GBCBGFBBCIE"] = _float32(_add32(reader.u32(), 0x3FF5FD83))
     if 29 in active:
@@ -269,9 +269,9 @@ def _parse_camera_move_action(reader: _Reader) -> dict[str, Any]:
     if 48 in active:
         out["GJHJGFODJCD"] = _float32(reader.u32() ^ 0x8ECDA52C)
     if 1 in active:
-        out["LOGGIAJEMHD"] = _add32(reader.u32(), 0x712EAF98)
+        out["lerpPattern"] = _add32(reader.u32(), 0x712EAF98)
     if 40 in active:
-        out["KHLHBNLLCDG"] = _float32(reader.u32() ^ 0x04984060)
+        out["camFov"] = _float32(reader.u32() ^ 0x04984060)
 
     return {"$type": "GEEOEPCPODO", **out}
 
