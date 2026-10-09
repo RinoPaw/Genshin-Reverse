@@ -1,0 +1,4248 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact 7.1.0 Global",
+  "scope": "source-row joins only: DungeonExcelConfigData.IAOMJCLOIEL -> Server/DropTableExcelConfigData.id; nested nodes via Server/DropSubTableExcelConfigData; no runtime/probability assertion",
+  "source": {
+    "repository": "RinoPaw/AstaPS-Resource",
+    "commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+    "files": {
+      "ExcelBinOutput/DungeonExcelConfigData.json": {
+        "gitBlobSha": "92983c5d9d46bccf486b803b7cf65f2cdf9088cb",
+        "rowCount": 2377
+      },
+      "Server/DropTableExcelConfigData.json": {
+        "gitBlobSha": "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
+        "rowCount": 13823
+      },
+      "Server/DropSubTableExcelConfigData.json": {
+        "gitBlobSha": "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+        "rowCount": 1885
+      }
+    }
+  },
+  "summary": {
+    "talentDungeonRows": 104,
+    "resolvedRootCount": 56,
+    "missingRootCount": 48,
+    "reachableDropTableNodes": 112,
+    "reachableDropSubTableNodes": 6,
+    "unresolvedRootIds": [
+      82162700,
+      82163300,
+      82164100,
+      82165000,
+      82262700,
+      82263300,
+      82264100,
+      82265000,
+      82362700,
+      82363300,
+      82364100,
+      82365000,
+      82152700,
+      82153300,
+      82154100,
+      82155000,
+      82252700,
+      82253300,
+      82254100,
+      82255000,
+      82352700,
+      82353300,
+      82354100,
+      82355000,
+      82172700,
+      82173300,
+      82174100,
+      82175000,
+      82272700,
+      82273300,
+      82274100,
+      82275000,
+      82372700,
+      82373300,
+      82374100,
+      82375000,
+      82182700,
+      82183300,
+      82184100,
+      82185000,
+      82282700,
+      82283300,
+      82284100,
+      82285000,
+      82382700,
+      82383300,
+      82384100,
+      82385000
+    ]
+  },
+  "domains": [
+    {
+      "dungeonId": 4200,
+      "cityId": 1,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 20200,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82012700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4201,
+      "cityId": 1,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 20201,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82013300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4202,
+      "cityId": 1,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 20202,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82014100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4203,
+      "cityId": 1,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 20203,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82015000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4210,
+      "cityId": 1,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 20220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82112700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4211,
+      "cityId": 1,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 20221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82113300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4212,
+      "cityId": 1,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 20222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82114100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4213,
+      "cityId": 1,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 20223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82115000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4220,
+      "cityId": 1,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 20240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82212700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4221,
+      "cityId": 1,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 20241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82213300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4222,
+      "cityId": 1,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 20242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82214100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4223,
+      "cityId": 1,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 20243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82215000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4230,
+      "cityId": 1,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 20260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82312700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4231,
+      "cityId": 1,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 20261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82313300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4232,
+      "cityId": 1,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 20262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82314100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4233,
+      "cityId": 1,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 20263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82315000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4400,
+      "cityId": 3,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 22220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82132700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4401,
+      "cityId": 3,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 22221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82133300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4402,
+      "cityId": 3,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 22222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82134100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4403,
+      "cityId": 3,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 22223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82135000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4410,
+      "cityId": 3,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 22240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82232700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4411,
+      "cityId": 3,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 22241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82233300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4412,
+      "cityId": 3,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 22242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82234100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4413,
+      "cityId": 3,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 22243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82235000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4420,
+      "cityId": 3,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 22260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82332700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4421,
+      "cityId": 3,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 22261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82333300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4422,
+      "cityId": 3,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 22262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82334100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4423,
+      "cityId": 3,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 22263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82335000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4430,
+      "cityId": 4,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 23220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82142700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4431,
+      "cityId": 4,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 23221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82143300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4432,
+      "cityId": 4,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 23222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82144100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4433,
+      "cityId": 4,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 23223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82145000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4434,
+      "cityId": 6,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 25220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82162700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4435,
+      "cityId": 6,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 25221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82163300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4436,
+      "cityId": 6,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 25222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82164100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4437,
+      "cityId": 6,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 25223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82165000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4440,
+      "cityId": 4,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 23240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82242700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4441,
+      "cityId": 4,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 23241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82243300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4442,
+      "cityId": 4,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 23242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82244100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4443,
+      "cityId": 4,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 23243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82245000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4444,
+      "cityId": 6,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 25240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82262700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4445,
+      "cityId": 6,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 25241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82263300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4446,
+      "cityId": 6,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 25242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82264100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4447,
+      "cityId": 6,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 25243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82265000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4450,
+      "cityId": 4,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 23260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82342700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4451,
+      "cityId": 4,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 23261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82343300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4452,
+      "cityId": 4,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 23262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82344100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4453,
+      "cityId": 4,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 23263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82345000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 4454,
+      "cityId": 6,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 25260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82362700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4455,
+      "cityId": 6,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 25261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82363300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4456,
+      "cityId": 6,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 25262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82364100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4457,
+      "cityId": 6,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 25263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82365000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4460,
+      "cityId": 5,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 24220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82152700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4461,
+      "cityId": 5,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 24221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82153300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4462,
+      "cityId": 5,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 24222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82154100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4463,
+      "cityId": 5,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 24223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82155000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4490,
+      "cityId": 5,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 24240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82252700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4491,
+      "cityId": 5,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 24241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82253300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4492,
+      "cityId": 5,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 24242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82254100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4493,
+      "cityId": 5,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 24243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82255000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4494,
+      "cityId": 5,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 24260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82352700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4495,
+      "cityId": 5,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 24261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82353300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4496,
+      "cityId": 5,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 24262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82354100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4497,
+      "cityId": 5,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 24263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82355000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4651,
+      "cityId": 7,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 26220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82172700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4652,
+      "cityId": 7,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 26221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82173300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4653,
+      "cityId": 7,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 26222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82174100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4654,
+      "cityId": 7,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 26223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82175000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4655,
+      "cityId": 7,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 26240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82272700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4656,
+      "cityId": 7,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 26241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82273300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4657,
+      "cityId": 7,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 26242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82274100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4658,
+      "cityId": 7,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 26243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82275000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4659,
+      "cityId": 7,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 26260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82372700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4660,
+      "cityId": 7,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 26261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82373300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4661,
+      "cityId": 7,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 26262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82374100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4662,
+      "cityId": 7,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 26263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82375000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4691,
+      "cityId": 8,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 27220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82182700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4692,
+      "cityId": 8,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 27221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82183300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4693,
+      "cityId": 8,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 27222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82184100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4694,
+      "cityId": 8,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 27223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82185000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4695,
+      "cityId": 8,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 27240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82282700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4696,
+      "cityId": 8,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 27241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82283300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4697,
+      "cityId": 8,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 27242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82284100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4698,
+      "cityId": 8,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 27243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82285000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4699,
+      "cityId": 8,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 27260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82382700,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4700,
+      "cityId": 8,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 27261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82383300,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4701,
+      "cityId": 8,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 27262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82384100,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 4702,
+      "cityId": 8,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 27263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82385000,
+      "rootPresent": false
+    },
+    {
+      "dungeonId": 5250,
+      "cityId": 2,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 21200,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82022700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5251,
+      "cityId": 2,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 21201,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82023300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5252,
+      "cityId": 2,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 21202,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82024100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5253,
+      "cityId": 2,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 21203,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82025000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5254,
+      "cityId": 2,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 21220,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82122700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5255,
+      "cityId": 2,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 21221,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82123300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5256,
+      "cityId": 2,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 21222,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82124100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5257,
+      "cityId": 2,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 21223,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82125000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5258,
+      "cityId": 2,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 21240,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82222700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5259,
+      "cityId": 2,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 21241,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82223300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5260,
+      "cityId": 2,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 21242,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82224100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5261,
+      "cityId": 2,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 21243,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82225000,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5262,
+      "cityId": 2,
+      "showLevel": 38,
+      "limitLevel": 25,
+      "passRewardPreviewId": 21260,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82322700,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5263,
+      "cityId": 2,
+      "showLevel": 54,
+      "limitLevel": 28,
+      "passRewardPreviewId": 21261,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82323300,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5264,
+      "cityId": 2,
+      "showLevel": 71,
+      "limitLevel": 36,
+      "passRewardPreviewId": 21262,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82324100,
+      "rootPresent": true
+    },
+    {
+      "dungeonId": 5265,
+      "cityId": 2,
+      "showLevel": 88,
+      "limitLevel": 45,
+      "passRewardPreviewId": 21263,
+      "baseResinCostItemId": 106,
+      "baseResinCostCount": 20,
+      "rootDropId": 82325000,
+      "rootPresent": true
+    }
+  ],
+  "dropNodes": [
+    {
+      "id": 510000,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104301,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104304,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104307,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 510001,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104302,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104305,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104308,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 510002,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104303,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104306,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104309,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 510010,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104310,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104313,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104316,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 510011,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104311,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104314,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104317,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 510012,
+      "table": "DropSubTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 0,
+      "sourceType": null,
+      "dropVec": [
+        {
+          "itemId": 104312,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104315,
+          "countRange": "1",
+          "weight": 1000
+        },
+        {
+          "itemId": 104318,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82012700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 510000,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82012711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82012711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510000,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82013300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 510000,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82013311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82013311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510001,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82014100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 510000,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82014111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82014111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510001,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82015000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 510000,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82015011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82015011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510001,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 510002,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82022700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 510010,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82022711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82022711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510010,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82023300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 510010,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82023311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82023311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510011,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82024100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 510010,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82024111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82024111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510011,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82025000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 510010,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82025011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82025011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 510011,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 510012,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82112700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104301,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82112711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82112711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104301,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82113300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104301,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82113311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82113311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104302,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82114100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104301,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82114111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82114111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104302,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82115000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104301,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82115011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82115011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104302,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104303,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82122700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104310,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82122711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82122711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104310,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82123300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104310,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82123311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82123311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82124100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104310,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82124111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82124111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82125000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104310,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82125011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82125011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104311,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104312,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82132700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104320,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82132711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82132711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104320,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82133300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104320,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82133311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82133311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104321,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82134100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104320,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82134111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82134111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104321,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82135000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104320,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82135011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82135011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104321,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104322,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82142700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104329,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82142711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82142711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104329,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82143300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104329,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82143311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82143311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104330,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82144100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104329,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82144111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82144111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104330,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82145000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104329,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82145011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82145011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104330,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104331,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82212700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104304,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82212711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82212711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104304,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82213300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104304,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82213311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82213311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104305,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82214100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104304,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82214111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82214111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104305,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82215000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104304,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82215011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82215011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104305,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104306,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82222700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104313,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82222711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82222711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104313,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82223300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104313,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82223311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82223311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104314,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82224100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104313,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82224111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82224111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104314,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82225000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104313,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82225011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82225011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104314,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104315,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82232700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104323,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82232711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82232711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104323,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82233300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104323,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82233311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82233311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104324,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82234100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104323,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82234111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82234111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104324,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82235000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104323,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82235011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82235011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104324,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104325,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82242700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104332,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82242711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82242711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104332,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82243300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104332,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82243311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82243311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104333,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82244100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104332,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82244111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82244111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104333,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82245000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104332,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82245011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82245011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104333,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104334,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82312700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104307,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82312711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82312711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104307,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82313300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104307,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82313311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82313311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104308,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82314100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104307,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82314111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82314111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104308,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82315000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104307,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82315011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82315011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104308,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104309,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82322700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104316,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82322711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82322711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104316,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82323300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104316,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82323311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82323311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104317,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82324100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104316,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82324111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82324111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104317,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82325000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104316,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82325011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82325011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104317,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104318,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82332700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104326,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82332711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82332711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104326,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82333300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104326,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82333311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82333311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104327,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82334100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104326,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82334111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82334111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104327,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82335000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104326,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82335011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82335011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104327,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104328,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    },
+    {
+      "id": 82342700,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1575",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104335,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82342711,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82342711,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104335,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82343300,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "1800",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "15",
+          "weight": 10000
+        },
+        {
+          "itemId": 104335,
+          "countRange": "2.5",
+          "weight": 10000
+        },
+        {
+          "itemId": 82343311,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82343311,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104336,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82344100,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2050",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104335,
+          "countRange": "1.8",
+          "weight": 10000
+        },
+        {
+          "itemId": 82344111,
+          "countRange": "2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82344111,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104336,
+          "countRange": "1",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82345000,
+      "table": "DropTableExcelConfigData",
+      "randomType": 1,
+      "dropLevel": 0,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 102,
+          "countRange": "100",
+          "weight": 10000
+        },
+        {
+          "itemId": 202,
+          "countRange": "2375",
+          "weight": 10000
+        },
+        {
+          "itemId": 105,
+          "countRange": "20",
+          "weight": 10000
+        },
+        {
+          "itemId": 104335,
+          "countRange": "2.2",
+          "weight": 10000
+        },
+        {
+          "itemId": 82345011,
+          "countRange": "2.2",
+          "weight": 10000
+        }
+      ]
+    },
+    {
+      "id": 82345011,
+      "table": "DropTableExcelConfigData",
+      "randomType": 0,
+      "dropLevel": 1,
+      "nodeType": 1,
+      "sourceType": 27,
+      "dropVec": [
+        {
+          "itemId": 104336,
+          "countRange": "1",
+          "weight": 9000
+        },
+        {
+          "itemId": 104337,
+          "countRange": "1",
+          "weight": 1000
+        }
+      ]
+    }
+  ]
+}
