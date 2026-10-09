@@ -1,0 +1,526 @@
+{
+  "status": "STATIC_RECONNAISSANCE_ONLY",
+  "sample": {
+    "identity": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "anchors": {
+    "request_cmd_id": 5963,
+    "historical_response_cmd_id": 2870,
+    "historical_response_not_current_evidence": true
+  },
+  "request_registry": {
+    "index": "1404",
+    "cmd_id": "5963",
+    "type_name": "GLIHKBGFALC",
+    "type_definition_index": "50277",
+    "direction": "",
+    "direction_status": "unresolved",
+    "semantic_name": "",
+    "type_slot_rva": "0x57F5160",
+    "get_cmd_id_rva": "0xA580740",
+    "get_cmd_id_method": "AEGNNPENLNM",
+    "load_rva": "0x7F8255C",
+    "store_rva": "0x7F82563",
+    "xref_count": "1",
+    "xref_method_count": "1",
+    "status": "static-verified-identity",
+    "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+  },
+  "historical_response_registry_row_not_semantic": {
+    "index": "694",
+    "cmd_id": "2870",
+    "type_name": "DKPJBENLNFD",
+    "type_definition_index": "81784",
+    "direction": "",
+    "direction_status": "unresolved",
+    "semantic_name": "",
+    "type_slot_rva": "0x57F0B60",
+    "get_cmd_id_rva": "0x7EAAF10",
+    "get_cmd_id_method": "AEGNNPENLNM",
+    "load_rva": "0x7F7FE88",
+    "store_rva": "0x7F7FE8F",
+    "xref_count": "5",
+    "xref_method_count": "3",
+    "status": "static-verified-identity",
+    "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+  },
+  "historical_response_fields_not_semantic": [
+    {
+      "field_index": "406869",
+      "type_definition_index": "81784",
+      "type_name": "DKPJBENLNFD",
+      "field_name": "CIDOBKHNGFP",
+      "field_type": "kind_0x15",
+      "field_type_index": "476942",
+      "name_token": "0x0B1A0974",
+      "offset": "",
+      "record_file_offset": "0xBEB46C"
+    },
+    {
+      "field_index": "406870",
+      "type_definition_index": "81784",
+      "type_name": "DKPJBENLNFD",
+      "field_name": "NPOPICILIPK",
+      "field_type": "kind_0x15",
+      "field_type_index": "476942",
+      "name_token": "0x0B3DED98",
+      "offset": "",
+      "record_file_offset": "0xBEB474"
+    },
+    {
+      "field_index": "406871",
+      "type_definition_index": "81784",
+      "type_name": "DKPJBENLNFD",
+      "field_name": "EBCCJHHJGAI",
+      "field_type": "kind_0x15",
+      "field_type_index": "476943",
+      "name_token": "0x0B1A097F",
+      "offset": "",
+      "record_file_offset": "0xBEB47C"
+    },
+    {
+      "field_index": "406872",
+      "type_definition_index": "81784",
+      "type_name": "DKPJBENLNFD",
+      "field_name": "OGBKCMGLHCD",
+      "field_type": "kind_0x15",
+      "field_type_index": "476943",
+      "name_token": "0x0B3DEDA3",
+      "offset": "",
+      "record_file_offset": "0xBEB484"
+    },
+    {
+      "field_index": "406873",
+      "type_definition_index": "81784",
+      "type_name": "DKPJBENLNFD",
+      "field_name": "BLPJNJBFDJJ",
+      "field_type": "int32",
+      "field_type_index": "439016",
+      "name_token": "0x0B18885E",
+      "offset": "",
+      "record_file_offset": "0xBEB48C"
+    }
+  ],
+  "request_fields": [
+    {
+      "field_index": "252191",
+      "type_definition_index": "50277",
+      "type_name": "GLIHKBGFALC",
+      "field_name": "PJHLOKDIPNO",
+      "field_type": "bool",
+      "field_type_index": "439043",
+      "name_token": "0x0B3302D7",
+      "offset": "",
+      "record_file_offset": "0xABD2BC"
+    }
+  ],
+  "request_methods": {
+    "count": 8,
+    "rows": [
+      {
+        "method_index": "400950",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": ".ctor",
+        "rva": "0xA580600",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x05000022"
+      },
+      {
+        "method_index": "400951",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "KCLBBFDAMDF",
+        "rva": "0xA5805D0",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B188461"
+      },
+      {
+        "method_index": "400952",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "HKFIBILBMDF",
+        "rva": "0xA5805E0",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B187020"
+      },
+      {
+        "method_index": "400953",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "IENGFLPCLNM",
+        "rva": "0xA580610",
+        "return_type": "",
+        "parameter_types": "[\"EIBJNHDPEMB\"]",
+        "parameter_start": "291297",
+        "parameter_count": "1",
+        "name_token": "0x0B187062"
+      },
+      {
+        "method_index": "400954",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "AEGNNPENLNM",
+        "rva": "0xA580740",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B188456"
+      },
+      {
+        "method_index": "400955",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "NKFCABIOGLE",
+        "rva": "0xA580750",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B18651F"
+      },
+      {
+        "method_index": "400956",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "CopyFrom",
+        "rva": "0xA580830",
+        "return_type": "",
+        "parameter_types": "[\"GLIHKBGFALC\"]",
+        "parameter_start": "291298",
+        "parameter_count": "1",
+        "name_token": "0x0803C404"
+      },
+      {
+        "method_index": "400957",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "EBAAKGIEFHO",
+        "rva": "0xA580870",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B18702B"
+      }
+    ],
+    "truncated": false
+  },
+  "request_external_signature_refs": {
+    "count": 0,
+    "rows": [],
+    "truncated": false
+  },
+  "request_external_declaring_types": [],
+  "receiver_owner": "LLCGIEDMIIG",
+  "receiver_method_count": 543,
+  "receiver_registry_param_count": 197,
+  "receiver_known_protocol_control": {
+    "2870": [],
+    "4385": [
+      {
+        "method_name": "NFAPFONEAPH",
+        "rva": "0xC2504D0",
+        "parameter_type": "LBLELLCECLL"
+      }
+    ],
+    "7003": [
+      {
+        "method_name": "AAHPLLIEFIB",
+        "rva": "0xC241960",
+        "parameter_type": "GFPMFMJPNMA"
+      }
+    ],
+    "22060": [
+      {
+        "method_name": "KCLOEKKLMLH",
+        "rva": "0xC25D900",
+        "parameter_type": "DAKFNDLCAHC"
+      }
+    ]
+  },
+  "evidence_limits": [
+    "Canonical CmdId-to-type identity is not a semantic mapping.",
+    "Method signatures and slot references alone cannot confirm PlayerSetPauseRsp.",
+    "No Amber input-lock causal claim follows from static reconstruction."
+  ],
+  "verified_exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "request_type_slot_xrefs": [
+    {
+      "instruction_rva": "0x7262BD5",
+      "target_rva": "0x57F5160",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x0D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -27712124,
+      "instruction_hex": "488b0d842559fe",
+      "section": "il2cpp",
+      "window_rva": "0x7262BA5",
+      "window_hex": "4885c9740d4889f24883c4205ee9e985eb06e8646225f9cc0f1f005657534883ec2089d34889ce803d5fe54efe007538488b0d842559fee8ffb35e0a4889c74889c1e8c4cc1e0584c075084885ff7444885f184889f14889fa4531c04883c4205b5f5ee9533cfe",
+      "caller_methods": [
+        {
+          "method_index": "528482",
+          "type_definition_index": "65384",
+          "type_name": "EDKMMIPJHJA",
+          "method_name": "GHNMMIIFKIG",
+          "rva": "0x7262BC0",
+          "return_type": "",
+          "parameter_types": "[\"bool\"]",
+          "parameter_start": "372593",
+          "parameter_count": "1",
+          "name_token": "0x0B6F3A83"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7F8255C",
+      "target_rva": "0x57F5160",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x05",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -41473027,
+      "instruction_hex": "488b05fd2b87fd",
+      "section": "il2cpp",
+      "window_rva": "0x7F8252C",
+      "window_hex": "8983e02b0000488b05172c87fd488983e82b0000488b0571a484fd488983f02b0000488b05032c87fd488983f82b0000488b05fd2b87fd488983002c0000488b05f72b87fd488983082c0000488b05a91983fd488983102c0000488b05e32b87fd488983182c00",
+      "caller_methods": [
+        {
+          "method_index": "653831",
+          "type_definition_index": "79078",
+          "type_name": "FBGCJGDKLLB",
+          "method_name": ".ctor",
+          "rva": "0x7F7D850",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x05000022"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0xA58075C",
+      "target_rva": "0x57F5160",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x1D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -81311235,
+      "instruction_hex": "488b1dfd4927fb",
+      "section": "il2cpp",
+      "window_rva": "0xA58072C",
+      "window_hex": "f086f3f5cc6666666666662e0f1f84000000000066b84b17c366662e0f1f84000000000041565657534883ec284989ce488b1dfd4927fb833dfa4a20fb00744d4889d9e86cd82c074889c74885ff0f849d0000004889f9e828f1ec0184c075204889f9e81cf1ec",
+      "caller_methods": [
+        {
+          "method_index": "400955",
+          "type_definition_index": "50277",
+          "type_name": "GLIHKBGFALC",
+          "method_name": "NKFCABIOGLE",
+          "rva": "0xA580750",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x0B18651F"
+        }
+      ]
+    }
+  ],
+  "request_type_slot_xref_count": 3,
+  "historical_response_type_slot_xrefs_not_semantic": [
+    {
+      "instruction_rva": "0x7EAB097",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x0D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -40609086,
+      "instruction_hex": "488b0dc25a94fd",
+      "section": "il2cpp",
+      "window_rva": "0x7EAB067",
+      "window_hex": "f80f1f8400000000004889f1e87820af014889f1e87023af0185c074d289c183e1fd83f81b734283f91875dd488b5f18488b0dc25a94fd80b9c7000000000f84970000004885db0f84d4000000488b052d818dfd4c8b8000ab0100eb3c6666662e0f1f84000000",
+      "caller_methods": [
+        {
+          "method_index": "675748",
+          "type_definition_index": "81784",
+          "type_name": "DKPJBENLNFD",
+          "method_name": "NLGBJEEJDLG",
+          "rva": "0x7EAB040",
+          "return_type": "",
+          "parameter_types": "[\"IFEDIKGINNK\"]",
+          "parameter_start": "513720",
+          "parameter_count": "1",
+          "name_token": "0x0B187083"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7EAB0D9",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x0D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -40609152,
+      "instruction_hex": "488b0d805a94fd",
+      "section": "il2cpp",
+      "window_rva": "0x7EAB0A9",
+      "window_hex": "00004885db0f84d4000000488b052d818dfd4c8b8000ab0100eb3c6666662e0f1f84000000000083f938754b488b5f20488b0d805a94fd80b9c70000000074694885db0f849b000000488b05ef808dfd4c8b8008ab01004889d94889f24531c9e8f2934110e965",
+      "caller_methods": [
+        {
+          "method_index": "675748",
+          "type_definition_index": "81784",
+          "type_name": "DKPJBENLNFD",
+          "method_name": "NLGBJEEJDLG",
+          "rva": "0x7EAB040",
+          "return_type": "",
+          "parameter_types": "[\"IFEDIKGINNK\"]",
+          "parameter_start": "513720",
+          "parameter_count": "1",
+          "name_token": "0x0B187083"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7EAB1EC",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x1D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -40609427,
+      "instruction_hex": "488b1d6d5994fd",
+      "section": "il2cpp",
+      "window_rva": "0x7EAB1BC",
+      "window_hex": "11c74018000000004883c428c3e852dc60f8e84ddc60f8cc6666662e0f1f84000000000041565657534883ec284989ce488b1d6d5994fd833d6aa08dfd0074284889d9e8dc2d9a094889c74885ff747a4889f94c89f2e8790000004889f84883c4285b5f5e415e",
+      "caller_methods": [
+        {
+          "method_index": "675750",
+          "type_definition_index": "81784",
+          "type_name": "DKPJBENLNFD",
+          "method_name": "NKFCABIOGLE",
+          "rva": "0x7EAB1E0",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x0B18651F"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7EAB34D",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x0D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -40609780,
+      "instruction_hex": "488b0d0c5894fd",
+      "section": "il2cpp",
+      "window_rva": "0x7EAB31D",
+      "window_hex": "f8e8fdda60f8e8f8da60f8e8f3da60f8cc6690c7412800000000c30f1f84000000000056574883ec284889cf488b7118488b0d0c5894fd80b9c7000000000f84c40000004885f60f84c9000000488b05777e8dfd488b9000ab01004889f14531c0e81d87411089",
+      "caller_methods": [
+        {
+          "method_index": "675752",
+          "type_definition_index": "81784",
+          "type_name": "DKPJBENLNFD",
+          "method_name": "EBAAKGIEFHO",
+          "rva": "0x7EAB340",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x0B18702B"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7EAB3EE",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x0D",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -40609941,
+      "instruction_hex": "488b0d6b5794fd",
+      "section": "il2cpp",
+      "window_rva": "0x7EAB3BE",
+      "window_hex": "004000007222b80300000081fa00002000721531c081fa000000100f92c083f005eb05b80a00000001c6ffc6488b7f20488b0d6b5794fd80b9c700000000743a4885ff743f488b05de7d8dfd488b9008ab01004889f94531c0e88486411001f04883c4285f5ec3",
+      "caller_methods": [
+        {
+          "method_index": "675752",
+          "type_definition_index": "81784",
+          "type_name": "DKPJBENLNFD",
+          "method_name": "EBAAKGIEFHO",
+          "rva": "0x7EAB340",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x0B18702B"
+        }
+      ]
+    },
+    {
+      "instruction_rva": "0x7F7FE88",
+      "target_rva": "0x57F0B60",
+      "length": 7,
+      "rex": "0x48",
+      "opcode": "0x8B",
+      "modrm": "0x05",
+      "mnemonic": "mov",
+      "access": "read",
+      "displacement": -41481007,
+      "instruction_hex": "488b05d10c87fd",
+      "section": "il2cpp",
+      "window_rva": "0x7F7FE58",
+      "window_hex": "8983b0150000488b05134687fd488983b8150000488b05d50786fd488983c0150000488b05df1683fd488983c8150000488b05d10c87fd488983d0150000488b05e34587fd488983d8150000488b05add685fd488983e0150000488b05cf4587fd488983e81500",
+      "caller_methods": [
+        {
+          "method_index": "653831",
+          "type_definition_index": "79078",
+          "type_name": "FBGCJGDKLLB",
+          "method_name": ".ctor",
+          "rva": "0x7F7D850",
+          "return_type": "",
+          "parameter_types": "[]",
+          "parameter_start": "-1",
+          "parameter_count": "0",
+          "name_token": "0x05000022"
+        }
+      ]
+    }
+  ]
+}
