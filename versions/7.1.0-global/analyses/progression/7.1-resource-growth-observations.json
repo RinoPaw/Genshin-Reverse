@@ -53,6 +53,11 @@
         "git_blob_sha": "dc617e939a0ad4864f88e32dbf98ace9ac11649f",
         "status": "populated-large-verified-by-direct-git-blob",
         "row_count": 4352
+      },
+      "MaterialExcelConfigData.json": {
+        "git_blob_sha": "8c2a0648837c55b4af49956520480a36efe1e6a2",
+        "status": "populated-large-verified-by-direct-git-blob",
+        "row_count": 10512
       }
     }
   },
@@ -134,6 +139,14 @@
           }
         ],
         "ordinary_exp_or_mora_after_90": "not implied by source; official update specifies no additional materials"
+      },
+      "post_90_material": {
+        "item_id": 104300,
+        "material_type": "MATERIAL_RARE_GROWTH_MATERIAL",
+        "rank_level": 5,
+        "name_text_map_hash": 958504444,
+        "identifier_evidence": "pinned MaterialExcel table",
+        "english_name_evidence": "HoYoverse official rule; exact hash-to-localization-string validation pending"
       }
     },
     "weapon": {
@@ -143,11 +156,360 @@
         "3": 3988200,
         "4": 6042650,
         "5": 9064450
+      },
+      "promotion_group_examples": {
+        "11301": {
+          "stage_coin_costs": [
+            5000,
+            10000,
+            15000,
+            20000,
+            25000,
+            30000
+          ],
+          "new_level_caps": [
+            40,
+            50,
+            60,
+            70,
+            80,
+            90
+          ],
+          "stage_materials": [
+            [
+              {
+                "item_id": 114001,
+                "count": 2
+              },
+              {
+                "item_id": 112014,
+                "count": 2
+              },
+              {
+                "item_id": 112011,
+                "count": 1
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 2
+              },
+              {
+                "item_id": 112014,
+                "count": 8
+              },
+              {
+                "item_id": 112011,
+                "count": 5
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 4
+              },
+              {
+                "item_id": 112015,
+                "count": 4
+              },
+              {
+                "item_id": 112012,
+                "count": 4
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 2
+              },
+              {
+                "item_id": 112015,
+                "count": 8
+              },
+              {
+                "item_id": 112012,
+                "count": 6
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 4
+              },
+              {
+                "item_id": 112016,
+                "count": 6
+              },
+              {
+                "item_id": 112013,
+                "count": 4
+              }
+            ],
+            [
+              {
+                "item_id": 114004,
+                "count": 3
+              },
+              {
+                "item_id": 112016,
+                "count": 12
+              },
+              {
+                "item_id": 112013,
+                "count": 8
+              }
+            ]
+          ]
+        },
+        "11401": {
+          "stage_coin_costs": [
+            5000,
+            15000,
+            20000,
+            30000,
+            35000,
+            45000
+          ],
+          "new_level_caps": [
+            40,
+            50,
+            60,
+            70,
+            80,
+            90
+          ],
+          "stage_materials": [
+            [
+              {
+                "item_id": 114001,
+                "count": 3
+              },
+              {
+                "item_id": 112014,
+                "count": 3
+              },
+              {
+                "item_id": 112011,
+                "count": 2
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 3
+              },
+              {
+                "item_id": 112014,
+                "count": 12
+              },
+              {
+                "item_id": 112011,
+                "count": 8
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 6
+              },
+              {
+                "item_id": 112015,
+                "count": 6
+              },
+              {
+                "item_id": 112012,
+                "count": 6
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 3
+              },
+              {
+                "item_id": 112015,
+                "count": 12
+              },
+              {
+                "item_id": 112012,
+                "count": 9
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 6
+              },
+              {
+                "item_id": 112016,
+                "count": 9
+              },
+              {
+                "item_id": 112013,
+                "count": 6
+              }
+            ],
+            [
+              {
+                "item_id": 114004,
+                "count": 4
+              },
+              {
+                "item_id": 112016,
+                "count": 18
+              },
+              {
+                "item_id": 112013,
+                "count": 12
+              }
+            ]
+          ]
+        },
+        "11501": {
+          "stage_coin_costs": [
+            10000,
+            20000,
+            30000,
+            45000,
+            55000,
+            65000
+          ],
+          "new_level_caps": [
+            40,
+            50,
+            60,
+            70,
+            80,
+            90
+          ],
+          "stage_materials": [
+            [
+              {
+                "item_id": 114001,
+                "count": 5
+              },
+              {
+                "item_id": 112014,
+                "count": 5
+              },
+              {
+                "item_id": 112011,
+                "count": 3
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 5
+              },
+              {
+                "item_id": 112014,
+                "count": 18
+              },
+              {
+                "item_id": 112011,
+                "count": 12
+              }
+            ],
+            [
+              {
+                "item_id": 114002,
+                "count": 9
+              },
+              {
+                "item_id": 112015,
+                "count": 9
+              },
+              {
+                "item_id": 112012,
+                "count": 9
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 5
+              },
+              {
+                "item_id": 112015,
+                "count": 18
+              },
+              {
+                "item_id": 112012,
+                "count": 14
+              }
+            ],
+            [
+              {
+                "item_id": 114003,
+                "count": 9
+              },
+              {
+                "item_id": 112016,
+                "count": 14
+              },
+              {
+                "item_id": 112013,
+                "count": 9
+              }
+            ],
+            [
+              {
+                "item_id": 114004,
+                "count": 6
+              },
+              {
+                "item_id": 112016,
+                "count": 27
+              },
+              {
+                "item_id": 112013,
+                "count": 18
+              }
+            ]
+          ]
+        }
       }
     },
     "artifact": {
       "five_star_exp_plus_0_to_20": 270475,
-      "source_internal_levels": "1..20 cost rows, 21 final displayed +20 state"
+      "source_internal_levels": "1..20 cost rows, 21 final displayed +20 state",
+      "five_star_variant_examples": [
+        {
+          "item_id": 20513,
+          "rank_level": 5,
+          "equip_type": "EQUIP_RING",
+          "append_prop_num": 3,
+          "main_prop_depot_id": 5000,
+          "append_prop_depot_id": 501,
+          "config_weight": 1,
+          "upgrade_internal_levels": [
+            5,
+            9,
+            13,
+            17,
+            21
+          ]
+        },
+        {
+          "item_id": 20514,
+          "rank_level": 5,
+          "equip_type": "EQUIP_RING",
+          "append_prop_num": 4,
+          "main_prop_depot_id": 5000,
+          "append_prop_depot_id": 501,
+          "config_weight": 1,
+          "upgrade_internal_levels": [
+            5,
+            9,
+            13,
+            17,
+            21
+          ]
+        }
+      ],
+      "initial_3_vs_4_probability_status": "unresolved; equal item config weight does not establish drop-table sampling probability"
     },
     "account": {
       "ar_to_world_level_unlocks": [
@@ -277,6 +639,167 @@
         }
       ]
     },
-    "large_tables_read_method": "Read directly by Git blob SHA. A path-based fetch can produce empty/truncated connector output for multi-megabyte files despite a nonempty Git blob."
+    "large_tables_read_method": "Read directly by Git blob SHA. A path-based fetch can produce empty/truncated connector output for multi-megabyte files despite a nonempty Git blob.",
+    "talent": {
+      "reference_group_id": 331,
+      "reference_group_scope": "Jean normal-attack group per prior skill-depot mapping (verify AvatarSkillDepot for full binding)",
+      "paid_levels_2_to_10": [
+        {
+          "level": 2,
+          "coin_cost": 12500,
+          "break_level": 2,
+          "cost_items": [
+            {
+              "item_id": 104304,
+              "count": 3
+            },
+            {
+              "item_id": 112005,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "coin_cost": 17500,
+          "break_level": 3,
+          "cost_items": [
+            {
+              "item_id": 104305,
+              "count": 2
+            },
+            {
+              "item_id": 112006,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "coin_cost": 25000,
+          "break_level": 3,
+          "cost_items": [
+            {
+              "item_id": 104305,
+              "count": 4
+            },
+            {
+              "item_id": 112006,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "level": 5,
+          "coin_cost": 30000,
+          "break_level": 4,
+          "cost_items": [
+            {
+              "item_id": 104305,
+              "count": 6
+            },
+            {
+              "item_id": 112006,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "level": 6,
+          "coin_cost": 37500,
+          "break_level": 4,
+          "cost_items": [
+            {
+              "item_id": 104305,
+              "count": 9
+            },
+            {
+              "item_id": 112006,
+              "count": 9
+            }
+          ]
+        },
+        {
+          "level": 7,
+          "coin_cost": 120000,
+          "break_level": 5,
+          "cost_items": [
+            {
+              "item_id": 104306,
+              "count": 4
+            },
+            {
+              "item_id": 112007,
+              "count": 4
+            },
+            {
+              "item_id": 113003,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "level": 8,
+          "coin_cost": 260000,
+          "break_level": 5,
+          "cost_items": [
+            {
+              "item_id": 104306,
+              "count": 6
+            },
+            {
+              "item_id": 112007,
+              "count": 6
+            },
+            {
+              "item_id": 113003,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "level": 9,
+          "coin_cost": 450000,
+          "break_level": 6,
+          "cost_items": [
+            {
+              "item_id": 104306,
+              "count": 12
+            },
+            {
+              "item_id": 112007,
+              "count": 9
+            },
+            {
+              "item_id": 113003,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "level": 10,
+          "coin_cost": 700000,
+          "break_level": 6,
+          "cost_items": [
+            {
+              "item_id": 104306,
+              "count": 16
+            },
+            {
+              "item_id": 112007,
+              "count": 12
+            },
+            {
+              "item_id": 113003,
+              "count": 2
+            },
+            {
+              "item_id": 104319,
+              "count": 1
+            }
+          ]
+        }
+      ]
+    }
   }
 }
