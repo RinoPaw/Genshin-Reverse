@@ -41,15 +41,18 @@
       },
       "ProudSkillExcelConfigData.json": {
         "git_blob_sha": "9a386ae8c115ee7a78a578b03cc1a862fa3162e7",
-        "status": "empty"
+        "status": "populated-large-verified-by-direct-git-blob",
+        "row_count": 6273
       },
       "WeaponPromoteExcelConfigData.json": {
         "git_blob_sha": "cd259ca9516b07342af617ddc515c4676b3f5570",
-        "status": "empty"
+        "status": "populated-large-verified-by-direct-git-blob",
+        "row_count": 1814
       },
       "ReliquaryExcelConfigData.json": {
         "git_blob_sha": "dc617e939a0ad4864f88e32dbf98ace9ac11649f",
-        "status": "empty"
+        "status": "populated-large-verified-by-direct-git-blob",
+        "row_count": 4352
       }
     }
   },
@@ -274,10 +277,6 @@
         }
       ]
     },
-    "unresolved_empty_tables": [
-      "ProudSkillExcelConfigData.json",
-      "WeaponPromoteExcelConfigData.json",
-      "ReliquaryExcelConfigData.json"
-    ]
+    "large_tables_read_method": "Read directly by Git blob SHA. A path-based fetch can produce empty/truncated connector output for multi-megabyte files despite a nonempty Git blob."
   }
 }

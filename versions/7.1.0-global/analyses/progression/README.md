@@ -21,9 +21,8 @@ An unresolved or partially bound result must not be promoted to `A`.
 ## Files
 
 - [7.1-resource-growth-observations.json](7.1-resource-growth-observations.json)
-  - source commit and Git blob fingerprints for eleven growth-related tables;
-  - verified 90→95→100 material counts, World Level and friendship data;
-  - level EXP totals and artifact +20 enhancement EXP.
+  - pinned 7.1 resource blob identities and machine-readable observations;
+  - 90→95→100 character limit raising; World Level, friendship, EXP and artifact enhancement inputs.
 
 - [7.1-native-progression-baseline.md](7.1-native-progression-baseline.md)
   - character EXP curve;
@@ -104,6 +103,6 @@ For current service rules, preserve version order: later HoYoverse rule changes 
 
 Private-server behavior belongs here only as `B` evidence or in the RPG proposal. It must not silently redefine the native baseline.
 
-## 2026-10-09 provenance review
+## 2026-10-09 source check
 
-A pinned-source check found empty `ProudSkillExcelConfigData.json`, `WeaponPromoteExcelConfigData.json` and `ReliquaryExcelConfigData.json`. These should not be cited as populated **current-resource** tables; prior talent/weapon-promotion/artifact-variant reconstructions require a separate populated source/consumer before native promotion. See the baseline checkpoint and machine-readable observations above.
+The pinned `AvatarExtraLevel` records confirm 90→95 and 95→100 progression costs. The large `ProudSkill`, `WeaponPromote` and `ReliquaryExcel` tables are populated when their Git blobs are fetched directly; path-based connector retrieval may appear empty due to response-size limits. See the new machine-readable observations and baseline checkpoint.
