@@ -1,0 +1,431 @@
+{
+  "target": "Genshin Impact 7.1.0 Global",
+  "source": {
+    "repository": "RinoPaw/AstaPS-Resource",
+    "commit": "402e95270010df5929f51cca8652362ca3e5c07a",
+    "files": {
+      "ExcelBinOutput/PlayerLevelExcelConfigData.json": "05688da8a60c6ee7f02cf11de4d8940d27b1ae51",
+      "ExcelBinOutput/WorldLevelExcelConfigData.json": "f316986f2d2e5081fb5d5adb7d8a671db0f1e11b"
+    }
+  },
+  "adventureRanks": [
+    {
+      "adventureRank": 1,
+      "cumulativeExp": 0,
+      "expToNextRank": 375
+    },
+    {
+      "adventureRank": 2,
+      "cumulativeExp": 375,
+      "expToNextRank": 500,
+      "rewardId": 200002
+    },
+    {
+      "adventureRank": 3,
+      "cumulativeExp": 875,
+      "expToNextRank": 625,
+      "rewardId": 200003
+    },
+    {
+      "adventureRank": 4,
+      "cumulativeExp": 1500,
+      "expToNextRank": 725,
+      "rewardId": 200004
+    },
+    {
+      "adventureRank": 5,
+      "cumulativeExp": 2225,
+      "expToNextRank": 850,
+      "rewardId": 200005
+    },
+    {
+      "adventureRank": 6,
+      "cumulativeExp": 3075,
+      "expToNextRank": 950,
+      "rewardId": 200006
+    },
+    {
+      "adventureRank": 7,
+      "cumulativeExp": 4025,
+      "expToNextRank": 1075,
+      "rewardId": 200007
+    },
+    {
+      "adventureRank": 8,
+      "cumulativeExp": 5100,
+      "expToNextRank": 1200,
+      "rewardId": 200008
+    },
+    {
+      "adventureRank": 9,
+      "cumulativeExp": 6300,
+      "expToNextRank": 1300,
+      "rewardId": 200009
+    },
+    {
+      "adventureRank": 10,
+      "cumulativeExp": 7600,
+      "expToNextRank": 1425,
+      "rewardId": 200010
+    },
+    {
+      "adventureRank": 11,
+      "cumulativeExp": 9025,
+      "expToNextRank": 1525,
+      "rewardId": 200011
+    },
+    {
+      "adventureRank": 12,
+      "cumulativeExp": 10550,
+      "expToNextRank": 1650,
+      "rewardId": 200012
+    },
+    {
+      "adventureRank": 13,
+      "cumulativeExp": 12200,
+      "expToNextRank": 1775,
+      "rewardId": 200013
+    },
+    {
+      "adventureRank": 14,
+      "cumulativeExp": 13975,
+      "expToNextRank": 1875,
+      "rewardId": 200014
+    },
+    {
+      "adventureRank": 15,
+      "cumulativeExp": 15850,
+      "expToNextRank": 2000,
+      "rewardId": 200015
+    },
+    {
+      "adventureRank": 16,
+      "cumulativeExp": 17850,
+      "expToNextRank": 2375,
+      "rewardId": 200016
+    },
+    {
+      "adventureRank": 17,
+      "cumulativeExp": 20225,
+      "expToNextRank": 2500,
+      "rewardId": 200017
+    },
+    {
+      "adventureRank": 18,
+      "cumulativeExp": 22725,
+      "expToNextRank": 2625,
+      "rewardId": 200018
+    },
+    {
+      "adventureRank": 19,
+      "cumulativeExp": 25350,
+      "expToNextRank": 2775,
+      "rewardId": 200019
+    },
+    {
+      "adventureRank": 20,
+      "cumulativeExp": 28125,
+      "expToNextRank": 2825,
+      "rewardId": 200020,
+      "unlockWorldLevel": 1
+    },
+    {
+      "adventureRank": 21,
+      "cumulativeExp": 30950,
+      "expToNextRank": 3425,
+      "rewardId": 200021
+    },
+    {
+      "adventureRank": 22,
+      "cumulativeExp": 34375,
+      "expToNextRank": 3725,
+      "rewardId": 200022
+    },
+    {
+      "adventureRank": 23,
+      "cumulativeExp": 38100,
+      "expToNextRank": 4000,
+      "rewardId": 200023
+    },
+    {
+      "adventureRank": 24,
+      "cumulativeExp": 42100,
+      "expToNextRank": 4300,
+      "rewardId": 200024
+    },
+    {
+      "adventureRank": 25,
+      "cumulativeExp": 46400,
+      "expToNextRank": 4575,
+      "rewardId": 200025,
+      "unlockWorldLevel": 2
+    },
+    {
+      "adventureRank": 26,
+      "cumulativeExp": 50975,
+      "expToNextRank": 4875,
+      "rewardId": 200026,
+      "expeditionLimitAdd": 1
+    },
+    {
+      "adventureRank": 27,
+      "cumulativeExp": 55850,
+      "expToNextRank": 5150,
+      "rewardId": 200027
+    },
+    {
+      "adventureRank": 28,
+      "cumulativeExp": 61000,
+      "expToNextRank": 5450,
+      "rewardId": 200028
+    },
+    {
+      "adventureRank": 29,
+      "cumulativeExp": 66450,
+      "expToNextRank": 5725,
+      "rewardId": 200029
+    },
+    {
+      "adventureRank": 30,
+      "cumulativeExp": 72175,
+      "expToNextRank": 6025,
+      "rewardId": 200030,
+      "unlockWorldLevel": 3
+    },
+    {
+      "adventureRank": 31,
+      "cumulativeExp": 78200,
+      "expToNextRank": 6300,
+      "rewardId": 200031,
+      "expeditionLimitAdd": 1
+    },
+    {
+      "adventureRank": 32,
+      "cumulativeExp": 84500,
+      "expToNextRank": 6600,
+      "rewardId": 200032
+    },
+    {
+      "adventureRank": 33,
+      "cumulativeExp": 91100,
+      "expToNextRank": 6900,
+      "rewardId": 200033
+    },
+    {
+      "adventureRank": 34,
+      "cumulativeExp": 98000,
+      "expToNextRank": 7175,
+      "rewardId": 200034
+    },
+    {
+      "adventureRank": 35,
+      "cumulativeExp": 105175,
+      "expToNextRank": 7475,
+      "rewardId": 200035,
+      "unlockWorldLevel": 4
+    },
+    {
+      "adventureRank": 36,
+      "cumulativeExp": 112650,
+      "expToNextRank": 7750,
+      "rewardId": 200036,
+      "expeditionLimitAdd": 1
+    },
+    {
+      "adventureRank": 37,
+      "cumulativeExp": 120400,
+      "expToNextRank": 8050,
+      "rewardId": 200037
+    },
+    {
+      "adventureRank": 38,
+      "cumulativeExp": 128450,
+      "expToNextRank": 8325,
+      "rewardId": 200038
+    },
+    {
+      "adventureRank": 39,
+      "cumulativeExp": 136775,
+      "expToNextRank": 8625,
+      "rewardId": 200039
+    },
+    {
+      "adventureRank": 40,
+      "cumulativeExp": 145400,
+      "expToNextRank": 10550,
+      "rewardId": 200040,
+      "unlockWorldLevel": 5
+    },
+    {
+      "adventureRank": 41,
+      "cumulativeExp": 155950,
+      "expToNextRank": 11525,
+      "rewardId": 200041
+    },
+    {
+      "adventureRank": 42,
+      "cumulativeExp": 167475,
+      "expToNextRank": 12475,
+      "rewardId": 200042
+    },
+    {
+      "adventureRank": 43,
+      "cumulativeExp": 179950,
+      "expToNextRank": 13450,
+      "rewardId": 200043
+    },
+    {
+      "adventureRank": 44,
+      "cumulativeExp": 193400,
+      "expToNextRank": 14400,
+      "rewardId": 200044
+    },
+    {
+      "adventureRank": 45,
+      "cumulativeExp": 207800,
+      "expToNextRank": 15350,
+      "rewardId": 200045,
+      "unlockWorldLevel": 6
+    },
+    {
+      "adventureRank": 46,
+      "cumulativeExp": 223150,
+      "expToNextRank": 16325,
+      "rewardId": 200046
+    },
+    {
+      "adventureRank": 47,
+      "cumulativeExp": 239475,
+      "expToNextRank": 17275,
+      "rewardId": 200047
+    },
+    {
+      "adventureRank": 48,
+      "cumulativeExp": 256750,
+      "expToNextRank": 18250,
+      "rewardId": 200048
+    },
+    {
+      "adventureRank": 49,
+      "cumulativeExp": 275000,
+      "expToNextRank": 19200,
+      "rewardId": 200049
+    },
+    {
+      "adventureRank": 50,
+      "cumulativeExp": 294200,
+      "expToNextRank": 26400,
+      "rewardId": 200050,
+      "unlockWorldLevel": 7
+    },
+    {
+      "adventureRank": 51,
+      "cumulativeExp": 320600,
+      "expToNextRank": 28800,
+      "rewardId": 200051
+    },
+    {
+      "adventureRank": 52,
+      "cumulativeExp": 349400,
+      "expToNextRank": 31200,
+      "rewardId": 200052
+    },
+    {
+      "adventureRank": 53,
+      "cumulativeExp": 380600,
+      "expToNextRank": 33600,
+      "rewardId": 200053
+    },
+    {
+      "adventureRank": 54,
+      "cumulativeExp": 414200,
+      "expToNextRank": 36000,
+      "rewardId": 200054
+    },
+    {
+      "adventureRank": 55,
+      "cumulativeExp": 450200,
+      "expToNextRank": 232350,
+      "rewardId": 200055,
+      "unlockWorldLevel": 8
+    },
+    {
+      "adventureRank": 56,
+      "cumulativeExp": 682550,
+      "expToNextRank": 258950,
+      "rewardId": 200056
+    },
+    {
+      "adventureRank": 57,
+      "cumulativeExp": 941500,
+      "expToNextRank": 285750,
+      "rewardId": 200057
+    },
+    {
+      "adventureRank": 58,
+      "cumulativeExp": 1227250,
+      "expToNextRank": 312825,
+      "rewardId": 200058,
+      "unlockWorldLevel": 9
+    },
+    {
+      "adventureRank": 59,
+      "cumulativeExp": 1540075,
+      "expToNextRank": 340125,
+      "rewardId": 200059
+    },
+    {
+      "adventureRank": 60,
+      "cumulativeExp": 1880200,
+      "expToNextRank": null,
+      "rewardId": 200060
+    }
+  ],
+  "worldLevels": [
+    {
+      "worldLevel": 1,
+      "monsterLevel": 26,
+      "unlockAdventureRank": 20
+    },
+    {
+      "worldLevel": 2,
+      "monsterLevel": 34,
+      "unlockAdventureRank": 25
+    },
+    {
+      "worldLevel": 3,
+      "monsterLevel": 47,
+      "unlockAdventureRank": 30
+    },
+    {
+      "worldLevel": 4,
+      "monsterLevel": 59,
+      "unlockAdventureRank": 35
+    },
+    {
+      "worldLevel": 5,
+      "monsterLevel": 69,
+      "unlockAdventureRank": 40
+    },
+    {
+      "worldLevel": 6,
+      "monsterLevel": 80,
+      "unlockAdventureRank": 45
+    },
+    {
+      "worldLevel": 7,
+      "monsterLevel": 88,
+      "unlockAdventureRank": 50
+    },
+    {
+      "worldLevel": 8,
+      "monsterLevel": 90,
+      "unlockAdventureRank": 55
+    },
+    {
+      "worldLevel": 9,
+      "monsterLevel": 100,
+      "unlockAdventureRank": 58
+    }
+  ]
+}

@@ -33,6 +33,10 @@ An unresolved or partially bound result must not be promoted to `A`.
   - canonical location for Ley Line, Domain, Boss, Weekly Boss and artifact reward yields;
   - currently records extraction targets and the hard progression inputs already available.
 
+- [7.1-adventure-world-domain-schedule.md](7.1-adventure-world-domain-schedule.md)
+  - source-pinned AR/WL and weekday Domain rows;
+  - machine-readable rank/schedule snapshots and regression tests.
+
 - [7.1-time-gates.md](7.1-time-gates.md)
   - Original Resin;
   - Condensed Resin and multi-claim behavior;
@@ -63,16 +67,13 @@ Tables already used:
 - `AvatarSkillDepotExcelConfigData.json`
 - `AvatarSkillExcelConfigData.json`
 
-Known next tables:
+Further reward/consumer tables to bind:
 
-- `ProudSkillExcelConfigData.json`
-- `WeaponCurveExcelConfigData.json`
-- `WeaponPromoteExcelConfigData.json`
-- `ReliquaryLevelExcelConfigData.json`
-- `ReliquaryAffixExcelConfigData.json`
-- `ReliquaryMainPropExcelConfigData.json`
-- reward/drop tables for Ley Lines, Domains and Bosses;
-- world-level and Domain reward-tier tables.
+- `DungeonExcelConfigData.json` and Domain tier/reward ownership;
+- Domain, Boss and artifact reward/drop tables;
+- World Level reward-scaling and weekday enforcement.
+
+ProudSkill, Weapon and Reliquary data already supplied level/upgrade baselines. Restored Reliquary *probability weights* remain unconfirmed.
 
 ## Current headline values
 
@@ -86,7 +87,7 @@ These are documented with their evidence levels in the detailed files:
 - Common enemy material totals: **18 / 30 / 36** by tier (`A`).
 - Character leveling raw Mora-equivalent: **1,672,530** from the exact EXP curve using the matching 1 Mora / 5 supplied EXP rule (`B` pending direct 7.1-native binding).
 - Combined raw theoretical character 1 -> 90 Mora: **2,092,530** (`A+B`; not yet the final exact UI/book-feed payment total).
-- 5-star artifact +0 -> +20 base enhancement EXP: **270,475** (`B`, pending direct Reliquary-table binding).
+- 5-star artifact +0 -> +20 base enhancement EXP: **270,475** (`A`, 7.1 Reliquary-level data). Artifact generation probability weights are only historical restoration candidates.
 - Original Resin cap: **200** (`A`, official).
 - Newer Condensed Resin baseline recorded by the investigation: **60 Original Resin** to craft and up-to-3x reward claiming (`A`, official rule update already reviewed).
 
