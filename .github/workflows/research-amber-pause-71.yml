@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Build static evidence
         run: |
-          python tools/research_amber_pause_71.py --output versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/static-probe.json
+          PYTHONPATH=. python tools/research_amber_pause_71.py --output versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/static-probe.json
       - name: Publish only static evidence
         run: |
           git config user.name 'github-actions[bot]'
