@@ -31,7 +31,7 @@ def load_resources(root: Path) -> tuple[dict[str, list[dict]], dict[str, dict]]:
     evidence = {}
     for filename, expected in EXPECTED_BLOBS.items():
         raw = (root / filename).read_bytes()
-        actual = hashlib.sha1(f"blob {len(raw)}\\0".encode("ascii") + raw).hexdigest()
+        actual = hashlib.sha1(f"blob {len(raw)}\0".encode("ascii") + raw).hexdigest()
         if actual != expected:
             raise ValueError(f"{filename}: git blob {actual} != pinned {expected}")
         rows = json.loads(raw)
