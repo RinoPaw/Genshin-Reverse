@@ -1,0 +1,53 @@
+name: Temporary Amber 7.1 protocol descriptor inspection
+
+on:
+  push:
+    branches:
+      - research/amber-pause-ack-71
+    paths:
+      - .github/workflows/research-amber-descriptor.yml
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: RinoPaw/AstaPS
+          ref: diagnostics/amber-input-lock-35601
+          path: astaps
+          sparse-checkout: protocol/7.1/protocol.desc
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'protobuf>=5,<7'
+      - name: Print exact AstaPS 7.1 field numbers
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from google.protobuf import descriptor_pb2
+
+          path = Path("astaps/protocol/7.1/protocol.desc")
+          raw = path.read_bytes()
+          descriptors = descriptor_pb2.FileDescriptorSet.FromString(raw)
+          names = {"PlayerSetPauseReq", "PlayerSetPauseRsp", "SceneTimeNotify", "PlayerTimeNotify"}
+          hits = []
+          for file in descriptors.file:
+              for message in file.message_type:
+                  if message.name in names:
+                      hits.append({
+                          "file": file.name, "message": message.name,
+                          "fields": [{"name": f.name, "number": f.number, "type": f.type}
+                                     for f in message.field]
+                      })
+          print("AMBER_DESCRIPTOR_RESULT=" + json.dumps({
+              "sha256": hashlib.sha256(raw).hexdigest(),
+              "size": len(raw), "matches": sorted(hits, key=lambda i: i["message"])
+          }, sort_keys=True))
+          if {x["message"] for x in hits} != names:
+              raise SystemExit("Missing one or more target descriptors")
+          PY
