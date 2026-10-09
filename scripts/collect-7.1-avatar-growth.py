@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "versions/7.1.0-global/analyses/progression/7.1-avatar-material-skill-map.json"
+OUTPUT = ROOT / "versions/7.1.0-global/analyses/progression/character/7.1-avatar-material-skill-map.json"
 SOURCE_REPO = "RinoPaw/AstaPS-Resource"
 SOURCE_COMMIT = "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd"
 EXPECTED_BLOBS = {

@@ -81,6 +81,8 @@ for server consumers and runtime behavior. The three repositories have different
 roles; a resource snapshot is not proof that either the client or server applies
 its rules in that form.
 
+The [progression research index](versions/7.1.0-global/analyses/progression/README.md) organizes data under character/, weapon/, artifact/, world/, economy/ and rules/.
+
 ## Core workflow
 
 ```text

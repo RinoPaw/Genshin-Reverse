@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 FILE = (Path(__file__).resolve().parents[1] /
-        "versions/7.1.0-global/analyses/progression/7.1-dungeon-reward-previews.json")
+        "versions/7.1.0-global/analyses/progression/economy/7.1-dungeon-reward-previews.json")
 
 
 class DungeonRewardPreviewTests(unittest.TestCase):

@@ -45,7 +45,7 @@ If unlimited 2x/3x claiming remains available after Resin removal, combat count 
 
 ## Required validation before balancing
 
-Complete `7.1-native-drop-economy.md` first, then calculate pure battle counts for:
+Complete `economy/7.1-native-drop-economy.md` first, then calculate pure battle counts for:
 
 - character 1 -> 90;
 - talents 10/10/10;

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SNAPSHOT = (Path(__file__).resolve().parents[1] /
-            "versions/7.1.0-global/analyses/progression/7.1-avatar-material-skill-map.json")
+            "versions/7.1.0-global/analyses/progression/character/7.1-avatar-material-skill-map.json")
 
 
 class AvatarGrowthSnapshotTests(unittest.TestCase):

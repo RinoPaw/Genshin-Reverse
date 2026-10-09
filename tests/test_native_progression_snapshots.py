@@ -11,8 +11,8 @@ DIR = Path(__file__).resolve().parents[1] / "versions" / "7.1.0-global" / "analy
 class NativeProgressionSnapshotsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.rank = json.loads((DIR / "7.1-adventure-world-level.json").read_text(encoding="utf-8"))
-        cls.domain = json.loads((DIR / "7.1-daily-dungeon-schedule.json").read_text(encoding="utf-8"))
+        cls.rank = json.loads((DIR / "world/7.1-adventure-world-level.json").read_text(encoding="utf-8"))
+        cls.domain = json.loads((DIR / "rules/7.1-daily-dungeon-schedule.json").read_text(encoding="utf-8"))
 
     def test_adventure_rank_and_world_level(self) -> None:
         rows = self.rank["adventureRanks"]
