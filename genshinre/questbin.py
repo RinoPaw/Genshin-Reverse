@@ -70,12 +70,18 @@ class QuestRow:
     show_type: int | None = None
     show_guide: int | None = None
     ban_type: int | None = None
+    force_paimon_guide_priority: int | None = None
+    unfinished_hint_show: int | None = None
+    extra_show_type: int | None = None
     sub_id_set: int | None = None
     step_desc_text_map_hash: int | None = None
+    fail_parent: bool | None = None
     fail_parent_show: int | None = None
     guide_tips_text_map_hash: int | None = None
     guide: dict[str, Any] | None = None
+    guide_hint: dict[str, Any] | None = None
     npc_ids: tuple[int, ...] = ()
+    shared_npc_list: tuple[int, ...] = ()
     exclusive_place_list: tuple[int, ...] = ()
     fail_exec: tuple[QuestExec, ...] = ()
     fail_cond: tuple[QuestContent, ...] = ()
@@ -85,6 +91,16 @@ class QuestRow:
     presence_bits: tuple[int, ...] = ()
     start: int = 0
     end: int = 0
+
+    @property
+    def exclusive_npc_list(self) -> tuple[int, ...]:
+        """Semantic alias for the 7.1 npcId list.
+
+        Historical Quest resources name the same ownership list exclusiveNpcList.
+        Keep npcId in product JSON for current-resource compatibility and expose the
+        semantic alias as well.
+        """
+        return self.npc_ids
 
     def to_dict(self) -> dict[str, Any]:
         out: dict[str, Any] = {}
@@ -108,18 +124,32 @@ class QuestRow:
             out["showGuideId"] = self.show_guide
         if self.ban_type is not None:
             out["banTypeId"] = self.ban_type
+        if self.force_paimon_guide_priority is not None:
+            out["forcePaimonGuidePriority"] = self.force_paimon_guide_priority
+        if self.unfinished_hint_show is not None:
+            out["unfinishedHintShowId"] = self.unfinished_hint_show
+        if self.extra_show_type is not None:
+            out["extraShowTypeId"] = self.extra_show_type
         if self.sub_id_set is not None:
             out["subIdSet"] = self.sub_id_set
         if self.step_desc_text_map_hash is not None:
             out["stepDescTextMapHash"] = self.step_desc_text_map_hash
+        if self.fail_parent is not None:
+            out["failParent"] = self.fail_parent
         if self.fail_parent_show is not None:
             out["failParentShow"] = self.fail_parent_show
         if self.guide_tips_text_map_hash is not None:
             out["guideTipsTextMapHash"] = self.guide_tips_text_map_hash
         if self.guide is not None:
             out["guide"] = self.guide
+        if self.guide_hint is not None:
+            out["guideHint"] = self.guide_hint
         if self.npc_ids:
-            out["npcId"] = list(self.npc_ids)
+            npc_ids = list(self.npc_ids)
+            out["npcId"] = npc_ids
+            out["exclusiveNpcList"] = npc_ids
+        if self.shared_npc_list:
+            out["sharedNpcList"] = list(self.shared_npc_list)
         if self.exclusive_place_list:
             out["exclusivePlaceList"] = list(self.exclusive_place_list)
         if self.fail_exec:
@@ -163,7 +193,10 @@ class MainQuest:
     special_show_reward_id: tuple[int, ...] = ()
     suggest_track_main_quest_list: tuple[int, ...] = ()
     reward_id_list: tuple[int, ...] = ()
+    preload_lua_list: tuple[int, ...] = ()
+    force_preload_lua_list: tuple[int, ...] = ()
     talks: tuple[dict[str, Any], ...] = ()
+    dialog_list: tuple[dict[str, Any], ...] = ()
     action_config: dict[str, Any] | None = None
     unknown_fields: dict[str, Any] = field(default_factory=dict)
     presence_bits: tuple[int, ...] = ()
@@ -222,8 +255,14 @@ class MainQuest:
             out["suggestTrackMainQuestList"] = list(self.suggest_track_main_quest_list)
         if self.reward_id_list:
             out["rewardIdList"] = list(self.reward_id_list)
+        if self.preload_lua_list:
+            out["preloadLuaList"] = list(self.preload_lua_list)
+        if self.force_preload_lua_list:
+            out["forcePreloadLuaList"] = list(self.force_preload_lua_list)
         if self.talks:
             out["talks"] = list(self.talks)
+        if self.dialog_list:
+            out["dialogList"] = list(self.dialog_list)
         if self.action_config is not None:
             out["IACKBAAICMK"] = self.action_config
         out["quests"] = [x.to_dict() for x in self.quests]
@@ -695,31 +734,31 @@ def _parse_oop(reader: _Reader) -> dict[str, Any]:
 
 
 def _parse_kph(reader: _Reader) -> dict[str, Any]:
-    mask = reader.u8()
-    out: dict[str, Any] = {"mask": mask}
+    """Decode the 7.1 QuestGuideHintEx-compatible KPHLFFOELCG payload."""
 
-    # This native reader has mixed mask polarity. bit2 means read the first string;
-    # bit6/bit7 mean use defaults, so their fields are read when the bits are clear.
+    mask = reader.u8()
+    out: dict[str, Any] = {}
+
+    # 7.1 metadata declares the two strings before QuestGuideHintType.
+    # Same-version JSON preserves them as param2, param1 in that order.
+    # The native reader has mixed mask polarity: bit6/bit7 select defaults.
     if mask & (1 << 2):
-        out["bit2"] = _native_string(
+        out["param2"] = _native_string(
             reader,
             lambda raw: raw ^ 0x78AE,
             key=0xE01441134DDA78AE,
             op="add",
         )
     if not mask & (1 << 6):
-        out["bit6"] = reader.u32() ^ 0x3F857DF8
+        out["typeId"] = reader.u32() ^ 0x3F857DF8
     if not mask & (1 << 7):
-        out["bit7"] = _native_string(
+        out["param1"] = _native_string(
             reader,
             lambda raw: raw ^ 0xEFA9,
             key=0x2C320EC05CBCEFA9,
             op="add",
         )
 
-    ignored = [bit for bit in _bits(mask, 8) if bit not in (2, 6, 7)]
-    if ignored:
-        out["ignoredMaskBits"] = ignored
     return out
 
 
@@ -1076,9 +1115,13 @@ def _parse_row(reader: _Reader) -> QuestRow:
     desc_text_map_hash = None
     is_mp_block = is_rewind = finish_parent = None
     show_type = show_guide = ban_type = None
+    force_paimon_guide_priority = unfinished_hint_show = extra_show_type = None
     sub_id_set = step_desc_text_map_hash = fail_parent_show = guide_tips_text_map_hash = None
+    fail_parent = None
     guide: dict[str, Any] | None = None
+    guide_hint: dict[str, Any] | None = None
     npc_ids: tuple[int, ...] = ()
+    shared_npc_list: tuple[int, ...] = ()
     exclusive_place_list: tuple[int, ...] = ()
     unknown: dict[str, Any] = {}
 
@@ -1096,7 +1139,11 @@ def _parse_row(reader: _Reader) -> QuestRow:
     if 17 in active:
         show_guide = reader.u32() ^ 0x491C364E
     if 46 in active:
-        unknown["EOFPICJEHLP"] = _add32(reader.u32(), 0xB5F93568) ^ 0xBCB94817
+        # Exact 7.1 Quest facade JKPMLOJLIJD selects this ordinary field and
+        # RandomQuestExcelConfig._forcePaimonGuidePriority on the alternate branch.
+        force_paimon_guide_priority = (
+            _add32(reader.u32(), 0xB5F93568) ^ 0xBCB94817
+        )
     if 34 in active:
         guide = _parse_oop(reader)
     if 38 in active:
@@ -1108,7 +1155,9 @@ def _parse_row(reader: _Reader) -> QuestRow:
     if 3 in active:
         desc_text_map_hash = reader.u32() ^ 0xB4EBB7D3
     if 10 in active:
-        unknown["DMCMNPLMCKL"] = reader.u32() ^ 0x011CF6ED
+        # Exact 7.1 Quest facade AIJDGFOLKEP selects this ordinary field and
+        # RandomQuestExcelConfig._unfinishedHintShow on the alternate branch.
+        unfinished_hint_show = reader.u32() ^ 0x011CF6ED
     if 51 in active:
         fail_cond = _parse_content_array(reader)
     if 52 in active:
@@ -1134,7 +1183,9 @@ def _parse_row(reader: _Reader) -> QuestRow:
     if 0 in active:
         order = _add32(reader.u32(), 0x1B56F89A)
     if 6 in active:
-        unknown["JFCJBBCEDGD"] = _parse_row_bit6_u32_array(reader)
+        # Historical named Quest rows align this exact list with sharedNpcList
+        # for the same mainId/subId pairs (for example MainQuest 70814).
+        shared_npc_list = tuple(_parse_row_bit6_u32_array(reader))
     if 55 in active:
         fail_exec = _parse_exec_array(reader)
     if 35 in active:
@@ -1146,15 +1197,19 @@ def _parse_row(reader: _Reader) -> QuestRow:
     if 48 in active:
         is_rewind = reader.u8() != 0x0D
     if 11 in active:
-        unknown["FABHGLLGFHN"] = reader.u32() ^ 0x5E79B226
+        # 7.1 metadata names the field type QuestExtraShowType.
+        extra_show_type = reader.u32() ^ 0x5E79B226
     if 12 in active:
         main_id = _add32(reader.u32(), 0x076F8836)
     if 61 in active:
         npc_ids = tuple(_parse_row_bit61_u32_array(reader))
     if 26 in active:
-        unknown["BIHKOLLEDPE"] = _parse_kph(reader)
+        # KPHLFFOELCG matches the historical QuestGuideHintEx shape.
+        guide_hint = _parse_kph(reader)
     if 42 in active:
-        unknown["HJOFKFKBFCF"] = reader.u8() != 0xB0
+        # Exact 7.1 Quest facade AHAOHPMOICG selects this ordinary bool and
+        # RandomQuestExcelConfig._failParent on the alternate branch.
+        fail_parent = reader.u8() != 0xB0
     if 23 in active:
         ban_type = _add32(reader.u32(), 0x546D0AF3)
     if 31 in active:
@@ -1171,12 +1226,18 @@ def _parse_row(reader: _Reader) -> QuestRow:
         show_type=show_type,
         show_guide=show_guide,
         ban_type=ban_type,
+        force_paimon_guide_priority=force_paimon_guide_priority,
+        unfinished_hint_show=unfinished_hint_show,
+        extra_show_type=extra_show_type,
         sub_id_set=sub_id_set,
         step_desc_text_map_hash=step_desc_text_map_hash,
+        fail_parent=fail_parent,
         fail_parent_show=fail_parent_show,
         guide_tips_text_map_hash=guide_tips_text_map_hash,
         guide=guide,
+        guide_hint=guide_hint,
         npc_ids=npc_ids,
+        shared_npc_list=shared_npc_list,
         exclusive_place_list=exclusive_place_list,
         fail_exec=fail_exec,
         fail_cond=fail_cond,
@@ -1288,7 +1349,9 @@ def _parse_afio_bit28_dialog(reader: _Reader) -> dict[str, Any]:
             op="xor",
         )
     if 28 in active:
-        out["bit28"] = _add32(reader.u32(), 0x19CAAE51) ^ 0x61CD831E
+        # Reader writes this slot to ENJBGKHPHDM +0x68 (IFJEOOCLPHH).
+        # Same-version JSON and historical Talk data identify it as dialog id.
+        out["id"] = _add32(reader.u32(), 0x19CAAE51) ^ 0x61CD831E
     if 9 in active:
         out["bit9"] = _parse_afio_bit28_role(reader)
     if 24 in active:
@@ -1299,7 +1362,9 @@ def _parse_afio_bit28_dialog(reader: _Reader) -> dict[str, Any]:
             op="xor",
         )
     if 26 in active:
-        out["bit26"] = _add32(reader.u32(), 0xD54A8F0C)
+        # Reader writes ENJBGKHPHDM +0x80 (LKECPJIFFEE); 2.2 data names
+        # this field talkContentTextMapHash.
+        out["talkContentTextMapHash"] = _add32(reader.u32(), 0xD54A8F0C)
     if 15 in active:
         out["bit15"] = _add32(reader.u32() ^ 0xB49BD1F9, 0x5088A0F2)
     if 11 in active:
@@ -1652,7 +1717,10 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
     quests: tuple[QuestRow, ...] = ()
     suggest_track_main_quest_list: tuple[int, ...] = ()
     reward_id_list: tuple[int, ...] = ()
+    preload_lua_list: tuple[int, ...] = ()
+    force_preload_lua_list: tuple[int, ...] = ()
     talks: tuple[dict[str, Any], ...] = ()
+    dialog_list: tuple[dict[str, Any], ...] = ()
     action_config: dict[str, Any] | None = None
     lua_path: str | dict[str, Any] | None = None
     series = chapter_id = activity_id = recommend_level = task_id = None
@@ -1680,6 +1748,9 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
         values = _parse_dialogue_array(reader)
         talks = tuple(values)
     if 20 in active:
+        # AFIO layout places this value at object offset 0xD5 (HMJOIJHMGJD).
+        # Historical 2.2 showRedPoint matches its 7.1 presence/value exactly
+        # across all 144 shared rows that carry the field.
         show_red_point = reader.u8() != 0xB1
     if 21 in active:
         show_type = reader.u32() ^ 0xF2C0E96A
@@ -1702,10 +1773,12 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
         count = _add32(reader.u32() ^ 0xD3327418, 0xA5B87FB0)
         if count > 100_000:
             raise QuestBinParseError(f"implausible AFIO bit5 count {count}")
-        unknown["DKKIDDFEHMD"] = [
+        # Historical named Quest resources align this exact list with
+        # forcePreloadLuaList for the same MainQuest IDs.
+        force_preload_lua_list = tuple(
             ((reader.u64() ^ 0x342FB47E) + 0xA073A78B) & _U64
             for _ in range(count)
-        ]
+        )
     if 58 in active:
         recommend_level = reader.u32() ^ 0xCBDC3C8D
     if 27 in active:
@@ -1760,10 +1833,12 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
         count = _add32(reader.u32(), 0x8BF0777A)
         if count > 100_000:
             raise QuestBinParseError(f"implausible AFIO bit49 count {count}")
-        unknown["JNHHOJAPDPP"] = [
+        # Historical named Quest resources align this exact list with
+        # preloadLuaList for the same MainQuest IDs.
+        preload_lua_list = tuple(
             ((reader.u64() ^ 0xA6AA5B5A) + 0x729DC4AB) & _U64
             for _ in range(count)
-        ]
+        )
     if 22 in active:
         active_mode = reader.u32() ^ 0x4E78EC1D
     if 43 in active:
@@ -1777,10 +1852,14 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
     if 26 in active:
         unknown["HGDMKDGAJOM"] = _parse_afio_bit26_u32_array(reader)
     if 28 in active:
-        unknown["PCIAMAFDDAA"] = _parse_afio_bit28_dialog_array(reader)
+        # Exact 7.1 corpus alignment: PCIAMAFDDAA and downstream dialogList have
+        # identical MainQuest presence (464/464) and entry identity.
+        dialog_list = tuple(_parse_afio_bit28_dialog_array(reader))
     if 36 in active:
         activity_id = _add32(reader.u32(), 0x72C6043D) ^ 0x8C794B70
     if 4 in active:
+        # Object offset 0xA5 is INFDFLBGLPD. A downstream Asta snapshot labels
+        # it showRedPoint, but exact historical continuity rejects that mapping.
         unknown["INFDFLBGLPD"] = reader.u8() != 0xBE
     if 19 in active:
         suggest_track_out_of_order = reader.u8() != 0x90
@@ -1827,7 +1906,10 @@ def parse_main_quest(data: bytes, *, require_full: bool = True) -> MainQuest:
         special_show_reward_id=special_show_reward_id,
         suggest_track_main_quest_list=suggest_track_main_quest_list,
         reward_id_list=reward_id_list,
+        preload_lua_list=preload_lua_list,
+        force_preload_lua_list=force_preload_lua_list,
         talks=talks,
+        dialog_list=dialog_list,
         action_config=action_config,
         unknown_fields=unknown,
         presence_bits=tuple(sorted(active)),
