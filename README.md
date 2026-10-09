@@ -69,6 +69,18 @@ versions/
 .github/ISSUE_TEMPLATE/        structured evidence submissions
 ```
 
+## 7.1 progression research home
+
+The maintained research home is **this repository's `main` branch**:
+[`versions/7.1.0-global/analyses/progression/`](versions/7.1.0-global/analyses/progression/).
+Keep reproducible source-bound observations and collectors here. Use
+[`RinoPaw/AstaPS-Resource`](https://github.com/RinoPaw/AstaPS-Resource)
+for the version-pinned ExcelBin and reward/drop source data, and
+[`RinoPaw/AstaPS`](https://github.com/RinoPaw/AstaPS)
+for server consumers and runtime behavior. The three repositories have different
+roles; a resource snapshot is not proof that either the client or server applies
+its rules in that form.
+
 ## Core workflow
 
 ```text
