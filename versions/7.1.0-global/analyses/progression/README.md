@@ -20,6 +20,12 @@ An unresolved or partially bound result must not be promoted to `A`.
 
 ## Files
 
+- [7.1-avatar-material-skill-map.json](7.1-avatar-material-skill-map.json)
+  - 167 source avatar rows joined to 125 complete ascension groups;
+  - each group's six-stage Mora, material IDs, slot indices, level caps and ascension stat additions;
+  - primary depot skill/ProudSkill ID mappings without assuming alternate Traveler depots or release status;
+  - reproducible using `scripts/collect-7.1-avatar-growth.py` against the pinned `AstaPS-Resource` commit.
+
 - [7.1-resource-growth-observations.json](7.1-resource-growth-observations.json)
   - pinned 7.1 resource blob identities and machine-readable observations;
   - 90→95→100 character limit raising; World Level, friendship, EXP and artifact enhancement inputs.
@@ -102,6 +108,18 @@ Do not let old Wiki values overwrite current 7.1 ExcelBin.
 For current service rules, preserve version order: later HoYoverse rule changes override older documentation only when their applicability to the 7.1 ruleset has been checked.
 
 Private-server behavior belongs here only as `B` evidence or in the RPG proposal. It must not silently redefine the native baseline.
+
+## 2026-10-09 avatar mapping collection
+
+The pinned avatar, ascension, skill depot and skill tables have been joined into the new source-row snapshot. All 167 avatar rows resolve to a promote group and primary skill depot; all 125 promote groups have stage rows 0–6. Of the 167 rows, 132 explicitly say `AVATAR_FORMAL`. This is a resource flag, **not** a verified release/playability list. 39 referenced skills have no ProudSkill group; these include special moves, test skills and placeholder skills and must not be invented as paid talent paths.
+
+To regenerate from the exact source files:
+
+```sh
+python scripts/collect-7.1-avatar-growth.py --resources /path/to/AstaPS-Resource/ExcelBinOutput --check
+```
+
+The collector refuses inputs whose Git blob hashes differ from the pinned resource commit. Artifact statistics alone do not prove client selection behavior.
 
 ## 2026-10-09 source check
 
