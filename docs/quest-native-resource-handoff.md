@@ -1,6 +1,6 @@
 # Quest native-resource research handoff
 
-Checkpoint: 2026-10-07
+Checkpoint: 2026-10-09
 
 This handoff contains resume context only. Durable conclusions live in the target analyses and tracking issues; see `docs/governance.md`.
 
@@ -34,7 +34,7 @@ The latest recovery checkpoint also has:
 - 4,838 compatibility `beginExec` values;
 - 28,264 compatibility/historical-empty `beginExec` classifications.
 
-Resume from **new evidence classes** only:
+Maintained tooling now lives on `main`:\n\n- `python -m genshinre recover quest-compat ...` builds a provenance-preserving compatibility manifest from multiple pinned community sources plus optional historical TSV evidence;\n- `python -m genshinre audit quest ...` compares AstaPS-style Quest JSON against native 7.1 retained fields and the compatibility manifest without promoting compatibility data to native evidence.\n\nThe unresolved counts above are unchanged by this tooling. Resume from **new evidence classes** only:
 
 1. MainQuest topology and branch/convergence structure;
 2. talks/dialog/script relations;
@@ -67,7 +67,7 @@ Resume by tracing the current 7.1 UI/state path for `UI_STC_MAIN_RETURN_TO_QUEST
 
 ## Maintenance rules
 
-- Start new work from current `rino`.
+- Ordinary research lands directly on current `main`; use a temporary branch only when isolation has a concrete benefit.
 - One issue owns one active research question.
 - Confirmed conclusions must be promoted to the target analysis, not left branch-only.
 - Handoffs must not become competing status sources.
