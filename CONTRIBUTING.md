@@ -38,14 +38,15 @@ Repository governance is defined in [docs/governance.md](docs/governance.md).
 
 The important maintenance rules are:
 
-- start new maintenance/research work from `rino` unless the task requires another base;
+- ordinary research and small maintenance changes land directly on `main`; use a temporary branch only when isolation has a concrete benefit, and branch it from current `main`;
 - issues own scope and promotion gates; version analyses own durable sample-bound conclusions;
 - research queues and handoffs summarize those sources and must not become competing truth;
 - when a research gate closes, promote evidence/code/tests and synchronize the issue, analysis, queue and handoff in the same maintenance change;
 - temporary workflows need an owner and retirement condition, and must be removed after their useful result becomes durable;
-- do not continue unrelated work on a long-lived research branch merely because it already contains useful probes.
+- keep `rino` aligned with `main`; do not use `rino-*` branches as topic branches;
+- retire temporary branches as soon as their durable result is on `main`.
 
-Research branches are disposable work areas. Confirmed conclusions must not remain branch-only.
+Research branches are exceptional disposable work areas. Confirmed conclusions and maintained implementations belong on `main`.
 
 ## Maintenance and research responsibilities
 
