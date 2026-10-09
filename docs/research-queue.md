@@ -56,9 +56,9 @@ See [governance.md](governance.md). Issues own scope and promotion gates; target
 
 ## Default-branch and workflow hygiene
 
-`main` is the durable evidence/infrastructure branch. It should contain stable code, schemas, canonical artifacts, method documentation and the smallest practical Actions surface.
+`main` is both the maintained research branch and the durable evidence/infrastructure branch. Ordinary research should land there directly when each commit can keep the maintained tree coherent.
 
-Use `research/<topic>` for investigation-specific checkpoints and `maintenance/<topic>` for repository/infrastructure work when isolation helps. Before promotion, update the branch from `main`, preserve rejected paths that prevent duplicate work, and move durable results into the canonical version/analysis tree.
+Use `research/<topic>`, `decoder/<topic>`, or `maintenance/<topic>` only when incomplete intermediate states, destructive refactors, temporary orchestration, or an independently reviewable patch series need isolation. Such branches start from current `main` and should be retired as soon as their durable result lands. Keep `rino` aligned with `main`; do not create new `rino-*` topic branches.
 
 Topic-specific GitHub Actions are temporary orchestration. They require an active investigation, a concrete reason that the work cannot be done efficiently with local/reusable tools, and an explicit retirement condition. Once the reusable logic and unique evidence are committed, remove the workflow shell; Git history preserves it.
 
