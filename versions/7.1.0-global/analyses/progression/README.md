@@ -94,6 +94,10 @@ Scripts and tests stay in the repository-root scripts/ and tests/ directories. M
   - current artifact findings;
   - talent mapping progress.
 
+- [7.1-talent-domain-server-proxy.json](economy/7.1-talent-domain-server-proxy.json)
+  - 96 AstaPS server-side talent DungeonDrop entries; 48 cover missing source roots;
+  - explicitly evidence **B**, no native 7.1 probability claim.
+
 - [7.1-native-drop-economy.md](economy/7.1-native-drop-economy.md)
   - canonical location for Ley Line, Domain, Boss, Weekly Boss and artifact reward yields;
   - currently records extraction targets and the hard progression inputs already available.

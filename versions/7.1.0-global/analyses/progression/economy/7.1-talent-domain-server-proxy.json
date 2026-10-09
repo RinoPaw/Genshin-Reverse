@@ -1,0 +1,5856 @@
+{
+  "schemaVersion": 1,
+  "target": "AstaPS server-side proxy for 7.1 talent dungeons",
+  "evidence": "B: private-server implementation, NOT 7.1 native drop probability evidence",
+  "source": {
+    "repository": "RinoPaw/AstaPS",
+    "commit": "b1c5af21a26deaaa9983f485d98cd32e5693e64e",
+    "path": "data/DungeonDrop.json",
+    "gitBlobSha": "7fdd3b01d7b4fedc5837eae776502aeffc2fe3ed",
+    "wholeFileRowCount": 266
+  },
+  "summary": {
+    "talentDungeonCount": 104,
+    "serverProxyRows": 96,
+    "withoutServerProxy": [
+      4200,
+      4201,
+      4202,
+      4203,
+      5250,
+      5251,
+      5252,
+      5253
+    ],
+    "serverOnlyRows": 48,
+    "withNativeRootAndProxy": 48
+  },
+  "dungeons": [
+    {
+      "dungeonId": 4210,
+      "comment": "Forsaken Rift 1: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104301
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4211,
+      "comment": "Forsaken Rift 2: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104301
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104302
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4212,
+      "comment": "Forsaken Rift 3: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104301
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104302
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4213,
+      "comment": "Forsaken Rift 4: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104301
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104302
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104303
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4220,
+      "comment": "Forsaken Rift 1: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104304
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4221,
+      "comment": "Forsaken Rift 2: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104304
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104305
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4222,
+      "comment": "Forsaken Rift 3: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104304
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104305
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4223,
+      "comment": "Forsaken Rift 4: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104304
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104305
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104306
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4230,
+      "comment": "Forsaken Rift 1: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104307
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4231,
+      "comment": "Forsaken Rift 2: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104307
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104308
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4232,
+      "comment": "Forsaken Rift 3: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104307
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104308
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4233,
+      "comment": "Forsaken Rift 4: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104307
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104308
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104309
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4400,
+      "comment": "Violet Court 1: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104320
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4401,
+      "comment": "Violet Court 2: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104320
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104321
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4402,
+      "comment": "Violet Court 3: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104320
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104321
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4403,
+      "comment": "Violet Court 4: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104320
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104321
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104322
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4410,
+      "comment": "Violet Court 1: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104323
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4411,
+      "comment": "Violet Court 2: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104323
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104324
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4412,
+      "comment": "Violet Court 3: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104323
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104324
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4413,
+      "comment": "Violet Court 4: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104323
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104324
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104325
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4420,
+      "comment": "Violet Court 1: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104326
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4421,
+      "comment": "Violet Court 2: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104326
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104327
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4422,
+      "comment": "Violet Court 3: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104326
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104327
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4423,
+      "comment": "Violet Court 4: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104326
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104327
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104328
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4430,
+      "comment": "Nod-Krai 墟都 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104329
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4431,
+      "comment": "Nod-Krai 墟都 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104329
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104330
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4432,
+      "comment": "Nod-Krai 墟都 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104329
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104330
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4433,
+      "comment": "Nod-Krai 墟都 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104329
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104330
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104331
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4434,
+      "comment": "Natlan 转竞 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104347
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4435,
+      "comment": "Natlan 转竞 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104347
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104348
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4436,
+      "comment": "Natlan 转竞 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104347
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104348
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4437,
+      "comment": "Natlan 转竞 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104347
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104348
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104349
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4440,
+      "comment": "Nod-Krai 遗荫 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104332
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4441,
+      "comment": "Nod-Krai 遗荫 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104332
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104333
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4442,
+      "comment": "Nod-Krai 遗荫 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104332
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104333
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4443,
+      "comment": "Nod-Krai 遗荫 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104332
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104333
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104334
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4444,
+      "comment": "Natlan 空华 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104350
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4445,
+      "comment": "Natlan 空华 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104350
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104351
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4446,
+      "comment": "Natlan 空华 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104350
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104351
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4447,
+      "comment": "Natlan 空华 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104350
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104351
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104352
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4450,
+      "comment": "Nod-Krai 圆知 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104335
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4451,
+      "comment": "Nod-Krai 圆知 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104335
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104336
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4452,
+      "comment": "Nod-Krai 圆知 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104335
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104336
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4453,
+      "comment": "Nod-Krai 圆知 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104335
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104336
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104337
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4454,
+      "comment": "Natlan 旋复 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104353
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4455,
+      "comment": "Natlan 旋复 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104353
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104354
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4456,
+      "comment": "Natlan 旋复 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104353
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104354
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4457,
+      "comment": "Natlan 旋复 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104353
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104354
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104355
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4460,
+      "comment": "Fontaine 旋韵/公平 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104338
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4461,
+      "comment": "Fontaine 旋韵/公平 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104338
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104339
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4462,
+      "comment": "Fontaine 旋韵/公平 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104338
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104339
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4463,
+      "comment": "Fontaine 旋韵/公平 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104338
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104339
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104340
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4490,
+      "comment": "Fontaine 箴铭/正义 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104341
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4491,
+      "comment": "Fontaine 箴铭/正义 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104341
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104342
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4492,
+      "comment": "Fontaine 箴铭/正义 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104341
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104342
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4493,
+      "comment": "Fontaine 箴铭/正义 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104341
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104342
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104343
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4494,
+      "comment": "Fontaine 琅诵/秩序 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104344
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4495,
+      "comment": "Fontaine 琅诵/秩序 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104344
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104345
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4496,
+      "comment": "Fontaine 琅诵/秩序 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104344
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104345
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4497,
+      "comment": "Fontaine 琅诵/秩序 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104344
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104345
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104346
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4651,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104356
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4652,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104356
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104357
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4653,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104356
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104357
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4654,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104356
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104357
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104358
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4655,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104359
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4656,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104359
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104360
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4657,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104359
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104360
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4658,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104359
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104360
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104361
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4659,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104362
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4660,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104362
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104363
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4661,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104362
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104363
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4662,
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104362
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104363
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104364
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4691,
+      "comment": "Snezhnaya Talent cycle1 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104365
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4692,
+      "comment": "Snezhnaya Talent cycle1 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104365
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104366
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4693,
+      "comment": "Snezhnaya Talent cycle1 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104365
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104366
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4694,
+      "comment": "Snezhnaya Talent cycle1 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104365
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104366
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104367
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4695,
+      "comment": "Snezhnaya Talent cycle2 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104368
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4696,
+      "comment": "Snezhnaya Talent cycle2 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104368
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104369
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4697,
+      "comment": "Snezhnaya Talent cycle2 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104368
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104369
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4698,
+      "comment": "Snezhnaya Talent cycle2 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104368
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104369
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104370
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4699,
+      "comment": "Snezhnaya Talent cycle3 I",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104371
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4700,
+      "comment": "Snezhnaya Talent cycle3 II",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104371
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104372
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4701,
+      "comment": "Snezhnaya Talent cycle3 III",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104371
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104372
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 4702,
+      "comment": "Snezhnaya Talent cycle3 IV",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104371
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104372
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            3
+          ],
+          "probabilities": [
+            33,
+            33,
+            34
+          ],
+          "items": [
+            104373
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5254,
+      "comment": "Taishan Mansion 1: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104310
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5255,
+      "comment": "Taishan Mansion 2: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104310
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104311
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5256,
+      "comment": "Taishan Mansion 3: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104310
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104311
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5257,
+      "comment": "Taishan Mansion 4: Monday/Thursday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104310
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104311
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104312
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5258,
+      "comment": "Taishan Mansion 1: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104313
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5259,
+      "comment": "Taishan Mansion 2: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104313
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104314
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5260,
+      "comment": "Taishan Mansion 3: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104313
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104314
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5261,
+      "comment": "Taishan Mansion 4: Tuesday/Friday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104313
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104314
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104315
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5262,
+      "comment": "Taishan Mansion 1: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1575
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            3,
+            4
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104316
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5263,
+      "comment": "Taishan Mansion 2: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            1800
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            15
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            50,
+            50
+          ],
+          "items": [
+            104316
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1
+          ],
+          "items": [
+            104317
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5264,
+      "comment": "Taishan Mansion 3: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2050
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            1,
+            2
+          ],
+          "probabilities": [
+            20,
+            80
+          ],
+          "items": [
+            104316
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            2
+          ],
+          "items": [
+            104317
+          ]
+        }
+      ]
+    },
+    {
+      "dungeonId": 5265,
+      "comment": "Taishan Mansion 4: Wednesday/Saturday",
+      "drops": [
+        {
+          "comment": "AR exp",
+          "counts": [
+            100
+          ],
+          "items": [
+            102
+          ]
+        },
+        {
+          "comment": "Mora",
+          "counts": [
+            2375
+          ],
+          "items": [
+            202
+          ]
+        },
+        {
+          "comment": "Friendship exp",
+          "counts": [
+            20
+          ],
+          "items": [
+            105
+          ],
+          "mpDouble": true
+        },
+        {
+          "comment": "2-star Books",
+          "counts": [
+            2,
+            3
+          ],
+          "probabilities": [
+            80,
+            20
+          ],
+          "items": [
+            104316
+          ]
+        },
+        {
+          "comment": "3-star Books",
+          "counts": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "probabilities": [
+            20,
+            40,
+            30,
+            10
+          ],
+          "items": [
+            104317
+          ]
+        },
+        {
+          "comment": "4-star Books",
+          "counts": [
+            1,
+            2,
+            3
+          ],
+          "probabilities": [
+            55,
+            35,
+            10
+          ],
+          "items": [
+            104318
+          ]
+        }
+      ]
+    }
+  ]
+}
