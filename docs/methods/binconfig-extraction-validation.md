@@ -82,3 +82,16 @@ When the method closes an investigation:
 - promote reusable extraction logic into `genshinre/` only after it works beyond the one target table.
 
 Tracking consumer: issue #8 for the 7.1 Quest prerequisite extraction root cause.
+
+## Design-index path probes
+
+Use the shared AssetIndex parser and `genshinre query-assets RAW_INDEX PATH...`
+for explicit path-hash probes, including Quest, Dungeon and other config tables.
+The command distinguishes `HASH_ABSENT`, `AMBIGUOUS_NAME`, broken block references
+and `HASH_RESOLVED`; a lookup error must not be silently classified as absence.
+
+Pair negative probes with known positive assets and record the exact index
+hash and tested path list. A 40-bit hash match locates a candidate resource but
+does not independently prove semantics. Validate the actual export and full
+schema before promoting a decoded table. Absence of a finite candidate set
+does not establish that a whole data category is absent from the client.

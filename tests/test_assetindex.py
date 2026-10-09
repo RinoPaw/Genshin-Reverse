@@ -1,7 +1,10 @@
 import struct
 import unittest
 
-from genshinre.assetindex import mihoyo_name_hash, parse_asset_index, unwrap_mihoyo_bin_data
+from genshinre.assetindex import (
+    AssetIndex, AssetNameHash, AssetBlockRef, mihoyo_name_hash,
+    parse_asset_index, query_asset_paths, unwrap_mihoyo_bin_data,
+)
 
 
 def u32(value: int) -> bytes:
@@ -46,6 +49,31 @@ class AssetIndexTest(unittest.TestCase):
     def test_reject_nonzero_raw_export_padding(self):
         with self.assertRaisesRegex(ValueError, "padding"):
             unwrap_mihoyo_bin_data(u32(1) + b"x" + b"!")
+
+    def test_path_query_distinguishes_absence_ambiguity_and_incomplete_location(self):
+        path = "Data/_ExcelBinOutput/QuestExcelConfigData"
+        name = AssetNameHash(0x96, 0x3B87AE83, 178)
+        ref = AssetBlockRef(178, 25539185, 12, 34)
+        cases = [
+            (AssetIndex((), {}, (), ()), "HASH_ABSENT"),
+            (AssetIndex((name, name), {}, (), ()), "AMBIGUOUS_NAME"),
+            (AssetIndex((name,), {}, (), ()), "UNRESOLVED_BLOCK_REFERENCE"),
+            (AssetIndex((name,), {}, (ref, ref), ()), "UNRESOLVED_BLOCK_REFERENCE"),
+            (AssetIndex((name,), {}, (ref,), ()), "UNRESOLVED_BLOCK_GROUP"),
+        ]
+        for index, status in cases:
+            with self.subTest(status=status):
+                row = query_asset_paths(index, [path])[0]
+                self.assertEqual(row["status"], status)
+                self.assertNotIn("blockId", row)
+
+        rows = query_asset_paths(AssetIndex((name,), {25539185: 0}, (ref,), ()),
+                                 [path, "Data/_ExcelBinOutput/Absent"])
+        self.assertEqual(rows[0]["status"], "HASH_RESOLVED")
+        self.assertEqual(rows[0]["exportedName"], "3b87ae83")
+        self.assertEqual((rows[0]["blockId"], rows[0]["groupId"]), (25539185, 0))
+        self.assertEqual((rows[0]["unknown0"], rows[0]["unknown1"]), (12, 34))
+        self.assertEqual(rows[1]["status"], "HASH_ABSENT")
 
 
 if __name__ == "__main__":

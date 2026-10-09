@@ -26,6 +26,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("wire", help="decode protobuf wire fields from hex")
     p.add_argument("hex_payload")
 
+    p = sub.add_parser("query-assets", help="probe exact paths in a Raw-exported design AssetIndex")
+    p.add_argument("asset_index", type=Path)
+    p.add_argument("paths", nargs="+")
+
     p = sub.add_parser("query-registry", help="stream-query a registry.csv by identity fields")
     p.add_argument("registry", type=Path)
     p.add_argument("--cmd-id", type=int)
@@ -253,6 +257,11 @@ def main() -> None:
 
         payload = bytes.fromhex(args.hex_payload.replace(" ", ""))
         print(json.dumps(parse_message(payload), indent=2, ensure_ascii=False))
+    elif args.command == "query-assets":
+        from .assetindex import parse_asset_index, query_asset_paths
+
+        index = parse_asset_index(args.asset_index.read_bytes())
+        print(json.dumps(query_asset_paths(index, args.paths), indent=2, ensure_ascii=False))
     elif args.command == "query-registry":
         from .registry import query_registry
 

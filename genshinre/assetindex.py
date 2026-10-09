@@ -51,6 +51,47 @@ class AssetIndex:
         return matches[0]
 
 
+def query_asset_paths(index: AssetIndex, paths: list[str]) -> list[dict[str, object]]:
+    """Probe exact path hashes without conflating absence and broken references.
+
+    A hash membership match locates a candidate asset; it does not independently
+    prove the semantic path, the serialized schema or the payload contents.
+    """
+    by_hash: dict[int, list[AssetNameHash]] = {}
+    by_asset: dict[int, list[AssetBlockRef]] = {}
+    for name in index.names:
+        by_hash.setdefault(name.value, []).append(name)
+    for ref in index.block_refs:
+        by_asset.setdefault(ref.asset_id, []).append(ref)
+    rows: list[dict[str, object]] = []
+    for path in paths:
+        value = mihoyo_name_hash(path)
+        names = by_hash.get(value, [])
+        row: dict[str, object] = {
+            "path": path, "pathHash": f"0x{value:010X}", "nameMatchCount": len(names),
+        }
+        if not names:
+            row["status"] = "HASH_ABSENT"
+        elif len(names) != 1:
+            row["status"] = "AMBIGUOUS_NAME"
+        else:
+            name = names[0]
+            refs = by_asset.get(name.sub_asset_id, [])
+            row.update(exportedName=name.exported_name, subAssetId=name.sub_asset_id,
+                       blockReferenceCount=len(refs))
+            if len(refs) != 1:
+                row["status"] = "UNRESOLVED_BLOCK_REFERENCE"
+            elif refs[0].block_id not in index.block_groups:
+                row["status"] = "UNRESOLVED_BLOCK_GROUP"
+            else:
+                ref = refs[0]
+                row.update(status="HASH_RESOLVED", blockId=ref.block_id,
+                           groupId=index.block_groups[ref.block_id],
+                           unknown0=ref.unknown0, unknown1=ref.unknown1)
+        rows.append(row)
+    return rows
+
+
 class _Reader:
     def __init__(self, data: bytes):
         self.data = data

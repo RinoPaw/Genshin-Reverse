@@ -92,7 +92,10 @@ def build(samples: Path, resource: Path) -> dict:
                     stores.add((dest.mem.disp, dest.size))
         for row in inferred:
             assert (int(row['candidateOffset'], 16), row['candidateWidth']) in stores, row
-        ranges = {'targetReadAndStore': (0x12CA5384, 0x12CA53F5),
+        ranges = {'rawMaskRead': (0x12CA3C27, 0x12CA3C39),
+                  'maskXor': (0x12CA3DB0, 0x12CA3DB8),
+                  'transformedMaskSave': (0x12CA3ED4, 0x12CA3ED8),
+                  'targetReadAndStore': (0x12CA5384, 0x12CA53F5),
                   'wrapperEncode': (0xBB16020, 0xBB160C0),
                   'wrapperDecode': (0xBB15F50, 0xBB15FF4)}
         for name, (start, end) in ranges.items():
@@ -135,7 +138,10 @@ def build(samples: Path, resource: Path) -> dict:
                             'semanticStatus': 'SOURCE_DROP_ROOT_KEY_CANDIDATE',
                             'candidateObjectOffset': '0xE8', 'storageType': 'EEOPHKIFFPL',
                             'storageFields': [r for r in fields if r['type_definition_index'] == '28775'],
-                            'nativeRead': {'presenceMaskBit': 13, 'byteWidth': 4,
+                            'nativeRead': {'presenceMaskBit': 13,
+                                           'presenceMaskDecode': '((uint64_le + 0x85B5FF59) mod 2^64) XOR 0xD3D96C23',
+                                           'presentWhenTransformedBit': 1,
+                                           'presentWhenPreXorBit': 0, 'byteWidth': 4,
                                            'decode': 'little_endian_uint32 XOR 0x2DBB0C2F',
                                            'absentValueBeforeWrapping': 0, 'wrapperEncodeRva': '0xBB16020',
                                            'storeInstructionRva': '0x12CA53EF'},

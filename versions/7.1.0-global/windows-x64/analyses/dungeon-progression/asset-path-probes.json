@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact 7.1.0 Global Windows x64",
+  "scope": "exact path-hash membership and raw-export identities; no full Dungeon decode or native drop distribution",
+  "source": {
+    "manifestUrl": "https://autopatchhk.yuanshen.com/client_app/sophon/manifests/cxhpq4g4rgg0/sMXGW2ll3Fuu/manifest_671e1a92a6cf53ff_8d4dfb34d2ee2cf64aae45a9b1ecf58d",
+    "chunkPrefix": "https://autopatchhk.yuanshen.com/client_app/sophon/chunks/cxhpq4g4rgg0/sMXGW2ll3Fuu",
+    "blocks": {
+      "31049741": {
+        "groupId": 0,
+        "manifestMd5": "a390222739d22aafb110019d10bff7e8",
+        "size": 2464870,
+        "sha256": "7364cb91628b27fd299bef6a8d3e5f58b618552a63f118fe1107da2ae57d0504"
+      },
+      "25539185": {
+        "groupId": 0,
+        "manifestMd5": "8ce0bb0ac5ec42315f0f98d52e5d7c73",
+        "size": 25812595,
+        "sha256": "afa9512cf4fb5d629558cd972b48b104752fa56d8a9f440f71dd8110d2121bf7"
+      }
+    },
+    "index": {
+      "exportedName": "0000006f",
+      "rawSize": 3473132,
+      "rawSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+      "payloadSha256": "7ae67025c83e08eefeef9a8fc94afb3bda8012214b9c6b66123bb6820f106fe7",
+      "nameCount": 247073,
+      "blockReferenceCount": 536,
+      "blockCount": 536
+    }
+  },
+  "exporter": {
+    "repository": "EIHRTeam/AnimeStudio",
+    "release": "v1.0.0-CI",
+    "archive": "AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz",
+    "archiveSha256": "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1",
+    "runtime": "Microsoft.NETCore.App 10.0.0 Linux x64",
+    "arguments": "--game GI --types MiHoYoBinData --export_type Raw --logger_flags Error"
+  },
+  "generator": {
+    "script": "scripts/collect-7.1-dungeon-assets.py",
+    "toolGitBlobShas": {
+      "scripts/collect-7.1-dungeon-assets.py": "648a55f7a453ca24af9e20f3bae281f23b144f12",
+      "genshinre/assetindex.py": "50168d68c68e8e2704006dd6880386624017b9ee",
+      "genshinre/nativeprofile.py": "e127a95f395c5f29e177486b36268fb4e6631602"
+    },
+    "command": "python scripts/collect-7.1-dungeon-assets.py --samples inputs/7.1.0-global --check"
+  },
+  "controls": [
+    {
+      "path": "Data/_ExcelBinOutput/QuestExcelConfigData",
+      "pathHash": "0x3B87AE8396",
+      "nameMatchCount": 1,
+      "exportedName": "3b87ae83",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0,
+      "export": {
+        "rawSize": 2824192,
+        "rawSha256": "f068fc7f5dc0a0560ef0b145cdca14ee12910d0a3bc25a6332e2546f37650c87",
+        "payloadSize": 2824188,
+        "payloadSha256": "07ab4816ee1eaa68fefd636b92dcfa923fe58a15731d18de0c0fb26863791fe5"
+      }
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DungeonExcelConfigData",
+      "pathHash": "0xC39AEC1E04",
+      "nameMatchCount": 1,
+      "exportedName": "c39aec1e",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0,
+      "export": {
+        "rawSize": 426896,
+        "rawSha256": "4dd54b6844a2c4fde723ef48b98fd91c26e60dafab288173fa424e3d5fee8339",
+        "payloadSize": 426891,
+        "payloadSha256": "9d3d2a3718288004a5fc6e6dd57443ded35d0a0a45cbcdb1b767bd0eadb36834"
+      }
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DailyDungeonConfigData",
+      "pathHash": "0xB898093C33",
+      "nameMatchCount": 1,
+      "exportedName": "b898093c",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0,
+      "export": {
+        "rawSize": 7688,
+        "rawSha256": "1f61ebb365b958de3f1472cf4ec3f75457f1c6f0dbb4379b538890229d723700",
+        "payloadSize": 7684,
+        "payloadSha256": "e25bc0baa226bfc9b01c684f1bc0599f36f433072c33ea4b54d2c8b8da442a98"
+      }
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DungeonEntryExcelConfigData",
+      "pathHash": "0x73C14E3808",
+      "nameMatchCount": 1,
+      "exportedName": "73c14e38",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0,
+      "export": {
+        "rawSize": 15784,
+        "rawSha256": "27f87f8418119238b76a70c6fe53c1eb5fcdce6e144c6441d916bc80d0a3cc96",
+        "payloadSize": 15779,
+        "payloadSha256": "b02f3a2de33c2880ccd3e871785654b2cfcf851105fdd49b6e5d654d1895ccc7"
+      }
+    },
+    {
+      "path": "Data/_ExcelBinOutput/RewardPreviewExcelConfigData",
+      "pathHash": "0x11276DC3D2",
+      "nameMatchCount": 1,
+      "exportedName": "11276dc3",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0,
+      "export": {
+        "rawSize": 288136,
+        "rawSha256": "df9fb12ffde202d493eb6c7518c16f91584776660a1483298d9011a078e2cb06",
+        "payloadSize": 288131,
+        "payloadSha256": "b89b600cbad036fdb72fc7c78d33520e7ed6574aed00bc0f807ec41ff4a1ab50"
+      }
+    }
+  ],
+  "dropPathProbes": [
+    {
+      "path": "Data/_ExcelBinOutput/DropTableExcelConfigData",
+      "pathHash": "0x0B408CB3CE",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropSubTableExcelConfigData",
+      "pathHash": "0x4BA93C1CC9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropMaterialExcelConfigData",
+      "pathHash": "0x5F653C6B5E",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropTable",
+      "pathHash": "0xB6DFDF23F7",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropSubTable",
+      "pathHash": "0xCDE15BD55E",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropMaterial",
+      "pathHash": "0xF462AD54A5",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DungeonDropExcelConfigData",
+      "pathHash": "0xE20D4F9028",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DungeonDropConfigData",
+      "pathHash": "0x80534D80B3",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DungeonDrop",
+      "pathHash": "0x5DB14B39A3",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropExcelConfigData",
+      "pathHash": "0xDC16F05793",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_ExcelBinOutput/DropConfigData",
+      "pathHash": "0xCFD4CF52E7",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropTableExcelConfigData",
+      "pathHash": "0x70ED37482F",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropSubTableExcelConfigData",
+      "pathHash": "0xDDD0958590",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropMaterialExcelConfigData",
+      "pathHash": "0xCC17F30791",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropTable",
+      "pathHash": "0x70357D89F0",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropSubTable",
+      "pathHash": "0x093EF34162",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropMaterial",
+      "pathHash": "0x20D6FEAAE9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DungeonDropExcelConfigData",
+      "pathHash": "0x22F7042401",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DungeonDropConfigData",
+      "pathHash": "0x8A0868CDD9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DungeonDrop",
+      "pathHash": "0xD932214043",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropExcelConfigData",
+      "pathHash": "0xD18E44B699",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_BinOutput/DropConfigData",
+      "pathHash": "0x694626BE7D",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropTableExcelConfigData",
+      "pathHash": "0xAF217184F6",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropSubTableExcelConfigData",
+      "pathHash": "0x966CD20A43",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropMaterialExcelConfigData",
+      "pathHash": "0x3A6531EEDD",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropTable",
+      "pathHash": "0x3E3AAC5A07",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropSubTable",
+      "pathHash": "0x8BFC282EAF",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropMaterial",
+      "pathHash": "0xEADE76758F",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DungeonDropExcelConfigData",
+      "pathHash": "0xE914DCE6A1",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DungeonDropConfigData",
+      "pathHash": "0x956B510395",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DungeonDrop",
+      "pathHash": "0x128535E892",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropExcelConfigData",
+      "pathHash": "0xD858099A26",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/_Server/DropConfigData",
+      "pathHash": "0xE59933C346",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropTableExcelConfigData",
+      "pathHash": "0xA1A84352DD",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropSubTableExcelConfigData",
+      "pathHash": "0xF722073B5A",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropMaterialExcelConfigData",
+      "pathHash": "0xB091CB2EE4",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropTable",
+      "pathHash": "0x0FA08ED07C",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropSubTable",
+      "pathHash": "0x891BB556C9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropMaterial",
+      "pathHash": "0xBBAE80A331",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DungeonDropExcelConfigData",
+      "pathHash": "0xEDC6BA5485",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DungeonDropConfigData",
+      "pathHash": "0x3F3AF1201E",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DungeonDrop",
+      "pathHash": "0xBAD25597AF",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropExcelConfigData",
+      "pathHash": "0xEAD290BFBA",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Data/Server/DropConfigData",
+      "pathHash": "0x41F0E1BCFE",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropTableExcelConfigData",
+      "pathHash": "0x69128C4BC0",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropSubTableExcelConfigData",
+      "pathHash": "0x3797834DC6",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropMaterialExcelConfigData",
+      "pathHash": "0xD159CA418D",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropTable",
+      "pathHash": "0x8FCD11AE56",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropSubTable",
+      "pathHash": "0x6900901B9B",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropMaterial",
+      "pathHash": "0x2F9E88F795",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DungeonDropExcelConfigData",
+      "pathHash": "0x7951FB5F76",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DungeonDropConfigData",
+      "pathHash": "0xA9C24551CC",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DungeonDrop",
+      "pathHash": "0x4A3E88ED9E",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropExcelConfigData",
+      "pathHash": "0xD0776FD4B8",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "Server/DropConfigData",
+      "pathHash": "0xA2594EBFA9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropTableExcelConfigData",
+      "pathHash": "0xD5BD34FE9B",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropSubTableExcelConfigData",
+      "pathHash": "0x802CFFEC15",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropMaterialExcelConfigData",
+      "pathHash": "0x06948BB625",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropTable",
+      "pathHash": "0x38E203F9BD",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropSubTable",
+      "pathHash": "0x964B74E3F1",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropMaterial",
+      "pathHash": "0x577033C73C",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DungeonDropExcelConfigData",
+      "pathHash": "0x4AE1C59FA9",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DungeonDropConfigData",
+      "pathHash": "0x22909D98C7",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DungeonDrop",
+      "pathHash": "0x08EF619DF0",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropExcelConfigData",
+      "pathHash": "0xE38A00F9B5",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    },
+    {
+      "path": "ExcelBinOutput/DropConfigData",
+      "pathHash": "0xA28CFEC4A0",
+      "nameMatchCount": 0,
+      "status": "HASH_ABSENT"
+    }
+  ],
+  "summary": {
+    "controlCount": 5,
+    "dropPathCount": 66,
+    "dropPathHashAbsentCount": 66
+  },
+  "byteLeads": [
+    {
+      "sourceRootId": 82162700,
+      "encodedNeedleHex": "23b85e29",
+      "payloadOffsets": [
+        215120
+      ],
+      "status": "CANDIDATE_BYTE_MATCH",
+      "limit": "no row boundary, Dungeon ID binding or field identity established"
+    },
+    {
+      "sourceRootId": 82165000,
+      "encodedNeedleHex": "27b15e29",
+      "payloadOffsets": [
+        215787
+      ],
+      "status": "CANDIDATE_BYTE_MATCH",
+      "limit": "no row boundary, Dungeon ID binding or field identity established"
+    }
+  ],
+  "limitations": [
+    "40-bit hash membership alone is not semantic path ownership",
+    "absence applies only to listed paths in this exact design index",
+    "alternative names, separate indexes and server-only tables remain possible",
+    "Dungeon row framing and full reader schema remain unresolved",
+    "no missing roots, item quantities or native probabilities recovered"
+  ]
+}

@@ -71,7 +71,7 @@
     "capstoneDistributionVersion": "5.0.9",
     "capstoneBindingVersion": "5.0.7",
     "toolGitBlobShas": {
-      "scripts/collect-7.1-client-dungeon-config.py": "a09ed99187f9db99cca855ef40b33feca48acf24",
+      "scripts/collect-7.1-client-dungeon-config.py": "7aae4566925baf7e72771565f19752aa68a9be07",
       "genshinre/pe.py": "2a4aa96186ce5529bc56dd3a6510afedf530cd77",
       "genshinre/callxref.py": "87d5ed85f7e06003b245c964ebe78fb72789a3ad",
       "genshinre/pointerxref.py": "e98af67cba3ae4d52d9dd67a4c0dbca530f61218",
@@ -1017,6 +1017,9 @@
     ],
     "nativeRead": {
       "presenceMaskBit": 13,
+      "presenceMaskDecode": "((uint64_le + 0x85B5FF59) mod 2^64) XOR 0xD3D96C23",
+      "presentWhenTransformedBit": 1,
+      "presentWhenPreXorBit": 0,
       "byteWidth": 4,
       "decode": "little_endian_uint32 XOR 0x2DBB0C2F",
       "absentValueBeforeWrapping": 0,
@@ -1026,6 +1029,60 @@
     "memoryWrapper": "byte permutation tables plus runtime XOR key; stored wrapper bits are not the source integer"
   },
   "instructions": {
+    "rawMaskRead": [
+      {
+        "rva": "0x12CA3C27",
+        "instructionHex": "bf59ffb585",
+        "mnemonic": "mov",
+        "operands": "edi, 0x85b5ff59"
+      },
+      {
+        "rva": "0x12CA3C2C",
+        "instructionHex": "48037c1020",
+        "mnemonic": "add",
+        "operands": "rdi, qword ptr [rax + rdx + 0x20]"
+      },
+      {
+        "rva": "0x12CA3C31",
+        "instructionHex": "83c108",
+        "mnemonic": "add",
+        "operands": "ecx, 8"
+      },
+      {
+        "rva": "0x12CA3C34",
+        "instructionHex": "41890e",
+        "mnemonic": "mov",
+        "operands": "dword ptr [r14], ecx"
+      },
+      {
+        "rva": "0x12CA3C37",
+        "instructionHex": "31f6",
+        "mnemonic": "xor",
+        "operands": "esi, esi"
+      }
+    ],
+    "maskXor": [
+      {
+        "rva": "0x12CA3DB0",
+        "instructionHex": "bf236cd9d3",
+        "mnemonic": "mov",
+        "operands": "edi, 0xd3d96c23"
+      },
+      {
+        "rva": "0x12CA3DB5",
+        "instructionHex": "4831cf",
+        "mnemonic": "xor",
+        "operands": "rdi, rcx"
+      }
+    ],
+    "transformedMaskSave": [
+      {
+        "rva": "0x12CA3ED4",
+        "instructionHex": "48897de0",
+        "mnemonic": "mov",
+        "operands": "qword ptr [rbp - 0x20], rdi"
+      }
+    ],
     "targetReadAndStore": [
       {
         "rva": "0x12CA5384",
