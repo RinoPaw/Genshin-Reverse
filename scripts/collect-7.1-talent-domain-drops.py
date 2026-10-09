@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from genshinre.dungeondrops import collect_dungeon_drop_links
 OUTPUT = ROOT / "versions/7.1.0-global/analyses/progression/economy/7.1-talent-domain-drop-links.json"
 REPOSITORY = "RinoPaw/AstaPS-Resource"
 COMMIT = "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd"
@@ -74,8 +77,10 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
          if r.get("type") == "DUNGEN_ENTRY_TYPE_AVATAR_TALENT"),
         key=lambda r: r["id"],
     )
-    previews = {r["id"]: r for r in rows["ExcelBinOutput/RewardPreviewExcelConfigData.json"]}
-    if len(previews) != len(rows["ExcelBinOutput/RewardPreviewExcelConfigData.json"]):
+    # The pinned table includes one empty-drop sentinel without an ID.
+    preview_rows = rows["ExcelBinOutput/RewardPreviewExcelConfigData.json"]
+    previews = {r["id"]: r for r in preview_rows if r.get("id")}
+    if len(previews) != sum(bool(r.get("id")) for r in preview_rows):
         raise ValueError("duplicate preview ID")
     entry_links = [{
         "entryExcelId": e["id"], "entryGadgetId": e["dungeonEntryId"],
@@ -113,50 +118,12 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
     if len(material_ids) != len(material_rows):
         raise ValueError("duplicate drop material ID")
 
-    visited: set[int] = set()
-    active: set[int] = set()
-
-    def visit(node_id: int) -> None:
-        if node_id in visited:
-            return
-        if node_id in active:
-            raise ValueError(f"cyclic drop node {node_id}")
-        if node_id in roots and node_id in subnodes:
-            raise ValueError(f"ambiguous drop node {node_id}")
-        node = roots.get(node_id) or subnodes.get(node_id)
-        if node is None:
-            raise ValueError(f"missing drop node {node_id}")
-        active.add(node_id)
-        for item in node["dropVec"]:
-            child_id = item["itemId"]
-            if child_id in roots or child_id in subnodes:
-                visit(child_id)
-            elif child_id <= 0:
-                raise ValueError(f"invalid drop item ID {child_id}")
-        active.remove(node_id)
-        visited.add(node_id)
-
-    for domain in domains:
-        if domain["rootPresent"]:
-            visit(domain["rootDropId"])
-
-    nodes = []
-    for node_id in sorted(visited):
-        row = roots.get(node_id) or subnodes[node_id]
-        nodes.append({
-            "id": node_id,
-            "table": ("DropTableExcelConfigData" if node_id in roots
-                      else "DropSubTableExcelConfigData"),
-            "randomType": row["randomType"],
-            "dropLevel": row["dropLevel"],
-            "nodeType": row["nodeType"],
-            "sourceType": row.get("sourceType"),
-            "dropVec": [
-                {"itemId": x["itemId"], "countRange": x["countRange"],
-                 "weight": x["weight"]}
-                for x in row["dropVec"]
-            ],
-        })
+    # Reuse the maintained graph traversal; keep this focused snapshot schema.
+    graph = collect_dungeon_drop_links(targets, table, sub, [])
+    nodes = [{**node, "dropVec": [
+        {key: value for key, value in edge.items() if key != "targetKind"}
+        for edge in node["dropVec"]
+    ]} for node in graph["dropNodes"]]
     # Follow both node types through to validated terminal inventory items.
     node_map = {n["id"]: n for n in nodes}
 
