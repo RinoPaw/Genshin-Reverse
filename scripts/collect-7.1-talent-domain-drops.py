@@ -15,6 +15,7 @@ BLOBS = {
     "ExcelBinOutput/DungeonExcelConfigData.json": "92983c5d9d46bccf486b803b7cf65f2cdf9088cb",
     "Server/DropTableExcelConfigData.json": "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
     "Server/DropSubTableExcelConfigData.json": "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+    "Server/DropMaterialExcelConfigData.json": "5be570af7dca96d9512d523f63b67e880009d4e1",
     "ExcelBinOutput/DungeonEntryExcelConfigData.json": "e7a92f6df718148fad4dee47a691700407b1ddcf",
     "ExcelBinOutput/RewardPreviewExcelConfigData.json": "a72b299e29c19007c48ed78b2e11aa33e274f98c",
 }
@@ -107,6 +108,11 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
            or d["baseResinCostCount"] != 20 for d in domains):
         raise ValueError("unrecognized pinned cost")
 
+    material_rows = rows["Server/DropMaterialExcelConfigData.json"]
+    material_ids = {r["id"] for r in material_rows}
+    if len(material_ids) != len(material_rows):
+        raise ValueError("duplicate drop material ID")
+
     visited: set[int] = set()
     active: set[int] = set()
 
@@ -151,6 +157,42 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
                 for x in row["dropVec"]
             ],
         })
+    # Follow both node types through to validated terminal inventory items.
+    node_map = {n["id"]: n for n in nodes}
+
+    def collect_terminal_ids(root_id: int) -> list[int]:
+        terminals: set[int] = set()
+        active: set[int] = set()
+
+        def walk(node_id: int) -> None:
+            if node_id in active:
+                raise ValueError(f"cyclic terminal chain at {node_id}")
+            active.add(node_id)
+            for edge in node_map[node_id]["dropVec"]:
+                item_id = edge["itemId"]
+                if item_id in node_map:
+                    walk(item_id)
+                else:
+                    if item_id not in material_ids:
+                        raise ValueError(f"unknown terminal drop material {item_id}")
+                    terminals.add(item_id)
+            active.remove(node_id)
+
+        walk(root_id)
+        return sorted(terminals)
+
+    distinct_terminals: set[int] = set()
+    for domain in domains:
+        material_list = (collect_terminal_ids(domain["rootDropId"])
+                         if domain["rootPresent"] else [])
+        domain["terminalItemIds"] = material_list
+        if domain["rootPresent"]:
+            display_ids = {x.get("id") for x in
+                           previews[domain["passRewardPreviewId"]]["previewItems"]}
+            if not set(material_list).issubset(display_ids):
+                raise ValueError(f"terminal material missing from preview: {domain['dungeonId']}")
+        distinct_terminals.update(material_list)
+
     resolved = sum(d["rootPresent"] for d in domains)
     missing_ids = [d["rootDropId"] for d in domains if not d["rootPresent"]]
     summary = {
@@ -165,6 +207,8 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
         ),
         "unresolvedRootIds": missing_ids,
         "talentEntryRows": len(entry_links),
+        "validatedTerminalMaterialIds": len(distinct_terminals),
+        "terminalMaterialIdsMissingInPreview": 0,
     }
     if (
         summary["talentDungeonRows"],
@@ -172,7 +216,7 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
         summary["missingRootCount"],
         summary["reachableDropTableNodes"],
         summary["reachableDropSubTableNodes"],
-    ) != (104, 56, 48, 112, 6):
+    ) != (104, 56, 48, 112, 6) or len(distinct_terminals) != 39:
         raise ValueError("pinned source coverage changed unexpectedly")
 
     return {

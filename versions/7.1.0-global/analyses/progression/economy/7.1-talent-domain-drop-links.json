@@ -25,6 +25,10 @@
       "ExcelBinOutput/RewardPreviewExcelConfigData.json": {
         "gitBlobSha": "a72b299e29c19007c48ed78b2e11aa33e274f98c",
         "rowCount": 1589
+      },
+      "Server/DropMaterialExcelConfigData.json": {
+        "gitBlobSha": "5be570af7dca96d9512d523f63b67e880009d4e1",
+        "rowCount": 3921
       }
     }
   },
@@ -84,7 +88,9 @@
       82384100,
       82385000
     ],
-    "talentEntryRows": 8
+    "talentEntryRows": 8,
+    "validatedTerminalMaterialIds": 39,
+    "terminalMaterialIdsMissingInPreview": 0
   },
   "domains": [
     {
@@ -99,6 +105,14 @@
       "rootPresent": true,
       "entryExcelId": 10,
       "previewTalentMaterialIds": [
+        104301,
+        104304,
+        104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104301,
         104304,
         104307
@@ -122,6 +136,17 @@
         104301,
         104304,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302,
+        104304,
+        104305,
+        104307,
+        104308
       ]
     },
     {
@@ -142,6 +167,17 @@
         104301,
         104304,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302,
+        104304,
+        104305,
+        104307,
+        104308
       ]
     },
     {
@@ -165,6 +201,20 @@
         104301,
         104304,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302,
+        104303,
+        104304,
+        104305,
+        104306,
+        104307,
+        104308,
+        104309
       ]
     },
     {
@@ -179,6 +229,12 @@
       "rootPresent": true,
       "entryExcelId": 10,
       "previewTalentMaterialIds": [
+        104301
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104301
       ]
     },
@@ -196,6 +252,13 @@
       "previewTalentMaterialIds": [
         104302,
         104301
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302
       ]
     },
     {
@@ -212,6 +275,13 @@
       "previewTalentMaterialIds": [
         104302,
         104301
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302
       ]
     },
     {
@@ -229,6 +299,14 @@
         104303,
         104302,
         104301
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104301,
+        104302,
+        104303
       ]
     },
     {
@@ -243,6 +321,12 @@
       "rootPresent": true,
       "entryExcelId": 10,
       "previewTalentMaterialIds": [
+        104304
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104304
       ]
     },
@@ -260,6 +344,13 @@
       "previewTalentMaterialIds": [
         104305,
         104304
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104304,
+        104305
       ]
     },
     {
@@ -276,6 +367,13 @@
       "previewTalentMaterialIds": [
         104305,
         104304
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104304,
+        104305
       ]
     },
     {
@@ -293,6 +391,14 @@
         104306,
         104305,
         104304
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104304,
+        104305,
+        104306
       ]
     },
     {
@@ -307,6 +413,12 @@
       "rootPresent": true,
       "entryExcelId": 10,
       "previewTalentMaterialIds": [
+        104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104307
       ]
     },
@@ -324,6 +436,13 @@
       "previewTalentMaterialIds": [
         104308,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104307,
+        104308
       ]
     },
     {
@@ -340,6 +459,13 @@
       "previewTalentMaterialIds": [
         104308,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104307,
+        104308
       ]
     },
     {
@@ -357,6 +483,14 @@
         104309,
         104308,
         104307
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104307,
+        104308,
+        104309
       ]
     },
     {
@@ -371,6 +505,12 @@
       "rootPresent": true,
       "entryExcelId": 15,
       "previewTalentMaterialIds": [
+        104320
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104320
       ]
     },
@@ -388,6 +528,13 @@
       "previewTalentMaterialIds": [
         104321,
         104320
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104320,
+        104321
       ]
     },
     {
@@ -404,6 +551,13 @@
       "previewTalentMaterialIds": [
         104321,
         104320
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104320,
+        104321
       ]
     },
     {
@@ -421,6 +575,14 @@
         104322,
         104321,
         104320
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104320,
+        104321,
+        104322
       ]
     },
     {
@@ -435,6 +597,12 @@
       "rootPresent": true,
       "entryExcelId": 15,
       "previewTalentMaterialIds": [
+        104323
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104323
       ]
     },
@@ -452,6 +620,13 @@
       "previewTalentMaterialIds": [
         104324,
         104323
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104323,
+        104324
       ]
     },
     {
@@ -468,6 +643,13 @@
       "previewTalentMaterialIds": [
         104324,
         104323
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104323,
+        104324
       ]
     },
     {
@@ -485,6 +667,14 @@
         104325,
         104324,
         104323
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104323,
+        104324,
+        104325
       ]
     },
     {
@@ -499,6 +689,12 @@
       "rootPresent": true,
       "entryExcelId": 15,
       "previewTalentMaterialIds": [
+        104326
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104326
       ]
     },
@@ -516,6 +712,13 @@
       "previewTalentMaterialIds": [
         104327,
         104326
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104326,
+        104327
       ]
     },
     {
@@ -532,6 +735,13 @@
       "previewTalentMaterialIds": [
         104327,
         104326
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104326,
+        104327
       ]
     },
     {
@@ -549,6 +759,14 @@
         104328,
         104327,
         104326
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104326,
+        104327,
+        104328
       ]
     },
     {
@@ -563,6 +781,12 @@
       "rootPresent": true,
       "entryExcelId": 19,
       "previewTalentMaterialIds": [
+        104329
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104329
       ]
     },
@@ -580,6 +804,13 @@
       "previewTalentMaterialIds": [
         104330,
         104329
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104329,
+        104330
       ]
     },
     {
@@ -596,6 +827,13 @@
       "previewTalentMaterialIds": [
         104330,
         104329
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104329,
+        104330
       ]
     },
     {
@@ -613,6 +851,14 @@
         104331,
         104330,
         104329
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104329,
+        104330,
+        104331
       ]
     },
     {
@@ -628,7 +874,8 @@
       "entryExcelId": 29,
       "previewTalentMaterialIds": [
         104347
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4435,
@@ -644,7 +891,8 @@
       "previewTalentMaterialIds": [
         104348,
         104347
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4436,
@@ -660,7 +908,8 @@
       "previewTalentMaterialIds": [
         104348,
         104347
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4437,
@@ -677,7 +926,8 @@
         104349,
         104348,
         104347
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4440,
@@ -691,6 +941,12 @@
       "rootPresent": true,
       "entryExcelId": 19,
       "previewTalentMaterialIds": [
+        104332
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104332
       ]
     },
@@ -708,6 +964,13 @@
       "previewTalentMaterialIds": [
         104333,
         104332
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104332,
+        104333
       ]
     },
     {
@@ -724,6 +987,13 @@
       "previewTalentMaterialIds": [
         104333,
         104332
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104332,
+        104333
       ]
     },
     {
@@ -741,6 +1011,14 @@
         104334,
         104333,
         104332
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104332,
+        104333,
+        104334
       ]
     },
     {
@@ -756,7 +1034,8 @@
       "entryExcelId": 29,
       "previewTalentMaterialIds": [
         104350
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4445,
@@ -772,7 +1051,8 @@
       "previewTalentMaterialIds": [
         104351,
         104350
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4446,
@@ -788,7 +1068,8 @@
       "previewTalentMaterialIds": [
         104351,
         104350
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4447,
@@ -805,7 +1086,8 @@
         104352,
         104351,
         104350
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4450,
@@ -819,6 +1101,12 @@
       "rootPresent": true,
       "entryExcelId": 19,
       "previewTalentMaterialIds": [
+        104335
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104335
       ]
     },
@@ -836,6 +1124,13 @@
       "previewTalentMaterialIds": [
         104336,
         104335
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104335,
+        104336
       ]
     },
     {
@@ -852,6 +1147,13 @@
       "previewTalentMaterialIds": [
         104336,
         104335
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104335,
+        104336
       ]
     },
     {
@@ -869,6 +1171,14 @@
         104337,
         104336,
         104335
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104335,
+        104336,
+        104337
       ]
     },
     {
@@ -884,7 +1194,8 @@
       "entryExcelId": 29,
       "previewTalentMaterialIds": [
         104353
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4455,
@@ -900,7 +1211,8 @@
       "previewTalentMaterialIds": [
         104354,
         104353
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4456,
@@ -916,7 +1228,8 @@
       "previewTalentMaterialIds": [
         104354,
         104353
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4457,
@@ -933,7 +1246,8 @@
         104355,
         104354,
         104353
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4460,
@@ -948,7 +1262,8 @@
       "entryExcelId": 24,
       "previewTalentMaterialIds": [
         104338
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4461,
@@ -964,7 +1279,8 @@
       "previewTalentMaterialIds": [
         104339,
         104338
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4462,
@@ -980,7 +1296,8 @@
       "previewTalentMaterialIds": [
         104339,
         104338
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4463,
@@ -997,7 +1314,8 @@
         104340,
         104339,
         104338
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4490,
@@ -1012,7 +1330,8 @@
       "entryExcelId": 24,
       "previewTalentMaterialIds": [
         104341
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4491,
@@ -1028,7 +1347,8 @@
       "previewTalentMaterialIds": [
         104342,
         104341
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4492,
@@ -1044,7 +1364,8 @@
       "previewTalentMaterialIds": [
         104342,
         104341
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4493,
@@ -1061,7 +1382,8 @@
         104343,
         104342,
         104341
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4494,
@@ -1076,7 +1398,8 @@
       "entryExcelId": 24,
       "previewTalentMaterialIds": [
         104344
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4495,
@@ -1092,7 +1415,8 @@
       "previewTalentMaterialIds": [
         104345,
         104344
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4496,
@@ -1108,7 +1432,8 @@
       "previewTalentMaterialIds": [
         104345,
         104344
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4497,
@@ -1125,7 +1450,8 @@
         104346,
         104345,
         104344
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4651,
@@ -1140,7 +1466,8 @@
       "entryExcelId": 33,
       "previewTalentMaterialIds": [
         104356
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4652,
@@ -1156,7 +1483,8 @@
       "previewTalentMaterialIds": [
         104357,
         104356
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4653,
@@ -1172,7 +1500,8 @@
       "previewTalentMaterialIds": [
         104357,
         104356
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4654,
@@ -1189,7 +1518,8 @@
         104358,
         104357,
         104356
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4655,
@@ -1204,7 +1534,8 @@
       "entryExcelId": 33,
       "previewTalentMaterialIds": [
         104359
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4656,
@@ -1220,7 +1551,8 @@
       "previewTalentMaterialIds": [
         104360,
         104359
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4657,
@@ -1236,7 +1568,8 @@
       "previewTalentMaterialIds": [
         104360,
         104359
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4658,
@@ -1253,7 +1586,8 @@
         104361,
         104360,
         104359
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4659,
@@ -1268,7 +1602,8 @@
       "entryExcelId": 33,
       "previewTalentMaterialIds": [
         104362
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4660,
@@ -1284,7 +1619,8 @@
       "previewTalentMaterialIds": [
         104363,
         104362
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4661,
@@ -1300,7 +1636,8 @@
       "previewTalentMaterialIds": [
         104363,
         104362
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4662,
@@ -1317,7 +1654,8 @@
         104364,
         104363,
         104362
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4691,
@@ -1332,7 +1670,8 @@
       "entryExcelId": 38,
       "previewTalentMaterialIds": [
         104365
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4692,
@@ -1348,7 +1687,8 @@
       "previewTalentMaterialIds": [
         104366,
         104365
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4693,
@@ -1364,7 +1704,8 @@
       "previewTalentMaterialIds": [
         104366,
         104365
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4694,
@@ -1381,7 +1722,8 @@
         104367,
         104366,
         104365
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4695,
@@ -1396,7 +1738,8 @@
       "entryExcelId": 38,
       "previewTalentMaterialIds": [
         104368
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4696,
@@ -1412,7 +1755,8 @@
       "previewTalentMaterialIds": [
         104369,
         104368
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4697,
@@ -1428,7 +1772,8 @@
       "previewTalentMaterialIds": [
         104369,
         104368
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4698,
@@ -1445,7 +1790,8 @@
         104370,
         104369,
         104368
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4699,
@@ -1460,7 +1806,8 @@
       "entryExcelId": 38,
       "previewTalentMaterialIds": [
         104371
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4700,
@@ -1476,7 +1823,8 @@
       "previewTalentMaterialIds": [
         104372,
         104371
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4701,
@@ -1492,7 +1840,8 @@
       "previewTalentMaterialIds": [
         104372,
         104371
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 4702,
@@ -1509,7 +1858,8 @@
         104373,
         104372,
         104371
-      ]
+      ],
+      "terminalItemIds": []
     },
     {
       "dungeonId": 5250,
@@ -1523,6 +1873,14 @@
       "rootPresent": true,
       "entryExcelId": 11,
       "previewTalentMaterialIds": [
+        104310,
+        104313,
+        104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104310,
         104313,
         104316
@@ -1546,6 +1904,17 @@
         104310,
         104313,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311,
+        104313,
+        104314,
+        104316,
+        104317
       ]
     },
     {
@@ -1566,6 +1935,17 @@
         104310,
         104313,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311,
+        104313,
+        104314,
+        104316,
+        104317
       ]
     },
     {
@@ -1589,6 +1969,20 @@
         104310,
         104313,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311,
+        104312,
+        104313,
+        104314,
+        104315,
+        104316,
+        104317,
+        104318
       ]
     },
     {
@@ -1603,6 +1997,12 @@
       "rootPresent": true,
       "entryExcelId": 11,
       "previewTalentMaterialIds": [
+        104310
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104310
       ]
     },
@@ -1620,6 +2020,13 @@
       "previewTalentMaterialIds": [
         104311,
         104310
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311
       ]
     },
     {
@@ -1636,6 +2043,13 @@
       "previewTalentMaterialIds": [
         104311,
         104310
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311
       ]
     },
     {
@@ -1653,6 +2067,14 @@
         104312,
         104311,
         104310
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104310,
+        104311,
+        104312
       ]
     },
     {
@@ -1667,6 +2089,12 @@
       "rootPresent": true,
       "entryExcelId": 11,
       "previewTalentMaterialIds": [
+        104313
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104313
       ]
     },
@@ -1684,6 +2112,13 @@
       "previewTalentMaterialIds": [
         104314,
         104313
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104313,
+        104314
       ]
     },
     {
@@ -1700,6 +2135,13 @@
       "previewTalentMaterialIds": [
         104314,
         104313
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104313,
+        104314
       ]
     },
     {
@@ -1717,6 +2159,14 @@
         104315,
         104314,
         104313
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104313,
+        104314,
+        104315
       ]
     },
     {
@@ -1731,6 +2181,12 @@
       "rootPresent": true,
       "entryExcelId": 11,
       "previewTalentMaterialIds": [
+        104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
         104316
       ]
     },
@@ -1748,6 +2204,13 @@
       "previewTalentMaterialIds": [
         104317,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104316,
+        104317
       ]
     },
     {
@@ -1764,6 +2227,13 @@
       "previewTalentMaterialIds": [
         104317,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104316,
+        104317
       ]
     },
     {
@@ -1781,6 +2251,14 @@
         104318,
         104317,
         104316
+      ],
+      "terminalItemIds": [
+        102,
+        105,
+        202,
+        104316,
+        104317,
+        104318
       ]
     }
   ],

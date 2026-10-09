@@ -33,6 +33,8 @@ class TalentDomainDropLinkTests(unittest.TestCase):
                     "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
                 "Server/DropSubTableExcelConfigData.json":
                     "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+                "Server/DropMaterialExcelConfigData.json":
+                    "5be570af7dca96d9512d523f63b67e880009d4e1",
                 "ExcelBinOutput/DungeonEntryExcelConfigData.json":
                     "e7a92f6df718148fad4dee47a691700407b1ddcf",
                 "ExcelBinOutput/RewardPreviewExcelConfigData.json":
@@ -48,6 +50,8 @@ class TalentDomainDropLinkTests(unittest.TestCase):
         )
         self.assertEqual(len(self.domains), 104)
         self.assertEqual(len(self.nodes), 118)
+        self.assertEqual(s["validatedTerminalMaterialIds"], 39)
+        self.assertEqual(s["terminalMaterialIdsMissingInPreview"], 0)
         self.assertEqual(
             {d["cityId"] for d in self.domains.values()
              if not d["rootPresent"]},
@@ -61,12 +65,16 @@ class TalentDomainDropLinkTests(unittest.TestCase):
                 (106, 20),
             )
             if dungeon["rootPresent"]:
+                self.assertTrue(dungeon["terminalItemIds"])
+                preview_ids = {102, 202, 105, *dungeon["previewTalentMaterialIds"]}
+                self.assertTrue(set(dungeon["terminalItemIds"]).issubset(preview_ids))
                 self.assertIn(dungeon["rootDropId"], self.nodes)
                 self.assertEqual(
                     self.nodes[dungeon["rootDropId"]]["table"],
                     "DropTableExcelConfigData",
                 )
             else:
+                self.assertEqual(dungeon["terminalItemIds"], [])
                 self.assertNotIn(dungeon["rootDropId"], self.nodes)
         for node in self.nodes.values():
             for entry in node["dropVec"]:
@@ -106,6 +114,8 @@ class TalentDomainDropLinkTests(unittest.TestCase):
             [x["itemId"] for x in self.nodes[510000]["dropVec"]],
             [104301, 104304, 104307],
         )
+        self.assertEqual(self.domains[4200]["terminalItemIds"],
+                         [102, 105, 202, 104301, 104304, 104307])
         self.assertFalse(self.domains[4434]["rootPresent"])
 
 
