@@ -9,6 +9,13 @@ def _rva(text: str) -> int:
     return int(text, 0)
 
 
+def _label_path(text: str) -> tuple[str, Path]:
+    label, sep, raw_path = text.partition("=")
+    if not sep or not label or not raw_path:
+        raise argparse.ArgumentTypeError("expected LABEL=PATH")
+    return label, Path(raw_path)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="genshinre")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -193,6 +200,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("export_root", type=Path)
     p.add_argument("output_dir", type=Path)
     p.add_argument("--coverage", type=Path)
+
+    p = sub.add_parser("recover", help="recover compatibility data without promoting it to native evidence")
+    recover_sub = p.add_subparsers(dest="recover_target", required=True)
+    q = recover_sub.add_parser(
+        "quest-compat",
+        help="build a provenance-preserving acceptCond/beginExec recovery manifest",
+    )
+    q.add_argument("raw_7_1_root", type=Path)
+    q.add_argument("--raw-source", required=True)
+    q.add_argument(
+        "--community-source",
+        type=_label_path,
+        action="append",
+        required=True,
+        metavar="LABEL=PATH",
+        help="pinned community projection; repeat for at least two independent sources",
+    )
+    q.add_argument("--historical-tsv-root", type=Path)
+    q.add_argument("--historical-tsv-source")
+    q.add_argument("--output", type=Path, required=True)
+    q.add_argument("--unresolved-output", type=Path, required=True)
 
     p = sub.add_parser("audit", help="audit server resources against preserved evidence")
     audit_sub = p.add_subparsers(dest="audit_target", required=True)
@@ -500,6 +528,43 @@ def main() -> None:
             coverage_path=args.coverage,
         )
         print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    elif args.command == "recover":
+        if args.recover_target == "quest-compat":
+            from .questrecovery71 import (
+                _write_json,
+                build_consensus_from_directories,
+            )
+
+            if len(args.community_source) < 2:
+                raise SystemExit("quest compatibility recovery requires at least two --community-source values")
+            if (args.historical_tsv_root is None) != (args.historical_tsv_source is None):
+                raise SystemExit(
+                    "--historical-tsv-root and --historical-tsv-source must be provided together"
+                )
+            community_roots = dict(args.community_source)
+            if len(community_roots) != len(args.community_source):
+                raise SystemExit("--community-source labels must be unique")
+            manifest, unresolved = build_consensus_from_directories(
+                args.raw_7_1_root,
+                community_roots,
+                raw_71_source=args.raw_source,
+                historical_tsv_root=args.historical_tsv_root,
+                historical_tsv_source=args.historical_tsv_source,
+            )
+            _write_json(args.output, manifest)
+            _write_json(args.unresolved_output, unresolved)
+            print(
+                json.dumps(
+                    {
+                        "manifest": str(args.output),
+                        "unresolved": str(args.unresolved_output),
+                        "summary": manifest["summary"],
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
     elif args.command == "audit":
         if args.audit_target == "quest":
             from .questaudit import audit_quest_directories
