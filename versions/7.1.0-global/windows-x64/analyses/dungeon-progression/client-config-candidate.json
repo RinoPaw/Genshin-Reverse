@@ -1,0 +1,1810 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact 7.1.0 Global Windows x64",
+  "status": "PARTIAL",
+  "scope": "static native reader evidence; semantic owner and field binding remain HIGH_CONFIDENCE candidates",
+  "samples": {
+    "GenshinImpact.exe": {
+      "sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+      "size": 444260776
+    },
+    "global-metadata.dat": {
+      "sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+      "size": 82724152
+    }
+  },
+  "source": {
+    "repository": "RinoPaw/AstaPS-Resource",
+    "commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+    "DungeonExcelConfigDataGitBlobSha": "92983c5d9d46bccf486b803b7cf65f2cdf9088cb",
+    "example": {
+      "entryPicPath": "UI_DungeonPic_NTDungeon_Cycle01",
+      "settleCountdownTime": 999,
+      "recommendTips": [
+        {}
+      ],
+      "levelConfigMap": {
+        "2015": 100
+      },
+      "id": 4434,
+      "sceneId": 40764,
+      "involveType": "INVOLVE_SINGLE_MULTIPLE",
+      "EHLOPBNGBIM": 1894872511,
+      "passCond": 51,
+      "subType": "DUNGEON_SUB_TALENT",
+      "levelRevise": 37,
+      "recommendElementTypes": [
+        "Grass",
+        "Electric",
+        "Wind",
+        "Water"
+      ],
+      "cityID": 6,
+      "statueCostCount": 20,
+      "passRewardPreviewID": 25220,
+      "displayNameTextMapHash": 1313565978,
+      "IAOMJCLOIEL": 82162700,
+      "limitLevel": 25,
+      "type": "DUNGEON_DAILY_FIGHT",
+      "settleShows": [
+        "SETTLE_SHOW_TIME_COST",
+        "SETTLE_SHOW_NONE",
+        "SETTLE_SHOW_NONE",
+        "SETTLE_SHOW_NONE"
+      ],
+      "stateType": "DUNGEON_STATE_RELEASE",
+      "descTextMapHash": 2754856165,
+      "KNKLKDNGEGI": 10,
+      "LBFFJMPGCBN": 29,
+      "statueCostID": 106,
+      "showLevel": 38,
+      "failSettleCountdownTime": 30,
+      "gearDescTextMapHash": 3838874721,
+      "quitSettleCountdownTime": 30,
+      "nameTextMapHash": 3866232168,
+      "PHGJMAKCFHE": 942062001,
+      "dayEnterCount": 3
+    }
+  },
+  "generator": {
+    "script": "scripts/collect-7.1-client-dungeon-config.py",
+    "capstoneDistributionVersion": "5.0.9",
+    "capstoneBindingVersion": "5.0.7",
+    "toolGitBlobShas": {
+      "scripts/collect-7.1-client-dungeon-config.py": "a09ed99187f9db99cca855ef40b33feca48acf24",
+      "genshinre/pe.py": "2a4aa96186ce5529bc56dd3a6510afedf530cd77",
+      "genshinre/callxref.py": "87d5ed85f7e06003b245c964ebe78fb72789a3ad",
+      "genshinre/pointerxref.py": "e98af67cba3ae4d52d9dd67a4c0dbca530f61218",
+      "genshinre/xrefs.py": "d50816bd1b491c9b4261573ae24dba0521d2622d",
+      "genshinre/nativeprofile.py": "e127a95f395c5f29e177486b36268fb4e6631602"
+    },
+    "metadataGitBlobShas": {
+      "fields.csv": "ae01d117f4d884e891a95d529a15302a68715b04",
+      "methods.csv": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a"
+    },
+    "command": "python scripts/collect-7.1-client-dungeon-config.py --samples inputs/7.1.0-global --resource-root /path/to/AstaPS-Resource --check"
+  },
+  "ownerCandidate": {
+    "typeName": "LGLHLMDKIEO",
+    "typeDefinitionIndex": 33015,
+    "sharedObfuscatedResourceKeys": [
+      "ALNJFHOCPKI",
+      "BPHAFLJMDIC",
+      "CCOMHKNNGAG",
+      "CKPIANDIHPC",
+      "CPOBKDBMJOH",
+      "DBMHBKIDAJH",
+      "DILPLNIBBJF",
+      "EALLDHCKBHG",
+      "EEKCGJIKCGM",
+      "EHLOPBNGBIM",
+      "GBIIDJANMJM",
+      "GPGDOEEBBOH",
+      "HMCKMHBNAPJ",
+      "IAOMJCLOIEL",
+      "INNNAJNFNNP",
+      "KCDNDHGDLOA",
+      "KGFBOAMNGDO",
+      "KNKLKDNGEGI",
+      "KPJIMAIKDMI",
+      "LBFFJMPGCBN",
+      "LCMNNDKOFNO",
+      "LDENHAKLJPF",
+      "LOHCJOJLICK",
+      "MBKDECNPGLP",
+      "NCDDPJHMJGP",
+      "OHNNPFAIAKN",
+      "PHGJMAKCFHE",
+      "PKMIDDLDFBI"
+    ],
+    "readerMethodIndex": 261095,
+    "readerRva": "0x12CA3BA0",
+    "fieldCount": 67,
+    "fields": [
+      {
+        "field_index": "165077",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "KCDNDHGDLOA",
+        "field_type": "string",
+        "field_type_index": "439188",
+        "name_token": "0x0B3F1E91",
+        "offset": "",
+        "record_file_offset": "0xA1306C",
+        "candidateOffset": "0x10",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165078",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "DILPLNIBBJF",
+        "field_type": "kind_0x1D",
+        "field_type_index": "454421",
+        "name_token": "0x0B3F1E9C",
+        "offset": "",
+        "record_file_offset": "0xA13074",
+        "candidateOffset": "0x18",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165079",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "GCHHIJLHIKI",
+        "field_type": "kind_0x1D",
+        "field_type_index": "521023",
+        "name_token": "0x0B3F1EA7",
+        "offset": "",
+        "record_file_offset": "0xA1307C",
+        "candidateOffset": "0x20",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165080",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "JKMHAIFNELM",
+        "field_type": "kind_0x1D",
+        "field_type_index": "538907",
+        "name_token": "0x0B3F1EB2",
+        "offset": "",
+        "record_file_offset": "0xA13084",
+        "candidateOffset": "0x28",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165081",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "BCDKLJLNBKF",
+        "field_type": "kind_0x15",
+        "field_type_index": "476752",
+        "name_token": "0x0B3F1EBD",
+        "offset": "",
+        "record_file_offset": "0xA1308C",
+        "candidateOffset": "0x30",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165082",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "OMJJIOBCIIB",
+        "field_type": "kind_0x1D",
+        "field_type_index": "476681",
+        "name_token": "0x0B3F1EC8",
+        "offset": "",
+        "record_file_offset": "0xA13094",
+        "candidateOffset": "0x38",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165083",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "ABACPAJPKNK",
+        "field_type": "string",
+        "field_type_index": "439188",
+        "name_token": "0x0B3F1ED3",
+        "offset": "",
+        "record_file_offset": "0xA1309C",
+        "candidateOffset": "0x40",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165084",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "BBPEFPNCPMI",
+        "field_type": "kind_0x1D",
+        "field_type_index": "483332",
+        "name_token": "0x0B3F1EDE",
+        "offset": "",
+        "record_file_offset": "0xA130A4",
+        "candidateOffset": "0x48",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165085",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "GPBNLBPGFEP",
+        "field_type": "string",
+        "field_type_index": "439188",
+        "name_token": "0x0B3F1EE9",
+        "offset": "",
+        "record_file_offset": "0xA130AC",
+        "candidateOffset": "0x50",
+        "candidateWidth": 8
+      },
+      {
+        "field_index": "165086",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "MJHOGACCLHK",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B3F1EF4",
+        "offset": "",
+        "record_file_offset": "0xA130B4",
+        "candidateOffset": "0x58",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165087",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "HJJIPEGJPFL",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1EFF",
+        "offset": "",
+        "record_file_offset": "0xA130BC",
+        "candidateOffset": "0x5C",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165088",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EFFIACCMHKH",
+        "field_type": "AFGKHKAJCKI",
+        "field_type_index": "538908",
+        "name_token": "0x0B3F1F0A",
+        "offset": "",
+        "record_file_offset": "0xA130C4",
+        "candidateOffset": "0x60",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165089",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "LCMNNDKOFNO",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F15",
+        "offset": "",
+        "record_file_offset": "0xA130CC",
+        "candidateOffset": "0x64",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165090",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "HDMLDDGIOEJ",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F20",
+        "offset": "",
+        "record_file_offset": "0xA130D4",
+        "candidateOffset": "0x68",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165091",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PJGMBJPOGBC",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F2B",
+        "offset": "",
+        "record_file_offset": "0xA130DC",
+        "candidateOffset": "0x6C",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165092",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "OOELNPLKBCG",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F36",
+        "offset": "",
+        "record_file_offset": "0xA130E4",
+        "candidateOffset": "0x70",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165093",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EMAEJCJBEPJ",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F41",
+        "offset": "",
+        "record_file_offset": "0xA130EC",
+        "candidateOffset": "0x74",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165094",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "JICOFLMHAHF",
+        "field_type": "OMHKNJLAFDO",
+        "field_type_index": "487426",
+        "name_token": "0x0B191C07",
+        "offset": "",
+        "record_file_offset": "0xA130F4",
+        "candidateOffset": "0x78",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165095",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "AIFBCNOAOCH",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F4C",
+        "offset": "",
+        "record_file_offset": "0xA130FC",
+        "candidateOffset": "0x7C",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165096",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PHGJMAKCFHE",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B3F1F57",
+        "offset": "",
+        "record_file_offset": "0xA13104",
+        "candidateOffset": "0x80",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165097",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "FGPCDHILDOA",
+        "field_type": "OOABEJABIJA",
+        "field_type_index": "538909",
+        "name_token": "0x0B191C12",
+        "offset": "",
+        "record_file_offset": "0xA1310C",
+        "candidateOffset": "0x84",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165098",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "GPANODIDPKB",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F62",
+        "offset": "",
+        "record_file_offset": "0xA13114",
+        "candidateOffset": "0x88",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165099",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "MOPIDEKAJBG",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1F6D",
+        "offset": "",
+        "record_file_offset": "0xA1311C",
+        "candidateOffset": "0x8C",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165100",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "CKPIANDIHPC",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1F78",
+        "offset": "",
+        "record_file_offset": "0xA13124",
+        "candidateOffset": "0x8D",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165101",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "IFIDPFEOEHH",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1F83",
+        "offset": "",
+        "record_file_offset": "0xA1312C",
+        "candidateOffset": "0x8E",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165102",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "INNNAJNFNNP",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1F8E",
+        "offset": "",
+        "record_file_offset": "0xA13134",
+        "candidateOffset": "0x8F",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165103",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "HMCKMHBNAPJ",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1F99",
+        "offset": "",
+        "record_file_offset": "0xA1313C",
+        "candidateOffset": "0x90",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165104",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "MHLNLLALNFP",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1FA4",
+        "offset": "",
+        "record_file_offset": "0xA13144",
+        "candidateOffset": "0x94",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165105",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "LBFFJMPGCBN",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1FAF",
+        "offset": "",
+        "record_file_offset": "0xA1314C",
+        "candidateOffset": "0x98",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165106",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "JLGLBNAIDED",
+        "field_type": "OEMIGILIKIM",
+        "field_type_index": "538910",
+        "name_token": "0x0B3A0CC7",
+        "offset": "",
+        "record_file_offset": "0xA13154",
+        "candidateOffset": "0x9C",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165107",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EALLDHCKBHG",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1FBA",
+        "offset": "",
+        "record_file_offset": "0xA1315C",
+        "candidateOffset": "0xA0",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165108",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "KGFBOAMNGDO",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1FC5",
+        "offset": "",
+        "record_file_offset": "0xA13164",
+        "candidateOffset": "0xA1",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165109",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "LDENHAKLJPF",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1FD0",
+        "offset": "",
+        "record_file_offset": "0xA1316C",
+        "candidateOffset": "0xA2",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165110",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "BPHAFLJMDIC",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F1FDB",
+        "offset": "",
+        "record_file_offset": "0xA13174",
+        "candidateOffset": "0xA3",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165111",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "KPJIMAIKDMI",
+        "field_type": "OPLPHCJDBPG",
+        "field_type_index": "538911",
+        "name_token": "0x0B3F1FE6",
+        "offset": "",
+        "record_file_offset": "0xA1317C",
+        "candidateOffset": "0xA4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165112",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "LPLOLBKNBGI",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F1FF1",
+        "offset": "",
+        "record_file_offset": "0xA13184",
+        "candidateOffset": "0xA8",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165113",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "JNMFGAMGJLB",
+        "field_type": "OBNLDBDKDDH",
+        "field_type_index": "538912",
+        "name_token": "0x0B3F1FFC",
+        "offset": "",
+        "record_file_offset": "0xA1318C",
+        "candidateOffset": "0xAC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165114",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "AOKCLKJFOCA",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2007",
+        "offset": "",
+        "record_file_offset": "0xA13194",
+        "candidateOffset": "0xB0",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165115",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "ALNJFHOCPKI",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2012",
+        "offset": "",
+        "record_file_offset": "0xA1319C",
+        "candidateOffset": "0xB4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165116",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PKMIDDLDFBI",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F201D",
+        "offset": "",
+        "record_file_offset": "0xA131A4",
+        "candidateOffset": "0xB8",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165117",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "MFBLBKNOENP",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2028",
+        "offset": "",
+        "record_file_offset": "0xA131AC",
+        "candidateOffset": "0xBC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165118",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "JMJKAOLFPCG",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B1A1C2C",
+        "offset": "",
+        "record_file_offset": "0xA131B4",
+        "candidateOffset": "0xC0",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165119",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "DBMHBKIDAJH",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2033",
+        "offset": "",
+        "record_file_offset": "0xA131BC",
+        "candidateOffset": "0xC4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165120",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "KGEOBNIPNKL",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F203E",
+        "offset": "",
+        "record_file_offset": "0xA131C4",
+        "candidateOffset": "0xC8",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165121",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PPJHAFGFMPI",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2049",
+        "offset": "",
+        "record_file_offset": "0xA131CC",
+        "candidateOffset": "0xCC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165122",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "IFLIEACKPMF",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F2054",
+        "offset": "",
+        "record_file_offset": "0xA131D4",
+        "candidateOffset": "0xD0",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165123",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "CBINNIDGFOO",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B1892F2",
+        "offset": "",
+        "record_file_offset": "0xA131DC",
+        "candidateOffset": "0xD4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165124",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "OOLEEAPNPMI",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F205F",
+        "offset": "",
+        "record_file_offset": "0xA131E4",
+        "candidateOffset": "0xD8",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165125",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "OHNNPFAIAKN",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F206A",
+        "offset": "",
+        "record_file_offset": "0xA131EC",
+        "candidateOffset": "0xD9",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165126",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "CCOMHKNNGAG",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F2075",
+        "offset": "",
+        "record_file_offset": "0xA131F4",
+        "candidateOffset": "0xDA",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165127",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "LOHCJOJLICK",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F2080",
+        "offset": "",
+        "record_file_offset": "0xA131FC",
+        "candidateOffset": "0xDB",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165128",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EAAEMMENIBA",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B198877",
+        "offset": "",
+        "record_file_offset": "0xA13204",
+        "candidateOffset": "0xDC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165129",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EPHMKDJLCHM",
+        "field_type": "ALBMALMLAGE",
+        "field_type_index": "538913",
+        "name_token": "0x0B3F208B",
+        "offset": "",
+        "record_file_offset": "0xA1320C",
+        "candidateOffset": "0xE0",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165130",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "HMLKHOAPFOH",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B3F2096",
+        "offset": "",
+        "record_file_offset": "0xA13214",
+        "candidateOffset": "0xE4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165131",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "IAOMJCLOIEL",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F20A1",
+        "offset": "",
+        "record_file_offset": "0xA1321C",
+        "candidateOffset": "0xE8",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165132",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "GBIIDJANMJM",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F20AC",
+        "offset": "",
+        "record_file_offset": "0xA13224",
+        "candidateOffset": "0xEC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165133",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PMIBPHEGFAP",
+        "field_type": "EPDPELCCNAC",
+        "field_type_index": "538914",
+        "name_token": "0x0B30ADA6",
+        "offset": "",
+        "record_file_offset": "0xA1322C",
+        "candidateOffset": "0xF0",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165134",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "GPGDOEEBBOH",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3323BE",
+        "offset": "",
+        "record_file_offset": "0xA13234",
+        "candidateOffset": "0xF4",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165135",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EEKCGJIKCGM",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F20B7",
+        "offset": "",
+        "record_file_offset": "0xA1323C",
+        "candidateOffset": "0xF8",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165136",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "MBKDECNPGLP",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F20C2",
+        "offset": "",
+        "record_file_offset": "0xA13244",
+        "candidateOffset": "0xF9",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165137",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "CPOBKDBMJOH",
+        "field_type": "bool",
+        "field_type_index": "439189",
+        "name_token": "0x0B3F20CD",
+        "offset": "",
+        "record_file_offset": "0xA1324C",
+        "candidateOffset": "0xFA",
+        "candidateWidth": 1
+      },
+      {
+        "field_index": "165138",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PMGCFPLFFPG",
+        "field_type": "PNOLFOPNGGE",
+        "field_type_index": "538915",
+        "name_token": "0x0B2A54BF",
+        "offset": "",
+        "record_file_offset": "0xA13254",
+        "candidateOffset": "0xFC",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165139",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "NCDDPJHMJGP",
+        "field_type": "BKJCKLCGHEK",
+        "field_type_index": "538916",
+        "name_token": "0x0B3F20D8",
+        "offset": "",
+        "record_file_offset": "0xA1325C",
+        "candidateOffset": "0x100",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165140",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "PDMNIEKDLKP",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B18855E",
+        "offset": "",
+        "record_file_offset": "0xA13264",
+        "candidateOffset": "0x104",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165141",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "FPLABJAMJFK",
+        "field_type": "FDIKBDFDDEA",
+        "field_type_index": "477991",
+        "name_token": "0x0B3F20E3",
+        "offset": "",
+        "record_file_offset": "0xA1326C",
+        "candidateOffset": "0x108",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165142",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "EHLOPBNGBIM",
+        "field_type": "uint32",
+        "field_type_index": "472480",
+        "name_token": "0x0B3F20EE",
+        "offset": "",
+        "record_file_offset": "0xA13274",
+        "candidateOffset": "0x10C",
+        "candidateWidth": 4
+      },
+      {
+        "field_index": "165143",
+        "type_definition_index": "33015",
+        "type_name": "LGLHLMDKIEO",
+        "field_name": "KNKLKDNGEGI",
+        "field_type": "EEOPHKIFFPL",
+        "field_type_index": "476684",
+        "name_token": "0x0B3F20F9",
+        "offset": "",
+        "record_file_offset": "0xA1327C",
+        "candidateOffset": "0x110",
+        "candidateWidth": 4
+      }
+    ],
+    "layoutStatus": "ABI_CANDIDATE_ALL_67_DISPLACEMENT_WIDTH_PAIRS_PRESENT",
+    "layoutLimit": "metadata offsets are empty; store set is not a per-field dataflow proof"
+  },
+  "targetCandidate": {
+    "fieldName": "IAOMJCLOIEL",
+    "fieldIndex": 165131,
+    "semanticStatus": "SOURCE_DROP_ROOT_KEY_CANDIDATE",
+    "candidateObjectOffset": "0xE8",
+    "storageType": "EEOPHKIFFPL",
+    "storageFields": [
+      {
+        "field_index": "144284",
+        "type_definition_index": "28775",
+        "type_name": "EEOPHKIFFPL",
+        "field_name": "CBOMLBFIPJM",
+        "field_type": "uint32",
+        "field_type_index": "439246",
+        "name_token": "0x0B18FCB0",
+        "offset": "",
+        "record_file_offset": "0x9EA6A4"
+      }
+    ],
+    "nativeRead": {
+      "presenceMaskBit": 13,
+      "byteWidth": 4,
+      "decode": "little_endian_uint32 XOR 0x2DBB0C2F",
+      "absentValueBeforeWrapping": 0,
+      "wrapperEncodeRva": "0xBB16020",
+      "storeInstructionRva": "0x12CA53EF"
+    },
+    "memoryWrapper": "byte permutation tables plus runtime XOR key; stored wrapper bits are not the source integer"
+  },
+  "instructions": {
+    "targetReadAndStore": [
+      {
+        "rva": "0x12CA5384",
+        "instructionHex": "ba00000000",
+        "mnemonic": "mov",
+        "operands": "edx, 0"
+      },
+      {
+        "rva": "0x12CA5389",
+        "instructionHex": "f7c700200000",
+        "mnemonic": "test",
+        "operands": "edi, 0x2000"
+      },
+      {
+        "rva": "0x12CA538F",
+        "instructionHex": "744b",
+        "mnemonic": "je",
+        "operands": "0x12ca53dc"
+      },
+      {
+        "rva": "0x12CA5391",
+        "instructionHex": "49837d0000",
+        "mnemonic": "cmp",
+        "operands": "qword ptr [r13], 0"
+      },
+      {
+        "rva": "0x12CA5396",
+        "instructionHex": "740d",
+        "mnemonic": "je",
+        "operands": "0x12ca53a5"
+      },
+      {
+        "rva": "0x12CA5398",
+        "instructionHex": "4c89f9",
+        "mnemonic": "mov",
+        "operands": "rcx, r15"
+      },
+      {
+        "rva": "0x12CA539B",
+        "instructionHex": "ba04000000",
+        "mnemonic": "mov",
+        "operands": "edx, 4"
+      },
+      {
+        "rva": "0x12CA53A0",
+        "instructionHex": "e81b6c9fff",
+        "mnemonic": "call",
+        "operands": "0x1269bfc0"
+      },
+      {
+        "rva": "0x12CA53A5",
+        "instructionHex": "488b4558",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rbp + 0x58]"
+      },
+      {
+        "rva": "0x12CA53A9",
+        "instructionHex": "488b00",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rax]"
+      },
+      {
+        "rva": "0x12CA53AC",
+        "instructionHex": "4885c0",
+        "mnemonic": "test",
+        "operands": "rax, rax"
+      },
+      {
+        "rva": "0x12CA53AF",
+        "instructionHex": "0f8429110000",
+        "mnemonic": "je",
+        "operands": "0x12ca64de"
+      },
+      {
+        "rva": "0x12CA53B5",
+        "instructionHex": "488b7d40",
+        "mnemonic": "mov",
+        "operands": "rdi, qword ptr [rbp + 0x40]"
+      },
+      {
+        "rva": "0x12CA53B9",
+        "instructionHex": "8b0f",
+        "mnemonic": "mov",
+        "operands": "ecx, dword ptr [rdi]"
+      },
+      {
+        "rva": "0x12CA53BB",
+        "instructionHex": "3b4818",
+        "mnemonic": "cmp",
+        "operands": "ecx, dword ptr [rax + 0x18]"
+      },
+      {
+        "rva": "0x12CA53BE",
+        "instructionHex": "0f8369120000",
+        "mnemonic": "jae",
+        "operands": "0x12ca662d"
+      },
+      {
+        "rva": "0x12CA53C4",
+        "instructionHex": "4863d9",
+        "mnemonic": "movsxd",
+        "operands": "rbx, ecx"
+      },
+      {
+        "rva": "0x12CA53C7",
+        "instructionHex": "83c104",
+        "mnemonic": "add",
+        "operands": "ecx, 4"
+      },
+      {
+        "rva": "0x12CA53CA",
+        "instructionHex": "ba2f0cbb2d",
+        "mnemonic": "mov",
+        "operands": "edx, 0x2dbb0c2f"
+      },
+      {
+        "rva": "0x12CA53CF",
+        "instructionHex": "33541820",
+        "mnemonic": "xor",
+        "operands": "edx, dword ptr [rax + rbx + 0x20]"
+      },
+      {
+        "rva": "0x12CA53D3",
+        "instructionHex": "488b5d50",
+        "mnemonic": "mov",
+        "operands": "rbx, qword ptr [rbp + 0x50]"
+      },
+      {
+        "rva": "0x12CA53D7",
+        "instructionHex": "890f",
+        "mnemonic": "mov",
+        "operands": "dword ptr [rdi], ecx"
+      },
+      {
+        "rva": "0x12CA53D9",
+        "instructionHex": "4c89e7",
+        "mnemonic": "mov",
+        "operands": "rdi, r12"
+      },
+      {
+        "rva": "0x12CA53DC",
+        "instructionHex": "c745f000000000",
+        "mnemonic": "mov",
+        "operands": "dword ptr [rbp - 0x10], 0"
+      },
+      {
+        "rva": "0x12CA53E3",
+        "instructionHex": "488d4df0",
+        "mnemonic": "lea",
+        "operands": "rcx, [rbp - 0x10]"
+      },
+      {
+        "rva": "0x12CA53E7",
+        "instructionHex": "e8340ce7f8",
+        "mnemonic": "call",
+        "operands": "0xbb16020"
+      },
+      {
+        "rva": "0x12CA53EC",
+        "instructionHex": "8b45f0",
+        "mnemonic": "mov",
+        "operands": "eax, dword ptr [rbp - 0x10]"
+      },
+      {
+        "rva": "0x12CA53EF",
+        "instructionHex": "8983e8000000",
+        "mnemonic": "mov",
+        "operands": "dword ptr [rbx + 0xe8], eax"
+      }
+    ],
+    "wrapperEncode": [
+      {
+        "rva": "0xBB16020",
+        "instructionHex": "56",
+        "mnemonic": "push",
+        "operands": "rsi"
+      },
+      {
+        "rva": "0xBB16021",
+        "instructionHex": "57",
+        "mnemonic": "push",
+        "operands": "rdi"
+      },
+      {
+        "rva": "0xBB16022",
+        "instructionHex": "4883ec28",
+        "mnemonic": "sub",
+        "operands": "rsp, 0x28"
+      },
+      {
+        "rva": "0xBB16026",
+        "instructionHex": "488b05bbd1c6f9",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rip - 0x6392e45]"
+      },
+      {
+        "rva": "0xBB1602D",
+        "instructionHex": "4c8b9860f50000",
+        "mnemonic": "mov",
+        "operands": "r11, qword ptr [rax + 0xf560]"
+      },
+      {
+        "rva": "0xBB16034",
+        "instructionHex": "4d85db",
+        "mnemonic": "test",
+        "operands": "r11, r11"
+      },
+      {
+        "rva": "0xBB16037",
+        "instructionHex": "747e",
+        "mnemonic": "je",
+        "operands": "0xbb160b7"
+      },
+      {
+        "rva": "0xBB16039",
+        "instructionHex": "4189d0",
+        "mnemonic": "mov",
+        "operands": "r8d, edx"
+      },
+      {
+        "rva": "0xBB1603C",
+        "instructionHex": "49c1e818",
+        "mnemonic": "shr",
+        "operands": "r8, 0x18"
+      },
+      {
+        "rva": "0xBB16040",
+        "instructionHex": "458b4b18",
+        "mnemonic": "mov",
+        "operands": "r9d, dword ptr [r11 + 0x18]"
+      },
+      {
+        "rva": "0xBB16044",
+        "instructionHex": "4539c8",
+        "mnemonic": "cmp",
+        "operands": "r8d, r9d"
+      },
+      {
+        "rva": "0xBB16047",
+        "instructionHex": "7369",
+        "mnemonic": "jae",
+        "operands": "0xbb160b2"
+      },
+      {
+        "rva": "0xBB16049",
+        "instructionHex": "89d6",
+        "mnemonic": "mov",
+        "operands": "esi, edx"
+      },
+      {
+        "rva": "0xBB1604B",
+        "instructionHex": "c1ee10",
+        "mnemonic": "shr",
+        "operands": "esi, 0x10"
+      },
+      {
+        "rva": "0xBB1604E",
+        "instructionHex": "440fb6d6",
+        "mnemonic": "movzx",
+        "operands": "r10d, sil"
+      },
+      {
+        "rva": "0xBB16052",
+        "instructionHex": "4981ca00010000",
+        "mnemonic": "or",
+        "operands": "r10, 0x100"
+      },
+      {
+        "rva": "0xBB16059",
+        "instructionHex": "4539ca",
+        "mnemonic": "cmp",
+        "operands": "r10d, r9d"
+      },
+      {
+        "rva": "0xBB1605C",
+        "instructionHex": "7354",
+        "mnemonic": "jae",
+        "operands": "0xbb160b2"
+      },
+      {
+        "rva": "0xBB1605E",
+        "instructionHex": "0fb6fe",
+        "mnemonic": "movzx",
+        "operands": "edi, dh"
+      },
+      {
+        "rva": "0xBB16061",
+        "instructionHex": "4881cf00020000",
+        "mnemonic": "or",
+        "operands": "rdi, 0x200"
+      },
+      {
+        "rva": "0xBB16068",
+        "instructionHex": "4439cf",
+        "mnemonic": "cmp",
+        "operands": "edi, r9d"
+      },
+      {
+        "rva": "0xBB1606B",
+        "instructionHex": "7345",
+        "mnemonic": "jae",
+        "operands": "0xbb160b2"
+      },
+      {
+        "rva": "0xBB1606D",
+        "instructionHex": "0fb6d2",
+        "mnemonic": "movzx",
+        "operands": "edx, dl"
+      },
+      {
+        "rva": "0xBB16070",
+        "instructionHex": "4881ca00030000",
+        "mnemonic": "or",
+        "operands": "rdx, 0x300"
+      },
+      {
+        "rva": "0xBB16077",
+        "instructionHex": "4439ca",
+        "mnemonic": "cmp",
+        "operands": "edx, r9d"
+      },
+      {
+        "rva": "0xBB1607A",
+        "instructionHex": "7336",
+        "mnemonic": "jae",
+        "operands": "0xbb160b2"
+      },
+      {
+        "rva": "0xBB1607C",
+        "instructionHex": "430fb6440320",
+        "mnemonic": "movzx",
+        "operands": "eax, byte ptr [r11 + r8 + 0x20]"
+      },
+      {
+        "rva": "0xBB16082",
+        "instructionHex": "430fb6741320",
+        "mnemonic": "movzx",
+        "operands": "esi, byte ptr [r11 + r10 + 0x20]"
+      },
+      {
+        "rva": "0xBB16088",
+        "instructionHex": "410fb67c3b20",
+        "mnemonic": "movzx",
+        "operands": "edi, byte ptr [r11 + rdi + 0x20]"
+      },
+      {
+        "rva": "0xBB1608E",
+        "instructionHex": "410fb6541320",
+        "mnemonic": "movzx",
+        "operands": "edx, byte ptr [r11 + rdx + 0x20]"
+      },
+      {
+        "rva": "0xBB16094",
+        "instructionHex": "c1e018",
+        "mnemonic": "shl",
+        "operands": "eax, 0x18"
+      },
+      {
+        "rva": "0xBB16097",
+        "instructionHex": "c1e610",
+        "mnemonic": "shl",
+        "operands": "esi, 0x10"
+      },
+      {
+        "rva": "0xBB1609A",
+        "instructionHex": "09c6",
+        "mnemonic": "or",
+        "operands": "esi, eax"
+      },
+      {
+        "rva": "0xBB1609C",
+        "instructionHex": "c1e708",
+        "mnemonic": "shl",
+        "operands": "edi, 8"
+      },
+      {
+        "rva": "0xBB1609F",
+        "instructionHex": "09f7",
+        "mnemonic": "or",
+        "operands": "edi, esi"
+      },
+      {
+        "rva": "0xBB160A1",
+        "instructionHex": "09d7",
+        "mnemonic": "or",
+        "operands": "edi, edx"
+      },
+      {
+        "rva": "0xBB160A3",
+        "instructionHex": "333d5750c7f9",
+        "mnemonic": "xor",
+        "operands": "edi, dword ptr [rip - 0x638afa9]"
+      },
+      {
+        "rva": "0xBB160A9",
+        "instructionHex": "8939",
+        "mnemonic": "mov",
+        "operands": "dword ptr [rcx], edi"
+      },
+      {
+        "rva": "0xBB160AB",
+        "instructionHex": "4883c428",
+        "mnemonic": "add",
+        "operands": "rsp, 0x28"
+      },
+      {
+        "rva": "0xBB160AF",
+        "instructionHex": "5f",
+        "mnemonic": "pop",
+        "operands": "rdi"
+      },
+      {
+        "rva": "0xBB160B0",
+        "instructionHex": "5e",
+        "mnemonic": "pop",
+        "operands": "rsi"
+      },
+      {
+        "rva": "0xBB160B1",
+        "instructionHex": "c3",
+        "mnemonic": "ret",
+        "operands": ""
+      },
+      {
+        "rva": "0xBB160B2",
+        "instructionHex": "e8d9279af4",
+        "mnemonic": "call",
+        "operands": "0x4b8890"
+      },
+      {
+        "rva": "0xBB160B7",
+        "instructionHex": "e8642d9af4",
+        "mnemonic": "call",
+        "operands": "0x4b8e20"
+      },
+      {
+        "rva": "0xBB160BC",
+        "instructionHex": "cc",
+        "mnemonic": "int3",
+        "operands": ""
+      },
+      {
+        "rva": "0xBB160BD",
+        "instructionHex": "0f1f00",
+        "mnemonic": "nop",
+        "operands": "dword ptr [rax]"
+      }
+    ],
+    "wrapperDecode": [
+      {
+        "rva": "0xBB15F50",
+        "instructionHex": "56",
+        "mnemonic": "push",
+        "operands": "rsi"
+      },
+      {
+        "rva": "0xBB15F51",
+        "instructionHex": "53",
+        "mnemonic": "push",
+        "operands": "rbx"
+      },
+      {
+        "rva": "0xBB15F52",
+        "instructionHex": "4883ec28",
+        "mnemonic": "sub",
+        "operands": "rsp, 0x28"
+      },
+      {
+        "rva": "0xBB15F56",
+        "instructionHex": "488b058bd2c6f9",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rip - 0x6392d75]"
+      },
+      {
+        "rva": "0xBB15F5D",
+        "instructionHex": "4c8b8860f50000",
+        "mnemonic": "mov",
+        "operands": "r9, qword ptr [rax + 0xf560]"
+      },
+      {
+        "rva": "0xBB15F64",
+        "instructionHex": "4d85c9",
+        "mnemonic": "test",
+        "operands": "r9, r9"
+      },
+      {
+        "rva": "0xBB15F67",
+        "instructionHex": "0f8481000000",
+        "mnemonic": "je",
+        "operands": "0xbb15fee"
+      },
+      {
+        "rva": "0xBB15F6D",
+        "instructionHex": "8b1d8d51c7f9",
+        "mnemonic": "mov",
+        "operands": "ebx, dword ptr [rip - 0x638ae73]"
+      },
+      {
+        "rva": "0xBB15F73",
+        "instructionHex": "3319",
+        "mnemonic": "xor",
+        "operands": "ebx, dword ptr [rcx]"
+      },
+      {
+        "rva": "0xBB15F75",
+        "instructionHex": "89d8",
+        "mnemonic": "mov",
+        "operands": "eax, ebx"
+      },
+      {
+        "rva": "0xBB15F77",
+        "instructionHex": "c1e818",
+        "mnemonic": "shr",
+        "operands": "eax, 0x18"
+      },
+      {
+        "rva": "0xBB15F7A",
+        "instructionHex": "480d00040000",
+        "mnemonic": "or",
+        "operands": "rax, 0x400"
+      },
+      {
+        "rva": "0xBB15F80",
+        "instructionHex": "458b4118",
+        "mnemonic": "mov",
+        "operands": "r8d, dword ptr [r9 + 0x18]"
+      },
+      {
+        "rva": "0xBB15F84",
+        "instructionHex": "4439c0",
+        "mnemonic": "cmp",
+        "operands": "eax, r8d"
+      },
+      {
+        "rva": "0xBB15F87",
+        "instructionHex": "7360",
+        "mnemonic": "jae",
+        "operands": "0xbb15fe9"
+      },
+      {
+        "rva": "0xBB15F89",
+        "instructionHex": "89d9",
+        "mnemonic": "mov",
+        "operands": "ecx, ebx"
+      },
+      {
+        "rva": "0xBB15F8B",
+        "instructionHex": "c1e910",
+        "mnemonic": "shr",
+        "operands": "ecx, 0x10"
+      },
+      {
+        "rva": "0xBB15F8E",
+        "instructionHex": "0fb6c9",
+        "mnemonic": "movzx",
+        "operands": "ecx, cl"
+      },
+      {
+        "rva": "0xBB15F91",
+        "instructionHex": "4881c900050000",
+        "mnemonic": "or",
+        "operands": "rcx, 0x500"
+      },
+      {
+        "rva": "0xBB15F98",
+        "instructionHex": "4439c1",
+        "mnemonic": "cmp",
+        "operands": "ecx, r8d"
+      },
+      {
+        "rva": "0xBB15F9B",
+        "instructionHex": "734c",
+        "mnemonic": "jae",
+        "operands": "0xbb15fe9"
+      },
+      {
+        "rva": "0xBB15F9D",
+        "instructionHex": "0fb6f7",
+        "mnemonic": "movzx",
+        "operands": "esi, bh"
+      },
+      {
+        "rva": "0xBB15FA0",
+        "instructionHex": "4881ce00060000",
+        "mnemonic": "or",
+        "operands": "rsi, 0x600"
+      },
+      {
+        "rva": "0xBB15FA7",
+        "instructionHex": "4439c6",
+        "mnemonic": "cmp",
+        "operands": "esi, r8d"
+      },
+      {
+        "rva": "0xBB15FAA",
+        "instructionHex": "733d",
+        "mnemonic": "jae",
+        "operands": "0xbb15fe9"
+      },
+      {
+        "rva": "0xBB15FAC",
+        "instructionHex": "0fb6db",
+        "mnemonic": "movzx",
+        "operands": "ebx, bl"
+      },
+      {
+        "rva": "0xBB15FAF",
+        "instructionHex": "4881cb00070000",
+        "mnemonic": "or",
+        "operands": "rbx, 0x700"
+      },
+      {
+        "rva": "0xBB15FB6",
+        "instructionHex": "4439c3",
+        "mnemonic": "cmp",
+        "operands": "ebx, r8d"
+      },
+      {
+        "rva": "0xBB15FB9",
+        "instructionHex": "732e",
+        "mnemonic": "jae",
+        "operands": "0xbb15fe9"
+      },
+      {
+        "rva": "0xBB15FBB",
+        "instructionHex": "410fb6540120",
+        "mnemonic": "movzx",
+        "operands": "edx, byte ptr [r9 + rax + 0x20]"
+      },
+      {
+        "rva": "0xBB15FC1",
+        "instructionHex": "410fb64c0920",
+        "mnemonic": "movzx",
+        "operands": "ecx, byte ptr [r9 + rcx + 0x20]"
+      },
+      {
+        "rva": "0xBB15FC7",
+        "instructionHex": "410fb6443120",
+        "mnemonic": "movzx",
+        "operands": "eax, byte ptr [r9 + rsi + 0x20]"
+      },
+      {
+        "rva": "0xBB15FCD",
+        "instructionHex": "410fb65c1920",
+        "mnemonic": "movzx",
+        "operands": "ebx, byte ptr [r9 + rbx + 0x20]"
+      },
+      {
+        "rva": "0xBB15FD3",
+        "instructionHex": "c1e218",
+        "mnemonic": "shl",
+        "operands": "edx, 0x18"
+      },
+      {
+        "rva": "0xBB15FD6",
+        "instructionHex": "c1e110",
+        "mnemonic": "shl",
+        "operands": "ecx, 0x10"
+      },
+      {
+        "rva": "0xBB15FD9",
+        "instructionHex": "09d1",
+        "mnemonic": "or",
+        "operands": "ecx, edx"
+      },
+      {
+        "rva": "0xBB15FDB",
+        "instructionHex": "c1e008",
+        "mnemonic": "shl",
+        "operands": "eax, 8"
+      },
+      {
+        "rva": "0xBB15FDE",
+        "instructionHex": "09c8",
+        "mnemonic": "or",
+        "operands": "eax, ecx"
+      },
+      {
+        "rva": "0xBB15FE0",
+        "instructionHex": "09d8",
+        "mnemonic": "or",
+        "operands": "eax, ebx"
+      },
+      {
+        "rva": "0xBB15FE2",
+        "instructionHex": "4883c428",
+        "mnemonic": "add",
+        "operands": "rsp, 0x28"
+      },
+      {
+        "rva": "0xBB15FE6",
+        "instructionHex": "5b",
+        "mnemonic": "pop",
+        "operands": "rbx"
+      },
+      {
+        "rva": "0xBB15FE7",
+        "instructionHex": "5e",
+        "mnemonic": "pop",
+        "operands": "rsi"
+      },
+      {
+        "rva": "0xBB15FE8",
+        "instructionHex": "c3",
+        "mnemonic": "ret",
+        "operands": ""
+      },
+      {
+        "rva": "0xBB15FE9",
+        "instructionHex": "e8a2289af4",
+        "mnemonic": "call",
+        "operands": "0x4b8890"
+      },
+      {
+        "rva": "0xBB15FEE",
+        "instructionHex": "e82d2e9af4",
+        "mnemonic": "call",
+        "operands": "0x4b8e20"
+      },
+      {
+        "rva": "0xBB15FF3",
+        "instructionHex": "cc",
+        "mnemonic": "int3",
+        "operands": ""
+      }
+    ]
+  },
+  "directCallScan": {
+    "targets": [
+      "0x12CA3BA0",
+      "0x12CA6960"
+    ],
+    "methods_csv": null,
+    "max_method_body": 65536,
+    "scanned_sections": [
+      ".text",
+      "il2cpp",
+      ".upx0"
+    ],
+    "matches": {
+      "0x12CA3BA0": [],
+      "0x12CA6960": []
+    }
+  },
+  "pointerScan": {
+    "target_start_rva": "0x12CA3BA0",
+    "target_end_rva": "0x12CA3BA1",
+    "range_semantics": "half-open",
+    "alignment": 8,
+    "include_executable_holders": false,
+    "scanned_holder_sections": [
+      ".rdata",
+      ".data",
+      ".pdata",
+      ".00cfg",
+      ".retplne",
+      ".tls",
+      ".voltbl",
+      "_RDATA",
+      ".reloc",
+      ".rsrc"
+    ],
+    "holder_count": 1,
+    "holders_with_code_xrefs": 0,
+    "holders": [
+      {
+        "section": ".rdata",
+        "holder_rva": "0x2A6EAC8",
+        "value_va": "0x152CA3BA0",
+        "target_rva": "0x12CA3BA0",
+        "code_xrefs": []
+      }
+    ]
+  },
+  "unresolved": [
+    "native asset path and loading/dispatch owner",
+    "native Dungeon 4434 row and raw serialized value",
+    "consumer that interprets the candidate value as a drop-root ID",
+    "claim request/response binding and runtime observation",
+    "missing DropTable/DropSubTable rows, quantities and native probabilities"
+  ]
+}
