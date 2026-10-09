@@ -1,0 +1,168 @@
+{
+  "topic": "amber-pause-ack",
+  "state": "ACTIVE",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "issue": "https://github.com/RinoPaw/Genshin-Reverse/issues/23",
+  "claims": [
+    {
+      "id": "request-registry-identity",
+      "status": "CONFIRMED",
+      "statement": "Current 7.1 registry maps CmdId 5963 to GLIHKBGFALC/typeDefinition 50277/slot RVA 0x057F5160/GetCmdId RVA 0x0A580740.",
+      "evidence": [
+        {
+          "kind": "exact-client-canonical-registry",
+          "source": "../../registry/registry.csv",
+          "locator": "cmd_id=5963"
+        },
+        {
+          "kind": "exact-client-derived-probe",
+          "source": "native-probe.json",
+          "locator": "request_registry"
+        }
+      ]
+    },
+    {
+      "id": "request-protobuf-field",
+      "status": "CONFIRMED",
+      "statement": "The generated GLIHKBGFALC serializer writes bool field 11 (tag 0x58, wire 0), read from object +0x18.",
+      "evidence": [
+        {
+          "kind": "exact-client-disassembly",
+          "source": "native-probe.json",
+          "locator": "request_parser_disassembly @ 0x0A58066E"
+        }
+      ]
+    },
+    {
+      "id": "sender-bool",
+      "status": "CONFIRMED",
+      "statement": "EDKMMIPJHJA.GHNMMIIFKIG(bool) at RVA 0x07262BC0 reads the type slot and writes bool into the constructed message before generic C2S sending.",
+      "evidence": [
+        {
+          "kind": "native-slot-xref",
+          "source": "native-probe.json",
+          "locator": "request_type_slot_xrefs @ 0x07262BD5"
+        },
+        {
+          "kind": "native-disassembly",
+          "source": "native-probe.json",
+          "locator": "request_sender_native_disassembly @ 0x07262BF5"
+        }
+      ]
+    },
+    {
+      "id": "three-callers",
+      "status": "CONFIRMED",
+      "statement": "The exact-executable E8 scan found direct callers at LLCGIEDMIIG.FGIJAHDHCAD + 0xB0, LLCGIEDMIIG.ANMHAFAPOMJ + 0xAF, and Miscs.PauseLevelTime + 0x1A7.",
+      "evidence": [
+        {
+          "kind": "exact-client-call-xrefs",
+          "source": "native-probe.json",
+          "locator": "request_sender_call_xrefs"
+        }
+      ]
+    },
+    {
+      "id": "time-interfaces",
+      "status": "CONFIRMED",
+      "statement": "Client receiver methods for registry types CmdId 1307/BDAAFIBNLEJ and CmdId 20114/KNHBIEFHDFO update a bool at receiver +0x1D0 and conditionally call sender for CmdId 5963.",
+      "evidence": [
+        {
+          "kind": "exact-client-registry-and-disassembly",
+          "source": "native-probe.json",
+          "locator": "caller_input_registry + request_sender_caller_disassembly"
+        },
+        {
+          "kind": "exact-client-displacement-scan",
+          "source": "client-pause-field-xrefs.json",
+          "locator": "FGIJAHDHCAD @ 0xC237DC4; ANMHAFAPOMJ @ 0xC252C9A"
+        }
+      ],
+      "notes": "Semantic packet names SceneTimeNotify and PlayerTimeNotify are external AstaPS working mappings, not established by the numeric registry."
+    },
+    {
+      "id": "historical-2870",
+      "status": "REJECTED",
+      "statement": "Do not reuse historical 7.0 PlayerSetPauseRsp CmdId 2870 as a confirmed 7.1 response; exact 7.1 type DKPJBENLNFD has multiple generic collection fields and lacks an inspected LLCGIEDMIIG response handler.",
+      "evidence": [
+        {
+          "kind": "exact-client-registry-and-fields",
+          "source": "native-probe.json",
+          "locator": "historical_response_registry_row_not_semantic + historical_response_fields_not_semantic"
+        },
+        {
+          "kind": "exact-client-method-and-slot-refs",
+          "source": "native-probe.json",
+          "locator": "receiver_known_protocol_control + historical_response_type_slot_xrefs_not_semantic"
+        }
+      ]
+    },
+    {
+      "id": "response-identity",
+      "status": "UNRESOLVED",
+      "statement": "The current 7.1 Global PlayerSetPauseRsp CmdId, message type, protobuf response fields, and semantic client receiver are not identified.",
+      "evidence": [
+        {
+          "kind": "investigation-boundary",
+          "source": "README.md",
+          "locator": "Remaining evidence gate"
+        }
+      ]
+    },
+    {
+      "id": "amber-input-lock-cause",
+      "status": "UNRESOLVED",
+      "statement": "The absence of the response in AstaPS is proven server-side, but the client input-lock causal relation requires a stuck-versus-reconnect capture and candidate replay.",
+      "evidence": [
+        {
+          "kind": "external-server",
+          "source": "RinoPaw/AstaPS",
+          "locator": "GameSession.send; PacketPlayerSetPauseRsp; HandlerPlayerSetPauseReq"
+        },
+        {
+          "kind": "issue-runtime-observation",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/issues/23",
+          "locator": "reproduction"
+        }
+      ]
+    }
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Copy PlayerSetPauseRsp=2870 from 7.0 into AstaPS 7.1.",
+      "reason": "Exact 7.1 CmdId 2870 maps to an unrelated-looking generated type with multiple collection fields; no current-client semantic or direction proof."
+    },
+    {
+      "statement": "Assume a dropped ACK caused Amber 35601 lock.",
+      "reason": "Causal edge is not demonstrated by static sender mapping or NpcTalkRsp/quest progression timestamps."
+    },
+    {
+      "statement": "Treat every +0x1D0 displacement match in client handlers as pause-state access.",
+      "reason": "Nine hits include stack and other base objects; only two native receiver stores have their base traced."
+    }
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json",
+    "static-probe.json",
+    "native-probe.json",
+    "client-pause-field-xrefs.json"
+  ],
+  "next_steps": [
+    "Collect exact-client decrypted stuck and reconnect packet windows.",
+    "Recover the S2C response identity and handler or reject the ACK hypothesis.",
+    "Implement focused AstaPS regression and run full CI before requesting gameplay testing.",
+    "Promote only on exact 7.1 semantic/direction proof."
+  ],
+  "questions": [
+    "What is the exact 7.1 Global PlayerSetPauseRsp CmdId, client type and handler or pending-RPC consumer?",
+    "Does absence of this response cause Amber talk 35601 input lock, or does a distinct post-talk/time-pause state transition remain missing?"
+  ]
+}

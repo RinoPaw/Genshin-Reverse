@@ -9,16 +9,40 @@
     "cmd_id": 4385,
     "direction": "S2C",
     "fields": [
-      {"number": 7, "wire_type": 0, "likely_type": "int32", "semantic": "retcode"}
+      {
+        "number": 7,
+        "wire_type": 0,
+        "likely_type": "int32",
+        "semantic": "retcode"
+      }
     ],
     "status": "CONFIRMED",
     "evidence": "client parser tag 0x38 plus isolated runtime success"
+  },
+  "PlayerSetPauseReq": {
+    "cmd_id": 5963,
+    "direction": "C2S",
+    "fields": [
+      {
+        "number": 11,
+        "wire_type": 0,
+        "likely_type": "bool",
+        "semantic": "is_paused"
+      }
+    ],
+    "status": "CONFIRMED",
+    "evidence": "7.1 Global pinned executable GLIHKBGFALC.IENGFLPCLNM @ 0xA58066E writes tag 0x58; EDKMMIPJHJA.GHNMMIIFKIG(bool) @ 0x7262BC0 sends request; see analyses/amber-pause-ack/native-probe.json"
   },
   "PlayerNicknameNotify": {
     "cmd_id": 3064,
     "direction": "S2C",
     "fields": [
-      {"number": 12, "wire_type": 2, "likely_type": "string", "semantic": "nickname"}
+      {
+        "number": 12,
+        "wire_type": 2,
+        "likely_type": "string",
+        "semantic": "nickname"
+      }
     ],
     "status": "CONFIRMED",
     "evidence": "client parser tag 0x62"
@@ -28,7 +52,14 @@
     "direction": "C2S",
     "observed_payload_hex": "7202d027",
     "fields": [
-      {"number": 14, "wire_type": 2, "observed_value_hex": "d027", "packed_varint_candidate": [5072]}
+      {
+        "number": 14,
+        "wire_type": 2,
+        "observed_value_hex": "d027",
+        "packed_varint_candidate": [
+          5072
+        ]
+      }
     ],
     "status": "UNRESOLVED",
     "evidence": "runtime wire observation only"
