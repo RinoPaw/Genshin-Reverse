@@ -45,6 +45,18 @@ class AmberPauseEvidenceTests(unittest.TestCase):
         self.assertEqual({"1307", "20114"},
                          {row["cmd_id"] for row in probe["caller_input_registry"]})
 
+    def test_confirmed_request_shape_matches_native_7_1_serializer(self) -> None:
+        shapes_file = ANALYSIS.parents[1] / "proto" / "message-shapes.json"
+        shapes = json.loads(shapes_file.read_text(encoding="utf-8"))
+        request = shapes["PlayerSetPauseReq"]
+        self.assertEqual(5963, request["cmd_id"])
+        self.assertEqual("C2S", request["direction"])
+        self.assertEqual("CONFIRMED", request["status"])
+        self.assertEqual(
+            [{"number": 11, "wire_type": 0, "likely_type": "bool", "semantic": "is_paused"}],
+            request["fields"],
+        )
+
     def test_historical_candidate_remains_distinct(self) -> None:
         probe = load("native-probe.json")
         historical = probe["historical_response_registry_row_not_semantic"]
