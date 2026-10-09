@@ -1,134 +1,99 @@
-# Genshin Impact 7.1 progression baseline
+# Genshin Impact 7.1 progression and resource-economy research
 
-Status: `PARTIAL`
+Status: `PARTIAL / ACTIVE`
 
 Target:
 
 - Game version: Genshin Impact 7.1.0 Global
-- Archive date: 2026-10-05
-- Scope: original progression data only
+- Version release date: 2026-09-23
+- Scope: native progression, native reward economy, real-time gates, and a separate RPG redesign proposal
 
-This archive records the verified and pending parts of the 7.1 original progression system. It does not contain private-server redesigns, resin-removal proposals, RPG rebalance proposals, or AstaPS implementation changes.
+This directory is the canonical archive for the 7.1 progression/economy investigation. Research conclusions should be written here instead of existing only in chat history.
 
 ## Evidence levels
 
-- `CONFIRMED`: directly verified from the 7.1 data source used by this investigation or an official HoYoverse source.
-- `HIGH_CONFIDENCE`: verified from matching server-side behavior or prior investigation, but not yet fully rechecked against the 7.1 source table.
-- `UNRESOLVED`: source/table is known or expected, but the data has not yet been fully extracted and normalized.
+- `A`: current 7.1 ExcelBin or HoYoverse official material.
+- `B`: AstaPS/Grasscutter or matching simulator implementation consistent with native behavior.
+- `C`: Wiki, KQM, community material, or inference.
 
-## Source provenance
+An unresolved or partially bound result must not be promoted to `A`.
 
-Primary progression source currently used by this investigation:
+## Files
+
+- [7.1-native-progression-baseline.md](7.1-native-progression-baseline.md)
+  - character EXP curve;
+  - character EXP materials;
+  - ascension schedule and material quantities;
+  - concrete ordinary 5-star example;
+  - Traveler exception;
+  - current artifact findings;
+  - talent mapping progress.
+
+- [7.1-native-drop-economy.md](7.1-native-drop-economy.md)
+  - canonical location for Ley Line, Domain, Boss, Weekly Boss and artifact reward yields;
+  - currently records extraction targets and the hard progression inputs already available.
+
+- [7.1-time-gates.md](7.1-time-gates.md)
+  - Original Resin;
+  - Condensed Resin and multi-claim behavior;
+  - Weekly Boss, weekday Domain, respawn and reset gates;
+  - unresolved current-rule items are explicitly marked.
+
+- [rpg-progression-proposal.md](rpg-progression-proposal.md)
+  - separate non-native design;
+  - preserve progression costs first;
+  - remove real-time gates independently;
+  - use one battle -> one native base reward as the first conservative baseline.
+
+## Primary progression provenance
+
+Current native-data source:
 
 - Repository: `RinoPaw/AstaPS-Resource`
 - Branch: `main`
 - Data family: `ExcelBinOutput`
 
-Confirmed source files so far:
+Tables already used:
 
-- `ExcelBinOutput/AvatarExcelConfigData.json`
-- `ExcelBinOutput/AvatarCurveExcelConfigData.json`
-- `ExcelBinOutput/AvatarLevelExcelConfigData.json`
-- `ExcelBinOutput/AvatarPromoteExcelConfigData.json`
+- `AvatarExcelConfigData.json`
+- `AvatarLevelExcelConfigData.json`
+- `AvatarCurveExcelConfigData.json`
+- `AvatarPromoteExcelConfigData.json`
+- `MaterialExcelConfigData.json`
+- `AvatarSkillDepotExcelConfigData.json`
+- `AvatarSkillExcelConfigData.json`
 
-Expected next source files:
+Known next tables:
 
-- `ExcelBinOutput/WeaponCurveExcelConfigData.json`
-- `ExcelBinOutput/WeaponPromoteExcelConfigData.json`
-- `ExcelBinOutput/ProudSkillExcelConfigData.json`
-- Reliquary/artifact level, main-property and affix tables
-- Reward/drop tables used by ley lines, bosses and domains
+- `ProudSkillExcelConfigData.json`
+- `WeaponCurveExcelConfigData.json`
+- `WeaponPromoteExcelConfigData.json`
+- `ReliquaryLevelExcelConfigData.json`
+- `ReliquaryAffixExcelConfigData.json`
+- `ReliquaryMainPropExcelConfigData.json`
+- reward/drop tables for Ley Lines, Domains and Bosses;
+- world-level and Domain reward-tier tables.
 
-## Character progression
+## Current headline values
 
-### Character identity and growth mapping
+These are documented with their evidence levels in the detailed files:
 
-Status: `CONFIRMED`
+- Character Lv.1 -> 90 raw EXP: **8,362,650** (`A`).
+- Character ascension Mora: **420,000** (`A`).
+- Character EXP items: **1,000 / 5,000 / 20,000 EXP** (`A`).
+- Ordinary character boss material total: **46** (`A`).
+- Local specialty total: **168** (`A`).
+- Common enemy material totals: **18 / 30 / 36** by tier (`A`).
+- Character leveling raw Mora-equivalent: **1,672,530** from the exact EXP curve using the matching 1 Mora / 5 supplied EXP rule (`B` pending direct 7.1-native binding).
+- Combined raw theoretical character 1 -> 90 Mora: **2,092,530** (`A+B`; not yet the final exact UI/book-feed payment total).
+- 5-star artifact +0 -> +20 base enhancement EXP: **270,475** (`B`, pending direct Reliquary-table binding).
+- Original Resin cap: **200** (`A`, official).
+- Newer Condensed Resin baseline recorded by the investigation: **60 Original Resin** to craft and up-to-3x reward claiming (`A`, official rule update already reviewed).
 
-`AvatarExcelConfigData.json` maps each avatar to its base attributes and progression families. Relevant fields include:
+## Research rule
 
-- `id`
-- `qualityType`
-- `hpBase`
-- `attackBase`
-- `defenseBase`
-- `avatarPromoteId`
-- `propGrowCurves`
-- `skillDepotId`
-- `weaponType`
+Do not let old Wiki values overwrite current 7.1 ExcelBin.
 
-Observed examples confirm that five-star characters normally use the S5 HP/ATK curves and four-star characters normally use the S4 HP/ATK curves. The Traveler is a special case: its entry is `QUALITY_ORANGE` but uses S4 HP/ATK growth curves and its own promote group.
+For current service rules, preserve version order: later HoYoverse rule changes override older documentation only when their applicability to the 7.1 ruleset has been checked.
 
-### Character level EXP
-
-Status: `CONFIRMED`
-
-Source: `AvatarLevelExcelConfigData.json`.
-
-The table stores the EXP associated with each character level. Summing levels 1 through `target_level - 1` gives the raw character EXP required to reach the target level.
-
-Cumulative raw EXP:
-
-| Target level | Total EXP from Lv.1 |
-| ---: | ---: |
-| 20 | 120,175 |
-| 40 | 698,500 |
-| 50 | 1,277,600 |
-| 60 | 2,131,725 |
-| 70 | 3,327,650 |
-| 80 | 4,939,525 |
-| 90 | 8,362,650 |
-
-`AvatarLevelExcelConfigData.json` also contains a Lv.90 row with `exp = 613,950`. This value is not included in the Lv.1→90 total because reaching Lv.90 sums Lv.1 through Lv.89.
-
-### Ascension schedule
-
-Status: `CONFIRMED`
-
-Source: `AvatarPromoteExcelConfigData.json`.
-
-The normal six ascensions use this schedule:
-
-| Ascension | Required AR | New level cap | Mora |
-| ---: | ---: | ---: | ---: |
-| 1 | 15 | 40 | 20,000 |
-| 2 | 25 | 50 | 40,000 |
-| 3 | 30 | 60 | 60,000 |
-| 4 | 35 | 70 | 80,000 |
-| 5 | 40 | 80 | 100,000 |
-| 6 | 50 | 90 | 120,000 |
-
-Total ascension Mora: **420,000**.
-
-Across ordinary character promote groups checked so far, the quantity pattern is stable while the material IDs vary by character:
-
-| Material family | Ascension-stage quantities | Total |
-| --- | --- | ---: |
-| Elemental gem tiers | 1 / 3+6 / 3+6 / 6 by tier | 1 / 9 / 9 / 6 |
-| Boss ascension material | 0 / 2 / 4 / 8 / 12 / 20 | 46 |
-| Local specialty | 3 / 10 / 20 / 30 / 45 / 60 | 168 |
-| Common enemy material | 3+15 / 12+18 / 12+24 by tier | 18 / 30 / 36 |
-
-The checked four-star and five-star promote groups use the same quantity schedule; their material IDs and ascension-stat growth differ.
-
-### Traveler exception
-
-Status: `CONFIRMED`
-
-The Traveler uses `avatarPromoteId = 12` in the inspected avatar entry. Its six ascensions keep the same Mora, level-cap, local-specialty and common-enemy quantity schedule, but the boss-material slot has no item ID. The Traveler therefore does not consume the normal 46-character-boss-material sequence for ascension.
-
-### Ascension stat growth
-
-Status: `CONFIRMED`
-
-`AvatarPromoteExcelConfigData.json` stores `addProps` for every promote group and stage. These values include base HP/ATK/DEF additions and the character's ascension stat, for example CRIT DMG, Healing Bonus, ATK%, HP%, Energy Recharge or Elemental Mastery depending on the character.
-
-These values must remain keyed by `avatarPromoteId`; they cannot be collapsed into one universal four-star or five-star stat template.
-
-### Still unresolved for characters
-
-- Full normalized mapping of every playable 7.1 character ID to `avatarPromoteId`, curve types and ascension stat.
-- Full per-character material-ID map.
-- Character EXP-item values and the exact Mora charging rule for EXP-item consumption from the 7.1 data source.
-- Final total Mora for Lv.1→90 including both leveling and ascension, pending direct confirmation of the leveling-Mora rule.
-- Any special cases besides the Traveler that diverge from the ordinary material schedule.
+Private-server behavior belongs here only as `B` evidence or in the RPG proposal. It must not silently redefine the native baseline.
