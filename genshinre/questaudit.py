@@ -10,7 +10,7 @@ from typing import Any, Mapping
 from .questrecovery71 import (
     COMPAT_FIELDS,
     RAW_71_FIELD_KEYS,
-    _comparison_value,
+    normalize_quest_entries,
     load_community_rows,
     load_raw_71_rows,
 )
@@ -76,8 +76,8 @@ def audit_quest_rows(
         fields: dict[str, Any] = {}
 
         for field, raw_key in RAW_71_FIELD_KEYS.items():
-            native_value = _comparison_value(raw_row.get(raw_key), field=field)
-            resource_value = _comparison_value(resource_row.get(field), field=field)
+            native_value = normalize_quest_entries(raw_row.get(raw_key), field=field)
+            resource_value = normalize_quest_entries(resource_row.get(field), field=field)
 
             if native_value == resource_value:
                 status = "native-match" if native_value else "native-empty-match"
@@ -113,7 +113,7 @@ def audit_quest_rows(
         )
 
         for field in COMPAT_FIELDS:
-            resource_value = _comparison_value(resource_row.get(field), field=field)
+            resource_value = normalize_quest_entries(resource_row.get(field), field=field)
             evidence = (
                 recovery_statuses.get(field)
                 if isinstance(recovery_statuses, Mapping)
@@ -128,7 +128,7 @@ def audit_quest_rows(
             recovery_status = evidence.get("status") if isinstance(evidence, Mapping) else None
 
             if isinstance(recovered, Mapping):
-                expected_value = _comparison_value(recovered.get("value"), field=field)
+                expected_value = normalize_quest_entries(recovered.get("value"), field=field)
 
             if recovery_status == "compatibility-value":
                 if resource_value == (expected_value or []):
