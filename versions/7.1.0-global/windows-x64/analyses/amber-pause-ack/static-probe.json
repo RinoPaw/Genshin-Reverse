@@ -1,0 +1,201 @@
+{
+  "status": "STATIC_RECONNAISSANCE_ONLY",
+  "sample": {
+    "identity": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "anchors": {
+    "request_cmd_id": 5963,
+    "historical_response_cmd_id": 2870,
+    "historical_response_not_current_evidence": true
+  },
+  "request_registry": {
+    "index": "1404",
+    "cmd_id": "5963",
+    "type_name": "GLIHKBGFALC",
+    "type_definition_index": "50277",
+    "direction": "",
+    "direction_status": "unresolved",
+    "semantic_name": "",
+    "type_slot_rva": "0x57F5160",
+    "get_cmd_id_rva": "0xA580740",
+    "get_cmd_id_method": "AEGNNPENLNM",
+    "load_rva": "0x7F8255C",
+    "store_rva": "0x7F82563",
+    "xref_count": "1",
+    "xref_method_count": "1",
+    "status": "static-verified-identity",
+    "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+  },
+  "historical_response_registry_row_not_semantic": {
+    "index": "694",
+    "cmd_id": "2870",
+    "type_name": "DKPJBENLNFD",
+    "type_definition_index": "81784",
+    "direction": "",
+    "direction_status": "unresolved",
+    "semantic_name": "",
+    "type_slot_rva": "0x57F0B60",
+    "get_cmd_id_rva": "0x7EAAF10",
+    "get_cmd_id_method": "AEGNNPENLNM",
+    "load_rva": "0x7F7FE88",
+    "store_rva": "0x7F7FE8F",
+    "xref_count": "5",
+    "xref_method_count": "3",
+    "status": "static-verified-identity",
+    "evidence": "verified 7.1 registry constructor slot + dominant declaring-type RIP-relative slot xref + AEGNNPENLNM GetCmdId constant-return identity"
+  },
+  "request_fields": [
+    {
+      "field_index": "252191",
+      "type_definition_index": "50277",
+      "type_name": "GLIHKBGFALC",
+      "field_name": "PJHLOKDIPNO",
+      "field_type": "bool",
+      "field_type_index": "439043",
+      "name_token": "0x0B3302D7",
+      "offset": "",
+      "record_file_offset": "0xABD2BC"
+    }
+  ],
+  "request_methods": {
+    "count": 8,
+    "rows": [
+      {
+        "method_index": "400950",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": ".ctor",
+        "rva": "0xA580600",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x05000022"
+      },
+      {
+        "method_index": "400951",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "KCLBBFDAMDF",
+        "rva": "0xA5805D0",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B188461"
+      },
+      {
+        "method_index": "400952",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "HKFIBILBMDF",
+        "rva": "0xA5805E0",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B187020"
+      },
+      {
+        "method_index": "400953",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "IENGFLPCLNM",
+        "rva": "0xA580610",
+        "return_type": "",
+        "parameter_types": "[\"EIBJNHDPEMB\"]",
+        "parameter_start": "291297",
+        "parameter_count": "1",
+        "name_token": "0x0B187062"
+      },
+      {
+        "method_index": "400954",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "AEGNNPENLNM",
+        "rva": "0xA580740",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B188456"
+      },
+      {
+        "method_index": "400955",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "NKFCABIOGLE",
+        "rva": "0xA580750",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B18651F"
+      },
+      {
+        "method_index": "400956",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "CopyFrom",
+        "rva": "0xA580830",
+        "return_type": "",
+        "parameter_types": "[\"GLIHKBGFALC\"]",
+        "parameter_start": "291298",
+        "parameter_count": "1",
+        "name_token": "0x0803C404"
+      },
+      {
+        "method_index": "400957",
+        "type_definition_index": "50277",
+        "type_name": "GLIHKBGFALC",
+        "method_name": "EBAAKGIEFHO",
+        "rva": "0xA580870",
+        "return_type": "",
+        "parameter_types": "[]",
+        "parameter_start": "-1",
+        "parameter_count": "0",
+        "name_token": "0x0B18702B"
+      }
+    ],
+    "truncated": false
+  },
+  "request_external_signature_refs": {
+    "count": 0,
+    "rows": [],
+    "truncated": false
+  },
+  "request_external_declaring_types": [],
+  "receiver_owner": "LLCGIEDMIIG",
+  "receiver_method_count": 543,
+  "receiver_registry_param_count": 197,
+  "receiver_known_protocol_control": {
+    "4385": [
+      {
+        "method_name": "NFAPFONEAPH",
+        "rva": "0xC2504D0",
+        "parameter_type": "LBLELLCECLL"
+      }
+    ],
+    "7003": [
+      {
+        "method_name": "AAHPLLIEFIB",
+        "rva": "0xC241960",
+        "parameter_type": "GFPMFMJPNMA"
+      }
+    ],
+    "22060": [
+      {
+        "method_name": "KCLOEKKLMLH",
+        "rva": "0xC25D900",
+        "parameter_type": "DAKFNDLCAHC"
+      }
+    ]
+  },
+  "evidence_limits": [
+    "Canonical CmdId-to-type identity is not a semantic mapping.",
+    "Method signatures and slot references alone cannot confirm PlayerSetPauseRsp.",
+    "No Amber input-lock causal claim follows from static reconstruction."
+  ]
+}
