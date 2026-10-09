@@ -57,6 +57,29 @@ class AmberPauseEvidenceTests(unittest.TestCase):
             request["fields"],
         )
 
+    def test_server_descriptor_is_not_native_response_identity(self) -> None:
+        crosscheck = load("astaps-descriptor-crosscheck.json")
+        self.assertEqual("SERVER_DESCRIPTOR_ONLY", crosscheck["status"])
+        self.assertEqual(
+            "dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5",
+            crosscheck["source"]["sha256"],
+        )
+        req = crosscheck["messages"]["PlayerSetPauseReq"]
+        rsp = crosscheck["messages"]["PlayerSetPauseRsp"]
+        self.assertEqual(11, req["fields"][0]["number"])
+        self.assertEqual(4, rsp["fields"][0]["number"])
+        self.assertIn("UNRESOLVED", rsp["match_to_exact_client"])
+
+    def test_field4_receiver_candidates_do_not_claim_pause_ack_semantics(self) -> None:
+        report = load("field4-receiver-candidates.json")
+        self.assertEqual(PROFILE_71.exe_sha256, report["sample_sha256"])
+        self.assertEqual("CANDIDATE_ONLY", report["status"])
+        self.assertEqual({"22120", "24380"}, set(report["candidates"]))
+        for candidate in report["candidates"].values():
+            self.assertEqual("UNRESOLVED", candidate["semantic_status"])
+            self.assertFalse(candidate["success_direct_pause_state_write"])
+            self.assertEqual("int3", candidate["instructions"][-1]["mnemonic"])
+
     def test_historical_candidate_remains_distinct(self) -> None:
         probe = load("native-probe.json")
         historical = probe["historical_response_registry_row_not_semantic"]
