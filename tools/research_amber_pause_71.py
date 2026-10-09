@@ -61,6 +61,10 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
         if parse_optional_int(row.get("type_definition_index"))
         == parse_optional_int(req.get("type_definition_index"))
     ]
+    old_rsp = locate_command(registry, HISTORICAL_RESPONSE_CMD)
+    old_rsp_fields = [row for row in load_csv(fields_path)
+                      if old_rsp is not None and parse_optional_int(row.get("type_definition_index"))
+                      == parse_optional_int(old_rsp.get("type_definition_index"))]
     own_methods = [row for row in methods if row.get("type_name") == req_type]
     external_refs = [
         row for row in method_references(methods, req_type)
@@ -87,7 +91,8 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
         "anchors": {"request_cmd_id": REQUEST_CMD, "historical_response_cmd_id": HISTORICAL_RESPONSE_CMD,
                     "historical_response_not_current_evidence": True},
         "request_registry": req,
-        "historical_response_registry_row_not_semantic": locate_command(registry, HISTORICAL_RESPONSE_CMD),
+        "historical_response_registry_row_not_semantic": old_rsp,
+        "historical_response_fields_not_semantic": old_rsp_fields,
         "request_fields": req_fields,
         "request_methods": summary_rows(own_methods, 75),
         "request_external_signature_refs": summary_rows(external_refs, 75),
@@ -98,7 +103,7 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
         "receiver_method_count": len(receiver_methods),
         "receiver_registry_param_count": len(receiver_registry_refs),
         "receiver_known_protocol_control": {
-            key: receiver_registry_refs.get(str(key), []) for key in (4385, 7003, 22060)
+            key: receiver_registry_refs.get(str(key), []) for key in (2870, 4385, 7003, 22060)
         },
         "evidence_limits": [
             "Canonical CmdId-to-type identity is not a semantic mapping.",
@@ -113,9 +118,13 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
         slot = parse_optional_int(req["type_slot_rva"])
         if slot is None:
             raise ValueError("request registry has no type slot")
-        refs = scan_rip_xrefs(exe, [slot], methods_csv=methods_path, window=48)
+        old_slot = parse_optional_int(old_rsp["type_slot_rva"]) if old_rsp else None
+        slots = [slot] + ([old_slot] if old_slot is not None else [])
+        refs = scan_rip_xrefs(exe, slots, methods_csv=methods_path, window=48)
         result["request_type_slot_xrefs"] = refs["matches"].get(f"0x{slot:X}", [])
         result["request_type_slot_xref_count"] = len(result["request_type_slot_xrefs"])
+        if old_slot is not None:
+            result["historical_response_type_slot_xrefs_not_semantic"] = refs["matches"].get(f"0x{old_slot:X}", [])
     return result
 
 
