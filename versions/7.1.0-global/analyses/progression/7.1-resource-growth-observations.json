@@ -509,7 +509,12 @@
           ]
         }
       ],
-      "initial_3_vs_4_probability_status": "unresolved; equal item config weight does not establish drop-table sampling probability"
+      "initial_3_vs_4_probability_status": "unresolved; equal item config weight does not establish drop-table sampling probability",
+      "selection_weight_provenance": {
+        "status": "restored-historical-fields-in-integration-resource; exact-7.1-native-selection-unresolved",
+        "main_prop_recovery_commit": "c7843eb8b0ace23a10e5e349bf079382cf6ceed4",
+        "affix_recovery_commit": "1b95fc43cd1a1ff1c9be4980b6ba32fec8fb0ed8"
+      }
     },
     "account": {
       "ar_to_world_level_unlocks": [
