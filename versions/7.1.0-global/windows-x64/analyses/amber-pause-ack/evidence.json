@@ -160,5 +160,9 @@
     "Recover the S2C response identity and handler or reject the ACK hypothesis.",
     "Implement focused AstaPS regression and run full CI before requesting gameplay testing.",
     "Promote only on exact 7.1 semantic/direction proof."
+  ],
+  "questions": [
+    "What is the exact 7.1 Global PlayerSetPauseRsp CmdId, client type and handler or pending-RPC consumer?",
+    "Does absence of this response cause Amber talk 35601 input lock, or does a distinct post-talk/time-pause state transition remain missing?"
   ]
 }
