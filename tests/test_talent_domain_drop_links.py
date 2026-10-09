@@ -33,6 +33,10 @@ class TalentDomainDropLinkTests(unittest.TestCase):
                     "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
                 "Server/DropSubTableExcelConfigData.json":
                     "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+                "ExcelBinOutput/DungeonEntryExcelConfigData.json":
+                    "e7a92f6df718148fad4dee47a691700407b1ddcf",
+                "ExcelBinOutput/RewardPreviewExcelConfigData.json":
+                    "a72b299e29c19007c48ed78b2e11aa33e274f98c",
             },
         )
         s = data["summary"]
@@ -70,6 +74,25 @@ class TalentDomainDropLinkTests(unittest.TestCase):
                 self.assertGreaterEqual(entry["weight"], 0)
                 self.assertIsInstance(entry["countRange"], str)
         self.assertIn("no runtime/probability assertion", self.data["scope"])
+
+    def test_material_family_entry_join_is_unique(self):
+        entries = self.data["entries"]
+        self.assertEqual([e["entryExcelId"] for e in entries],
+                         [10, 11, 15, 19, 24, 29, 33, 38])
+        self.assertEqual([len(e["dungeonIds"]) for e in entries],
+                         [16, 16, 12, 12, 12, 12, 12, 12])
+        self.assertEqual(sorted(n for e in entries for n in e["dungeonIds"]),
+                         sorted(self.domains))
+        self.assertEqual(self.data["summary"]["talentEntryRows"], 8)
+        for entry in entries:
+            eligible = set(x for day in entry["materialCycleIds"] for x in day)
+            for dungeon_id in entry["dungeonIds"]:
+                r = self.domains[dungeon_id]
+                with self.subTest(dungeonId=dungeon_id):
+                    self.assertEqual(r["entryExcelId"], entry["entryExcelId"])
+                    self.assertTrue(eligible.intersection(r["previewTalentMaterialIds"]))
+        self.assertEqual(self.domains[4200]["entryExcelId"], 10)
+        self.assertEqual(self.domains[4460]["entryExcelId"], 24)
 
     def test_sunday_domain_nested_subtable(self):
         self.assertEqual(self.domains[4200]["rootDropId"], 82012700)

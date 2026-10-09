@@ -15,6 +15,8 @@ BLOBS = {
     "ExcelBinOutput/DungeonExcelConfigData.json": "92983c5d9d46bccf486b803b7cf65f2cdf9088cb",
     "Server/DropTableExcelConfigData.json": "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
     "Server/DropSubTableExcelConfigData.json": "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+    "ExcelBinOutput/DungeonEntryExcelConfigData.json": "e7a92f6df718148fad4dee47a691700407b1ddcf",
+    "ExcelBinOutput/RewardPreviewExcelConfigData.json": "a72b299e29c19007c48ed78b2e11aa33e274f98c",
 }
 SCOPE = ("source-row joins only: DungeonExcelConfigData.IAOMJCLOIEL -> "
          "Server/DropTableExcelConfigData.id; nested nodes via "
@@ -64,6 +66,41 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
         "rootDropId": r["IAOMJCLOIEL"],
         "rootPresent": r["IAOMJCLOIEL"] in roots,
     } for r in targets]
+    # Family ownership is inferred from an exact, unique advertised-material join.
+    # This is not a foreign key or confirmation of weekday/runtime selection.
+    entry_rows = sorted(
+        (r for r in rows["ExcelBinOutput/DungeonEntryExcelConfigData.json"]
+         if r.get("type") == "DUNGEN_ENTRY_TYPE_AVATAR_TALENT"),
+        key=lambda r: r["id"],
+    )
+    previews = {r["id"]: r for r in rows["ExcelBinOutput/RewardPreviewExcelConfigData.json"]}
+    if len(previews) != len(rows["ExcelBinOutput/RewardPreviewExcelConfigData.json"]):
+        raise ValueError("duplicate preview ID")
+    entry_links = [{
+        "entryExcelId": e["id"], "entryGadgetId": e["dungeonEntryId"],
+        "sceneId": e["sceneId"],
+        "materialCycleIds": e["descriptionCycleRewardList"][:3],
+        "dungeonIds": [],
+    } for e in entry_rows]
+    for domain in domains:
+        advertised = previews[domain["passRewardPreviewId"]]["previewItems"]
+        matches = [
+            e for e in entry_links
+            if any(v.get("id") in {x for xs in e["materialCycleIds"] for x in xs}
+                   for v in advertised)
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"dungeon {domain['dungeonId']}: {len(matches)} entry owners")
+        matched = matches[0]
+        matched["dungeonIds"].append(domain["dungeonId"])
+        valid_items = {x for xs in matched["materialCycleIds"] for x in xs}
+        domain["entryExcelId"] = matched["entryExcelId"]
+        domain["previewTalentMaterialIds"] = list(dict.fromkeys(
+            x["id"] for x in advertised if x.get("id") in valid_items
+        ))
+    if [len(e["dungeonIds"]) for e in entry_links] != [16, 16, 12, 12, 12, 12, 12, 12]:
+        raise ValueError("unexpected talent entry distribution")
+
     if len({d["dungeonId"] for d in domains}) != len(domains):
         raise ValueError("duplicate dungeon ID")
     if any(d["baseResinCostItemId"] != 106
@@ -127,6 +164,7 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
             n["table"] == "DropSubTableExcelConfigData" for n in nodes
         ),
         "unresolvedRootIds": missing_ids,
+        "talentEntryRows": len(entry_links),
     }
     if (
         summary["talentDungeonRows"],
@@ -149,6 +187,7 @@ def build_snapshot(rows: dict[str, list[dict]], evidence: dict[str, dict]) -> di
         "summary": summary,
         "domains": domains,
         "dropNodes": nodes,
+        "entries": entry_links,
     }
 
 

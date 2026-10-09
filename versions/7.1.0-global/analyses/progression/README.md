@@ -55,6 +55,8 @@ An unresolved or partially bound result must not be promoted to `A`.
 | [economy/](economy/) | Domain previews, Ley Line rewards, drop yields |
 | [rules/](rules/) | Weekday availability, Resin and reset gates |
 
+The [talent Domain drop graph](economy/7.1-talent-domain-drop-links.json) covers 104 Dungeon records, 56 resolved roots, 48 missing roots and eight uniquely matched material-family entries.
+
 Cross-domain evidence stays at this directory root: [growth observations](7.1-resource-growth-observations.json) and [native baseline](7.1-native-progression-baseline.md). The [RPG proposal](rpg-progression-proposal.md) is intentionally separate from native rules.
 
 Scripts and tests stay in the repository-root scripts/ and tests/ directories. Moved JSON files retain their exact Git blob content and pinned source identities.

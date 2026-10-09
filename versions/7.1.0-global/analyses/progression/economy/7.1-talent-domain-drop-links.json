@@ -17,6 +17,14 @@
       "Server/DropSubTableExcelConfigData.json": {
         "gitBlobSha": "9397fb0b15c8c4cc82194ec429682f2ef4333767",
         "rowCount": 1885
+      },
+      "ExcelBinOutput/DungeonEntryExcelConfigData.json": {
+        "gitBlobSha": "e7a92f6df718148fad4dee47a691700407b1ddcf",
+        "rowCount": 151
+      },
+      "ExcelBinOutput/RewardPreviewExcelConfigData.json": {
+        "gitBlobSha": "a72b299e29c19007c48ed78b2e11aa33e274f98c",
+        "rowCount": 1589
       }
     }
   },
@@ -75,7 +83,8 @@
       82383300,
       82384100,
       82385000
-    ]
+    ],
+    "talentEntryRows": 8
   },
   "domains": [
     {
@@ -87,7 +96,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82012700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104301,
+        104304,
+        104307
+      ]
     },
     {
       "dungeonId": 4201,
@@ -98,7 +113,16 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82013300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104302,
+        104305,
+        104308,
+        104301,
+        104304,
+        104307
+      ]
     },
     {
       "dungeonId": 4202,
@@ -109,7 +133,16 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82014100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104302,
+        104305,
+        104308,
+        104301,
+        104304,
+        104307
+      ]
     },
     {
       "dungeonId": 4203,
@@ -120,7 +153,19 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82015000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104303,
+        104306,
+        104309,
+        104302,
+        104305,
+        104308,
+        104301,
+        104304,
+        104307
+      ]
     },
     {
       "dungeonId": 4210,
@@ -131,7 +176,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82112700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104301
+      ]
     },
     {
       "dungeonId": 4211,
@@ -142,7 +191,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82113300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104302,
+        104301
+      ]
     },
     {
       "dungeonId": 4212,
@@ -153,7 +207,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82114100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104302,
+        104301
+      ]
     },
     {
       "dungeonId": 4213,
@@ -164,7 +223,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82115000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104303,
+        104302,
+        104301
+      ]
     },
     {
       "dungeonId": 4220,
@@ -175,7 +240,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82212700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104304
+      ]
     },
     {
       "dungeonId": 4221,
@@ -186,7 +255,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82213300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104305,
+        104304
+      ]
     },
     {
       "dungeonId": 4222,
@@ -197,7 +271,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82214100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104305,
+        104304
+      ]
     },
     {
       "dungeonId": 4223,
@@ -208,7 +287,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82215000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104306,
+        104305,
+        104304
+      ]
     },
     {
       "dungeonId": 4230,
@@ -219,7 +304,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82312700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104307
+      ]
     },
     {
       "dungeonId": 4231,
@@ -230,7 +319,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82313300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104308,
+        104307
+      ]
     },
     {
       "dungeonId": 4232,
@@ -241,7 +335,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82314100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104308,
+        104307
+      ]
     },
     {
       "dungeonId": 4233,
@@ -252,7 +351,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82315000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 10,
+      "previewTalentMaterialIds": [
+        104309,
+        104308,
+        104307
+      ]
     },
     {
       "dungeonId": 4400,
@@ -263,7 +368,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82132700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104320
+      ]
     },
     {
       "dungeonId": 4401,
@@ -274,7 +383,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82133300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104321,
+        104320
+      ]
     },
     {
       "dungeonId": 4402,
@@ -285,7 +399,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82134100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104321,
+        104320
+      ]
     },
     {
       "dungeonId": 4403,
@@ -296,7 +415,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82135000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104322,
+        104321,
+        104320
+      ]
     },
     {
       "dungeonId": 4410,
@@ -307,7 +432,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82232700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104323
+      ]
     },
     {
       "dungeonId": 4411,
@@ -318,7 +447,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82233300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104324,
+        104323
+      ]
     },
     {
       "dungeonId": 4412,
@@ -329,7 +463,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82234100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104324,
+        104323
+      ]
     },
     {
       "dungeonId": 4413,
@@ -340,7 +479,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82235000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104325,
+        104324,
+        104323
+      ]
     },
     {
       "dungeonId": 4420,
@@ -351,7 +496,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82332700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104326
+      ]
     },
     {
       "dungeonId": 4421,
@@ -362,7 +511,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82333300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104327,
+        104326
+      ]
     },
     {
       "dungeonId": 4422,
@@ -373,7 +527,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82334100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104327,
+        104326
+      ]
     },
     {
       "dungeonId": 4423,
@@ -384,7 +543,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82335000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 15,
+      "previewTalentMaterialIds": [
+        104328,
+        104327,
+        104326
+      ]
     },
     {
       "dungeonId": 4430,
@@ -395,7 +560,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82142700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104329
+      ]
     },
     {
       "dungeonId": 4431,
@@ -406,7 +575,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82143300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104330,
+        104329
+      ]
     },
     {
       "dungeonId": 4432,
@@ -417,7 +591,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82144100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104330,
+        104329
+      ]
     },
     {
       "dungeonId": 4433,
@@ -428,7 +607,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82145000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104331,
+        104330,
+        104329
+      ]
     },
     {
       "dungeonId": 4434,
@@ -439,7 +624,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82162700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104347
+      ]
     },
     {
       "dungeonId": 4435,
@@ -450,7 +639,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82163300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104348,
+        104347
+      ]
     },
     {
       "dungeonId": 4436,
@@ -461,7 +655,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82164100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104348,
+        104347
+      ]
     },
     {
       "dungeonId": 4437,
@@ -472,7 +671,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82165000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104349,
+        104348,
+        104347
+      ]
     },
     {
       "dungeonId": 4440,
@@ -483,7 +688,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82242700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104332
+      ]
     },
     {
       "dungeonId": 4441,
@@ -494,7 +703,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82243300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104333,
+        104332
+      ]
     },
     {
       "dungeonId": 4442,
@@ -505,7 +719,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82244100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104333,
+        104332
+      ]
     },
     {
       "dungeonId": 4443,
@@ -516,7 +735,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82245000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104334,
+        104333,
+        104332
+      ]
     },
     {
       "dungeonId": 4444,
@@ -527,7 +752,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82262700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104350
+      ]
     },
     {
       "dungeonId": 4445,
@@ -538,7 +767,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82263300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104351,
+        104350
+      ]
     },
     {
       "dungeonId": 4446,
@@ -549,7 +783,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82264100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104351,
+        104350
+      ]
     },
     {
       "dungeonId": 4447,
@@ -560,7 +799,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82265000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104352,
+        104351,
+        104350
+      ]
     },
     {
       "dungeonId": 4450,
@@ -571,7 +816,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82342700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104335
+      ]
     },
     {
       "dungeonId": 4451,
@@ -582,7 +831,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82343300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104336,
+        104335
+      ]
     },
     {
       "dungeonId": 4452,
@@ -593,7 +847,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82344100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104336,
+        104335
+      ]
     },
     {
       "dungeonId": 4453,
@@ -604,7 +863,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82345000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 19,
+      "previewTalentMaterialIds": [
+        104337,
+        104336,
+        104335
+      ]
     },
     {
       "dungeonId": 4454,
@@ -615,7 +880,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82362700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104353
+      ]
     },
     {
       "dungeonId": 4455,
@@ -626,7 +895,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82363300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104354,
+        104353
+      ]
     },
     {
       "dungeonId": 4456,
@@ -637,7 +911,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82364100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104354,
+        104353
+      ]
     },
     {
       "dungeonId": 4457,
@@ -648,7 +927,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82365000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 29,
+      "previewTalentMaterialIds": [
+        104355,
+        104354,
+        104353
+      ]
     },
     {
       "dungeonId": 4460,
@@ -659,7 +944,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82152700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104338
+      ]
     },
     {
       "dungeonId": 4461,
@@ -670,7 +959,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82153300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104339,
+        104338
+      ]
     },
     {
       "dungeonId": 4462,
@@ -681,7 +975,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82154100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104339,
+        104338
+      ]
     },
     {
       "dungeonId": 4463,
@@ -692,7 +991,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82155000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104340,
+        104339,
+        104338
+      ]
     },
     {
       "dungeonId": 4490,
@@ -703,7 +1008,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82252700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104341
+      ]
     },
     {
       "dungeonId": 4491,
@@ -714,7 +1023,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82253300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104342,
+        104341
+      ]
     },
     {
       "dungeonId": 4492,
@@ -725,7 +1039,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82254100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104342,
+        104341
+      ]
     },
     {
       "dungeonId": 4493,
@@ -736,7 +1055,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82255000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104343,
+        104342,
+        104341
+      ]
     },
     {
       "dungeonId": 4494,
@@ -747,7 +1072,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82352700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104344
+      ]
     },
     {
       "dungeonId": 4495,
@@ -758,7 +1087,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82353300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104345,
+        104344
+      ]
     },
     {
       "dungeonId": 4496,
@@ -769,7 +1103,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82354100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104345,
+        104344
+      ]
     },
     {
       "dungeonId": 4497,
@@ -780,7 +1119,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82355000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 24,
+      "previewTalentMaterialIds": [
+        104346,
+        104345,
+        104344
+      ]
     },
     {
       "dungeonId": 4651,
@@ -791,7 +1136,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82172700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104356
+      ]
     },
     {
       "dungeonId": 4652,
@@ -802,7 +1151,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82173300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104357,
+        104356
+      ]
     },
     {
       "dungeonId": 4653,
@@ -813,7 +1167,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82174100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104357,
+        104356
+      ]
     },
     {
       "dungeonId": 4654,
@@ -824,7 +1183,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82175000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104358,
+        104357,
+        104356
+      ]
     },
     {
       "dungeonId": 4655,
@@ -835,7 +1200,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82272700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104359
+      ]
     },
     {
       "dungeonId": 4656,
@@ -846,7 +1215,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82273300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104360,
+        104359
+      ]
     },
     {
       "dungeonId": 4657,
@@ -857,7 +1231,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82274100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104360,
+        104359
+      ]
     },
     {
       "dungeonId": 4658,
@@ -868,7 +1247,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82275000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104361,
+        104360,
+        104359
+      ]
     },
     {
       "dungeonId": 4659,
@@ -879,7 +1264,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82372700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104362
+      ]
     },
     {
       "dungeonId": 4660,
@@ -890,7 +1279,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82373300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104363,
+        104362
+      ]
     },
     {
       "dungeonId": 4661,
@@ -901,7 +1295,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82374100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104363,
+        104362
+      ]
     },
     {
       "dungeonId": 4662,
@@ -912,7 +1311,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82375000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 33,
+      "previewTalentMaterialIds": [
+        104364,
+        104363,
+        104362
+      ]
     },
     {
       "dungeonId": 4691,
@@ -923,7 +1328,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82182700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104365
+      ]
     },
     {
       "dungeonId": 4692,
@@ -934,7 +1343,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82183300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104366,
+        104365
+      ]
     },
     {
       "dungeonId": 4693,
@@ -945,7 +1359,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82184100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104366,
+        104365
+      ]
     },
     {
       "dungeonId": 4694,
@@ -956,7 +1375,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82185000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104367,
+        104366,
+        104365
+      ]
     },
     {
       "dungeonId": 4695,
@@ -967,7 +1392,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82282700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104368
+      ]
     },
     {
       "dungeonId": 4696,
@@ -978,7 +1407,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82283300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104369,
+        104368
+      ]
     },
     {
       "dungeonId": 4697,
@@ -989,7 +1423,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82284100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104369,
+        104368
+      ]
     },
     {
       "dungeonId": 4698,
@@ -1000,7 +1439,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82285000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104370,
+        104369,
+        104368
+      ]
     },
     {
       "dungeonId": 4699,
@@ -1011,7 +1456,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82382700,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104371
+      ]
     },
     {
       "dungeonId": 4700,
@@ -1022,7 +1471,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82383300,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104372,
+        104371
+      ]
     },
     {
       "dungeonId": 4701,
@@ -1033,7 +1487,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82384100,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104372,
+        104371
+      ]
     },
     {
       "dungeonId": 4702,
@@ -1044,7 +1503,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82385000,
-      "rootPresent": false
+      "rootPresent": false,
+      "entryExcelId": 38,
+      "previewTalentMaterialIds": [
+        104373,
+        104372,
+        104371
+      ]
     },
     {
       "dungeonId": 5250,
@@ -1055,7 +1520,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82022700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104310,
+        104313,
+        104316
+      ]
     },
     {
       "dungeonId": 5251,
@@ -1066,7 +1537,16 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82023300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104311,
+        104314,
+        104317,
+        104310,
+        104313,
+        104316
+      ]
     },
     {
       "dungeonId": 5252,
@@ -1077,7 +1557,16 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82024100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104311,
+        104314,
+        104317,
+        104310,
+        104313,
+        104316
+      ]
     },
     {
       "dungeonId": 5253,
@@ -1088,7 +1577,19 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82025000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104312,
+        104315,
+        104318,
+        104311,
+        104314,
+        104317,
+        104310,
+        104313,
+        104316
+      ]
     },
     {
       "dungeonId": 5254,
@@ -1099,7 +1600,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82122700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104310
+      ]
     },
     {
       "dungeonId": 5255,
@@ -1110,7 +1615,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82123300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104311,
+        104310
+      ]
     },
     {
       "dungeonId": 5256,
@@ -1121,7 +1631,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82124100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104311,
+        104310
+      ]
     },
     {
       "dungeonId": 5257,
@@ -1132,7 +1647,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82125000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104312,
+        104311,
+        104310
+      ]
     },
     {
       "dungeonId": 5258,
@@ -1143,7 +1664,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82222700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104313
+      ]
     },
     {
       "dungeonId": 5259,
@@ -1154,7 +1679,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82223300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104314,
+        104313
+      ]
     },
     {
       "dungeonId": 5260,
@@ -1165,7 +1695,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82224100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104314,
+        104313
+      ]
     },
     {
       "dungeonId": 5261,
@@ -1176,7 +1711,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82225000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104315,
+        104314,
+        104313
+      ]
     },
     {
       "dungeonId": 5262,
@@ -1187,7 +1728,11 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82322700,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104316
+      ]
     },
     {
       "dungeonId": 5263,
@@ -1198,7 +1743,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82323300,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104317,
+        104316
+      ]
     },
     {
       "dungeonId": 5264,
@@ -1209,7 +1759,12 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82324100,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104317,
+        104316
+      ]
     },
     {
       "dungeonId": 5265,
@@ -1220,7 +1775,13 @@
       "baseResinCostItemId": 106,
       "baseResinCostCount": 20,
       "rootDropId": 82325000,
-      "rootPresent": true
+      "rootPresent": true,
+      "entryExcelId": 11,
+      "previewTalentMaterialIds": [
+        104318,
+        104317,
+        104316
+      ]
     }
   ],
   "dropNodes": [
@@ -4242,6 +4803,304 @@
           "countRange": "1",
           "weight": 1000
         }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "entryExcelId": 10,
+      "entryGadgetId": 44,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104301,
+          104302,
+          104303
+        ],
+        [
+          104304,
+          104305,
+          104306
+        ],
+        [
+          104307,
+          104308,
+          104309
+        ]
+      ],
+      "dungeonIds": [
+        4200,
+        4201,
+        4202,
+        4203,
+        4210,
+        4211,
+        4212,
+        4213,
+        4220,
+        4221,
+        4222,
+        4223,
+        4230,
+        4231,
+        4232,
+        4233
+      ]
+    },
+    {
+      "entryExcelId": 11,
+      "entryGadgetId": 131,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104310,
+          104311,
+          104312
+        ],
+        [
+          104313,
+          104314,
+          104315
+        ],
+        [
+          104316,
+          104317,
+          104318
+        ]
+      ],
+      "dungeonIds": [
+        5250,
+        5251,
+        5252,
+        5253,
+        5254,
+        5255,
+        5256,
+        5257,
+        5258,
+        5259,
+        5260,
+        5261,
+        5262,
+        5263,
+        5264,
+        5265
+      ]
+    },
+    {
+      "entryExcelId": 15,
+      "entryGadgetId": 310,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104320,
+          104321,
+          104322
+        ],
+        [
+          104323,
+          104324,
+          104325
+        ],
+        [
+          104326,
+          104327,
+          104328
+        ]
+      ],
+      "dungeonIds": [
+        4400,
+        4401,
+        4402,
+        4403,
+        4410,
+        4411,
+        4412,
+        4413,
+        4420,
+        4421,
+        4422,
+        4423
+      ]
+    },
+    {
+      "entryExcelId": 19,
+      "entryGadgetId": 505,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104329,
+          104330,
+          104331
+        ],
+        [
+          104332,
+          104333,
+          104334
+        ],
+        [
+          104335,
+          104336,
+          104337
+        ]
+      ],
+      "dungeonIds": [
+        4430,
+        4431,
+        4432,
+        4433,
+        4440,
+        4441,
+        4442,
+        4443,
+        4450,
+        4451,
+        4452,
+        4453
+      ]
+    },
+    {
+      "entryExcelId": 24,
+      "entryGadgetId": 865,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104338,
+          104339,
+          104340
+        ],
+        [
+          104341,
+          104342,
+          104343
+        ],
+        [
+          104344,
+          104345,
+          104346
+        ]
+      ],
+      "dungeonIds": [
+        4460,
+        4461,
+        4462,
+        4463,
+        4490,
+        4491,
+        4492,
+        4493,
+        4494,
+        4495,
+        4496,
+        4497
+      ]
+    },
+    {
+      "entryExcelId": 29,
+      "entryGadgetId": 1186,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104347,
+          104348,
+          104349
+        ],
+        [
+          104350,
+          104351,
+          104352
+        ],
+        [
+          104353,
+          104354,
+          104355
+        ]
+      ],
+      "dungeonIds": [
+        4434,
+        4435,
+        4436,
+        4437,
+        4444,
+        4445,
+        4446,
+        4447,
+        4454,
+        4455,
+        4456,
+        4457
+      ]
+    },
+    {
+      "entryExcelId": 33,
+      "entryGadgetId": 1690,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104356,
+          104357,
+          104358
+        ],
+        [
+          104359,
+          104360,
+          104361
+        ],
+        [
+          104362,
+          104363,
+          104364
+        ]
+      ],
+      "dungeonIds": [
+        4651,
+        4652,
+        4653,
+        4654,
+        4655,
+        4656,
+        4657,
+        4658,
+        4659,
+        4660,
+        4661,
+        4662
+      ]
+    },
+    {
+      "entryExcelId": 38,
+      "entryGadgetId": 2074,
+      "sceneId": 3,
+      "materialCycleIds": [
+        [
+          104365,
+          104366,
+          104367
+        ],
+        [
+          104368,
+          104369,
+          104370
+        ],
+        [
+          104371,
+          104372,
+          104373
+        ]
+      ],
+      "dungeonIds": [
+        4691,
+        4692,
+        4693,
+        4694,
+        4695,
+        4696,
+        4697,
+        4698,
+        4699,
+        4700,
+        4701,
+        4702
       ]
     }
   ]
