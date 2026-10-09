@@ -1,0 +1,63 @@
+name: Temporary 7.1 pause response candidates
+
+on:
+  push:
+    branches:
+      - research/amber-pause-ack-71
+    paths:
+      - .github/workflows/research-amber-rsp-candidates.yml
+
+jobs:
+  candidates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join client receiver signatures, registry identities and fields
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from collections import defaultdict
+          from pathlib import Path
+
+          root = Path("versions/7.1.0-global/windows-x64")
+          with (root / "registry/registry.csv").open(encoding="utf-8-sig", newline="") as file:
+              registry = {r["type_name"]: r for r in csv.DictReader(file)}
+          methods = defaultdict(list)
+          with (root / "metadata/methods.csv").open(encoding="utf-8-sig", newline="") as file:
+              for row in csv.DictReader(file):
+                  if row["type_name"] != "LLCGIEDMIIG":
+                      continue
+                  try:
+                      params = json.loads(row["parameter_types"])
+                  except (ValueError, TypeError):
+                      continue
+                  for typ in params:
+                      if typ in registry:
+                          methods[typ].append({"name": row["method_name"], "rva": row["rva"]})
+          fields = defaultdict(list)
+          with (root / "metadata/fields.csv").open(encoding="utf-8-sig", newline="") as file:
+              for row in csv.DictReader(file):
+                  if row["type_name"] in methods:
+                      fields[row["type_name"]].append(row["field_type"])
+          candidates = []
+          for typ, entries in methods.items():
+              fs = fields[typ]
+              primitive = [x for x in fs if x in {"bool", "int32", "uint32", "int64", "uint64", "float", "double", "string"}]
+              if not fs or not primitive:
+                  continue
+              candidates.append({
+                  "cmd_id": int(registry[typ]["cmd_id"]), "type_name": typ,
+                  "type_definition_index": int(registry[typ]["type_definition_index"]),
+                  "fields": fs,
+                  "method": entries[0]["name"], "method_rva": entries[0]["rva"],
+                  "retcode_like": primitive == ["int32"],
+              })
+          candidates.sort(key=lambda x: (not x["retcode_like"],len(x["fields"]),x["cmd_id"]))
+          print("RECEIVER_PROTOCOL_TYPES",len(methods),"PRIMITIVE_CANDIDATES",len(candidates))
+          print("RETCODE_ONLY_CANDIDATES=" + json.dumps(
+              [x for x in candidates if x["retcode_like"]],separators=(",",":")))
+          print("CANDIDATE_CONTROLS=" + json.dumps(
+              [x for x in candidates if x["cmd_id"] in {7003,22060,2870,5963}],separators=(",",":")))
+          PY
