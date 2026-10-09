@@ -1,0 +1,34 @@
+name: Amber 7.1 pause static evidence
+
+on:
+  push:
+    branches: [research/amber-pause-ack-71]
+    paths:
+      - 'tools/research_amber_pause_71.py'
+      - '.github/workflows/research-amber-pause-71.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build static evidence
+        run: |
+          python tools/research_amber_pause_71.py --output versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/static-probe.json
+      - name: Publish only static evidence
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/static-probe.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'research: record exact 7.1 Amber pause static registry evidence'
+            git push origin HEAD:research/amber-pause-ack-71
+          fi
