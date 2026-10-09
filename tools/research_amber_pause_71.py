@@ -125,6 +125,25 @@ def investigate(version: Path, exe: Path | None = None) -> dict:
         result["request_type_slot_xref_count"] = len(result["request_type_slot_xrefs"])
         if old_slot is not None:
             result["historical_response_type_slot_xrefs_not_semantic"] = refs["matches"].get(f"0x{old_slot:X}", [])
+        sender_methods = []
+        for hit in result["request_type_slot_xrefs"]:
+            for method in hit.get("caller_methods", []):
+                if method.get("type_name") != req_type and method.get("type_name") != "FBGCJGDKLLB":
+                    sender_methods.append(method)
+        unique_senders = {method["rva"]: method for method in sender_methods if method.get("rva")}
+        if unique_senders:
+            from genshinre.callxref import scan_direct_call_xrefs
+            from tools.disassemble_rva import disassemble_rva
+            sender_rvas = [int(value, 0) for value in unique_senders]
+            call_refs = scan_direct_call_xrefs(
+                exe, sender_rvas, methods_csv=methods_path, window=64
+            )
+            result["request_sender_methods"] = list(unique_senders.values())
+            result["request_sender_call_xrefs"] = call_refs["matches"]
+            result["request_sender_native_disassembly"] = {
+                rva: disassemble_rva(exe, int(rva, 0), 0x110)["instructions"]
+                for rva in unique_senders
+            }
     return result
 
 
