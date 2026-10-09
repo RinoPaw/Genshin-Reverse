@@ -194,6 +194,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("output_dir", type=Path)
     p.add_argument("--coverage", type=Path)
 
+    p = sub.add_parser("audit", help="audit server resources against preserved evidence")
+    audit_sub = p.add_subparsers(dest="audit_target", required=True)
+    q = audit_sub.add_parser(
+        "quest",
+        help="audit AstaPS-style Quest JSON against Genshin 7.1 ordinary Quest evidence",
+    )
+    q.add_argument("raw_7_1_root", type=Path)
+    q.add_argument("resource_root", type=Path)
+    q.add_argument("--recovery-manifest", type=Path)
+    q.add_argument("--output", type=Path)
+    q.add_argument("--only-problems", action="store_true")
+    q.add_argument("--fail-on-conflict", action="store_true")
+
     p = sub.add_parser("validate", help="validate a version/platform artifact directory")
     p.add_argument("path", type=Path)
     p.add_argument("--allow-partial", action="store_true")
@@ -487,6 +500,29 @@ def main() -> None:
             coverage_path=args.coverage,
         )
         print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    elif args.command == "audit":
+        if args.audit_target == "quest":
+            from .questaudit import audit_quest_directories
+
+            result = audit_quest_directories(
+                args.raw_7_1_root,
+                args.resource_root,
+                recovery_manifest_path=args.recovery_manifest,
+                only_problems=args.only_problems,
+            )
+            rendered = json.dumps(
+                result,
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            ) + "\n"
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(rendered, encoding="utf-8")
+            else:
+                print(rendered, end="")
+            if args.fail_on_conflict and result["summary"]["conflicts"]:
+                raise SystemExit(1)
     elif args.command == "validate":
         from .validate import validate_version
 
