@@ -33,20 +33,20 @@ class QuestActionTests(unittest.TestCase):
         action = entry["IMDGLPKIHCK"][0][0]
         self.assertEqual("GEEOEPCPODO", action["$type"])
         self.assertEqual("CAMERA_MOVE", action["type"])
-        self.assertEqual("EaseInOutCubic", action["NKJJGKEABGO"])
-        self.assertEqual(6, action["LOGGIAJEMHD"])
+        self.assertEqual("EaseInOutCubic", action["cameraBlendType"])
+        self.assertEqual(6, action["lerpPattern"])
         self.assertFalse(action["HLGABAFOOMM"])
-        self.assertTrue(action["CEDPMBHLGHM"])
+        self.assertTrue(action["needZAxisRotate"])
         self.assertTrue(action["DIGPJPDMJKF"])
         self.assertEqual("", action["AGNDLBACBLB"])
         self.assertEqual("", action["NEGBDDEAAAH"])
         self.assertEqual("", action["BEBDEGMLIPL"])
         self.assertEqual("", action["DAHBICEBHDB"])
-        self.assertAlmostEqual(-1893.645, action["ABKEMCCALEC"]["x"], places=3)
-        self.assertAlmostEqual(105.318, action["ABKEMCCALEC"]["y"], places=3)
-        self.assertAlmostEqual(8630.627, action["ABKEMCCALEC"]["z"], places=3)
-        self.assertAlmostEqual(-1893.707, action["DLLHPFNMJPN"]["x"], places=3)
-        self.assertAlmostEqual(35.0, action["KHLHBNLLCDG"], places=5)
+        self.assertAlmostEqual(-1893.645, action["camPosOffset"]["x"], places=3)
+        self.assertAlmostEqual(105.318, action["camPosOffset"]["y"], places=3)
+        self.assertAlmostEqual(8630.627, action["camPosOffset"]["z"], places=3)
+        self.assertAlmostEqual(-1893.707, action["camForwardTargetOffset"]["x"], places=3)
+        self.assertAlmostEqual(35.0, action["camFov"], places=5)
         self.assertEqual(
             {
                 "poleMinValue": -50.0,
@@ -54,7 +54,7 @@ class QuestActionTests(unittest.TestCase):
                 "elevMaxValue": 50.0,
                 "poleMaxValue": 50.0,
             },
-            action["PGONIBOPIND"],
+            action["cutFrameTrans"],
         )
 
     def test_polymorphic_camera_and_time_protect_group(self) -> None:
@@ -67,12 +67,12 @@ class QuestActionTests(unittest.TestCase):
         self.assertEqual(148, first["actionId"])
         self.assertEqual(67108864, first["flag"])
         self.assertAlmostEqual(0.5, first["duration"], places=6)
-        self.assertEqual("EaseInOutCubic", first["NKJJGKEABGO"])
+        self.assertEqual("EaseInOutCubic", first["cameraBlendType"])
         self.assertTrue(first["NMEENCOHBNC"])
 
         self.assertEqual("CAMERA_MOVE", second["type"])
         self.assertEqual(149, second["actionId"])
-        self.assertEqual("EaseOutQuad", second["NKJJGKEABGO"])
+        self.assertEqual("EaseOutQuad", second["cameraBlendType"])
         self.assertAlmostEqual(0.1, second["delayTime"], places=6)
         self.assertAlmostEqual(5.0, second["duration"], places=6)
 
