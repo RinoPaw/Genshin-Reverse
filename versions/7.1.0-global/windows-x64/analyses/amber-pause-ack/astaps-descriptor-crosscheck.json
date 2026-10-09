@@ -1,0 +1,81 @@
+{
+  "status": "SERVER_DESCRIPTOR_ONLY",
+  "source": {
+    "repository": "RinoPaw/AstaPS",
+    "branch": "diagnostics/amber-input-lock-35601",
+    "path": "protocol/7.1/protocol.desc",
+    "sha256": "dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5",
+    "size": 634997,
+    "inspection_workflow_run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967149153"
+  },
+  "messages": {
+    "PlayerSetPauseReq": {
+      "direction": "C2S",
+      "fields": [
+        {
+          "name": "is_paused",
+          "number": 11,
+          "scalar": "bool"
+        }
+      ],
+      "match_to_exact_client": "CONFIRMED field 11 from GLIHKBGFALC serializer"
+    },
+    "PlayerSetPauseRsp": {
+      "direction": "S2C",
+      "fields": [
+        {
+          "name": "retcode",
+          "number": 4,
+          "scalar": "int32"
+        }
+      ],
+      "match_to_exact_client": "UNRESOLVED response CmdId and 7.1 field number; server descriptor is not client proof"
+    },
+    "SceneTimeNotify": {
+      "direction": "S2C",
+      "fields": [
+        {
+          "name": "scene_time",
+          "number": 6,
+          "scalar": "uint64"
+        },
+        {
+          "name": "scene_id",
+          "number": 10,
+          "scalar": "uint32"
+        },
+        {
+          "name": "is_paused",
+          "number": 1,
+          "scalar": "bool"
+        }
+      ],
+      "match_to_exact_client": "UNRESOLVED individual field numbers"
+    },
+    "PlayerTimeNotify": {
+      "direction": "S2C",
+      "fields": [
+        {
+          "name": "player_time",
+          "number": 7,
+          "scalar": "uint64"
+        },
+        {
+          "name": "server_time",
+          "number": 6,
+          "scalar": "uint64"
+        },
+        {
+          "name": "is_paused",
+          "number": 15,
+          "scalar": "bool"
+        }
+      ],
+      "match_to_exact_client": "UNRESOLVED individual field numbers"
+    }
+  },
+  "limitations": [
+    "Only PlayerSetPauseReq field 11 is independently matched to exact 7.1 native executable.",
+    "AstaPS descriptor alone does not identify the 7.1 PlayerSetPauseRsp opcode or prove client input-lock cause."
+  ]
+}
