@@ -132,6 +132,11 @@ def _comparison_value(value: Any, *, field: str) -> list[dict[str, Any]]:
     return out
 
 
+def normalize_quest_entries(value: Any, *, field: str) -> list[dict[str, Any]]:
+    """Return the stable comparison form used by recovery and audit callers."""
+    return _comparison_value(value, field=field)
+
+
 def _has_unknown_accept_placeholder(value: Any) -> bool:
     if not isinstance(value, list):
         return False
@@ -851,12 +856,16 @@ def build_from_directories(
     )
 
 
-def _write_json(path: Path, value: Any) -> None:
+def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _write_json(path: Path, value: Any) -> None:
+    write_json(path, value)
 
 
 def main(argv: Iterable[str] | None = None) -> int:
