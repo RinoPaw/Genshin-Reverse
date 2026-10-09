@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "target": "Genshin Impact 7.1.0 Global",
+  "evidence_scope": "observed-pinned-integration-resource; no exact-client-native serialization claim",
+  "source": {
+    "repository": "RinoPaw/AstaPS-Resource",
+    "commit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+    "base_path": "ExcelBinOutput",
+    "files": {
+      "AvatarLevelExcelConfigData.json": {
+        "git_blob_sha": "42cb59ea6ea35aa5de15371cac45af202968235b",
+        "status": "populated"
+      },
+      "AvatarCurveExcelConfigData.json": {
+        "git_blob_sha": "e3586d6389e3db7c0565dde4b31d639abc37e903",
+        "status": "populated"
+      },
+      "AvatarExtraLevelExcelConfigData.json": {
+        "git_blob_sha": "4c8fc8bcd051e2686eeb8e202f20cbecf73be453",
+        "status": "populated"
+      },
+      "WeaponLevelExcelConfigData.json": {
+        "git_blob_sha": "fced13020c7339a224e6caf2d52e5335ae3980e4",
+        "status": "populated"
+      },
+      "ReliquaryLevelExcelConfigData.json": {
+        "git_blob_sha": "f1ba31891e6207fc9c499369e05ecf211f230f0d",
+        "status": "populated"
+      },
+      "PlayerLevelExcelConfigData.json": {
+        "git_blob_sha": "05688da8a60c6ee7f02cf11de4d8940d27b1ae51",
+        "status": "populated"
+      },
+      "WorldLevelExcelConfigData.json": {
+        "git_blob_sha": "f316986f2d2e5081fb5d5adb7d8a671db0f1e11b",
+        "status": "populated"
+      },
+      "AvatarFettersLevelExcelConfigData.json": {
+        "git_blob_sha": "32305bc4b7de8a5bfcb84c1b858e84bff283bae9",
+        "status": "populated"
+      },
+      "ProudSkillExcelConfigData.json": {
+        "git_blob_sha": "9a386ae8c115ee7a78a578b03cc1a862fa3162e7",
+        "status": "empty"
+      },
+      "WeaponPromoteExcelConfigData.json": {
+        "git_blob_sha": "cd259ca9516b07342af617ddc515c4676b3f5570",
+        "status": "empty"
+      },
+      "ReliquaryExcelConfigData.json": {
+        "git_blob_sha": "dc617e939a0ad4864f88e32dbf98ace9ac11649f",
+        "status": "empty"
+      }
+    }
+  },
+  "observations": {
+    "character": {
+      "ordinary_exp_1_to_90": 8362650,
+      "ordinary_exp_level_90_row": 613950,
+      "stat_curves_90_95_100": [
+        {
+          "level": 90,
+          "multipliers": {
+            "GROW_CURVE_HP_S4": 8.348999977111816,
+            "GROW_CURVE_ATTACK_S4": 8.348999977111816,
+            "GROW_CURVE_HP_S5": 8.73900032043457,
+            "GROW_CURVE_ATTACK_S5": 8.73900032043457
+          }
+        },
+        {
+          "level": 95,
+          "multipliers": {
+            "GROW_CURVE_HP_S4": 8.76099967956543,
+            "GROW_CURVE_ATTACK_S4": 9.869999885559082,
+            "GROW_CURVE_HP_S5": 9.194999694824219,
+            "GROW_CURVE_ATTACK_S5": 10.184000015258789
+          }
+        },
+        {
+          "level": 100,
+          "multipliers": {
+            "GROW_CURVE_HP_S4": 9.173999786376953,
+            "GROW_CURVE_ATTACK_S4": 11.392000198364258,
+            "GROW_CURVE_HP_S5": 9.652000427246094,
+            "GROW_CURVE_ATTACK_S5": 11.628999710083008
+          }
+        }
+      ],
+      "post_90_source_rows": [
+        {
+          "BBPEGJLEEEC": 95,
+          "DEJBOJMHHJB": 90,
+          "EOIABNJFOMJ": "A25555FF",
+          "MFPIIMEEJKF": "FFAD99FF",
+          "costItems": [
+            {
+              "id": 104300,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "BBPEGJLEEEC": 100,
+          "DEJBOJMHHJB": 95,
+          "EOIABNJFOMJ": "A25555FF",
+          "MFPIIMEEJKF": "FFAD99FF",
+          "costItems": [
+            {
+              "id": 104300,
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "post_90_interpretation": {
+        "from_level_field": "DEJBOJMHHJB",
+        "to_level_field": "BBPEGJLEEEC",
+        "field_name_status": "inferred_from_ordered_rows_and_official_rules",
+        "material_id": 104300,
+        "material_name_status": "official_rule_correspondence; independent item-ID/name binding pending",
+        "costs": [
+          {
+            "from": 90,
+            "to": 95,
+            "count": 1
+          },
+          {
+            "from": 95,
+            "to": 100,
+            "count": 2
+          }
+        ],
+        "ordinary_exp_or_mora_after_90": "not implied by source; official update specifies no additional materials"
+      }
+    },
+    "weapon": {
+      "ordinary_exp_1_to_90_by_rarity": {
+        "1": 1812875,
+        "2": 2719250,
+        "3": 3988200,
+        "4": 6042650,
+        "5": 9064450
+      }
+    },
+    "artifact": {
+      "five_star_exp_plus_0_to_20": 270475,
+      "source_internal_levels": "1..20 cost rows, 21 final displayed +20 state"
+    },
+    "account": {
+      "ar_to_world_level_unlocks": [
+        {
+          "adventure_rank": 20,
+          "unlock_world_level": 1
+        },
+        {
+          "adventure_rank": 25,
+          "unlock_world_level": 2
+        },
+        {
+          "adventure_rank": 30,
+          "unlock_world_level": 3
+        },
+        {
+          "adventure_rank": 35,
+          "unlock_world_level": 4
+        },
+        {
+          "adventure_rank": 40,
+          "unlock_world_level": 5
+        },
+        {
+          "adventure_rank": 45,
+          "unlock_world_level": 6
+        },
+        {
+          "adventure_rank": 50,
+          "unlock_world_level": 7
+        },
+        {
+          "adventure_rank": 55,
+          "unlock_world_level": 8
+        },
+        {
+          "adventure_rank": 58,
+          "unlock_world_level": 9
+        }
+      ],
+      "max_ar": 60
+    },
+    "world": {
+      "world_level_source_rows": [
+        {
+          "monsterLevel": 26,
+          "level": 1
+        },
+        {
+          "monsterLevel": 34,
+          "level": 2
+        },
+        {
+          "monsterLevel": 47,
+          "level": 3
+        },
+        {
+          "monsterLevel": 59,
+          "level": 4
+        },
+        {
+          "monsterLevel": 69,
+          "level": 5
+        },
+        {
+          "monsterLevel": 80,
+          "level": 6
+        },
+        {
+          "monsterLevel": 88,
+          "level": 7
+        },
+        {
+          "monsterLevel": 90,
+          "level": 8
+        },
+        {
+          "IDLGNALCKNN": -10,
+          "monsterLevel": 100,
+          "level": 9
+        }
+      ],
+      "no_level_zero_row": true,
+      "obfuscated_WL9_field_status": "unresolved"
+    },
+    "friendship": {
+      "source_rows": [
+        {
+          "fetter_level": 1,
+          "need_exp": 1000
+        },
+        {
+          "fetter_level": 2,
+          "need_exp": 1550
+        },
+        {
+          "fetter_level": 3,
+          "need_exp": 2050
+        },
+        {
+          "fetter_level": 4,
+          "need_exp": 2600
+        },
+        {
+          "fetter_level": 5,
+          "need_exp": 3175
+        },
+        {
+          "fetter_level": 6,
+          "need_exp": 3750
+        },
+        {
+          "fetter_level": 7,
+          "need_exp": 4350
+        },
+        {
+          "fetter_level": 8,
+          "need_exp": 4975
+        },
+        {
+          "fetter_level": 9,
+          "need_exp": 5650
+        },
+        {
+          "fetter_level": 10,
+          "need_exp": 6325
+        }
+      ]
+    },
+    "unresolved_empty_tables": [
+      "ProudSkillExcelConfigData.json",
+      "WeaponPromoteExcelConfigData.json",
+      "ReliquaryExcelConfigData.json"
+    ]
+  }
+}

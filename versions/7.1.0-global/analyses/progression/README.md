@@ -20,6 +20,11 @@ An unresolved or partially bound result must not be promoted to `A`.
 
 ## Files
 
+- [7.1-resource-growth-observations.json](7.1-resource-growth-observations.json)
+  - source commit and Git blob fingerprints for eleven growth-related tables;
+  - verified 90→95→100 material counts, World Level and friendship data;
+  - level EXP totals and artifact +20 enhancement EXP.
+
 - [7.1-native-progression-baseline.md](7.1-native-progression-baseline.md)
   - character EXP curve;
   - character EXP materials;
@@ -98,3 +103,7 @@ Do not let old Wiki values overwrite current 7.1 ExcelBin.
 For current service rules, preserve version order: later HoYoverse rule changes override older documentation only when their applicability to the 7.1 ruleset has been checked.
 
 Private-server behavior belongs here only as `B` evidence or in the RPG proposal. It must not silently redefine the native baseline.
+
+## 2026-10-09 provenance review
+
+A pinned-source check found empty `ProudSkillExcelConfigData.json`, `WeaponPromoteExcelConfigData.json` and `ReliquaryExcelConfigData.json`. These should not be cited as populated **current-resource** tables; prior talent/weapon-promotion/artifact-variant reconstructions require a separate populated source/consumer before native promotion. See the baseline checkpoint and machine-readable observations above.
