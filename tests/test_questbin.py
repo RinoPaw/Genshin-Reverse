@@ -152,6 +152,15 @@ class QuestBinTests(unittest.TestCase):
         self.assertEqual(2, rows[35103].show_guide)
         self.assertTrue(rows[35102].finish_parent)
         self.assertIsInstance(rows[35100].guide, dict)
+        self.assertEqual(
+            {"param2": "", "param1": ""},
+            rows[35101].guide_hint,
+        )
+        self.assertNotIn("BIHKOLLEDPE", rows[35101].unknown_fields)
+        self.assertEqual(
+            {"param2": "", "param1": ""},
+            rows[35101].to_dict()["guideHint"],
+        )
         rendered = rows[35102].to_dict()
         self.assertEqual(1403458759, rendered["descTextMapHash"])
         self.assertTrue(rendered["isRewind"])
@@ -231,15 +240,39 @@ class QuestBinTests(unittest.TestCase):
         self.assertEqual(597412161, rendered["titleTextMapHash"])
         self.assertEqual(1008400655, rendered["descTextMapHash"])
 
-    def test_quest_351_outer_tail_is_decoded(self) -> None:
-        self.assertEqual([14457059026087496718], self.quest.unknown_fields["JNHHOJAPDPP"])
+    def test_mainquest_dialog_list_is_semantic(self) -> None:
+        dialog = {
+            "rawMask": "0x00000000",
+            "id": 70059801,
+            "talkContentTextMapHash": 193971018,
+        }
+        quest = questbin.MainQuest(
+            main_id=7005,
+            quests=(),
+            dialog_list=(dialog,),
+        )
+        rendered = quest.to_dict()
+        self.assertEqual([dialog], rendered["dialogList"])
+        self.assertNotIn("PCIAMAFDDAA", rendered.get("unknown", {}))
+
+    def test_quest_351_preload_lua_list_is_semantic(self) -> None:
+        self.assertEqual((14457059026087496718,), self.quest.preload_lua_list)
+        self.assertNotIn("JNHHOJAPDPP", self.quest.unknown_fields)
+        rendered = self.quest.to_dict()
+        self.assertEqual([14457059026087496718], rendered["preloadLuaList"])
         self.assertEqual(1008400655, self.quest.desc_text_map_hash)
 
     def test_product_json_does_not_synthesize_legacy_fields(self) -> None:
         rendered = self.quest.to_json()
         self.assertEqual(rendered, self.quest.to_json())
-        self.assertNotIn("acceptCond", rendered)
-        self.assertNotIn("beginExec", rendered)
+        for field_name in (
+            "acceptCond",
+            "beginExec",
+            "acceptCondComb",
+            "finishCondComb",
+            "failCondComb",
+        ):
+            self.assertNotIn(field_name, rendered)
         self.assertNotIn('"start"', rendered)
         self.assertNotIn('"end"', rendered)
         parsed = json.loads(rendered)
@@ -331,8 +364,13 @@ class QuestBinTests(unittest.TestCase):
         quest375 = load(375)
         dialogue375 = quest375.talks
         self.assertEqual(
+            (7083671648706514976, 11108662340521195773),
+            quest375.force_preload_lua_list,
+        )
+        self.assertNotIn("DKKIDDFEHMD", quest375.unknown_fields)
+        self.assertEqual(
             [7083671648706514976, 11108662340521195773],
-            quest375.unknown_fields["DKKIDDFEHMD"],
+            quest375.to_dict()["forcePreloadLuaList"],
         )
         self.assertEqual([1161], dialogue375[0]["field0U32Array"])
         self.assertEqual(375, dialogue375[0]["field6U32"])
@@ -365,7 +403,21 @@ class QuestBinTests(unittest.TestCase):
         rows388 = {row.sub_id: row for row in quest388.quests}
         self.assertEqual(6, len(quest388.talks))
         self.assertEqual((1001, 1009, 1006), rows388[38801].npc_ids)
-        self.assertEqual([1001, 1009, 1006], rows388[38806].unknown_fields["JFCJBBCEDGD"])
+        self.assertEqual((1001, 1009, 1006), rows388[38801].exclusive_npc_list)
+        self.assertEqual(
+            [1001, 1009, 1006],
+            rows388[38801].to_dict()["exclusiveNpcList"],
+        )
+        self.assertEqual(
+            rows388[38801].to_dict()["npcId"],
+            rows388[38801].to_dict()["exclusiveNpcList"],
+        )
+        self.assertEqual((1001, 1009, 1006), rows388[38806].shared_npc_list)
+        self.assertNotIn("JFCJBBCEDGD", rows388[38806].unknown_fields)
+        self.assertEqual(
+            [1001, 1009, 1006],
+            rows388[38806].to_dict()["sharedNpcList"],
+        )
         self.assertEqual(7, rows388[38801].finish_exec[0].type_id)
         self.assertEqual(15, rows388[38803].finish_exec[0].type_id)
         self.assertEqual(7, rows388[38802].finish_cond[0].type_id)
@@ -421,6 +473,38 @@ class QuestBinTests(unittest.TestCase):
         row = decode_single(53, raw.to_bytes(4, "little"))
         self.assertEqual(step_hash, row.step_desc_text_map_hash)
         self.assertNotIn("FKKAEBOAMCN", row.unknown_fields)
+
+        force_priority = 4
+        raw = ((force_priority ^ 0xBCB94817) - 0xB5F93568) & 0xFFFFFFFF
+        row = decode_single(46, raw.to_bytes(4, "little"))
+        self.assertEqual(force_priority, row.force_paimon_guide_priority)
+        self.assertNotIn("EOFPICJEHLP", row.unknown_fields)
+        self.assertEqual(
+            force_priority,
+            row.to_dict()["forcePaimonGuidePriority"],
+        )
+
+        unfinished_hint_show = 1
+        raw = unfinished_hint_show ^ 0x011CF6ED
+        row = decode_single(10, raw.to_bytes(4, "little"))
+        self.assertEqual(unfinished_hint_show, row.unfinished_hint_show)
+        self.assertNotIn("DMCMNPLMCKL", row.unknown_fields)
+        self.assertEqual(
+            unfinished_hint_show,
+            row.to_dict()["unfinishedHintShowId"],
+        )
+
+        extra_show_type = 1
+        raw = extra_show_type ^ 0x5E79B226
+        row = decode_single(11, raw.to_bytes(4, "little"))
+        self.assertEqual(extra_show_type, row.extra_show_type)
+        self.assertNotIn("FABHGLLGFHN", row.unknown_fields)
+        self.assertEqual(extra_show_type, row.to_dict()["extraShowTypeId"])
+
+        row = decode_single(42, bytes([0xB1]))
+        self.assertTrue(row.fail_parent)
+        self.assertNotIn("HJOFKFKBFCF", row.unknown_fields)
+        self.assertTrue(row.to_dict()["failParent"])
 
     def test_quest_310_native_afio_bit39_scalar(self) -> None:
         fixture = ROOT / "tests" / "fixtures" / "quest310.hex"
