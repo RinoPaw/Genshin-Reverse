@@ -531,8 +531,8 @@ def main() -> None:
     elif args.command == "recover":
         if args.recover_target == "quest-compat":
             from .questrecovery71 import (
-                _write_json,
                 build_consensus_from_directories,
+                write_json,
             )
 
             if len(args.community_source) < 2:
@@ -551,8 +551,8 @@ def main() -> None:
                 historical_tsv_root=args.historical_tsv_root,
                 historical_tsv_source=args.historical_tsv_source,
             )
-            _write_json(args.output, manifest)
-            _write_json(args.unresolved_output, unresolved)
+            write_json(args.output, manifest)
+            write_json(args.unresolved_output, unresolved)
             print(
                 json.dumps(
                     {
