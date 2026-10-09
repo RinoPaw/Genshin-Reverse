@@ -33,6 +33,25 @@ AstaPS calls the two inbound CmdIds `SceneTimeNotify` (1307) and `PlayerTimeNoti
 
 A focused scan of all 543 `LLCGIEDMIIG` methods found **nine** native instructions with memory displacement `+0x1D0`; only the two handler stores above have their object base resolved as the receiver. Other matches include stack and unrelated-object bases and must not be counted as receiver pause-field accesses without additional tracing.
 
+## Server descriptor cross-check and conditional field-4 candidates
+
+The 7.1 AstaPS `protocol/7.1/protocol.desc` (SHA-256 `dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5`) was parsed in [workflow run 37967149153](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967149153). The [cross-check artifact](astaps-descriptor-crosscheck.json) preserves each field:
+
+- `PlayerSetPauseReq.is_paused = 11` (bool): **matches the exact 7.1 client serializer** at tag `0x58`. This excludes a request-side field-number mismatch for the generated AstaPS descriptor.
+- `PlayerSetPauseRsp.retcode = 4` (int32): **AstaPS descriptor only**. Current-client retention of this field number is not proven.
+- `SceneTimeNotify.is_paused = 1`; `PlayerTimeNotify.is_paused = 15`: server descriptor values, not independently established client parser numbers.
+
+As a **conditional search**, if the native 7.1 pause response is still a single `int32` at field 4, and if it is handled by the recovered client `LLCGIEDMIIG` receiver class, the previously published [13 one-int32 receiver parser tags](../world-player-revive-rsp/candidate-wire-tags.csv) narrow the field-4 candidates to **22120** and **24380**. A fresh registry/metadata join of all 197 receiver signature types agrees on the 13 one-primitive-int32 candidates ([hosted run 37967365477](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967365477)). Do not treat these conditional candidates as a response identity.
+
+Both candidates were inspected against the pinned executable ([exact-sample disassembly](field4-receiver-candidates.json), [workflow run 37967503945](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967503945)):
+
+| CmdId | Native message / handler | Zero-retcode path | Nonzero-retcode path |
+| --- | --- | --- | --- |
+| 22120 | `IGNKDDIOJEO`, `LLCGIEDMIIG.HBCNAMCDHAH` @ `0xC257AF0` | returns at `0xC257B62` | specialized error conversion/notification |
+| 24380 | `HIADLALFEFD`, `LLCGIEDMIIG.DDABJLEOBCD` @ `0xC2433E0` | returns at `0xC243417` | shared error path `0xB515410` |
+
+**Neither inspected success path writes the receiver's `+0x1D0` pause field directly.** A separate pending-RPC/callback mechanism may still depend on an acknowledgement, so this observation does **not** rule out the ACK hypothesis. The match to `retcode = 4` is a hypothesis about the **server descriptor**, not an established fact about the native 7.1 response. Recovery of response identity and gameplay effect remains unresolved.
+
 ## Unsupported response candidates / causal hypotheses
 
 `CmdId 2870` was the **historical 7.0** `PlayerSetPauseRsp`; it is **not promoted or assumed for 7.1**. The exact 7.1 registry binds it to `DKPJBENLNFD`, typeDefinition `81784`, slot `0x057F0B60`, GetCmdId `0x07EAAF10`. The current metadata shows four generated collection/codec fields plus one `int32`, unlike a simple retcode-only response. Its observed native type-slot xrefs are confined to generated class methods and registry construction, and the inspected `LLCGIEDMIIG` method signatures contain no handler for that type. These facts **reject copying historical 2870 as a current confirmed response**, but do not by themselves prove its complete semantics.
