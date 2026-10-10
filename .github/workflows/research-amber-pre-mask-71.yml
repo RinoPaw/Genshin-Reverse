@@ -8,6 +8,10 @@ on:
       - 'versions/7.1.0-global/windows-x64/analyses/amber-pre-mask/**'
   workflow_dispatch:
 
+concurrency:
+  group: amber-guide-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -54,7 +58,8 @@ jobs:
           from pathlib import Path
           p=Path("research-output/guide-callgraph.json")
           data=json.loads(p.read_text(encoding="utf-8"))
-          compact={"target_sha256":"08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d","focus":{}}
+          from genshinre.nativeprofile import PROFILE_71
+          compact={"target_sha256":PROFILE_71.exe_sha256,"focus":{}}
           for name, item in data["focus"].items():
               callers=[]
               for c in item["direct_callers"]:
