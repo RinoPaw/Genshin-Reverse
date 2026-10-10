@@ -1,0 +1,120 @@
+{
+  "status": "STRUCTURAL_CONFIRMED_SEMANTIC_UNRESOLVED",
+  "sample": {
+    "version": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "source_runs": [
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049568765",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049670386",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049772524",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049957451"
+  ],
+  "runtime_observation": {
+    "date": "2026-10-10",
+    "time": "19:43:42+08:00",
+    "status": "C2S_OBSERVED",
+    "seq": "NpcTalkRsp(35601) -> 27447 -> QuestDestroyNpcReq -> QuestDestroyNpcRsp",
+    "captured_bool": null,
+    "limitations": "Only first ~3 seconds after talk were uploaded, without 27447 payload, 45-second summary or reconnect"
+  },
+  "registry": {
+    "cmd_id": 27447,
+    "type_name": "NDAJDBCBAAE",
+    "type_definition_index": 75026,
+    "type_slot_rva": "0x57F83A0",
+    "get_cmd_id_rva": "0x7AD8ED0",
+    "direction": "C2S",
+    "direction_evidence": "runtime inbound observation plus exact client sender call"
+  },
+  "wire": {
+    "fields": [
+      {
+        "field_number": 7,
+        "wire_type": 0,
+        "likely_type": "bool",
+        "serializer_tag": "0x38",
+        "read_offset": "+0x18"
+      }
+    ],
+    "serializer_name": "NDAJDBCBAAE.IENGFLPCLNM",
+    "serializer_rva": "0x7AD8C30"
+  },
+  "sender": {
+    "method": "LLCGIEDMIIG.GKJKIBOALJO(bool)",
+    "rva": "0xC22D780",
+    "type_slot_xref_rva": "0xC22D791",
+    "message_write_rva": "0xC22D7B5",
+    "generic_send_rva": "0x7246860"
+  },
+  "sender_callers": [
+    {
+      "method": "InteractionManager.OnCreateTalkFinish",
+      "rva": "0xFE33B70",
+      "call_rva": "0xFE33C1C",
+      "bool_arg": true
+    },
+    {
+      "method": "InteractionManager.ClearOnDisconnect",
+      "rva": "0xFE50930",
+      "call_rva": "0xFE50A79",
+      "bool_arg": false
+    },
+    {
+      "method": "InteractionManager.ResumeGameTime",
+      "rva": "0xFE50BE0",
+      "call_rva": "0xFE50C06",
+      "bool_arg": false
+    },
+    {
+      "method": "InteractionManager.ClearAll",
+      "rva": "0xFE5E100",
+      "call_rva": "0xFE5E374",
+      "bool_arg": false
+    },
+    {
+      "method": "InteractionManager.ClearAfterKeyListFinish",
+      "rva": "0xFE5FE80",
+      "call_rva": "0xFE6003A",
+      "bool_arg": false
+    }
+  ],
+  "secondary_callers": {
+    "InteractionManager.OnCreateTalkFinish": [
+      {
+        "site": "0xFE33679",
+        "owner": "InteractionManager.CreateTalkActionByTalkConfigInternal"
+      },
+      {
+        "site": "0xFE4C15C",
+        "owner": "InteractionManager.CreateTalkActionByPerformCfgInternal"
+      }
+    ],
+    "InteractionManager.ClearAfterKeyListFinish": [
+      {
+        "site": "0xFE35A18",
+        "owner": "InteractionManager.OnEvtInterruptIntee"
+      }
+    ],
+    "InteractionManager.ResumeGameTime": []
+  },
+  "server_overlap": {
+    "request_27447_handler_status": "ABSENT_BY_USER_TRACE",
+    "quest_destroy_rsp_cmd": 3992,
+    "quest_destroy_rsp_client_type": "GIIDCEHBDFH",
+    "quest_destroy_rsp_fields": [
+      "int32",
+      "uint32",
+      "uint32"
+    ],
+    "quest_destroy_rsp_LLCGIEDMIIG_receiver": "NO_SIGNATURE_REFERENCE_FOUND"
+  },
+  "unresolved": [
+    "Semantic name for 27447; no native evidence for an ACK requirement",
+    "Observed 27447 boolean value in stuck client session",
+    "Whether the corresponding false transition occurs while stuck and on reconnect",
+    "What triggers InteractionManager.OnEvtInterruptIntee and whether a missing server packet prevents it"
+  ],
+  "evidence_level": "Current exact-7.1 registry/serializer/call graph CONFIRMED; Amber input-lock causal link UNRESOLVED"
+}

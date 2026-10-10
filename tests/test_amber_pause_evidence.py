@@ -80,6 +80,30 @@ class AmberPauseEvidenceTests(unittest.TestCase):
             self.assertFalse(candidate["success_direct_pause_state_write"])
             self.assertEqual("int3", candidate["instructions"][-1]["mnemonic"])
 
+    def test_interaction_27447_is_native_confirmed_without_causality_claim(self) -> None:
+        record = load("posttalk-interaction-27447.json")
+        self.assertEqual(PROFILE_71.exe_sha256, record["sample"]["exe_sha256"])
+        self.assertEqual(
+            "STRUCTURAL_CONFIRMED_SEMANTIC_UNRESOLVED", record["status"]
+        )
+        self.assertEqual(27447, record["registry"]["cmd_id"])
+        self.assertEqual("NDAJDBCBAAE", record["registry"]["type_name"])
+        self.assertEqual(7, record["wire"]["fields"][0]["field_number"])
+        self.assertEqual("0x38", record["wire"]["fields"][0]["serializer_tag"])
+        calls = {item["method"]: item["bool_arg"] for item in record["sender_callers"]}
+        self.assertTrue(calls["InteractionManager.OnCreateTalkFinish"])
+        self.assertFalse(calls["InteractionManager.ClearOnDisconnect"])
+        self.assertFalse(calls["InteractionManager.ResumeGameTime"])
+        self.assertFalse(calls["InteractionManager.ClearAll"])
+        self.assertFalse(calls["InteractionManager.ClearAfterKeyListFinish"])
+        self.assertIsNone(record["runtime_observation"]["captured_bool"])
+        claims = {
+            claim["id"]: claim["status"]
+            for claim in load("evidence.json")["claims"]
+        }
+        self.assertEqual("CONFIRMED", claims["interaction-27447-native-identity"])
+        self.assertEqual("UNRESOLVED", claims["interaction-27447-causal-link"])
+
     def test_historical_candidate_remains_distinct(self) -> None:
         probe = load("native-probe.json")
         historical = probe["historical_response_registry_row_not_semantic"]

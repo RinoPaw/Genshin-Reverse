@@ -33,6 +33,21 @@ AstaPS calls the two inbound CmdIds `SceneTimeNotify` (1307) and `PlayerTimeNoti
 
 A focused scan of all 543 `LLCGIEDMIIG` methods found **nine** native instructions with memory displacement `+0x1D0`; only the two handler stores above have their object base resolved as the receiver. Other matches include stack and unrelated-object bases and must not be counted as receiver pause-field accesses without additional tracing.
 
+## New 2026-10-10 reproduction: InteractionManager CmdId 27447
+
+The server console capture of Amber talk 35601 (19:43:41) proves that the server sent `NpcTalkRsp`, finished quest `35601`, started **both** `35602` and `35603`, and received a previously unnamed client CmdId **27447** about 1.05 seconds after the talk request. `QuestDestroyNpcReq(23280)` arrived immediately afterward, and the server sent `QuestDestroyNpcRsp(3992)`. The console transcript ends around 2.7 seconds after the request and contains **no** 45-second trace summary or reconnect comparison.
+
+New [source-bound 7.1 evidence](posttalk-interaction-27447.json) establishes:
+
+- Canonical registry: `27447` → `NDAJDBCBAAE`, typeDefinition `75026`, slot RVA `0x57F83A0`. Native serializer `IENGFLPCLNM` @ `0x7AD8C30` writes protobuf **bool field 7** (tag `0x38`). This is distinct from `PlayerSetPauseReq(5963)`, which writes bool field 11.
+- Native C2S construction: `LLCGIEDMIIG.GKJKIBOALJO(bool)` @ `0xC22D780` loads the message slot at `0xC22D791`, writes the bool at `0xC22D7B5`, and sends via the shared path.
+- Five direct callers belong to `InteractionManager`: `OnCreateTalkFinish` at `0xFE33C1C` calls with **true**; `ClearOnDisconnect`, `ResumeGameTime`, `ClearAll` and `ClearAfterKeyListFinish` call with **false**.
+- Two direct callers of `OnCreateTalkFinish` are `CreateTalkActionByTalkConfigInternal` and `CreateTalkActionByPerformCfgInternal`. `OnEvtInterruptIntee` is a direct caller of `ClearAfterKeyListFinish`; `ResumeGameTime` had no direct E8 callers in the scan (indirect calls are outside its evidence boundary).
+
+The native-client investigation used [registry/metadata lookup](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049568765), [serializer and sender scan](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049670386), [sender caller scan](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049772524) and [lifecycle caller scan](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38049957451), all bound to the exact 7.1 Global executable hash.
+
+**Interpretation boundary:** The log has no payload for the observed `27447`, so the in-game message's bool is not yet confirmed. The client's true/false call sites are proven, but a missing false notification is only a **candidate explanation** for the input lock. A client-originated event does not automatically require a server response. Do not assign an unproved semantic name, implement an ACK, or force an interaction-state packet. AstaPS diagnostics now decode the field 7 bool on the Amber trace; compare the stuck window and the reconnect window.
+
 ## Server descriptor cross-check and conditional field-4 candidates
 
 The 7.1 AstaPS `protocol/7.1/protocol.desc` (SHA-256 `dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5`) was parsed in [workflow run 37967149153](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967149153). The [cross-check artifact](astaps-descriptor-crosscheck.json) preserves each field:

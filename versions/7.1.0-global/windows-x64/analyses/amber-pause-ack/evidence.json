@@ -132,6 +132,42 @@
           "locator": "reproduction"
         }
       ]
+    },
+    {
+      "id": "interaction-27447-native-identity",
+      "status": "CONFIRMED",
+      "statement": "Exact Global 7.1 registry binds C2S CmdId 27447 to NDAJDBCBAAE/typeDefinition 75026; serializer writes bool field 7 (tag 0x38), and LLCGIEDMIIG.GKJKIBOALJO(bool) constructs/sends this packet.",
+      "evidence": [
+        {
+          "kind": "pinned-7.1-registry-and-native",
+          "source": "posttalk-interaction-27447.json",
+          "locator": "registry + wire + sender + source_runs"
+        }
+      ]
+    },
+    {
+      "id": "interaction-27447-lifecycle",
+      "status": "CONFIRMED",
+      "statement": "Five native InteractionManager direct call sites send 27447 true from OnCreateTalkFinish and false from ClearOnDisconnect/ResumeGameTime/ClearAll/ClearAfterKeyListFinish; OnEvtInterruptIntee directly calls ClearAfterKeyListFinish.",
+      "evidence": [
+        {
+          "kind": "exact-client-direct-native-callscan",
+          "source": "posttalk-interaction-27447.json",
+          "locator": "sender_callers + secondary_callers"
+        }
+      ]
+    },
+    {
+      "id": "interaction-27447-causal-link",
+      "status": "UNRESOLVED",
+      "statement": "The 2026-10-10 Amber lock trace observed C2S 27447 after talk 35601, but did not capture its protobuf payload, the later 45-second sequence, or reconnection. No proof that a missing false transition or server response causes the input lock.",
+      "evidence": [
+        {
+          "kind": "server-runtime",
+          "source": "posttalk-interaction-27447.json",
+          "locator": "runtime_observation + unresolved"
+        }
+      ]
     }
   ],
   "rejected_paths": [
@@ -153,9 +189,11 @@
     "evidence.json",
     "static-probe.json",
     "native-probe.json",
-    "client-pause-field-xrefs.json"
+    "client-pause-field-xrefs.json",
+    "posttalk-interaction-27447.json"
   ],
   "next_steps": [
+    "Capture bool field 7 for C2S CmdId 27447 across stuck and reconnect windows; identify whether/when InteractionManager emits the false transition.",
     "Collect exact-client decrypted stuck and reconnect packet windows.",
     "Recover the S2C response identity and handler or reject the ACK hypothesis.",
     "Implement focused AstaPS regression and run full CI before requesting gameplay testing.",
@@ -163,6 +201,7 @@
   ],
   "questions": [
     "What is the exact 7.1 Global PlayerSetPauseRsp CmdId, client type and handler or pending-RPC consumer?",
-    "Does absence of this response cause Amber talk 35601 input lock, or does a distinct post-talk/time-pause state transition remain missing?"
+    "Does absence of this response cause Amber talk 35601 input lock, or does a distinct post-talk/time-pause state transition remain missing?",
+    "What triggers OnEvtInterruptIntee/ClearAfterKeyListFinish or ResumeGameTime after Amber 35601, and is its absence causally related to input lock?"
   ]
 }
