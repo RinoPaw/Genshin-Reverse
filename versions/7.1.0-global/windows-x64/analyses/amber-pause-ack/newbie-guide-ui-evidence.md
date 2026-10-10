@@ -1,3 +1,13 @@
+## 2026-10-11 static cross-check: mask predicate constant 6717 is not an Amber guide identity
+
+A source review of the pinned [native disassembly run 38064178431](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38064178431) confirms the exact `EPJNAHIFNCP.SetupView @ 0x89FB050` operand `0x1A3D` (decimal **6717**) passed to `HOJDOIALMHI.EAEPAEOMOJI`. The **7.1 resource's** `ExcelBinOutput/OpenStateConfigData.json` has an `id: 6717` row with `allowClientOpen: true`; this numeric match does **not** establish that the helper is an OpenState getter, or which named `OPEN_STATE_*` enumerator corresponds to it. No runtime evidence ties this V1 UI controller to quest 35601. Do not label this the Amber guide ID or force-enable state 6717.
+
+The branch's static server comparison further confirms that `QuestManager.isQuestingActive() = enableScriptInBigWorld && questing.enabled`, and that the **current** AstaPS diagnostic branch logs both flags plus actual outgoing `QuestListUpdateNotify` entries for 35601/35602/35603. A normal tutorial needs a client-visible unfinished 35603, but the 21:45 trace predates that packet-entry logging. Conversely, omission of state 7 from the server map/default snapshot is not evidence of a particular client UI lock bit. Original Grasscutter and LunaGC share the `defaultState && !allowClientOpen` default-state filter, so it is not a new AstaPS-only alteration. Do not edit gameplay flags on these static observations.
+
+### Bounded conclusion (no client event trace yet)
+
+The executable contains *two distinct potential failure transitions*: `GlobalActor.StartGuide` can reject a guide name before dispatch, and the V1 newbie controller can set mask index -1 or compulsory visibility false; separately the `InteractionManager` has a lock-reason set. The first visible symptom (**no BlackMask and no control**) does not tell us which paths executed. Neither a matching `NpcTalkRsp` sequence nor successful server quest acceptance proves the native guide was started or the lock reason released. **Root cause remains unproven.** The next decisive evidence must identify the active guide string/event and correlate an acquired-but-not-released input reason against mask creation. The read-only hash-guarded native trace is prepared on this branch but has not been runtime-tested.
+
 ## Verified client StartGuide preflight gate (before mask creation)
 
 A fresh read of the pinned exact-7.1 disassembly of `MoleMole.GlobalActor.StartGuide(string) @ 0xFE284A0` identifies a concrete **guide-start rejection branch**:
