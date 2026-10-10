@@ -1,3 +1,14 @@
+## Exact 7.1 native pre-mask branching: separate UI compatibility and mask setup
+
+A bounded review of the exact-hash native disassembly/call-graph artifacts adds the following **direct control-flow facts**, without proving any of these methods executed after Amber's talk:
+
+- `EPJNAHIFNCP.SetupView @ 0x89FB050` checks `HOJDOIALMHI.EAEPAEOMOJI(0x1A3D) @ 0x8CEC570` at callsite `0x89FB10A`. When its return value is false, the method invokes `MonoNewbieDialog.SetNewbieMaskIndex(-1) @ 0x9E2C4B0` at `0x89FB124` (subject to a nonnull view at `[rsi+0x220]`). This is a **concrete mask-clearing path**; the meaning of argument `0x1A3D` and its relationship to the Mondstadt task-button guide are **unknown**.
+- `EPJNAHIFNCP.OnNotify @ 0x89FC100` has two distinct branches (callsites `0x89FC1F3/1FB` and `0x89FC284/28C`) that call `EPJNAHIFNCP.DEMHBOJPEPK` followed by `EPJNAHIFNCP.EEBOFEGNDIG` (guide state application and refresh). This confirms an event-driven refresh **path**, not which event name causes the 35601 transition.
+- `EEBOFEGNDIG @ 0x89F9AF0` calls `MonoNewbieDialog.SetNewbieMaskIndex(-1)` at `0x89F9B87`, after checking the dialog at `[rsi+0x220]` and its index field `[dialog+0x140]`. It can clear the visible mask on a different path from `SetupView`.
+- The compulsory-guide UI method `EPJNAHIFNCP.JOAGJNOIHDC @ 0x89F7080` has **separate** calls: `EasyTouch.SetUICompatibily @ 0x6FAB8A0` at `0x89F7625`, and `MonoNewbieMask.set_showCompulory @ 0x1163D740` at `0x89F7693`. The latter receives the result of `currentStage != 3` (comparison at `0x89F7688`). The former is conditional on state `[r13+0x88]` and is invoked with argument 0. Because `EasyTouch` is not a proven Windows movement-lock controller, **do not infer** that it explains the player's inability to move.
+
+**Implication / next gate:** No BlackMask is fully compatible with a client-side branch that chooses mask index -1, but it does **not** establish why the separate `InteractionManager._lockedReasonSet` still suppresses control. Continue by identifying the `SetupView` `0x1A3D` predicate, the actual event dispatched after `QuestListUpdateNotify(35601)`, and which code adds/removes `ELockReason.QUEST_CHECK`. These guide-v1 functions have no established 35601 caller or runtime execution proof. Do not ship an unlock or open-state patch from these findings alone.
+
 ## 2026-10-10: native quest-list receiver and guide pre-mask gate
 
 Two read-only, exact-7.1 sample Actions succeeded: [call edges (38063931980)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38063931980), [RVA disassembly (38064178431)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38064178431).
