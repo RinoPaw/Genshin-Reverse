@@ -1,0 +1,144 @@
+{
+  "status": "STATIC_DIRECT_CALL_EDGES_CONFIRMED__35601_RUNTIME_CAUSE_UNRESOLVED",
+  "sample": {
+    "version": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "source_run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38081439198",
+  "sample_acquisition": "Pinned source verified before static Capstone disassembly; E8 direct call sites scanned across executable sections and validated within metadata method-owner bodies",
+  "cmd2178": {
+    "type": "LIGFLGNNAHP",
+    "type_definition_index": 83525,
+    "registry_slot": "0x57F4150",
+    "verified_slot_refs": [
+      {
+        "rva": "0x72610E5",
+        "owner": "EDKMMIPJHJA.OELFMAPHGKK(uint32)",
+        "role": "C2S sender"
+      },
+      {
+        "rva": "0x7F7F4CC",
+        "owner": "FBGCJGDKLLB..ctor",
+        "role": "registry initialization"
+      },
+      {
+        "rva": "0xE4B9F2C",
+        "owner": "LIGFLGNNAHP.NKFCABIOGLE",
+        "role": "generated member"
+      }
+    ],
+    "writer_tag": "0x78",
+    "protobuf_field": 15,
+    "wire_type": "uint32",
+    "guide_semantics": "UNRESOLVED"
+  },
+  "direct_edges": [
+    {
+      "target": "GlobalActor.StartGuide(string)",
+      "rva": "0xFE284A0",
+      "validated_direct_e8_callers": 1,
+      "caller": {
+        "method": "MoleMoleGlobalActorWrap._m_StartGuide(native_int)",
+        "rva": "0xC70CC30",
+        "call_site": "0xC70CCF5"
+      },
+      "interpretation": "Lua method wrapper is a direct native caller, but no 35601 Lua-script event or actual invocation proven"
+    },
+    {
+      "target": "IJLMKPGOMFD.IOGLEEMLMIF(string)",
+      "rva": "0x758D8C0",
+      "validated_direct_e8_callers": 59,
+      "known_gate_callsite": "0xFE284D4",
+      "gate_early_reject": "StartGuide returns without dispatch when this result's AL is zero"
+    },
+    {
+      "target": "IJLMKPGOMFD.NJCMLBJMBGP(string,string)",
+      "rva": "0x758DBD0",
+      "validated_direct_e8_callers": 28,
+      "known_start_guide_dispatch": "Tail jump from GlobalActor.StartGuide after successful preflight; tail jumps are not counted by E8 caller scan"
+    },
+    {
+      "target": "InteractionManager.LockInter(ELockReason)",
+      "rva": "0xFE508D0",
+      "validated_direct_e8_callers": 0,
+      "interpretation": "This does not rule out indirect/Lua/virtual callers"
+    },
+    {
+      "target": "InteractionManager.UnLockInter(ELockReason)",
+      "rva": "0xFE552F0",
+      "validated_direct_e8_callers": 3,
+      "callers": [
+        {
+          "method": "IBOJCEGJPEM.IFMMKPLAMEL",
+          "site": "0xCB9FDBF",
+          "reason_numeric": 1,
+          "conditional_local_flag_offset": "0x13"
+        },
+        {
+          "method": "IBOJCEGJPEM.HOACAKEFEEN",
+          "site": "0xCBA02FD",
+          "reason_numeric": 1,
+          "conditional_local_flag_offset": "0x13"
+        },
+        {
+          "method": "DDDKDOPHINB.LDOPCEKPOBN",
+          "site": "0x11C9AE63",
+          "reason_numeric": 1
+        }
+      ],
+      "enum_name_for_1": "UNCONFIRMED"
+    },
+    {
+      "target": "MonoNewbieDialog.SetNewbieMaskIndex(int32)",
+      "rva": "0x9E2C4B0",
+      "validated_direct_e8_callers": 4,
+      "callers": [
+        {
+          "method": "IBHNFALKNOP.SetupView",
+          "site": "0x811EF8E"
+        },
+        {
+          "method": "EPJNAHIFNCP.JOAGJNOIHDC",
+          "site": "0x89F714F"
+        },
+        {
+          "method": "EPJNAHIFNCP.EEBOFEGNDIG",
+          "site": "0x89F9B87"
+        },
+        {
+          "method": "EPJNAHIFNCP.SetupView",
+          "site": "0x89FB124"
+        }
+      ],
+      "note": "Known caller paths can pass -1 to clear visible mask; none proved executing for Amber 35601"
+    },
+    {
+      "target": "InteractionManager.FinishCurrTalk(uint32)",
+      "rva": "0xFE57430",
+      "validated_direct_e8_callers": 1,
+      "caller": {
+        "method": "NOCKHJNKGAN.LFEDLNIPOME(BaseInterAction)",
+        "site": "0x130AF2F7"
+      },
+      "note": "NpcTalkRsp native handler tail-jumps into FinishCurrTalk, therefore excluded from count"
+    },
+    {
+      "target": "ActorUtils.QuestCheckCommonTutorial()",
+      "rva": "0x13ACB640",
+      "validated_direct_e8_callers": 0,
+      "interpretation": "No native E8 caller found; scripting/delegate dispatch remains possible"
+    },
+    {
+      "target": "MonoGuideV2ClickTarget.OnPointerClick",
+      "rva": "0x7A577D0",
+      "validated_direct_e8_callers": 0,
+      "interpretation": "Unity UI-event callback is not established as Amber's quest guide"
+    }
+  ],
+  "limits": [
+    "Static native xrefs prove no invocation in user's particular stalled gameplay.",
+    "E8-only scans exclude indirect, tail jmp, virtual, reflection, Lua and Unity event callbacks.",
+    "Absence of visible BlackMask does not prove StartGuide ran, or returned false.",
+    "A definitive cause requires dynamic trace of actual talk-finish, guide-start predicate, mask-index and matching input-lock reason transitions."
+  ]
+}
