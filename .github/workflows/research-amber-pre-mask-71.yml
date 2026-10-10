@@ -50,7 +50,12 @@ jobs:
             --focus newbie_v1_clear_view:0x89F9600 \
             --focus newbie_v2_refresh:0xF57A6C0 \
             --focus newbie_set_mask_index:0x9E2C4B0 \
-            --focus talk_clear_lock_data:0xFE5A960
+            --focus talk_clear_lock_data:0xFE5A960 \
+            --focus ui_touch_compatibility:0x6FAB8A0 \
+            --focus newbie_v1_event_apply:0x89FB1B0 \
+            --focus newbie_v1_step_refresh:0x89F9AF0 \
+            --focus newbie_v1_bind_view:0x89FC8B0 \
+            --focus guide_eligibility_check:0x8CEC570
       - name: Compact native evidence and print callers
         run: |
           python - <<'PY'
