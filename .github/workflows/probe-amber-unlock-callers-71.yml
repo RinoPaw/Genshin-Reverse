@@ -1,0 +1,55 @@
+name: Probe Amber unlock owners (7.1)
+
+on:
+  push:
+    branches:
+      - research/amber-2178-quest-notify-20261010
+    paths:
+      - .github/workflows/probe-amber-unlock-callers-71.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . capstone zstandard
+      - run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Native direct callers of the three unlock owners
+        run: |
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            amber-unlock-owner-71.json \
+            --focus unlock_owner_a:0xCB9FD90 \
+            --focus unlock_owner_b:0xCBA02B0 \
+            --focus unlock_owner_c:0x11C9AD90 \
+            --focus internal_finish:0x90FF4F0 \
+            --focus newbie_mask_controller:0x89F7080 \
+            --focus newbie_mask_setup:0x89FB050 \
+            --focus newbie_mask_index:0x9E2C4B0 \
+            --max-body 0x3000 > /dev/null
+          python - <<'PY'
+          import json
+          x=json.load(open('amber-unlock-owner-71.json'))
+          for label,v in x['focus'].items():
+              print('===', label, 'at', v['requested_rva'])
+              print('OWNER',v['owner']['metadata_rows'][:2])
+              print('CALLER_COUNT',v['validated_direct_caller_count'])
+              for caller in v['direct_callers'][:25]:
+                  print('CALLER',caller['call_site_rva'],caller['caller']['metadata_rows'][:2])
+                  print('CONTEXT',[(i['rva'],i['mnemonic'],i['op_str']) for i in caller['context'] if i['mnemonic'] in ('mov','call','jmp','test','cmp')][-11:])
+              print('DIRECT_CALLEES',[(e['site_rva'],e['target_rva'],e['target_owner']['metadata_rows'][:1] if e['target_owner'] else None) for e in v['direct_edges'] if e['kind']=='call'][:22])
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: amber-unlock-owners-7.1
+          path: amber-unlock-owner-71.json
+          retention-days: 14
+          if-no-files-found: error
