@@ -54,8 +54,7 @@ jobs:
             --focus ui_touch_compatibility:0x6FAB8A0 \
             --focus newbie_v1_event_apply:0x89FB1B0 \
             --focus newbie_v1_step_refresh:0x89F9AF0 \
-            --focus newbie_v1_bind_view:0x89FC8B0 \
-            --focus guide_eligibility_check:0x8CEC570
+            --focus newbie_v1_bind_view:0x89FC8B0
       - name: Compact native evidence and print callers
         run: |
           python - <<'PY'
