@@ -48,7 +48,7 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
-There is currently no topic-specific workflow on the maintained branch.
+The investigation-only `research-amber-pre-mask-71.yml` workflow is owned by the [Amber pre-mask analysis](../versions/7.1.0-global/windows-x64/analyses/amber-pre-mask/README.md) and is **limited to `research/amber-pre-mask-20261010`**. Hosted execution is needed because the exact pinned 7.1 client binary is large and is not committed. It reuses `tools/trace_native_call_edges.py`, retrieves the exact sample through the shared samplefetch script, and uploads a short-lived `amber-pre-mask-guide-callgraph-71` artifact containing checked native call sites and their metadata owners. It has read-only permissions and per-ref stale-run cancellation. **Retire this workflow** as soon as the relevant pre-mask native call chains are reviewed and committed as source-bound evidence, leaving the generic analysis tool in `tools/`.
 
 The former QuestExcel table-assets probe reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
 
