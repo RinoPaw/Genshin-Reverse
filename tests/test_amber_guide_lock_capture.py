@@ -37,6 +37,15 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
                           "writeS32(", "NativeFunction("):
             self.assertNotIn(forbidden, js)
 
+    def test_pre_mask_guide_rejection_is_logged_without_overriding_result(self) -> None:
+        js = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("name: 'guide_start_predicate'", js)
+        self.assertIn("name: 'guide_start_dispatch'", js)
+        self.assertIn("event: 'guide_start_predicate_result'", js)
+        self.assertIn("accepted: result === null ? null : (result & 0xff) !== 0", js)
+        self.assertIn("onLeave(retval)", js)
+        self.assertNotIn("retval.replace(", js)
+
     def test_probe_does_not_capture_packet_payloads(self) -> None:
         js = SCRIPT.read_text(encoding="utf-8")
         self.assertNotIn("frame_hex", js)
