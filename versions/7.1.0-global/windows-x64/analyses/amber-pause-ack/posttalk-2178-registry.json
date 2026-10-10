@@ -1,6 +1,6 @@
 {
   "topic": "amber-guide-posttalk-c2s-2178",
-  "status": "REGISTRY_AND_MEMBER_TYPE_CONFIRMED__PROTO_FIELD_AND_SEMANTICS_UNRESOLVED",
+  "status": "REGISTRY_WIRE_AND_NATIVE_C2S_SENDER_CONFIRMED__TUTORIAL_SEMANTICS_UNRESOLVED",
   "sample": {
     "version": "7.1.0-global/windows-x64",
     "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
@@ -87,14 +87,41 @@
     }
   ],
   "limitations": [
-    "Neither capture decoded the 2178 payload; uint32 field number and value have not been measured.",
-    "Registry/metadata alone do not identify client sender or UI/tutorial meaning.",
     "Temporal proximity after NPC talk is not proof that the message completes or starts the mandatory quest-button tutorial.",
-    "Do not assign a guessed semantic name, server handler, or response to CmdId 2178."
+    "Do not assign a guessed semantic name, server handler, or response to CmdId 2178.",
+    "Exact native protobuf field 15 is confirmed, but the runtime numeric value and quest tutorial semantics remain unknown.",
+    "Native sender is confirmed; lack of direct E8 callers prevents establishing the initiating UI/guide action."
   ],
   "next_checks": [
-    "Disassemble LIGFLGNNAHP.IENGFLPCLNM @ 0xE4BA010 to identify actual uint32 protobuf wire tag.",
-    "Find native constructor/sender references for registry type slot 0x57F4150 and follow callers into quest/tutorial UI code.",
-    "Compare the runtime uint32 field/value at 35601 handoff against a successful tutorial and reconnect."
+    "Trace indirect or delegate callers of EDKMMIPJHJA.OELFMAPHGKK @ 0x72610D0.",
+    "Compare the decoded CmdId 2178 field-15 runtime value against the tutorial transition and reconnect.",
+    "Verify client-visible 35603 quest payload before changing tutorial OpenState semantics."
+  ],
+  "wire": {
+    "field_number": 15,
+    "field_type": "uint32",
+    "wire_type": 0,
+    "protobuf_tag_hex": "0x78",
+    "native_writer": "LIGFLGNNAHP.IENGFLPCLNM",
+    "writer_rva": "0xE4BA010",
+    "evidence": "Pinned 7.1 writer 0xE4BA06E writes 0x78; 0xE4BA073 loads uint32 at +0x18, then 0xE4BA08C calls varint writer."
+  },
+  "native_sender": {
+    "class": "EDKMMIPJHJA",
+    "method": "OELFMAPHGKK",
+    "argument_type": "uint32",
+    "rva": "0x72610D0",
+    "type_slot_read_rva": "0x72610E5",
+    "type_slot_rva": "0x57F4150",
+    "message_uint32_store_rva": "0x7261105",
+    "message_uint32_offset": "0x18",
+    "generic_send_jump_rva": "0x7261118",
+    "generic_send_target_rva": "0x7246860",
+    "validated_direct_E8_callers": 0,
+    "limitation": "Direct E8 caller scan found none; possible indirect/delegate/virtual route is unresolved."
+  },
+  "source_runs": [
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38059233096",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38059371917"
   ]
 }
