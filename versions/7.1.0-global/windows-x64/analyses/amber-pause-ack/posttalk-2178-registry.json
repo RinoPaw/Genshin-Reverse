@@ -1,0 +1,100 @@
+{
+  "topic": "amber-guide-posttalk-c2s-2178",
+  "status": "REGISTRY_AND_MEMBER_TYPE_CONFIRMED__PROTO_FIELD_AND_SEMANTICS_UNRESOLVED",
+  "sample": {
+    "version": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "registry": {
+    "source": "registry/registry.csv",
+    "index": 516,
+    "cmd_id": 2178,
+    "type_name": "LIGFLGNNAHP",
+    "type_definition_index": 83525,
+    "direction": "unresolved in static registry; C2S observed in AstaPS decrypted gameplay trace",
+    "type_slot_rva": "0x57F4150",
+    "get_cmd_id_rva": "0xE4BA1E0",
+    "registry_slot_load_rva": "0x7F7F4CC",
+    "registry_slot_store_rva": "0x7F7F4D3",
+    "status": "static-verified-identity"
+  },
+  "metadata": {
+    "type_source": "metadata/types.csv",
+    "fields_source": "metadata/fields.csv",
+    "methods_source": "metadata/methods.csv",
+    "type_definition_index": 83525,
+    "field_start": 414632,
+    "field_count": 1,
+    "member": {
+      "field_index": 414632,
+      "name": "HLHCLCHFIDK",
+      "type": "uint32",
+      "field_type_index": 439246
+    },
+    "method_start": 691042,
+    "method_count": 8,
+    "related_methods": [
+      {
+        "index": 691043,
+        "name": "CopyFrom",
+        "rva": "0xE4B9EC0"
+      },
+      {
+        "index": 691044,
+        "name": "NKFCABIOGLE",
+        "rva": "0xE4B9F20"
+      },
+      {
+        "index": 691045,
+        "name": "KCLBBFDAMDF",
+        "rva": "0xE4BA000"
+      },
+      {
+        "index": 691046,
+        "name": "IENGFLPCLNM",
+        "rva": "0xE4BA010",
+        "role": "candidate generated protobuf writer; wire tag not disassembled"
+      },
+      {
+        "index": 691047,
+        "name": "EBAAKGIEFHO",
+        "rva": "0xE4BA130"
+      },
+      {
+        "index": 691048,
+        "name": "AEGNNPENLNM",
+        "rva": "0xE4BA1E0",
+        "role": "GetCmdId from registry"
+      },
+      {
+        "index": 691049,
+        "name": "HKFIBILBMDF",
+        "rva": "0xE4B9F00"
+      }
+    ]
+  },
+  "gameplay_observations": [
+    {
+      "source": "AstaPS post-Amber 35601 server trace 2026-10-10 21:06 UTC+8",
+      "direction": "C2S",
+      "relative_ms": 99
+    },
+    {
+      "source": "AstaPS post-Amber 35601 server trace 2026-10-10 21:45:37 UTC+8 UID 70631",
+      "direction": "C2S",
+      "relative_ms": 32
+    }
+  ],
+  "limitations": [
+    "Neither capture decoded the 2178 payload; uint32 field number and value have not been measured.",
+    "Registry/metadata alone do not identify client sender or UI/tutorial meaning.",
+    "Temporal proximity after NPC talk is not proof that the message completes or starts the mandatory quest-button tutorial.",
+    "Do not assign a guessed semantic name, server handler, or response to CmdId 2178."
+  ],
+  "next_checks": [
+    "Disassemble LIGFLGNNAHP.IENGFLPCLNM @ 0xE4BA010 to identify actual uint32 protobuf wire tag.",
+    "Find native constructor/sender references for registry type slot 0x57F4150 and follow callers into quest/tutorial UI code.",
+    "Compare the runtime uint32 field/value at 35601 handoff against a successful tutorial and reconnect."
+  ]
+}
