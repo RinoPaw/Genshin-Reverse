@@ -1,3 +1,23 @@
+## 2026-10-11 pinned guide/input acquisition call-edge scan
+
+[Exact Global 7.1 client run 38081523403](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38081523403) completed successfully. The tool uses the pinned SHA-256 executable and the existing `tools/trace_native_call_edges.py` direct-E8 call scanner. Findings, with their **direct-call-only** evidence boundary:
+
+| Native entry | Validated E8 callers | Relevant owner |
+| --- | ---: | --- |
+| `InteractionManager.LockInter @0xFE508D0` | 0 | acquisition likely indirect/virtual/script; not disproved |
+| `InteractionManager.UnLockInter @0xFE552F0` | 3 | `IBOJCEGJPEM.IFMMKPLAMEL @0xCB9FDBF`, `IBOJCEGJPEM.HOACAKEFEEN @0xCBA02FD`, `DDDKDOPHINB.LDOPCEKPOBN @0x11C9AE63` |
+| `InteractionManager.FinishCurrTalk @0xFE57430` | 1 | `NOCKHJNKGAN.LFEDLNIPOME @0x130AF2F7`; known NpcTalkRsp native receiver *tail-jumps* rather than E8 calls |
+| `InteractionManager.ClearAfterInteractionFinish @0xFE3D630` | 0 | no direct E8 caller found |
+| `GlobalActor.StartGuide @0xFE284A0` | 1 | **`MoleMoleGlobalActorWrap._m_StartGuide @0xC70CCF5` (XLua/C# bridge)** |
+| `IJLMKPGOMFD.IOGLEEMLMIF @0x758D8C0` (guide preflight) | 59 | broadly reused predicate; no 35601 caller proven |
+| `IJLMKPGOMFD.NJCMLBJMBGP @0x758DBD0` (guide dispatch) | 28 | dispatch shared across UI; `StartGuide` uses a tail jump, not E8 |
+| `HBBDJPCGCAH.GCLIDIPCOEH @0xA5CE790` (quest-list receiver) | 4 | protocol-dispatch class, not linked directly to guide |
+| `EPJNAHIFNCP.SetupView @0x89FB050` | 0 | likely UI lifecycle/delegate dispatch; not proven |
+
+**New specific insight:** The only validated native E8 caller of `GlobalActor.StartGuide` is its generated XLua wrapper. A quest-actor Lua call would cross this wrapper, so expecting a C++ direct-call graph from the quest-list receiver to `StartGuide` is an ineffective causal gate. The missing source is the exact `Actor/Quest/AQ356` client script/action dispatch or runtime event trace. The current AstaPS resource only contains `Scripts/Quest/Share/Q356ShareConfig.lua`, not the complete client actor. This does not imply every 35601 tutorial necessarily uses `GlobalActor.StartGuide`.
+
+A **client runtime** capture from before the dialogue is the remaining discriminating test: correlate `FinishCurrTalk(35601)`, `LockInter/UnLockInter` reasons, `StartGuide` guide name/predicate, quest-list receiver and mask-index events. No native hook has been gameplay-tested, so the root cause is not established, and there is **no justified AstaPS gameplay fix yet**. Do not enable guessed OpenStates, fabricate `ShowClientGuideNotify`, or force-release lock reasons.
+
 ## 2026-10-11 static cross-check: mask predicate constant 6717 is not an Amber guide identity
 
 A source review of the pinned [native disassembly run 38064178431](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38064178431) confirms the exact `EPJNAHIFNCP.SetupView @ 0x89FB050` operand `0x1A3D` (decimal **6717**) passed to `HOJDOIALMHI.EAEPAEOMOJI`. The **7.1 resource's** `ExcelBinOutput/OpenStateConfigData.json` has an `id: 6717` row with `allowClientOpen: true`; this numeric match does **not** establish that the helper is an OpenState getter, or which named `OPEN_STATE_*` enumerator corresponds to it. No runtime evidence ties this V1 UI controller to quest 35601. Do not label this the Amber guide ID or force-enable state 6717.
