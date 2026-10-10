@@ -28,10 +28,10 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         for rva in (
             "0xA5E18C0", "0xFE57430", "0xFE508D0", "0xFE552F0",
             "0xFE284A0", "0xFE28170", "0x9E2C4B0", "0x1163D740",
-            "0xA5CE790", "0x89FB050",
+            "0xA5CE790", "0x89FB050", "0x758D8C0", "0x758DBD0",
         ):
             self.assertIn(rva, js)
-        self.assertEqual(12, js.count("{ name: '"))
+        self.assertEqual(14, js.count("{ name: '"))
         self.assertIn("Interceptor.attach(", js)
         for forbidden in ("Memory.write", "writePointer(", "writeU8(",
                           "writeS32(", "NativeFunction("):
