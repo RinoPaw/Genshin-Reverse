@@ -80,6 +80,21 @@ class AmberPauseEvidenceTests(unittest.TestCase):
             self.assertFalse(candidate["success_direct_pause_state_write"])
             self.assertEqual("int3", candidate["instructions"][-1]["mnemonic"])
 
+    def test_native_talk_callback_uses_field_seven_without_causal_promotion(self) -> None:
+        data = load("posttalk-response-callback-71.json")
+        self.assertEqual(PROFILE_71.exe_sha256, data["sample"]["exe_sha256"])
+        talk = data["npcTalkRsp"]
+        self.assertEqual(3514, talk["cmd_id"])
+        self.assertEqual(7, talk["native_reader"]["talk_id_field"])
+        self.assertEqual("0x24", talk["native_reader"]["talk_id_object_offset"])
+        self.assertEqual("InteractionManager.FinishCurrTalk(uint32)", talk["receiver"]["target_method"])
+        self.assertEqual("0xFE57430", talk["receiver"]["target_rva"])
+        self.assertEqual(3992, data["questDestroyNpcRsp"]["cmd_id"])
+        self.assertEqual("NATIVE_CALLBACK_CONFIRMED_TRANSPORT_SEQUENCE_UNRESOLVED", data["status"])
+        claims = {x["id"]: x["status"] for x in load("evidence.json")["claims"]}
+        self.assertEqual("CONFIRMED", claims["npc-talk-native-finishcurrtalk-callback"])
+        self.assertEqual("UNRESOLVED", claims["talk-response-client-sequence-causal-relation"])
+
     def test_talk_response_native_wire_tags_match_7_1_descriptor(self) -> None:
         data = load("posttalk-response-wire-crosscheck.json")
         self.assertEqual(PROFILE_71.exe_sha256, data["sample"]["exe_sha256"])

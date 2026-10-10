@@ -1,0 +1,80 @@
+{
+  "topic": "amber-npc-talk-response-callback",
+  "status": "NATIVE_CALLBACK_CONFIRMED_TRANSPORT_SEQUENCE_UNRESOLVED",
+  "sample": {
+    "version": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "runs": [
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052277064",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052359762",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052537265",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052442050"
+  ],
+  "npcTalkRsp": {
+    "cmd_id": 3514,
+    "client_type": "IMLLBMOMMEH",
+    "native_reader": {
+      "method": "IMLLBMOMMEH.NLGBJEEJDLG",
+      "rva": "0x11E83970",
+      "talk_id_field": 7,
+      "talk_id_wire_tag": "0x38",
+      "talk_id_object_offset": "0x24",
+      "talk_id_store_rva": "0x11E839D4"
+    },
+    "receiver": {
+      "method": "HBBDJPCGCAH.JCIMEKEEFOH(IMLLBMOMMEH)",
+      "rva": "0xA5E18C0",
+      "loads_talk_id_from": "[message+0x24]",
+      "load_rva": "0xA5E18D8",
+      "target_method": "InteractionManager.FinishCurrTalk(uint32)",
+      "target_rva": "0xFE57430",
+      "tail_jmp_rva": "0xA5E18FF"
+    },
+    "next_method": {
+      "method": "InteractionManager.FinishCurrTalk(uint32)",
+      "rva": "0xFE57430",
+      "argument_register": "edx",
+      "argument_evidence": "source at receiver+0x24; client message field 7",
+      "early_comparison": "At 0xFE57471 compares current interaction object's [rcx+0x2C] against input talk id; other branches may finish elsewhere"
+    },
+    "server": {
+      "body": "PacketNpcTalkRsp",
+      "field7": "cur_talk_id=35601",
+      "original_header": "empty (no clientSequenceId echo)",
+      "candidate_branch": "RinoPaw/AstaPS:fix/amber-talk-rpc-sequence-71"
+    }
+  },
+  "questDestroyNpcRsp": {
+    "cmd_id": 3992,
+    "client_type": "GIIDCEHBDFH",
+    "receiver": {
+      "method": "HBBDJPCGCAH.HGDBBLBCPMH(GIIDCEHBDFH)",
+      "rva": "0xA5E1D30",
+      "behavior": "When argument non-null, native fast path returns at 0xA5E1D49; no direct FinishCurrTalk call",
+      "caveat": "Dispatch callback or other generic mechanisms outside the method are not excluded"
+    },
+    "server": {
+      "body": "PacketQuestDestroyNpcRsp",
+      "original_header": "new server-generated sequence in GameSession.send()",
+      "candidate_branch": "RinoPaw/AstaPS:fix/amber-talk-rpc-sequence-71"
+    }
+  },
+  "known_comparison": {
+    "client_other": "GetPlayerSocialDetailRsp",
+    "server_fix": "AstaPS HandlerGetPlayerSocialDetailReq manually echoes PacketHead.clientSequenceId and documents client dropping mismatch",
+    "scope": "This confirms sequence requirement for that particular RPC, not necessarily NpcTalkRsp"
+  },
+  "unresolved": [
+    "Whether NpcTalkRsp receiver dispatch uses clientSequenceId for callback correlation or is opcode-only",
+    "Whether FinishCurrTalk(35601) executes in the stuck session",
+    "Exact client C2S 27447 bool value in the older stuck trace",
+    "Cause of interaction state lingering despite quest completion"
+  ],
+  "do_not_infer": [
+    "QuestDestroyNpcRsp is sufficient to unfreeze controls",
+    "Successful response dispatch requires request sequence in every 7.1 packet",
+    "Retcode field5 should be set to the talkId; native handler reads field7, which AstaPS already supplies"
+  ]
+}

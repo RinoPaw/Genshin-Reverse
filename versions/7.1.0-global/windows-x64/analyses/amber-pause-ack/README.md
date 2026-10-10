@@ -60,6 +60,16 @@ Current Global 7.1 native receivers now also verify that the existing server pro
 
 Wire tag equality excludes these two **field-number mismatch hypotheses**, not invalid values, response-header correlation, or client callback timing. The 45-second stuck window shows two `QuestDestroyNpcReq` and two corresponding response send events, but logs contain no second-request timestamp or bodies, so retransmission is not established. [Native and descriptor cross-check](posttalk-response-wire-crosscheck.json) and [hosted 7.1 parser disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38051410917) preserve these results.
 
+## Exact-client response callback (2026-10-10)
+
+Further pinned 7.1 native disassembly shows that `NpcTalkRsp(3514)` has a direct handoff to the interaction-ending method. The native message reader `IMLLBMOMMEH.NLGBJEEJDLG @ 0x11E83970` stores protobuf **field 7 (tag 0x38)** to object offset `+0x24`. The response handler `HBBDJPCGCAH.JCIMEKEEFOH @ 0xA5E18C0` loads `[response+0x24]` and tail-calls `InteractionManager.FinishCurrTalk(uint32) @ 0xFE57430`. The generated AstaPS `NpcTalkRsp.cur_talk_id` is already field **7** and is populated with `35601`; **do not** overwrite `retcode` (field 5) with a talk ID.
+
+`QuestDestroyNpcRsp(3992)` is handled by `HBBDJPCGCAH.HGDBBLBCPMH @ 0xA5E1D30`, whose ordinary path returns when given a non-null response, without directly calling `FinishCurrTalk`. The native callback path therefore prioritizes `NpcTalkRsp`, not `QuestDestroyNpcRsp`, as the immediate talk-ending message.
+
+The AstaPS header audit found no echoed request sequence in `NpcTalkRsp` and a newly generated **server** sequence in `QuestDestroyNpcRsp`. An independent `GetPlayerSocialDetailRsp` fix documents a real 7.1 client sequence-matching requirement for **that** RPC. Whether `NpcTalkRsp` requires sequence matching for its dispatch is still unproven: its native receiver might be registered by opcode only. The isolated [candidate branch](https://github.com/RinoPaw/AstaPS/tree/fix/amber-talk-rpc-sequence-71) sends both responses with the incoming `clientSequenceId` without changing payloads. [CI proof](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052210813) covers JAR, focused tests and non-integration suite, **not** a client playback.
+
+Evidence: [client response callback mapping](posttalk-response-callback-71.json), [native handler disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052537265), [native response-type uses](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38052277064). The complete stuck-vs-reconnect trace is preserved separately. Causal recovery remains unverified.
+
 ## Server descriptor cross-check and conditional field-4 candidates
 
 The 7.1 AstaPS `protocol/7.1/protocol.desc` (SHA-256 `dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5`) was parsed in [workflow run 37967149153](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967149153). The [cross-check artifact](astaps-descriptor-crosscheck.json) preserves each field:

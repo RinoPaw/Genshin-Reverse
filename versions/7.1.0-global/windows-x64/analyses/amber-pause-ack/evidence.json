@@ -205,6 +205,30 @@
           "locator": "limitations"
         }
       ]
+    },
+    {
+      "id": "npc-talk-native-finishcurrtalk-callback",
+      "status": "CONFIRMED",
+      "statement": "Native 7.1 NpcTalkRsp field 7 is stored at object+0x24, read by HBBDJPCGCAH.JCIMEKEEFOH and passed to InteractionManager.FinishCurrTalk(uint32) at 0xFE57430. AstaPS currently populates field 7 with cur_talk_id.",
+      "evidence": [
+        {
+          "kind": "native-7.1-handler-and-protobuf-reader",
+          "source": "posttalk-response-callback-71.json",
+          "locator": "npcTalkRsp"
+        }
+      ]
+    },
+    {
+      "id": "talk-response-client-sequence-causal-relation",
+      "status": "UNRESOLVED",
+      "statement": "AstaPS originally omitted the NpcTalkRsp request sequence and generated a new QuestDestroyNpcRsp sequence; whether these two client response handlers require request sequence correlation is not yet established. A CI-tested candidate echoes the incoming sequence.",
+      "evidence": [
+        {
+          "kind": "server-source-and-native-analysis",
+          "source": "posttalk-response-callback-71.json",
+          "locator": "known_comparison + unresolved"
+        }
+      ]
     }
   ],
   "rejected_paths": [
@@ -228,7 +252,8 @@
     "native-probe.json",
     "client-pause-field-xrefs.json",
     "posttalk-interaction-27447.json",
-    "posttalk-response-wire-crosscheck.json"
+    "posttalk-response-wire-crosscheck.json",
+    "posttalk-response-callback-71.json"
   ],
   "next_steps": [
     "Prioritize native client InteractionManager cleanup/callback path over guessed PlayerSetPauseRsp; verify QuestDestroyNpcRsp response header/payload only if a bounded capture identifies it as a blocking dependency.",
