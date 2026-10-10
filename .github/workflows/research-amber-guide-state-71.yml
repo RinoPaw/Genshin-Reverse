@@ -36,7 +36,14 @@ jobs:
             --focus "MonoNewbieMask.Reset:0x1163D8A0" \
             --focus "MonoNewbieDialog.SetNewbieMaskIndex:0x9E2C4B0" \
             --focus "MonoNewbieDialog.Reset:0x9E2BC20" \
-            --focus "MonoGuideV2ClickTarget.OnPointerClick:0x7A577D0"
+            --focus "MonoGuideV2ClickTarget.OnPointerClick:0x7A577D0" \
+            --focus "EPJNAHIFNCP.OnDisconnect:0x89FAFA0" \
+            --focus "EPJNAHIFNCP.ClearView:0x89F9600" \
+            --focus "EPJNAHIFNCP.OnNotify:0x89FC100" \
+            --focus "EPJNAHIFNCP.BindViewCallbacks:0x89FC8B0" \
+            --focus "EPJNAHIFNCP.JOAGJNOIHDC:0x89F7080" \
+            --focus "IBHNFALKNOP.HandleInputActionEvent:0x811F5A0" \
+            --focus "OEGGKJOHMOP.MaskInteraction:0xCB9BD70"
       - name: Preserve evidence
         if: always()
         uses: actions/upload-artifact@v7
