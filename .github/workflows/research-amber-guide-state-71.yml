@@ -1,0 +1,47 @@
+name: Research Amber Guide Native Callers 7.1
+
+on:
+  push:
+    branches:
+      - research/amber-2178-quest-notify-20261010
+    paths:
+      - .github/workflows/research-amber-guide-state-71.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace-guide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install focused dependencies
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch and verify pinned 7.1 Global sample
+        run: |
+          bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+          echo "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d  inputs/7.1.0-global/GenshinImpact.exe" | sha256sum -c -
+      - name: Trace targeted native call edges
+        run: |
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            amber-guide-native-call-edges.json \
+            --focus "MonoNewbieMask.set_showCompulory:0x1163D740" \
+            --focus "MonoNewbieMask.Reset:0x1163D8A0" \
+            --focus "MonoNewbieDialog.SetNewbieMaskIndex:0x9E2C4B0" \
+            --focus "MonoNewbieDialog.Reset:0x9E2BC20" \
+            --focus "MonoGuideV2ClickTarget.OnPointerClick:0x7A577D0"
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: amber-guide-native-7.1
+          path: amber-guide-native-call-edges.json
+          if-no-files-found: warn
+          retention-days: 7
