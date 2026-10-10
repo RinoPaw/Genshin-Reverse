@@ -1,0 +1,62 @@
+name: Probe Amber interaction locks (7.1)
+
+on:
+  push:
+    branches:
+      - research/amber-2178-quest-notify-20261010
+    paths:
+      - .github/workflows/probe-amber-lock-71.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install targeted native tools
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch hash-pinned Global 7.1 native sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Trace input-lock and talk-finish paths
+        run: |
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            amber-lock-7.1.json \
+            --focus LockInter:0xFE508D0 \
+            --focus UnLockInter:0xFE552F0 \
+            --focus IsLocked:0xFE5F5B0 \
+            --focus FinishCurrTalk:0xFE57430 \
+            --focus OnCreateTalkFinish:0xFE33B70 \
+            --focus ClearAfterKeyListFinish:0xFE5FE80 \
+            --focus ClearOnDisconnect:0xFE50930 \
+            --focus QuestGuideClick:0x7A577D0 \
+            --max-body 0x4000 > amber-lock-trace.log
+          python - <<'PY'
+          import json
+          d=json.load(open('amber-lock-7.1.json', encoding='utf-8'))
+          for label, entry in d['focus'].items():
+              print('===',label,'===')
+              print('owner',entry['owner']['metadata_rows'][:2])
+              print('direct_callers',entry['validated_direct_caller_count'])
+              for caller in entry['direct_callers']:
+                  owner = caller['caller']['metadata_rows']
+                  print(' ', caller['call_site_rva'], owner[:1])
+                  print('  context', [(x['rva'],x['mnemonic'],x['op_str']) for x in caller['context'] if x['mnemonic'] in ('mov','xor','call','jmp','test','cmp')][-15:])
+              print('direct callees:', [(e['site_rva'],e['target_rva'],e['target_owner']['metadata_rows'][:1] if e['target_owner'] else None) for e in entry['direct_edges'] if e['kind']=='call'][:30])
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: amber-interaction-lock-native-71
+          path: |
+            amber-lock-7.1.json
+            amber-lock-trace.log
+          retention-days: 14
+          if-no-files-found: error
