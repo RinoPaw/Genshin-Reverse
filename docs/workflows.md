@@ -55,7 +55,7 @@ The former QuestExcel table-assets probe reached its retirement condition after 
 New topic-specific workflows must follow `docs/governance.md`: one concrete owner, a stated hosted-orchestration need, a named output and an explicit retirement condition.
 
 
-Temporary branch-only workflows: `probe-amber-guide-71.yml` performs a pinned 7.1 Amber UI and packet probe; `research-amber-lock-chain-71.yml` traces guide and lock call edges. Both are read-only research helpers and will be retired after their evidence is committed under the Amber analysis directory.
+Temporary branch-only workflow: `probe-amber-guide-71.yml` is owned by Genshin-Reverse issue #23. It uses hosted access to the hash-pinned 7.1 executable for a bounded Amber guide/packet sender scan, preserving the result as the `amber-71-guide-static-evidence` artifact. It will be retired after the relevant native findings are recorded under `versions/7.1.0-global/windows-x64/analyses/amber-pause-ack/`. The completed `research-amber-lock-chain-71.yml` workflow was retired after its successful direct-call scan (Actions run 38081523403), whose evidence is in `newbie-guide-ui-evidence.md`. Neither temporary workflow belongs on `main`.
 
 ## Retirement rule
 
