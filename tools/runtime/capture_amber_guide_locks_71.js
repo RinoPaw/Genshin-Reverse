@@ -10,6 +10,8 @@ const HOOKS = [
     { name: 'lock_inter', rva: 0xFE508D0, param: 'reason' },
     { name: 'unlock_inter', rva: 0xFE552F0, param: 'reason' },
     { name: 'start_guide', rva: 0xFE284A0, param: 'guide_name' },
+    { name: 'guide_start_predicate', rva: 0x758D8C0, param: 'guide_name', result: 'bool' },
+    { name: 'guide_start_dispatch', rva: 0x758DBD0, param: 'guide_name' },
     { name: 'end_guide', rva: 0xFE28170, param: 'guide_name' },
     { name: 'set_newbie_mask_index', rva: 0x9E2C4B0, param: 'mask_index' },
     { name: 'set_newbie_mask_compulsory', rva: 0x1163D740, param: 'compulsory' },
@@ -63,8 +65,23 @@ for (const hook of HOOKS) {
             if (hook.param === 'reason') event.reason = safeInt(args[1]);
             if (hook.param === 'mask_index') event.mask_index = safeInt(args[1]);
             if (hook.param === 'compulsory') event.compulsory = safeInt(args[1]) !== 0;
-            if (hook.param === 'guide_name') event.guide_name = safeGuideName(args[1]);
-            emit(event);
+            if (hook.param === 'guide_name') {
+                event.guide_name = safeGuideName(args[1]);
+                if (hook.result === 'bool') this.guideName = event.guide_name;
+            }
+            if (hook.result !== 'bool') emit(event);
+        },
+        onLeave(retval) {
+            if (hook.result !== 'bool') return;
+            // Native StartGuide tests AL after this call. A false predicate must
+            // return before the downstream guide-start dispatch can run.
+            const result = safeInt(retval);
+            emit({
+                event: 'guide_start_predicate_result',
+                rva: '0x' + hook.rva.toString(16).toUpperCase(),
+                guide_name: this.guideName ?? null,
+                accepted: result === null ? null : (result & 0xff) !== 0,
+            });
         },
     });
 }
