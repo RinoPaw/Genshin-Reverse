@@ -44,6 +44,18 @@ The pinned 7.1 workflow [run 38065483298](https://github.com/RinoPaw/Genshin-Rev
 
 **Next evidence gate:** Determine which guide context is triggered by the `35601 FINISHED → 35603 UNFINISHED` transition and locate the *effective player input-disable transition*, then establish its execution order relative to the newbie view's `SetupView`/mask activation. Only the same guide instance/transition can explain the missing blackmask. Do not modify the server on these xrefs alone.
 
+## 2026-10-10: Verified ordering inside candidate V1 compulsory guide state
+
+The expanded [run 38065838364](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38065838364) succeeded (CI for commit `9c92de6e` also [passed](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38065838320)). It confirms the `EasyTouch.SetUICompatibily @0x6FAB8A0` native routine has **one validated direct E8 caller** in the scanned executable: `EPJNAHIFNCP.JOAGJNOIHDC @ 0x89F7625`. This setter gets the EasyTouch singleton and stores its bool parameter into object byte offset `+0x82` at `0x6FAB8E2`; the true meaning of that flag and all indirect callers have not been established.
+
+The caller executes `xor ecx,ecx` at `0x89F7623`, then `call EasyTouch.SetUICompatibily` at `0x89F7625`. On that branch the client therefore **writes false to its EasyTouch compatibility flag**. This call is conditional on a nonzero flag at candidate controller state `[r13+0x88]` and a global initialized-state check; it is not necessarily executed on every newbie guide.
+
+**Proven instruction order in this one routine:** the EasyTouch setter call at `0x89F7625` precedes `MonoNewbieMask.set_showCompulory` at `0x89F7693`. The latter receives `[r13+0x74] != 3` (`cmp ... 3; setne dl`), so **state 3 explicitly passes false to the compulsory-mask setting**. Therefore the machine code admits a path where the compatibility flag is set false and compulsory-mask visibility is set false afterward—*a useful mechanism to investigate in light of the reported missing blackmask*. It is **not evidence that Amber 35601 takes this branch, or that this flag alone freezes player controls**.
+
+Also recovered: `EPJNAHIFNCP.OnNotify @0x89FC100` directly calls the controller's event transition method `DEMHBOJPEPK @0x89FB1B0` and mask-step refresh `EEBOFEGNDIG @0x89F9AF0`; the latter invokes `MonoNewbieDialog.SetNewbieMaskIndex` at `0x89F9B87`. The other attempted focus `0x8CEC570` has **5,569 direct callers** and is a broad utility, so the workflow label `guide_eligibility_check` is misleading and **must not be promoted as guide-specific evidence**.
+
+**Next critical target:** identify which notifications/actions select `[r13+0x74] == 3` and `[r13+0x88] != 0`, and whether Amber's `35601` handoff invokes this candidate guide controller at all. Until that source link is proven, no AstaPS gameplay patch or client test is justified.
+
 ## Next causal gates
 
 1. Trace `FinishCurrTalk` -> direct callers/callees, and the candidate tutorial UI controller constructors/notifications.
