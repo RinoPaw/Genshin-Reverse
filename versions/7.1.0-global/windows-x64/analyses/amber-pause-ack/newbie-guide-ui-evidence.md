@@ -57,3 +57,16 @@ python tools/trace_native_call_edges.py \
 The tracer only proves validated *direct E8* call sites, and does not resolve virtual dispatch, delegates, UI event bindings, Lua callbacks or indirect jumps. Inspect relevant method bodies and call-site state checks before promoting any claims.
 
 **Promote only when established:** (a) which method turns on movement/input suppression after 35601, (b) which predicate leaves it enabled, (c) whether the newbie UI setup was skipped or failed, (d) what original state transition releases it, and (e) why reconnect resets it. Do not force-complete quests, enable all OpenStates, suppress tutorials globally, or invent missing guide opcodes.
+
+## 2026-10-10 quest 35601 guide-entry source cross-check
+
+Further source audit confirms the *no visible BlackMask* distinction and narrows—but does not settle—the tutorial-entry side:
+
+- The 7.1 native metadata directly exposes `MoleMole.GlobalActor.StartGuide(string) @ 0xFE284A0` and `EndGuide(string) @ 0xFE28170` (typeDefinition 60967, method indices 490695/490692). These are possible Lua/script-mediated guide entry points; **no caller or relation to 35601 has been established**. Do not assume they are invoked at this handoff without native call-site or Lua-script evidence.
+- In `RinoPaw/AstaPS-Resource/BinOutput/Quest/356.json`, subquest `35601` has `QUEST_CONTENT_COMPLETE_TALK(35601)` and **no `finishExec`**. The next steps are hidden `35602` (trigger 1126) and visible `35603` (location guide `Q356Ambor4`). The location guide is a quest objective marker, not the mandatory quest-button newbie overlay.
+- `Scripts/Quest/Share/Q356ShareConfig.lua` lists subquests and NPC/position spawn data but does not call a guide API. This does **not** exclude client-side `Actor/Quest/AQ356` script activity: the Quest JSON points to that `luaPath`, and the shared config is not the full actor script.
+- `GuideTriggerExcelConfigData.json` contains 171 guide-trigger rows, including later quest-hub/focus and OpenState-driven guides, but no entry identified as the specific 35601 quest-button compulsory mask. A negative name search is not evidence that the tutorial does not exist.
+- Server `GameQuest.finish()` sends the 35601 quest-list update and applies any configured finish exec (none for this subquest). The server's `PacketShowClientGuideNotify` has unresolved opcode 0 in the exact 7.1 mapping, but this fact alone does not establish the packet is required for this transition.
+
+**Next concrete evidence gate:** Recover the exact native call graph around `GlobalActor.StartGuide`, `MonoNewbieDialog.SetNewbieMaskIndex`, the guide controller `EPJNAHIFNCP.JOAGJNOIHDC`, and the `InteractionManager` lock-reason transitions; establish which component is supposed to run after the 35601 quest-list update and whether its inputs/conditions are satisfied. The absence of BlackMask makes the **entry/init path** the primary target. Keep quest visibility, OpenState changes and C2S 2178 as supporting probes only.
+
