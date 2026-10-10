@@ -1,0 +1,44 @@
+{
+  "target": "7.1 Global Windows x64",
+  "status": "CANDIDATE",
+  "source": "metadata/fields.csv typeDefinition 14478, first field index 69904 None",
+  "assumption": "sequential enum numeric values from None=0; numeric defaults not independently verified",
+  "events": [
+    {
+      "id": 489,
+      "name": "UIContextOpen",
+      "fieldIndex": 70393
+    },
+    {
+      "id": 490,
+      "name": "UIContextClose",
+      "fieldIndex": 70394
+    },
+    {
+      "id": 498,
+      "name": "RefreshGuide",
+      "fieldIndex": 70402
+    },
+    {
+      "id": 499,
+      "name": "RefreshGuideForceInit",
+      "fieldIndex": 70403
+    },
+    {
+      "id": 989,
+      "name": "SetDeviceTypeInSettingPage",
+      "fieldIndex": 70893
+    },
+    {
+      "id": 992,
+      "name": "InputDeviceChanged",
+      "fieldIndex": 70896
+    },
+    {
+      "id": 3085,
+      "name": "GuideV2PathUpdate",
+      "fieldIndex": 72989
+    }
+  ],
+  "limitation": "Do not promote without explicit constant verification; no validated link to 35601 or actual input lock."
+}
