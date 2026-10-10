@@ -1,0 +1,105 @@
+name: Probe 7.1 Amber guide handoff
+
+on:
+  push:
+    branches: [research/amber-2178-quest-notify-20261010]
+    paths:
+      - .github/workflows/probe-amber-guide-71.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install pinned research tools
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact Global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Resolve CmdId 2178 sender and native guide call paths
+        run: |
+          mkdir -p work/amber-guide
+          python - <<'PY'
+          import bisect,csv,json,re,struct
+          from pathlib import Path
+          from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+          from capstone.x86 import X86_OP_MEM,X86_REG_RIP
+          from genshinre.pe import PEImage
+          from genshinre.nativeprofile import PROFILE_71
+          from genshinre.sampleidentity import require_sha256
+          from tools.disassemble_rva import disassemble_rva
+
+          exe=Path("inputs/7.1.0-global/GenshinImpact.exe")
+          require_sha256(exe, PROFILE_71.exe_sha256, label="7.1 Global exe")
+          root=Path("versions/7.1.0-global/windows-x64")
+          methods=[]
+          with (root/"metadata/methods.csv").open(encoding="utf-8-sig",newline="") as f:
+            for r in csv.DictReader(f):
+              if r.get("rva"):
+                try: a=int(r["rva"],0)
+                except ValueError: continue
+                if a: methods.append((a,r.get("type_name"),r.get("method_name"),r.get("parameter_types"),r.get("type_definition_index")))
+          methods.sort()
+          starts=[m[0] for m in methods]
+          def owner(a):
+            i=bisect.bisect_right(starts,a)-1
+            return {"rva":hex(methods[i][0]),"type":methods[i][1],"name":methods[i][2],"params":methods[i][3],"type_definition_index":methods[i][4]} if i>=0 else None
+          slot=0x57F4150 # 2178 registry identity LIGFLGNNAHP / 83525
+          md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
+          slot_hits=[]
+          with PEImage(exe) as image:
+            base=image.image_base
+            for sec in image.sections:
+              if not sec.characteristics & 0x20000000: continue
+              blob=image.read_rva(sec.virtual_address,sec.raw_size)
+              # Restrict to RIP-relative mov/lea forms; Capstone confirms candidates
+              pattern=re.compile(rb"[\x48\x4c][\x8b\x8d][\x05\x0d\x15\x1d\x25\x2d\x35\x3d]")
+              for match in pattern.finditer(blob):
+                at=match.start();rva=sec.virtual_address+at
+                if at+7>len(blob):continue
+                disp=struct.unpack_from("<i",blob,at+3)[0]
+                if rva+7+disp!=slot:continue
+                insns=list(md.disasm(blob[at:at+22],base+rva))
+                if not insns:continue
+                ins=insns[0]
+                if ins.address!=base+rva or not any(op.type==X86_OP_MEM and op.mem.base==X86_REG_RIP and rva+ins.size+op.mem.disp==slot for op in ins.operands):continue
+                slot_hits.append({"site":hex(rva),"instruction":ins.mnemonic+" "+ins.op_str,"owner":owner(rva)})
+          print("CMD2178_SLOT_HITS",json.dumps(slot_hits,ensure_ascii=False))
+          # Trace bounded slices for the likely C2S sender(s), and the native guide/input chain.
+          focus={"client2178_serializer":0xE4BA010,"guide_click":0x7A577D0,"guide_click_set_callback":0x7A577C0,
+                 "talk_finish":0xFE57430,"talk_end_marker":0xFE33B70,"tutorial_set_raycast":0xCFF6B40,
+                 "quest_tutorial_check":0x13ACB640}
+          for k,rva in list(focus.items()):
+            if not owner(rva):continue
+            focus[k]={"rva":hex(rva),"owner":owner(rva),"disasm":disassemble_rva(exe,rva,0x280,label=k)["instructions"]}
+          out={"sample_sha256":PROFILE_71.exe_sha256,"cmd2178":{"cmd_id":2178,"type":"LIGFLGNNAHP","definition":83525,"slot":hex(slot),
+               "serializer":hex(0xE4BA010),"one_field_type":"uint32","slot_hits":slot_hits},"focus":focus}
+          Path("work/amber-guide/native-guide-probe.json").write_text(json.dumps(out,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
+          for key,value in focus.items():
+            print("FOCUS",key,value["rva"],value["owner"])
+          PY
+      - name: Record native direct callers (bounded)
+        run: |
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            work/amber-guide/call-edges.json \
+            --focus guide_click:0x7A577D0 \
+            --focus talk_finish:0xFE57430 \
+            --focus quest_tutorial_check:0x13ACB640 \
+            --max-body 0x1200 > work/amber-guide/call-edges-summary.txt
+          sed -n '1,110p' work/amber-guide/call-edges-summary.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: amber-71-guide-static-evidence
+          path: work/amber-guide
+          retention-days: 7
+          if-no-files-found: warn
