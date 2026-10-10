@@ -1,3 +1,17 @@
+## Verified client StartGuide preflight gate (before mask creation)
+
+A fresh read of the pinned exact-7.1 disassembly of `MoleMole.GlobalActor.StartGuide(string) @ 0xFE284A0` identifies a concrete **guide-start rejection branch**:
+
+1. At `0xFE284B9`, the routine loads a guide manager pointer; when null, it reaches the failure return at `0xFE284F1`.
+2. When the manager is present, `0xFE284D4` calls `IJLMKPGOMFD.IOGLEEMLMIF(string) @ 0x758D8C0` with the proposed guide name. `0xFE284D9` tests `AL`; if false, `0xFE284DB` branches to `0xFE284F1`, returning 0 **without starting the guide**.
+3. If the predicate is true, `0xFE284EC` tail-jumps into `IJLMKPGOMFD.NJCMLBJMBGP(string,string) @ 0x758DBD0`, with its second string argument null. This is a downstream guide-start dispatch; its success and eventual BlackMask rendering are not proven by this branch alone.
+
+The method identities and signatures are recovered from exact-client `metadata/methods.csv` (indices 490695, 206526, 206501 respectively), and instruction addresses from [pinned Quest/UI native disassembly (run 38064178431)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38064178431).
+
+**Important boundary:** We have not shown that the 35601 tutorial actually calls `GlobalActor.StartGuide`. If it does, a false predicate or missing manager would explain why **no BlackMask was created**, but still would not directly establish which `InteractionManager` lock reason remained active.
+
+The read-only research probe has therefore been extended to record the `StartGuide` request, the **actual native predicate result** (`0x758D8C0` return `AL`), and downstream dispatch entry (`0x758DBD0`) on the same timeline as input lock/unlock. It currently has **14 hooks** and has not been runtime-tested. The probe never forces the predicate or manually unlocks the client.
+
 ## Prepared read-only 7.1 client lock/guide event capture (not yet runtime-tested)
 
 The research branch now contains [`capture_amber_guide_locks_71.py`](../../../../../tools/runtime/capture_amber_guide_locks_71.py) and [`capture_amber_guide_locks_71.js`](../../../../../tools/runtime/capture_amber_guide_locks_71.js), a narrow **prototype** to record, in one monotonic timeline, exact 7.1 native entries for:
