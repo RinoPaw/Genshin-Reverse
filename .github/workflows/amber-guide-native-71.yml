@@ -69,6 +69,30 @@ jobs:
                   print('  CALLEE',edge['site_rva'],edge['kind'],edge['target_rva'],names)
           PY
 
+      - name: Check exact client quest-list field reader and guide-entry code
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from genshinre.nativeprofile import PROFILE_71
+          from tools.disassemble_rva import disassemble_rva
+          exe=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          targets={
+              'quest_update_native_reader':(0xA8AB0C0,0xA0),
+              'quest_receiver':(0xA5CE790,0x1A0),
+              'quest_delegate':(0xC4A2770,0x180),
+              'global_actor_start_guide':(0xFE284A0,0x160),
+          }
+          import json
+          reports={}
+          for name,(rva,size) in targets.items():
+              item=disassemble_rva(exe,rva,size,expected_sha256=PROFILE_71.exe_sha256,label=name)
+              reports[name]=item
+              print('===',name,hex(rva),'===')
+              for insn in item['instructions'][:95]:
+                  print(insn['rva'],insn['mnemonic'],insn['op_str'])
+          Path('amber-guide-parser-71.json').write_text(json.dumps(reports,indent=2)+'\\n',encoding='utf-8')
+          PY
+
       - name: Preserve pinned native trace
         if: always()
         uses: actions/upload-artifact@v7
@@ -76,6 +100,7 @@ jobs:
           name: amber-guide-native-71
           path: |
             amber-guide-native-71.json
+            amber-guide-parser-71.json
             /tmp/amber-native-full.log
           if-no-files-found: warn
           retention-days: 7
