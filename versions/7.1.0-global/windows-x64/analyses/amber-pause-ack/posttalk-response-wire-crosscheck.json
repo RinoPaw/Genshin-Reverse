@@ -1,0 +1,107 @@
+{
+  "status": "WIRE_TAGS_MATCH_BUT_RUNTIME_CONSUMPTION_UNRESOLVED",
+  "sample": {
+    "version": "7.1.0-global/windows-x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "inputs": {
+    "server_proto": "RinoPaw/AstaPS@e4ab2289cecab6e61f9b1bf1fcded7c9cc47ef92:protocol/7.1/protocol.desc",
+    "evidence_run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38051410917",
+    "native_method_scan": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38051295262"
+  },
+  "responses": {
+    "NpcTalkRsp": {
+      "cmd_id": 3514,
+      "client_type": "IMLLBMOMMEH",
+      "native_reader_method": "NLGBJEEJDLG",
+      "native_reader_rva": "0x11E83970",
+      "native_tags": [
+        "0x28",
+        "0x38",
+        "0x40",
+        "0x68"
+      ],
+      "server_fields": [
+        {
+          "name": "retcode",
+          "number": 5,
+          "tag": "0x28"
+        },
+        {
+          "name": "cur_talk_id",
+          "number": 7,
+          "tag": "0x38"
+        },
+        {
+          "name": "npc_entity_id",
+          "number": 8,
+          "tag": "0x40"
+        },
+        {
+          "name": "entity_id",
+          "number": 13,
+          "tag": "0x68"
+        }
+      ],
+      "match": "ALL_FIELDS_AND_WIRE_NUMBERS_MATCH"
+    },
+    "QuestDestroyNpcRsp": {
+      "cmd_id": 3992,
+      "client_type": "GIIDCEHBDFH",
+      "native_reader_method": "NLGBJEEJDLG",
+      "native_reader_rva": "0x80456E0",
+      "native_tags": [
+        "0x48",
+        "0x68",
+        "0x78"
+      ],
+      "server_fields": [
+        {
+          "name": "npc_id",
+          "number": 9,
+          "tag": "0x48"
+        },
+        {
+          "name": "parent_quest_id",
+          "number": 13,
+          "tag": "0x68"
+        },
+        {
+          "name": "retcode",
+          "number": 15,
+          "tag": "0x78"
+        }
+      ],
+      "match": "ALL_FIELDS_AND_WIRE_NUMBERS_MATCH"
+    }
+  },
+  "stuck_vs_reconnect": {
+    "source": "User-provided AstaPS console transcript 2026-10-10",
+    "stuck_19_43_41": {
+      "interaction_27447": "observed once, payload not logged",
+      "player_set_pause_req": "not observed in 45s",
+      "quest_destroy_npc_req_count": 2,
+      "quest_destroy_npc_rsp_send_count": 2,
+      "server_paused": false,
+      "time_locked": true,
+      "quest_35602": "UNFINISHED",
+      "quest_35603": "UNFINISHED"
+    },
+    "reconnect_20_09_32": {
+      "player_time_notify_paused": false,
+      "player_set_pause_req_false": 1,
+      "player_set_pause_rsp": "dropped on server (unknown 7.1 response CmdId)",
+      "server_paused": false,
+      "time_locked": true,
+      "quest_35602": "UNFINISHED",
+      "quest_35603": "UNFINISHED"
+    }
+  },
+  "limitations": [
+    "Client native parser recognizing the same protobuf tags does not prove correct packet content or completion callback.",
+    "The old transcript does not include the inbound field-7 value of CmdId 27447.",
+    "A retransmission conclusion for QuestDestroyNpcReq cannot be drawn from two same-type requests without message bodies, sequence, or timing.",
+    "Re-login resets client-local state and resends world data, so their effects are not separately identified.",
+    "The missing pause response is observed on reconnect where controls recover according to reported behavior; this weighs against ACK being a sufficient cause, without proving it is irrelevant in every state."
+  ]
+}

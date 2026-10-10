@@ -80,6 +80,30 @@ class AmberPauseEvidenceTests(unittest.TestCase):
             self.assertFalse(candidate["success_direct_pause_state_write"])
             self.assertEqual("int3", candidate["instructions"][-1]["mnemonic"])
 
+    def test_talk_response_native_wire_tags_match_7_1_descriptor(self) -> None:
+        data = load("posttalk-response-wire-crosscheck.json")
+        self.assertEqual(PROFILE_71.exe_sha256, data["sample"]["exe_sha256"])
+        for name, cmd, expected in [
+            ("NpcTalkRsp", 3514, {5, 7, 8, 13}),
+            ("QuestDestroyNpcRsp", 3992, {9, 13, 15}),
+        ]:
+            row = data["responses"][name]
+            self.assertEqual(cmd, row["cmd_id"])
+            self.assertEqual(expected, {field["number"] for field in row["server_fields"]})
+            self.assertEqual(expected, {int(tag, 16) >> 3 for tag in row["native_tags"]})
+            self.assertEqual("ALL_FIELDS_AND_WIRE_NUMBERS_MATCH", row["match"])
+        self.assertIs(False, data["stuck_vs_reconnect"]["reconnect_20_09_32"]["player_time_notify_paused"])
+        self.assertEqual(1, data["stuck_vs_reconnect"]["reconnect_20_09_32"]["player_set_pause_req_false"])
+        self.assertEqual(
+            "dropped on server (unknown 7.1 response CmdId)",
+            data["stuck_vs_reconnect"]["reconnect_20_09_32"]["player_set_pause_rsp"],
+        )
+        claims = {
+            item["id"]: item["status"] for item in load("evidence.json")["claims"]
+        }
+        self.assertEqual("CONFIRMED", claims["npc-talk-and-destroy-response-wire-crosscheck"])
+        self.assertEqual("UNRESOLVED", claims["npc-destroy-rsp-client-callback"])
+
     def test_interaction_27447_is_native_confirmed_without_causality_claim(self) -> None:
         record = load("posttalk-interaction-27447.json")
         self.assertEqual(PROFILE_71.exe_sha256, record["sample"]["exe_sha256"])

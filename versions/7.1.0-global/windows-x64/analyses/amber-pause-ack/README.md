@@ -48,6 +48,18 @@ The native-client investigation used [registry/metadata lookup](https://github.c
 
 **Interpretation boundary:** The log has no payload for the observed `27447`, so the in-game message's bool is not yet confirmed. The client's true/false call sites are proven, but a missing false notification is only a **candidate explanation** for the input lock. A client-originated event does not automatically require a server response. Do not assign an unproved semantic name, implement an ACK, or force an interaction-state packet. AstaPS diagnostics now decode the field 7 bool on the Amber trace; compare the stuck window and the reconnect window.
 
+## 2026-10-10 second capture: same pause state, distinct scene reinitialization
+
+The full server transcript now contains two 45-second windows. Immediately after Amber talk 35601, the client still communicates normally; `35602` and `35603` are UNFINISHED, `SceneTimeNotify.is_paused=false`, and both server world and player paused flags are false. During the new session after forced reconnect (20:09:32), the server transmits `PlayerTimeNotify.is_paused=false`, sends its scene-enter initialization, and the client emits `PlayerSetPauseReq(is_paused=false)` at +1648ms. The server **drops** the 7.1 `PlayerSetPauseRsp` because its opcode is unresolved, but the user previously confirmed movement recovers on relog. This **weighs against missing pause ACK being a sufficient cause** of the dialogue lock; the native request and ACK identity research remains independently valid.
+
+The earlier interaction marker `27447` was present only in the stuck talk window; this version of the running server did not decode its bool field 7, so the observed value is unknown. The absence of a 27447 false transition during the stuck window remains a candidate local `InteractionManager` cleanup gap.
+
+Current Global 7.1 native receivers now also verify that the existing server protobuf field numbers match for both:
+- `NpcTalkRsp(3514)`: native client tags `0x28/0x38/0x40/0x68` (fields **5,7,8,13**); server `retcode=5,cur_talk_id=7,npc_entity_id=8,entity_id=13`.
+- `QuestDestroyNpcRsp(3992)`: native tags `0x48/0x68/0x78` (fields **9,13,15**); server `npc_id=9,parent_quest_id=13,retcode=15`.
+
+Wire tag equality excludes these two **field-number mismatch hypotheses**, not invalid values, response-header correlation, or client callback timing. The 45-second stuck window shows two `QuestDestroyNpcReq` and two corresponding response send events, but logs contain no second-request timestamp or bodies, so retransmission is not established. [Native and descriptor cross-check](posttalk-response-wire-crosscheck.json) and [hosted 7.1 parser disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38051410917) preserve these results.
+
 ## Server descriptor cross-check and conditional field-4 candidates
 
 The 7.1 AstaPS `protocol/7.1/protocol.desc` (SHA-256 `dfc0fe457558b86d661b24f0c0ac023a39bbbc37b95a35e603deb4c7efbedfa5`) was parsed in [workflow run 37967149153](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/37967149153). The [cross-check artifact](astaps-descriptor-crosscheck.json) preserves each field:

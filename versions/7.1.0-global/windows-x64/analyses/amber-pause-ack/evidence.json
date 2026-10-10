@@ -168,6 +168,43 @@
           "locator": "runtime_observation + unresolved"
         }
       ]
+    },
+    {
+      "id": "npc-talk-and-destroy-response-wire-crosscheck",
+      "status": "CONFIRMED",
+      "statement": "Exact 7.1 client native protobuf receivers accept NpcTalkRsp(3514) field tags 5/7/8/13 and QuestDestroyNpcRsp(3992) tags 9/13/15, which match server protocol.desc field numbers.",
+      "evidence": [
+        {
+          "kind": "native-parser-plus-server-descriptor",
+          "source": "posttalk-response-wire-crosscheck.json",
+          "locator": "responses + inputs.evidence_run"
+        }
+      ]
+    },
+    {
+      "id": "reconnect-with-missing-pause-ack",
+      "status": "CONFIRMED",
+      "statement": "During reconnect comparison, client emits PlayerSetPauseReq(false) while server drops PlayerSetPauseRsp; worldPaused and playerPaused remain false in both stuck and reconnect 45-second windows.",
+      "evidence": [
+        {
+          "kind": "2026-10-10-uid70629-runtime-transcript",
+          "source": "posttalk-response-wire-crosscheck.json",
+          "locator": "stuck_vs_reconnect"
+        }
+      ],
+      "notes": "Prior user behavior reports reconnect restores controls; absence of pause ACK is not a sufficient standalone explanation. Other scene reinitialization effects are confounded."
+    },
+    {
+      "id": "npc-destroy-rsp-client-callback",
+      "status": "UNRESOLVED",
+      "statement": "Matching QuestDestroyNpcRsp protobuf tags does not establish correct echoed header sequence, message content, or expected InteractionManager callback; two QuestDestroyNpcReq/Rsp events during the stuck window require per-request analysis.",
+      "evidence": [
+        {
+          "kind": "known-diagnostic-limitation",
+          "source": "posttalk-response-wire-crosscheck.json",
+          "locator": "limitations"
+        }
+      ]
     }
   ],
   "rejected_paths": [
@@ -190,9 +227,11 @@
     "static-probe.json",
     "native-probe.json",
     "client-pause-field-xrefs.json",
-    "posttalk-interaction-27447.json"
+    "posttalk-interaction-27447.json",
+    "posttalk-response-wire-crosscheck.json"
   ],
   "next_steps": [
+    "Prioritize native client InteractionManager cleanup/callback path over guessed PlayerSetPauseRsp; verify QuestDestroyNpcRsp response header/payload only if a bounded capture identifies it as a blocking dependency.",
     "Capture bool field 7 for C2S CmdId 27447 across stuck and reconnect windows; identify whether/when InteractionManager emits the false transition.",
     "Collect exact-client decrypted stuck and reconnect packet windows.",
     "Recover the S2C response identity and handler or reject the ACK hypothesis.",
