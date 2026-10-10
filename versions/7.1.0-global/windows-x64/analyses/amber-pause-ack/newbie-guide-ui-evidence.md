@@ -1,3 +1,17 @@
+## Prepared read-only 7.1 client lock/guide event capture (not yet runtime-tested)
+
+The research branch now contains [`capture_amber_guide_locks_71.py`](../../../../../tools/runtime/capture_amber_guide_locks_71.py) and [`capture_amber_guide_locks_71.js`](../../../../../tools/runtime/capture_amber_guide_locks_71.js), a narrow **prototype** to record, in one monotonic timeline, exact 7.1 native entries for:
+
+- `NpcTalkRsp` receiver `0xA5E18C0` and `InteractionManager.FinishCurrTalk` `0xFE57430` (talk ID);
+- `InteractionManager.LockInter` `0xFE508D0` and `UnLockInter` `0xFE552F0` (numeric enum values **without guessing names**);
+- `GlobalActor.StartGuide` `0xFE284A0` and `EndGuide` `0xFE28170` (bounded native string);
+- `MonoNewbieDialog.SetNewbieMaskIndex` `0x9E2C4B0`, `MonoNewbieMask.set_showCompulory` `0x1163D740`, and the quest-list receiver `0xA5CE790`;
+- optional verbose `EPJNAHIFNCP.OnNotify` `0x89FC100` and compulsory guide controller `0x89F7080`.
+
+The launcher calls `require_profile_exe` with pinned `PROFILE_71` before attaching and stores NDJSON without packet bodies or authentication tokens. It only records method-entry events; it **does not bypass input locks, alter client state, or send packets**. The actual running process must use the same binary as the hash-verified `--exe` path. Neither the hook ABI nor real game compatibility is verified until a controlled client run and project CI; **do not ask for a new reproduction yet**.
+
+Causal decision table for that eventual capture: (a) `FinishCurrTalk` absent after the 3514 receiver means talk callback path needs examination; (b) talk callback present, but a newly acquired lock reason lacks a matching release means follow that reason's owner; (c) `StartGuide` observed without `SetNewbieMaskIndex`/visible mask means follow guide initialization; (d) no guide event at all means investigate the 35601 quest-notify-to-Lua/UI handoff. Because hooks begin at attach time, absence of a `LockInter` event cannot prove no lock was acquired **before** attachment.
+
 ## Exact 7.1 UnLockInter(1) owners: event-dependent releases
 
 Re-read the pinned 7.1 [unlock-owner native probe (run 38060685595)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38060685595). It validates three **distinct direct callers** of `InteractionManager.UnLockInter(ELockReason) @ 0xFE552F0`; each passes numeric `edx=1`, but metadata alone does not prove whether enum value 1 is `QUEST_CHECK` or `UI_CLOCK`.
