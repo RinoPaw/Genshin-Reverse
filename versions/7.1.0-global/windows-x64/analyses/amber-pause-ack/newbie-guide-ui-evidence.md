@@ -1,3 +1,15 @@
+## 2026-10-10: native quest-list receiver and guide pre-mask gate
+
+Two read-only, exact-7.1 sample Actions succeeded: [call edges (38063931980)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38063931980), [RVA disassembly (38064178431)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38064178431).
+
+- **Outer quest-update wire field verified.** AstaPS 7.1 `protocol.desc` declares `QuestListUpdateNotify.quest_list` as repeated message **field 7**. Exact-client `CmdId 3610 -> JDLMELOENCN` (typeDefinition 53289), native reader `JDLMELOENCN.NLGBJEEJDLG @ 0xA8AB0C0` tests protobuf tag **`0x3A` at `0xA8AB0F8`** (field 7, wire type 2). The *outer* field number matches; actual nested Quest data, nonempty entries, and tutorial execution remain unverified.
+- **Receiving branch.** `HBBDJPCGCAH.GCLIDIPCOEH(JDLMELOENCN) @ 0xA5CE790` has four validated direct E8 callers (`0xA5CE342`, `0xA5CE6C7`, `0xA5ED89C`, `0xA606ABF`). Disassembly branches on receiver byte **`[rdi+0x2B5]` at `0xA5CE7A9`**. The nonzero branch reads the message list pointer `[rsi+0x18]` and tail-jumps to `HBBDJPCGCAH.PHFGNFBDFFH @ 0xA5D5220`; the other branch goes through an indirect-listener/queued path. Meaning of the flag and subsequent UI events **unresolved**.
+- **Newer UI controller.** `CHLCICFENAG.Init @ 0xF57D0D0` invokes `BaseContextComponent.RegisterNotfiy` five times (RVA `0xF57D114/121/12E/13B/148`), indicating registered event-based callbacks. `CHLCICFENAG.OnNotify @ 0xF57CFF0` calls `JMKHJFFKJGF @ 0xF57A6C0`. There is no established link to the Mondstadt mandatory task-button guide or to the quest receiver: validated E8 edges are not exhaustive of event/delegate/Lua dispatch.
+- **Input release remains distinct.** `InteractionManager.FinishCurrTalk @ 0xFE57430` directly calls `MOHDLCGJEHG.Finish @ 0x90FF4F0`, not `UnLockInter`. Do not conclude that a talk callback cleared every input-lock reason.
+- **Next:** identify `[rdi+0x2B5]` semantic conditions and `PHFGNFBDFFH` dispatch; follow the client's `GlobalActor.StartGuide(string)` path/Lua task-button guide and distinct `ELockReason.QUEST_CHECK` lifecycle. Verify actual `35603` quest entry count + effective questing flag before proposing any server change.
+
+These are static native facts, not proof that any specific guide method ran in the user's stuck session. The user reported **no visible BlackMask at all**, so investigate failure *before UI creation*, not a masked tutorial that merely awaits clicking.
+
 # Amber 35601: no newbie mask, controls locked (7.1 exact-client study)
 
 **Status: native metadata anchors verified; causal input-lock/guide chain not yet recovered.**  
