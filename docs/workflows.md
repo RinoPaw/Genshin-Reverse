@@ -54,6 +54,9 @@ The former QuestExcel table-assets probe reached its retirement condition after 
 
 New topic-specific workflows must follow `docs/governance.md`: one concrete owner, a stated hosted-orchestration need, a named output and an explicit retirement condition.
 
+
+Temporary branch-only workflows: `probe-amber-guide-71.yml` performs a pinned 7.1 Amber UI and packet probe; `research-amber-lock-chain-71.yml` traces guide and lock call edges. Both are read-only research helpers and will be retired after their evidence is committed under the Amber analysis directory.
+
 ## Retirement rule
 
 Retire a workflow when all of the following are true:
