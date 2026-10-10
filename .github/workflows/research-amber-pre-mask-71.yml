@@ -1,0 +1,68 @@
+name: Research 7.1 Amber Pre-mask Tutorial
+on:
+  push:
+    branches:
+      - research/amber-pre-mask-20261010
+    paths:
+      - '.github/workflows/research-amber-pre-mask-71.yml'
+      - 'versions/7.1.0-global/windows-x64/analyses/amber-pre-mask/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guide-callgraph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact Global 7.1 client and verify hash
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Native callgraph for tutorial creation, mask, and talk unlock
+        run: |
+          mkdir -p research-output
+          python tools/trace_native_call_edges.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            research-output/guide-callgraph.json \
+            --max-body 0x1800 \
+            --focus talk_rsp_handler:0xA5E18C0 \
+            --focus finish_curr_talk:0xFE57430 \
+            --focus guide_v1_create_mask:0xCB9BAB0 \
+            --focus guide_v1_create_mask_params:0xCB9BD70 \
+            --focus guide_v2_init:0xF57D0D0 \
+            --focus guide_v2_on_notify:0xF57CFF0 \
+            --focus guide_v2_create_mask:0xF57A550 \
+            --focus newbie_mask_compulsory:0x1163D740
+      - name: Compact native evidence and print callers
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("research-output/guide-callgraph.json")
+          data=json.loads(p.read_text(encoding="utf-8"))
+          compact={"target_sha256":"08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d","focus":{}}
+          for name, item in data["focus"].items():
+              callers=[]
+              for c in item["direct_callers"]:
+                  rows=c["caller"]["metadata_rows"]
+                  callers.append({"site":c["call_site_rva"],"owner_rva":c["caller"]["rva"],"owner_methods":[{"type":r["type_name"],"method":r["method_name"]} for r in rows],"context":c["context"]})
+              edges=[{"site":e["site_rva"],"target":e["target_rva"],"target_methods":[{"type":r["type_name"],"method":r["method_name"]} for r in e["target_owner"]["metadata_rows"]] if e["target_owner"] else []} for e in item["direct_edges"] if e["kind"]=="call"]
+              compact["focus"][name]={"rva":item["requested_rva"],"direct_caller_count":len(callers),"callers":callers,"direct_callees":edges}
+              print(name, "callers", len(callers), "callees", len(edges))
+              for c in callers[:15]:
+                  print("  ",c["site"],"in",c["owner_rva"],c["owner_methods"])
+          Path("research-output/guide-callgraph-compact.json").write_text(json.dumps(compact,indent=2)+"\n",encoding="utf-8")
+          PY
+      - name: Upload pinned tutorial callgraph
+        uses: actions/upload-artifact@v7
+        with:
+          name: amber-pre-mask-guide-callgraph-71
+          path: research-output/*.json
+          if-no-files-found: error
+          retention-days: 7
