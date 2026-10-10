@@ -1,3 +1,15 @@
+## Exact 7.1 UnLockInter(1) owners: event-dependent releases
+
+Re-read the pinned 7.1 [unlock-owner native probe (run 38060685595)](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38060685595). It validates three **distinct direct callers** of `InteractionManager.UnLockInter(ELockReason) @ 0xFE552F0`; each passes numeric `edx=1`, but metadata alone does not prove whether enum value 1 is `QUEST_CHECK` or `UI_CLOCK`.
+
+- `IBOJCEGJPEM.IFMMKPLAMEL @ 0xCB9FD90`: checks local byte flag `[this+0x13]` at `0xCB9FDA1`; calls `UnLockInter(1)` at `0xCB9FDBF` **only if that flag was set** and a manager pointer exists; finally clears the flag at `0xCB9FDC4`.
+- `IBOJCEGJPEM.HOACAKEFEEN @ 0xCBA02B0`: a broader reset path; checks the same local flag at `0xCBA02DF`, conditionally calls `UnLockInter(1)` at `0xCBA02FD`, then clears local flags at offsets `+0x13`, `+0x12`, `+0x10` (and `+0x11` earlier).
+- `DDDKDOPHINB.LDOPCEKPOBN @ 0x11C9AD90`: invokes a separate helper `0xBA004B0`, performs lookups, and calls `UnLockInter(1)` at `0x11C9AE63`; its type has `Notify` and `Action` members. It subsequently dispatches an `Action` through an indirect jump at `0x11C9AEB9`. A `Notify` member and an indirect dispatch are **not** by themselves proof of a tutorial event or callback.
+
+None of these owner methods has a validated direct E8 caller. Therefore a callback/indirect path remains plausible; their runtime activation after `35601` is still unknown. The first two paths establish an important static property: **release of numeric lock reason 1 is conditional on local UI/controller state**. If its expected state never initializes, observing no BlackMask would be compatible with no unlock callback. This is a hypothesis, not a demonstrated AstaPS bug.
+
+**Next gate:** map the exact enum constants and owner `IBOJCEGJPEM` lifecycle to the original `35601` tutorial event, and find which code calls `LockInter` or inserts that lock reason. Never force an unconditional `UnLockInter(1)` without establishing the matching acquisition and trigger.
+
 ## Exact 7.1 native pre-mask branching: separate UI compatibility and mask setup
 
 A bounded review of the exact-hash native disassembly/call-graph artifacts adds the following **direct control-flow facts**, without proving any of these methods executed after Amber's talk:
