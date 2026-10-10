@@ -91,7 +91,7 @@ def main() -> None:
                 elif "event" in payload:
                     details = " ".join(
                         f"{key}={payload[key]}"
-                        for key in ("talk_id", "reason", "guide_name",
+                        for key in ("talk_id", "reason", "guide_name", "accepted",
                                     "mask_index", "compulsory")
                         if key in payload
                     )
