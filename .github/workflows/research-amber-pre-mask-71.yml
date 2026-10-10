@@ -38,7 +38,15 @@ jobs:
             --focus guide_v2_init:0xF57D0D0 \
             --focus guide_v2_on_notify:0xF57CFF0 \
             --focus guide_v2_create_mask:0xF57A550 \
-            --focus newbie_mask_compulsory:0x1163D740
+            --focus newbie_mask_compulsory:0x1163D740 \
+            --focus newbie_v1_setup_view:0x89FB050 \
+            --focus newbie_v1_notify:0x89FC100 \
+            --focus newbie_v1_update:0x89FA870 \
+            --focus newbie_v1_compulsory:0x89F7080 \
+            --focus newbie_v1_clear_view:0x89F9600 \
+            --focus newbie_v2_refresh:0xF57A6C0 \
+            --focus newbie_set_mask_index:0x9E2C4B0 \
+            --focus talk_clear_lock_data:0xFE5A960
       - name: Compact native evidence and print callers
         run: |
           python - <<'PY'
