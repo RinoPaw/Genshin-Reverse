@@ -1,5 +1,19 @@
 # Amber 35601: PlayerSetPause acknowledgement and input lock (7.1 Global)
 
+## 2026-10-10: No visible tutorial mask; native interaction-lock gate
+
+**New first-hand observation:** On the AstaPS 7.1 Amber 35601 reproduction, the user sees **no black mask / forced tutorial overlay at all**; controls become unresponsive directly after the dialogue. Earlier notes about how the **official game** normally displays a task-button guide do not imply that AstaPS ever reaches the guide UI. Preserve this difference. A complete 45-second server trace does not itself prove the client-side owner of the input lock.
+
+**Exact client evidence** (7.1 Global Windows x64 executable SHA-256 `08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d`): `metadata/types.csv` defines `MoleMole.InteractionManager` typeDefinition **84348**, with field `_lockedReasonSet` (field index **418074**). `ELockReason` typeDefinition **84351** defines named fields `UI_CLOCK` (418172) and `QUEST_CHECK` (418173); *actual constant numeric values have not been independently extracted*. Methods: `LockInter(ELockReason) @ 0xFE508D0`, `UnLockInter(ELockReason) @ 0xFE552F0`, `IsLocked() @ 0xFE5F5B0`, and `FinishCurrTalk(uint32) @ 0xFE57430`. The distinct lock-reason set is a stronger static target for a UI-less stuck state than an assumed visible guide overlay.
+
+**Native direct-edge probe:** [focused hash-pinned run](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38060342999) confirms **0 validated direct E8 callers** of `LockInter` and **3 validated direct E8 callers** of `UnLockInter`: `IBOJCEGJPEM.IFMMKPLAMEL @ 0xCB9FDBF`, `IBOJCEGJPEM.HOACAKEFEEN @ 0xCBA02FD`, and `DDDKDOPHINB.LDOPCEKPOBN @ 0x11C9AE63`. All three call contexts load `edx=1` before calling `UnLockInter`. This proves **numeric argument 1**, not yet which named enum constant it represents. Zero direct `LockInter` calls does **not** prove it never executes: indirect, delegate, virtual and inlined paths are outside this probe.
+
+`FinishCurrTalk` has additional native callees, including `MOHDLCGJEHG.Finish @ 0x90FF4F0` (callsite `0xFE57574`). It does **not** directly call `UnLockInter` in its probed direct-call edges. Its registered `NpcTalkRsp` receiver still forwards `cur_talk_id` into `FinishCurrTalk` in previously confirmed evidence, but receipt and completion of the entire interaction lifecycle remain unproven in a stuck runtime session. The relation of the `MOHDLCGJEHG.Finish` action to guide/input cleanup has not been established.
+
+**Next evidence gate:** identify `ELockReason` constant values, then follow the three `UnLockInter(1)` callers and their trigger conditions and look for indirect/`_lockedReasonSet` additions. Verify whether the quest-check tutorial's entrypoint schedules an unlock callback **before** a black mask is shown, and whether that callback can fail when `35603` or OpenState 7 is missing. Do not create an unconditional unlock, mark quests complete, change open states or name CmdId 2178 as a tutorial event without stronger evidence.
+
+
+
 **Status: ACTIVE / UNRESOLVED response identity and causal link.** Tracking issue: [#23](https://github.com/RinoPaw/Genshin-Reverse/issues/23). This investigation has independently closed the *request construction and client caller path*. It has **not** identified the 7.1 `PlayerSetPauseRsp` CmdId or shown that an absent response is what locks the controls after talking to Amber. Do not implement or promote a response opcode from this note.
 
 ## Exact target and evidence
