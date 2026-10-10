@@ -67,6 +67,24 @@ jobs:
               print(target, "count", len(matches))
               for match in matches[:20]:
                   print(match["instruction_rva"], match.get("caller_methods", [])[:2])
+          sender = disassemble_rva(
+              exe, 0x72610D0, 0x90,
+              expected_sha256=PROFILE_71.exe_sha256,
+              label="EDKMMIPJHJA.OELFMAPHGKK(uint32) sender of CmdId 2178"
+          )
+          (out / "sender.json").write_text(json.dumps(sender, indent=2) + "\n")
+          print("=== 2178 native sender ===")
+          for insn in sender["instructions"]:
+              print(insn["rva"], insn["mnemonic"], insn["op_str"])
+          sender_calls = scan_direct_call_xrefs(
+              exe, [0x72610D0], methods_csv=methods, window=32
+          )
+          (out / "sender-callers.json").write_text(json.dumps(sender_calls, indent=2) + "\n")
+          print("=== 2178 sender direct callers ===")
+          matches = sender_calls["matches"]["0x72610D0"]
+          print("count", len(matches))
+          for match in matches[:60]:
+              print(match["instruction_rva"], match.get("caller_methods", [])[:2])
           PY
       - name: Preserve exact-sample native evidence
         if: always()
