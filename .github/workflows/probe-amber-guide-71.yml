@@ -94,6 +94,13 @@ jobs:
             --focus guide_click:0x7A577D0 \
             --focus talk_finish:0xFE57430 \
             --focus quest_tutorial_check:0x13ACB640 \
+            --focus guide_start:0xFE284A0 \
+            --focus guide_predicate:0x758D8C0 \
+            --focus guide_dispatch:0x758DBD0 \
+            --focus input_lock:0xFE508D0 \
+            --focus input_unlock:0xFE552F0 \
+            --focus newbie_mask_index:0x9E2C4B0 \
+            --focus newbie_setup_view:0x89FB050 \
             --max-body 0x1200 > work/amber-guide/call-edges-summary.txt
           sed -n '1,110p' work/amber-guide/call-edges-summary.txt
       - uses: actions/upload-artifact@v7
