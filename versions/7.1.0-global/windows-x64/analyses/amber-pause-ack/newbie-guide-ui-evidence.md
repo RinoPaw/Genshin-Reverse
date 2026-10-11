@@ -1,3 +1,13 @@
+## 2026-10-11 capture review: per-session analysis and pointer-safe logging
+
+The read-only 22-hook capture now has a separate **offline NDJSON analyzer**, `tools/runtime/analyze_amber_guide_locks_71.py`. Run `python tools/runtime/analyze_amber_guide_locks_71.py amber-guide-locks-71.ndjson --output amber-guide-report-71.json` on a *completed* capture. It splits sessions written to the same append-mode log, marks events before/after observed `FinishCurrTalk(35601)`, reports guide predicate rejections and mask-setter events, and independently shows the last observed input-adapter disabled mask, UI-lock argument and LockInter/UnLockInter reason imbalance. Missing hook readiness, missing talk finish, malformed NDJSON, and Frida script errors produce **capture warnings** rather than false root-cause claims.
+
+The analyzer does not equate a missing BlackMask setter event with the absence of rendering, assume all native lock acquisitions were captured, or equate the last observed adapter state with global input state. It also cannot verify QuestListUpdateNotify's 35603 payload. Synthetic regression tests exercise these uncertainty boundaries and session separation.
+
+The capture itself no longer logs raw method-argument slots for input helpers, because instance `this` and trailing IL2CPP `MethodInfo` arguments can be **native pointers**. It retains only the primary bool arguments verified by pinned 7.1 native disassembly, plus explicitly unlabeled secondary bools in two verified helpers. Internal adapter pointers continue to be converted to session-local integers and never emitted.
+
+The change is **diagnostic-only**. No capture has yet been collected from the user's running 7.1 client; neither a historical `AQ356` script nor the static tests prove the cause of the missing BlackMask/input freeze.
+
 ## 2026-10-11 read-only 7.1 hook callback validation (without a game client)
 
 The 22 native hook callbacks now have an executable, dependency-free **simulated Frida host test** (`tests/test_amber_guide_hook_mock.py`). It runs the actual JavaScript probe in a Node `vm` with mocked Frida interfaces and covers:
