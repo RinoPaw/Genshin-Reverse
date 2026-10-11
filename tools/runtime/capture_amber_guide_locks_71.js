@@ -124,12 +124,15 @@ for (const hook of HOOKS) {
             const event = { event: hook.name, rva: '0x' + hook.rva.toString(16).toUpperCase() };
             if (hook.param === 'talk_id') event.talk_id = safeInt(args[1]);
             if (hook.param === 'raw_input_args') {
-                // Preserve raw ABI positions: IL2CPP instance-vs-static argument
-                // layout is not yet native-disassembly-verified for these helpers.
-                // These are numerical flags / pointers, not semantic booleans.
-                event.raw_arg0 = safeInt(args[0]);
-                event.raw_arg1 = safeInt(args[1]);
-                event.raw_arg2 = safeInt(args[2]);
+                // Never log raw arguments here: instance methods carry pointers,
+                // while trailing IL2CPP arguments can be MethodInfo pointers.
+                // Only the verified input bool and one verified secondary flag
+                // (whose semantics remain unknown) are safe to label.
+                if (hook.name === 'base_actor_enable_player_input') {
+                    event.secondary_flag = safeBool(args[2]);
+                } else if (hook.name === 'actor_utils_enable_player_input') {
+                    event.secondary_flag = safeBool(args[1]);
+                }
                 const argIndex = VERIFIED_BOOL_ARG_POSITIONS[hook.name];
                 if (argIndex !== undefined) {
                     const value = safeBool(args[argIndex]);
