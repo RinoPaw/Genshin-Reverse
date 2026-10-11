@@ -63,6 +63,12 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         self.assertIn("event.raw_arg0 = safeInt(args[0]);", js)
         self.assertIn("event.raw_arg1 = safeInt(args[1]);", js)
         self.assertIn("event.raw_arg2 = safeInt(args[2]);", js)
+        self.assertIn("base_actor_enable_player_input: 1", js)
+        self.assertIn("actor_utils_enable_player_input: 0", js)
+        self.assertIn("actor_utils_set_ui_lock_state: 0", js)
+        self.assertIn("actor_utils_set_quest_dialog_enable: 0", js)
+        self.assertIn("event.ui_locked = value;", js)
+        self.assertIn("event.enabled = value;", js)
         self.assertNotIn("Memory.write", js)
         self.assertNotIn("retval.replace(", js)
 
