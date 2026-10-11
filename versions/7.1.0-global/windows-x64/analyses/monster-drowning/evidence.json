@@ -92,7 +92,7 @@
     "Resolve new C2S opcode candidates against the canonical registry and inspect protobuf wire tags without assuming historical field numbers.",
     "Trace current 7.1 native sender/receiver and record opcode, direction, entity-id field and authoritative-death lifecycle before semantic promotion."
   ],
-  "topic": "monster-drowning-71",
+  "topic": "monster-drowning",
   "state": "ACTIVE",
   "sample": {
     "game_version": "7.1.0",
