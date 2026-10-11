@@ -6,6 +6,8 @@ These tests do not execute Frida or make claims about in-game behavior.
 from __future__ import annotations
 
 import ast
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -15,6 +17,12 @@ SCRIPT = ROOT / "tools/runtime/capture_amber_guide_locks_71.js"
 
 
 class AmberGuideLockCaptureStaticTests(unittest.TestCase):
+    def test_frida_script_js_syntax_when_node_is_available(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js not available; static source checks still run")
+        subprocess.run([node, "--check", str(SCRIPT)], check=True, capture_output=True, text=True)
+
     def test_launcher_syntax_and_exact_binary_guard(self) -> None:
         source = LAUNCHER.read_text(encoding="utf-8")
         ast.parse(source, filename=str(LAUNCHER))
