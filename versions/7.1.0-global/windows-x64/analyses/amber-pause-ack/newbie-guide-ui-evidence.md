@@ -1,3 +1,14 @@
+## Exact 7.1 ELockReason declaration resolved; numeric values still need default-value evidence (2026-10-11)
+
+The pinned Global 7.1 metadata outputs provide a concrete, narrower lock identity independent of the guide UI's BlackMask:
+
+- `metadata/types.csv`: typeDefinition `84351`, type `ELockReason`, fieldStart `418172`, fieldCount `3`.
+- `metadata/fields.csv`: fieldIndex `418172` = `ELockReason.UI_CLOCK`; `418173` = `ELockReason.QUEST_CHECK`; `418174` = `ELockReason.value__` (`int32`).
+- `InteractionManager` typeDefinition `84348` has `_lockedReasonSet` at fieldIndex `418074`. Its native `LockInter(ELockReason) @ 0xFE508D0` / `UnLockInter(ELockReason) @ 0xFE552F0` entries are the existing capture targets.
+- Existing pinned direct-call research found three `UnLockInter` callers passing literal `1`. **The recovered enum declaration names do not encode either numeric value**: the metadata extraction does not publish the IL2CPP constant/default table. Do not silently equate `1` with `QUEST_CHECK` until the exact 7.1 enum constant is recovered from field default-value data or equivalent native evidence.
+
+Interpretation: the client truly exposes named reasons `UI_CLOCK` and `QUEST_CHECK`, but the user's no-BlackMask lock has not been attributed to either reason. Even if `QUEST_CHECK=1` is eventually confirmed, the 35601 trace still needs an observed acquisition and matching (or missing) release; no server patch follows from these metadata rows alone. The existing hash-guarded read-only hook captures numeric reasons and guide/mask events for that purpose.
+
 ## New pinned direct-call xrefs: Lua guide bridge and pre-mask split (2026-10-11)
 
 The exact-7.1 [static native guide probe](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38081439198) is archived compactly in [`posttalk-native-guide-call-edges.json`](posttalk-native-guide-call-edges.json). It confirms **one direct E8 caller** of `MoleMole.GlobalActor.StartGuide(string) @ 0xFE284A0`: `MoleMoleGlobalActorWrap._m_StartGuide(native_int) @ 0xC70CC30`, call site `0xC70CCF5`. That wrapper makes a **Lua-mediated guide startup plausible**, while neither the 35601 Lua event nor the guide name has been recovered. Zero other E8 callers is *not* a claim that no indirect or Lua-driven call can exist.
