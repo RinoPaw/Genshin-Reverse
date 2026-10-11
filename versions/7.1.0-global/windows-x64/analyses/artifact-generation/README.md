@@ -107,6 +107,18 @@ Cross-check:
 
 This supports the server-authoritative hypothesis for generation/upgrade rolls, but it is not yet an independently bound Global 7.1 native/protocol proof in this repository.
 
+## Pinned 7.1 reliquary string-literal evidence
+
+The verified IL2CPP metadata literal identities from the former
+`research/reliquary-main-prop` branch are preserved in
+[`reliquary-string-literal-anchors.json`](reliquary-string-literal-anchors.json).
+The capture identified 86,109 recovered literals and exact configuration-table
+path indices. `genshinre/stringxref.py` provides generic PE/raw string xref
+helpers; `scripts/research_trace_7_1_literal_usage.py` is bound to the pinned
+7.1 client layout. These results confirm **resource path identities only**:
+no `weight` field identity, probability distribution or weighted-selection
+consumer has been established by them. The issue remains open.
+
 ## Current research split
 
 Close these independently:

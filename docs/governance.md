@@ -29,7 +29,7 @@ When a branch is needed, branch from current `main` and use `research/<topic>`, 
 
 Every temporary branch needs a named exit condition in its issue or analysis. Retire it as soon as its useful result is represented on `main`. Do not use a branch as a long-lived second source of truth.
 
-The `rino` branch is a compatibility/work pointer only. Keep it aligned with `main`; do not queue ordinary research there for later promotion.
+`main` is the sole maintained branch. The former `rino` compatibility pointer was intentionally retired; do not recreate it. Use temporary topic branches only for isolated work, and delete them after their useful results have reached `main`.
 
 ## Research promotion
 

@@ -191,3 +191,13 @@ The collector refuses inputs whose Git blob hashes differ from the pinned resour
 ## 2026-10-09 source check
 
 The pinned `AvatarExtraLevel` records confirm 90→95 and 95→100 progression costs. The large `ProudSkill`, `WeaponPromote` and `ReliquaryExcel` tables are populated when their Git blobs are fetched directly; path-based connector retrieval may appear empty due to response-size limits. See the new machine-readable observations and baseline checkpoint.
+
+## Pinned original-data snapshot
+
+The read-only, historical source-pin snapshot from `archive/growth-curves-20261005` is now
+preserved under [`versions/7.1.0-global/gameplay/original/`](../gameplay/original/).
+It contains four byte-identical resource JSON tables, a Git-blob source index, and
+`tools/extract_growth_curves.py` for recreating projections from the pinned resource checkout.
+This snapshot reflects the **2026-10-05** investigation. Its statements about empty or
+missing tables must not supersede the newer 2026-10-09 mainline source check above.
+Original source material is preserved without changing its provenance class.

@@ -58,7 +58,7 @@ See [governance.md](governance.md). Issues own scope and promotion gates; target
 
 `main` is both the maintained research branch and the durable evidence/infrastructure branch. Ordinary research should land there directly when each commit can keep the maintained tree coherent.
 
-Use `research/<topic>`, `decoder/<topic>`, or `maintenance/<topic>` only when incomplete intermediate states, destructive refactors, temporary orchestration, or an independently reviewable patch series need isolation. Such branches start from current `main` and should be retired as soon as their durable result lands. Keep `rino` aligned with `main`; do not create new `rino-*` topic branches.
+Use `research/<topic>`, `decoder/<topic>`, or `maintenance/<topic>` only when incomplete intermediate states, destructive refactors, temporary orchestration, or an independently reviewable patch series need isolation. Such branches start from current `main` and should be retired as soon as their durable result lands. The old `rino` branch was deliberately retired; do not recreate it or create `rino-*` topic branches.
 
 Topic-specific GitHub Actions are temporary orchestration. They require an active investigation, a concrete reason that the work cannot be done efficiently with local/reusable tools, and an explicit retirement condition. Once the reusable logic and unique evidence are committed, remove the workflow shell; Git history preserves it.
 
