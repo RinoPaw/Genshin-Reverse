@@ -21,6 +21,9 @@ const HOOKS = [
     { name: 'actor_utils_enable_input_by_quest', rva: 0x13A9B510, param: 'raw_input_args' },
     { name: 'actor_utils_set_ui_lock_state', rva: 0x13AA0120, param: 'raw_input_args' },
     { name: 'actor_utils_set_quest_dialog_enable', rva: 0x13ABEED0, param: 'raw_input_args' },
+    // Exact native bitmask/disabled-byte mutators; read state only, never change it.
+    { name: 'input_adapter_update_input_disable', rva: 0xAC528D0, param: 'input_adapter_update' },
+    { name: 'input_adapter_update_mask', rva: 0xAC529B0, param: 'input_adapter_mask' },
     { name: 'set_newbie_mask_index', rva: 0x9E2C4B0, param: 'mask_index' },
     { name: 'set_newbie_mask_compulsory', rva: 0x1163D740, param: 'compulsory' },
     { name: 'quest_list_update_receiver', rva: 0xA5CE790 },
@@ -69,6 +72,25 @@ function safeGuideName(pointer) {
     }
 }
 
+const adapterStateById = new Map();
+const adapterRequestById = new Map();
+const adapterIds = new Map();
+let nextAdapterId = 0;
+function adapterIdentity(pointer) {
+    if (!pointer || pointer.isNull()) return null;
+    const key = pointer.toString();
+    if (!adapterIds.has(key)) adapterIds.set(key, ++nextAdapterId);
+    return adapterIds.get(key);
+}
+function readAdapterState(pointer) {
+    if (!pointer || pointer.isNull()) return null;
+    try {
+        return {
+            disabled: pointer.add(0x18).readU8() !== 0,
+            disable_mask: pointer.add(0x1C).readU32(),
+        };
+    } catch (_) { return null; }
+}
 function emit(event) {
     event.elapsed_ms = Date.now() - startMs;
     event.thread_id = Process.getCurrentThreadId();
@@ -81,6 +103,24 @@ for (const hook of HOOKS) {
     Interceptor.attach(mod.base.add(hook.rva), {
         onEnter(args) {
             if (hook.verbose && !verbose) return;
+            if (hook.param === 'input_adapter_update' || hook.param === 'input_adapter_mask') {
+                this.adapterPointer = args[0];
+                this.adapterId = adapterIdentity(args[0]);
+                if (hook.param === 'input_adapter_update' && this.adapterId !== null) {
+                    // Request argument order is from exact native method signature;
+                    // do not give its bool a semantic name until its callsites are proven.
+                    const request = { flag: safeBool(args[1]), source: safeInt(args[2]) };
+                    const key = JSON.stringify(request);
+                    if (adapterRequestById.get(this.adapterId) !== key) {
+                        adapterRequestById.set(this.adapterId, key);
+                        emit({ event: 'input_adapter_disable_request',
+                            adapter_id: this.adapterId,
+                            requested_flag: request.flag,
+                            numeric_source: request.source });
+                    }
+                }
+                return;
+            }
             const event = { event: hook.name, rva: '0x' + hook.rva.toString(16).toUpperCase() };
             if (hook.param === 'talk_id') event.talk_id = safeInt(args[1]);
             if (hook.param === 'raw_input_args') {
@@ -112,6 +152,18 @@ for (const hook of HOOKS) {
             if (hook.result !== 'bool') emit(event);
         },
         onLeave(retval) {
+            if (hook.param === 'input_adapter_update' || hook.param === 'input_adapter_mask') {
+                if (this.adapterId === null) return;
+                const state = readAdapterState(this.adapterPointer);
+                if (state === null) return;
+                const key = state.disable_mask + ':' + state.disabled;
+                if (adapterStateById.get(this.adapterId) === key) return;
+                adapterStateById.set(this.adapterId, key);
+                emit({ event: 'input_adapter_effective_state',
+                    adapter_id: this.adapterId, disabled: state.disabled,
+                    disable_mask: state.disable_mask });
+                return;
+            }
             if (hook.result !== 'bool') return;
             // Native StartGuide tests AL after this call. A false predicate must
             // return before the downstream guide-start dispatch can run.

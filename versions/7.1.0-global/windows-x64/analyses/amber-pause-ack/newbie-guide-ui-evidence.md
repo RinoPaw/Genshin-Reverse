@@ -1,3 +1,9 @@
+## Exact 7.1 input-adapter state snapshots (research capture upgrade, 2026-10-11)
+
+A separate [pinned native input-adapter disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38107560005) identifies `BaseInputAdapter.UpdateInputDisable(bool, InputAdapterDisableSource) @ 0xAC528D0` and `UpdateDisableInputMask @ 0xAC529B0`. The first changes a mask at instance `+0x1C` and the disabled byte at `+0x18`, with the effective disable branch derived from `mask & 7 != 0`. This is independent of the `InteractionManager._lockedReasonSet` and the BlackMask UI component.
+
+The read-only 7.1 capture now observes both entry points. It records deduplicated native request arguments (`requested_flag`, `numeric_source`; semantic value of source is still unresolved), and deduplicated post-call states (`disable_mask`, `disabled`). A local integer `adapter_id` correlates events **without logging raw pointers**. All reads are exception-guarded; neither method is called by the probe. An absent change event after attachment is not proof that no earlier input-disable mask exists. This capture **has not been validated on a running client**; it identifies the next decisive observation without modifying gameplay.
+
 ## Exact 7.1 input-control ABI narrowed (2026-10-11)
 
 The pinned executable's read-only native disassembly in [avatar-input research run 38108387790](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38108387790) supports explicit argument-index labeling in the prepared read-only capture, without guessing gameplay state:

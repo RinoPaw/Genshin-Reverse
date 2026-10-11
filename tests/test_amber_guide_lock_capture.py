@@ -33,7 +33,7 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
             "0xA5CE790", "0x89FB050", "0x758D8C0", "0x758DBD0",
         ):
             self.assertIn(rva, js)
-        self.assertEqual(20, js.count("{ name: '"))
+        self.assertEqual(22, js.count("{ name: '"))
         self.assertIn("Interceptor.attach(", js)
         for forbidden in ("Memory.write", "writePointer(", "writeU8(",
                           "writeS32(", "NativeFunction("):
@@ -69,6 +69,12 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         self.assertIn("actor_utils_set_quest_dialog_enable: 0", js)
         self.assertIn("event.ui_locked = value;", js)
         self.assertIn("event.enabled = value;", js)
+        self.assertIn("name: 'input_adapter_update_input_disable', rva: 0xAC528D0", js)
+        self.assertIn("name: 'input_adapter_update_mask', rva: 0xAC529B0", js)
+        self.assertIn("pointer.add(0x18).readU8()", js)
+        self.assertIn("pointer.add(0x1C).readU32()", js)
+        self.assertIn("event: 'input_adapter_disable_request'", js)
+        self.assertIn("event: 'input_adapter_effective_state'", js)
         self.assertNotIn("Memory.write", js)
         self.assertNotIn("retval.replace(", js)
 
