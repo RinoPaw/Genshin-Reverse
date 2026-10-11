@@ -22,6 +22,8 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         self.assertLess(source.index("require_profile_exe(args.exe, PROFILE_71)"),
                         source.index("frida.attach(args.process)"))
         self.assertIn('"pre_attach_lock_state": "unknown"', source)
+        self.assertIn('"capture_start_requirement": "before quest 35601 starts', source)
+        self.assertIn('Attach BEFORE quest 35601 starts', source)
 
     def test_probe_has_only_read_only_native_hooks(self) -> None:
         js = SCRIPT.read_text(encoding="utf-8")
