@@ -1,3 +1,15 @@
+## 2026-10-11 read-only 7.1 hook callback validation (without a game client)
+
+The 22 native hook callbacks now have an executable, dependency-free **simulated Frida host test** (`tests/test_amber_guide_hook_mock.py`). It runs the actual JavaScript probe in a Node `vm` with mocked Frida interfaces and covers:
+
+- All 22 RVAs register exactly once, and the ready message agrees with configuration;
+- The bounded managed UTF-16 `GuideQuestGuide`/PC string and both rejected/accepted guide preflight returns are logged **without replacing the result**;
+- The exact native ABI argument positions for avatar player input and UI lock are interpreted as intended;
+- Native adapter request/return state snapshots are correlated by anonymized adapter ID; unchanged requests/masks are deduplicated; pointers do not appear in emitted events;
+- Unreadable `MonoNewbieMask.set_showCompulory` argument is **unknown/null**, not erroneously `true` (corrected the previous `null !== 0` decoder bug).
+
+[CI run 38109700067](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38109700067) passed the full 358-test validation run (Python 3.11, 3.14, validation job); job logs explicitly confirm the simulated callback test executed (not skipped). This is materially stronger than source-only lint, but **does not validate Frida attachment to a running 7.1 game, executable RVA behavior, or the cause of the Amber input lock**. Instrumentation remains diagnostic-only; no AstaPS gameplay change, user replay, or claim of a functioning BlackMask.
+
 ## Exact 7.1 input-adapter state snapshots (research capture upgrade, 2026-10-11)
 
 A separate [pinned native input-adapter disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38107560005) identifies `BaseInputAdapter.UpdateInputDisable(bool, InputAdapterDisableSource) @ 0xAC528D0` and `UpdateDisableInputMask @ 0xAC529B0`. The first changes a mask at instance `+0x1C` and the disabled byte at `+0x18`, with the effective disable branch derived from `mask & 7 != 0`. This is independent of the `InteractionManager._lockedReasonSet` and the BlackMask UI component.
