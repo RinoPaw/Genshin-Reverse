@@ -13,6 +13,14 @@ const HOOKS = [
     { name: 'guide_start_predicate', rva: 0x758D8C0, param: 'guide_name', result: 'bool' },
     { name: 'guide_start_dispatch', rva: 0x758DBD0, param: 'guide_name' },
     { name: 'end_guide', rva: 0xFE28170, param: 'guide_name' },
+    // Historical AQ356 OnSubStart35601 calls StopLocalAvatar before the talk;
+    // the 7.1 continuation must be observed, not inferred from the old script.
+    { name: 'stop_local_avatar', rva: 0xFE296E0 },
+    { name: 'base_actor_enable_player_input', rva: 0x13AF5060, param: 'raw_input_args' },
+    { name: 'actor_utils_enable_player_input', rva: 0x13A9BAE0, param: 'raw_input_args' },
+    { name: 'actor_utils_enable_input_by_quest', rva: 0x13A9B510, param: 'raw_input_args' },
+    { name: 'actor_utils_set_ui_lock_state', rva: 0x13AA0120, param: 'raw_input_args' },
+    { name: 'actor_utils_set_quest_dialog_enable', rva: 0x13ABEED0, param: 'raw_input_args' },
     { name: 'set_newbie_mask_index', rva: 0x9E2C4B0, param: 'mask_index' },
     { name: 'set_newbie_mask_compulsory', rva: 0x1163D740, param: 'compulsory' },
     { name: 'quest_list_update_receiver', rva: 0xA5CE790 },
@@ -62,6 +70,14 @@ for (const hook of HOOKS) {
             if (hook.verbose && !verbose) return;
             const event = { event: hook.name, rva: '0x' + hook.rva.toString(16).toUpperCase() };
             if (hook.param === 'talk_id') event.talk_id = safeInt(args[1]);
+            if (hook.param === 'raw_input_args') {
+                // Preserve raw ABI positions: IL2CPP instance-vs-static argument
+                // layout is not yet native-disassembly-verified for these helpers.
+                // These are numerical flags / pointers, not semantic booleans.
+                event.raw_arg0 = safeInt(args[0]);
+                event.raw_arg1 = safeInt(args[1]);
+                event.raw_arg2 = safeInt(args[2]);
+            }
             if (hook.param === 'reason') event.reason = safeInt(args[1]);
             if (hook.param === 'mask_index') event.mask_index = safeInt(args[1]);
             if (hook.param === 'compulsory') event.compulsory = safeInt(args[1]) !== 0;

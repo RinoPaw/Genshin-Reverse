@@ -31,7 +31,7 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
             "0xA5CE790", "0x89FB050", "0x758D8C0", "0x758DBD0",
         ):
             self.assertIn(rva, js)
-        self.assertEqual(14, js.count("{ name: '"))
+        self.assertEqual(20, js.count("{ name: '"))
         self.assertIn("Interceptor.attach(", js)
         for forbidden in ("Memory.write", "writePointer(", "writeU8(",
                           "writeS32(", "NativeFunction("):
@@ -44,6 +44,24 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         self.assertIn("event: 'guide_start_predicate_result'", js)
         self.assertIn("accepted: result === null ? null : (result & 0xff) !== 0", js)
         self.assertIn("onLeave(retval)", js)
+        self.assertNotIn("retval.replace(", js)
+
+    def test_avatar_stop_and_player_input_hooks_use_exact_71_metadata_rvas(self) -> None:
+        js = SCRIPT.read_text(encoding="utf-8")
+        anchors = {
+            "stop_local_avatar": "0xFE296E0",
+            "base_actor_enable_player_input": "0x13AF5060",
+            "actor_utils_enable_player_input": "0x13A9BAE0",
+            "actor_utils_enable_input_by_quest": "0x13A9B510",
+            "actor_utils_set_ui_lock_state": "0x13AA0120",
+            "actor_utils_set_quest_dialog_enable": "0x13ABEED0",
+        }
+        for name, rva in anchors.items():
+            self.assertIn(f"name: '{name}', rva: {rva}", js)
+        self.assertIn("event.raw_arg0 = safeInt(args[0]);", js)
+        self.assertIn("event.raw_arg1 = safeInt(args[1]);", js)
+        self.assertIn("event.raw_arg2 = safeInt(args[2]);", js)
+        self.assertNotIn("Memory.write", js)
         self.assertNotIn("retval.replace(", js)
 
     def test_probe_does_not_capture_packet_payloads(self) -> None:
