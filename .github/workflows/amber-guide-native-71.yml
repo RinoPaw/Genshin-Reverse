@@ -39,6 +39,7 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             amber-guide-native-edges.json \
             --max-body 0x5000 \
+            --focus GuideLookup:0xF9E01B0 \
             --focus GuideManager.CanStart:0x758D8C0 \
             --focus GuideManager.Start:0x758DBD0 \
             --focus GuideManager.End:0x75901A0 \
@@ -65,7 +66,7 @@ jobs:
             for e in item['direct_edges'][:50]:
               o=e.get('target_owner') or {}
               print("EDGE",e['site_rva'],e['kind'],e['target_rva'],[(m['type_name'],m['method_name']) for m in o.get('metadata_rows',[])[:3]])
-            print("DISASM_HEAD",[(i['rva'],i['mnemonic'],i['op_str']) for i in item['disassembly'][:28]])
+            print("DISASM_HEAD",[(i['rva'],i['mnemonic'],i['op_str']) for i in item['disassembly'][:145]])
           PY
       - name: Preserve exact-client research evidence
         if: always()
