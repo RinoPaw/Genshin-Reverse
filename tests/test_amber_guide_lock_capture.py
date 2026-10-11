@@ -68,9 +68,10 @@ class AmberGuideLockCaptureStaticTests(unittest.TestCase):
         }
         for name, rva in anchors.items():
             self.assertIn(f"name: '{name}', rva: {rva}", js)
-        self.assertIn("event.raw_arg0 = safeInt(args[0]);", js)
-        self.assertIn("event.raw_arg1 = safeInt(args[1]);", js)
-        self.assertIn("event.raw_arg2 = safeInt(args[2]);", js)
+        for raw in ("event.raw_arg0", "event.raw_arg1", "event.raw_arg2"):
+            self.assertNotIn(raw, js)
+        self.assertIn("event.secondary_flag = safeBool(args[2]);", js)
+        self.assertIn("event.secondary_flag = safeBool(args[1]);", js)
         self.assertIn("base_actor_enable_player_input: 1", js)
         self.assertIn("actor_utils_enable_player_input: 0", js)
         self.assertIn("actor_utils_set_ui_lock_state: 0", js)
