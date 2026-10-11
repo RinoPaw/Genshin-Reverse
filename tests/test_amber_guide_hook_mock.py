@@ -96,8 +96,12 @@ assert.equal(last('set_newbie_mask_compulsory').compulsory, true);
 // Exact-client disassembly verifies which argument is the primary bool.
 invoke(0x13AF5060, [value(0), value(1), value(0)]);
 assert.equal(last('base_actor_enable_player_input').enabled, true);
+assert.equal(last('base_actor_enable_player_input').secondary_flag, false);
+assert.equal('raw_arg0' in last('base_actor_enable_player_input'), false);
 invoke(0x13A9BAE0, [value(0), value(1), value(1)]);
 assert.equal(last('actor_utils_enable_player_input').enabled, false);
+assert.equal(last('actor_utils_enable_player_input').secondary_flag, true);
+assert.equal('raw_arg2' in last('actor_utils_enable_player_input'), false);
 invoke(0x13AA0120, [value(1), value(0), value(0)]);
 assert.equal(last('actor_utils_set_ui_lock_state').ui_locked, true);
 invoke(0x13AA0120, [value(0), value(0), value(0)]);
