@@ -1,0 +1,82 @@
+{
+  "topic": "quest-chapter1301-prerequisite-provenance",
+  "state": "ACTIVE",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "resource-data (Windows x64 client target)",
+    "hashes_ref": "versions/7.1.0-global/analyses/quest-prerequisites/chapter1301/README.md",
+    "resource_revision": "RinoPaw/AstaPS-Resource@5ff5f0b083fd3683aca894e4ebc2ba602306820f"
+  },
+  "questions": [
+    "Which historical MQ3000-3006 prerequisites agree across GCResource 3.7 and 4.0?",
+    "What prerequisite fields are missing from the derived 7.1 BinOutput Quest resources?",
+    "What is the origin and intended unlock condition of 7.1-only subquest 300012?",
+    "Does the current flattened QuestExcel preserve the historical graph or contain conversion drift?"
+  ],
+  "claims": [
+    {
+      "id": "chapter1301-legacy-identical",
+      "status": "CONFIRMED",
+      "statement": "GCResource 3700 and 4000 carry identical Git blobs for each MQ3000-3006 file (110 historical subquests total).",
+      "evidence": [
+        {
+          "kind": "git-blobs",
+          "source": "TomyJan/GCResource",
+          "locator": "branches 3700 and 4000, BinOutput/Quest/{3000..3006}.json",
+          "note": "Seven paired blob SHAs recorded in README; all pairs equal."
+        }
+      ]
+    },
+    {
+      "id": "chapter1301-7.1-no-accept",
+      "status": "CONFIRMED",
+      "statement": "The matching 110 subquests in RinoPaw/AstaPS-Resource 7.1 derived BinOutput/Quest contain no meaningful acceptCond.",
+      "evidence": [
+        {
+          "kind": "static-file-audit",
+          "source": "RinoPaw/AstaPS-Resource",
+          "locator": "5ff5f0b083fd3683aca894e4ebc2ba602306820f:BinOutput/Quest/{3000..3006}.json"
+        }
+      ]
+    },
+    {
+      "id": "chapter1301-extra-row",
+      "status": "CONFIRMED",
+      "statement": "Derived 7.1 MQ3000 contains subquest 300012, which is absent from both historical files.",
+      "evidence": [
+        {
+          "kind": "static-file-audit",
+          "source": "RinoPaw/AstaPS-Resource",
+          "locator": "5ff5f0b083fd3683aca894e4ebc2ba602306820f:BinOutput/Quest/3000.json"
+        },
+        {
+          "kind": "historical-diff",
+          "source": "TomyJan/GCResource",
+          "locator": "3700 and 4000:BinOutput/Quest/3000.json"
+        }
+      ]
+    },
+    {
+      "id": "chapter1301-7.1-compat",
+      "status": "UNRESOLVED",
+      "statement": "The historical prerequisite graph and 7.1-only 300012 have not been verified against 7.1 client's actual progression; no overlay is certified.",
+      "evidence": [
+        {
+          "kind": "research-limit",
+          "source": "RinoPaw/Genshin-Reverse",
+          "locator": "versions/7.1.0-global/analyses/quest-prerequisites/chapter1301/README.md"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    "versions/7.1.0-global/analyses/quest-prerequisites/chapter1301/README.md",
+    "versions/7.1.0-global/analyses/quest-prerequisites/chapter1301/evidence.json"
+  ],
+  "next_steps": [
+    "Read-only flattened 7.1 QuestExcel comparison for all 110 historical subquests and current-only subquest 300012.",
+    "Verify 7.1 runtime semantics and preserve independent current-only conditions.",
+    "Use a guarded scoped compatibility manifest and CI before considering an upstream patch."
+  ]
+}
