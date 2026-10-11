@@ -107,5 +107,5 @@ send({
     module: MODULE,
     module_base: mod.base.toString(),
     hook_count: HOOKS.length,
-    warning: 'Events only: absence of LockInter before attachment cannot prove a lock was never acquired.',
+    warning: 'Attach before 35601 starts, not merely before its dialogue. Any pre-attach input lock is unknown.',
 });
