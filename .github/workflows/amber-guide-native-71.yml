@@ -39,16 +39,17 @@ jobs:
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             amber-guide-native-edges.json \
             --max-body 0x5000 \
-            --focus GlobalActor.StartGuide:0xFE284A0 \
-            --focus GlobalActor.EndGuide:0xFE28170 \
-            --focus MonoNewbieMask.showCompulory:0x1163D740 \
-            --focus MonoNewbieDialog.SetNewbieMaskIndex:0x9E2C4B0 \
-            --focus MonoBaseCanvas.SetBlockInputMaskEnable:0x9152EB0 \
-            --focus BaseInputAdapter.UpdateInputDisable:0xAC528D0 \
-            --focus BaseInputAdapter.UpdateDisableInputMask:0xAC529B0 \
-            --focus MonoGuideV2ClickTarget.OnPointerClick:0x7A577D0 \
+            --focus GuideManager.CanStart:0x758D8C0 \
+            --focus GuideManager.Start:0x758DBD0 \
+            --focus GuideManager.End:0x75901A0 \
+            --focus GuideManager.OnNotify:0x75905C0 \
+            --focus GuideManager.ClearOnDisconnect:0x7590B60 \
+            --focus GuideUI.SetupView:0x89FB050 \
+            --focus GuideUI.ShowMask:0x89F7080 \
+            --focus GuideUI.OnNotify:0x89FC100 \
+            --focus GuideUI.ClearView:0x89F9600 \
             --focus InteractionManager.FinishCurrTalk:0xFE57430 \
-            --focus InteractionManager.ClearAfterKeyListFinish:0xFE5FE80 \
+            --focus QuestResponseHandler:0xA5E18C0 
             > /tmp/amber-native-full.log
           python - <<'PY'
           import json
