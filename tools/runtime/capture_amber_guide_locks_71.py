@@ -78,6 +78,7 @@ def main() -> None:
         "script": str(args.script.resolve()),
         "verbose": args.verbose,
         "pre_attach_lock_state": "unknown",
+        "capture_start_requirement": "before quest 35601 starts (before finishing 36005)",
     })
 
     def on_message(message: dict, data: object) -> None:
@@ -115,7 +116,9 @@ def main() -> None:
         record("capture_config", config)
         print("Exact 7.1 executable verified:", executable_hash)
         print("Capturing native events to:", args.output)
-        print("Attach before the Amber dialogue to record the matching lock/unlock transitions.")
+        print("Attach BEFORE quest 35601 starts (before finishing 36005).")
+        print("A historical AQ356 script calls StopLocalAvatar at 35601 start, before Amber dialogue;")
+        print("attaching only before talking may miss the input-disable transition.")
         print("Press Enter to stop the read-only capture.")
         try:
             input()
