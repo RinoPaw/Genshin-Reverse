@@ -10,14 +10,14 @@ from genshinre.stringxref import _encoded_literal, find_raw_string_hits
 class StringXrefTests(unittest.TestCase):
     def test_encoding_validation(self):
         self.assertEqual(_encoded_literal("AB", "ascii"), b"AB")
-        self.assertEqual(_encoded_literal("AB", "utf-16le"), b"A\\x00B\\x00".replace(b"\\x00", b"\x00"))
+        self.assertEqual(_encoded_literal("AB", "utf-16le"), bytes([65, 0, 66, 0]))
         with self.assertRaises(ValueError):
             _encoded_literal("AB", "utf-8")
 
     def test_raw_file_scan_distinguishes_encodings(self):
         with tempfile.TemporaryDirectory() as directory:
             sample = Path(directory) / "literal.bin"
-            sample.write_bytes(b"\\x00AB\\x00A\\x00B\\x00".replace(b"\\x00", b"\x00"))
+            sample.write_bytes(bytes([0, 65, 66, 0, 65, 0, 66, 0]))
             hits = find_raw_string_hits(sample, "AB")
             self.assertEqual(
                 [(hit["encoding"], hit["file_offset"]) for hit in hits],
