@@ -1,0 +1,95 @@
+{
+  "case": "monster-drowning-packet",
+  "status": "UNRESOLVED",
+  "target": {
+    "game_version": "7.1.0",
+    "region": "Global",
+    "platform": "Windows x64",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "source_revisions": {
+    "reverse_repo": "RinoPaw/Genshin-Reverse@07ca782ddf98982922181b52c86f49d62950c252",
+    "server_repo": "RinoPaw/AstaPS@a27e5a753c74c53144291b9e95a13510e3b4ff2e",
+    "crosscheck_repo": "capyb2222/LunaGC_7.1.0@8be69a16c1410fc4233c4872996581317c876ffe"
+  },
+  "canonical_registry": {
+    "unique_cmd_ids": 4896,
+    "identity_only": true,
+    "checks": [
+      {
+        "legacy_name": "EntityAiKillSelfNotify",
+        "server_opcode": 29500,
+        "in_registry": false,
+        "disposition": "REJECTED_FOR_7_1"
+      },
+      {
+        "legacy_name": "SceneEntityDrownReq",
+        "historical_opcode": 20113,
+        "in_registry": true,
+        "type_name": "NHHIOCJPICK",
+        "type_definition_index": 60907,
+        "metadata_declared_field_count": 2,
+        "server_opcode_name": "GadgetTalkChangeNotify",
+        "disposition": "DO_NOT_REUSE_WITHOUT_NATIVE_PROOF"
+      },
+      {
+        "legacy_name": "SceneEntityDrownRsp",
+        "historical_opcode": 26715,
+        "in_registry": true,
+        "type_name": "NILBKHGJOMB",
+        "type_definition_index": 14990,
+        "metadata_declared_field_count": 2,
+        "disposition": "SEMANTIC_UNRESOLVED"
+      }
+    ]
+  },
+  "crosscheck": {
+    "repository": "capyb2222/LunaGC_7.1.0",
+    "branch": "7.1",
+    "negative_packet_sentinels": {
+      "SceneEntityDrownReq": -22,
+      "SceneEntityDrownRsp": -97,
+      "EntityAiKillSelfNotify": -150
+    },
+    "historical_proto_shapes": [
+      {
+        "name": "SceneEntityDrownReq",
+        "fields": [
+          {
+            "number": 3,
+            "type": "uint32",
+            "name": "entity_id"
+          }
+        ]
+      },
+      {
+        "name": "SceneEntityDrownRsp",
+        "fields": [
+          {
+            "number": 4,
+            "type": "uint32",
+            "name": "entity_id"
+          },
+          {
+            "number": 13,
+            "type": "int32",
+            "name": "retcode"
+          }
+        ]
+      }
+    ],
+    "shape_status": "HISTORICAL_COMPATIBILITY_ONLY"
+  },
+  "limits": [
+    "Presence of an opcode in the exact 7.1 registry establishes its numeric/type identity, not its semantic name.",
+    "The canonical type field_count is metadata declaration count, not recovered protobuf wire schema.",
+    "Negative sentinels in a community 7.1 server are not evidence of actual client opcodes.",
+    "No runtime drowning transaction, exact 7.1 sender/handler binding, or exact protobuf entity-id field has been observed."
+  ],
+  "next_evidence_gate": [
+    "Capture the same monster drowning event with AstaPS unknown-packet DEBUG logs, including a baseline before the fall and the scene entity id if available.",
+    "Resolve new C2S opcode candidates against the canonical registry and inspect protobuf wire tags without assuming historical field numbers.",
+    "Trace current 7.1 native sender/receiver and record opcode, direction, entity-id field and authoritative-death lifecycle before semantic promotion."
+  ]
+}
