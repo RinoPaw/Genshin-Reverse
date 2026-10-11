@@ -48,6 +48,13 @@ Do not spend more time searching known Luna/Asta siblings that share resource an
 
 Status: `UNRESOLVED`.
 
+The prior branch's reusable field-offset resolver and four Quest 351 metadata/native
+correlation scripts are now in `tools/` on `main`. The correlation script using
+Capstone requires that optional library to be installed separately; it is not a
+mandatory dependency of the standard-library base toolkit. The discarded
+`research-quest351*.yml` shells were temporary probes, not maintained workflows.
+These tools preserve navigation leads only; the UI-state cause is still unresolved.
+
 Current exact anchor:
 
 ```text
