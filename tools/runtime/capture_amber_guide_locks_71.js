@@ -144,7 +144,7 @@ for (const hook of HOOKS) {
             }
             if (hook.param === 'reason') event.reason = safeInt(args[1]);
             if (hook.param === 'mask_index') event.mask_index = safeInt(args[1]);
-            if (hook.param === 'compulsory') event.compulsory = safeInt(args[1]) !== 0;
+            if (hook.param === 'compulsory') event.compulsory = safeBool(args[1]);
             if (hook.param === 'guide_name') {
                 event.guide_name = safeGuideName(args[1]);
                 if (hook.result === 'bool') this.guideName = event.guide_name;
