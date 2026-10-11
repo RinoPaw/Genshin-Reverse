@@ -44,6 +44,19 @@ function safeInt(value) {
     try { return value.toInt32(); } catch (_) { return null; }
 }
 
+// Exact-7.1 Windows x64 argument positions from pinned native disassembly.
+// The semantic meaning of extra arguments remains unknown.
+const VERIFIED_BOOL_ARG_POSITIONS = {
+    base_actor_enable_player_input: 1, // EDX, after actor RCX
+    actor_utils_enable_player_input: 0, // ECX
+    actor_utils_set_ui_lock_state: 0, // ECX
+    actor_utils_set_quest_dialog_enable: 0, // ECX
+};
+function safeBool(value) {
+    const n = safeInt(value);
+    return n === null ? null : (n & 0xff) !== 0;
+}
+
 function safeGuideName(pointer) {
     if (!pointer || pointer.isNull()) return null;
     try {
@@ -77,6 +90,17 @@ for (const hook of HOOKS) {
                 event.raw_arg0 = safeInt(args[0]);
                 event.raw_arg1 = safeInt(args[1]);
                 event.raw_arg2 = safeInt(args[2]);
+                const argIndex = VERIFIED_BOOL_ARG_POSITIONS[hook.name];
+                if (argIndex !== undefined) {
+                    const value = safeBool(args[argIndex]);
+                    if (hook.name === 'actor_utils_set_ui_lock_state') {
+                        event.ui_locked = value;
+                    } else {
+                        event.enabled = value;
+                    }
+                    // Only the selected argument's ABI and the method identity
+                    // are verified; raw secondary flags are intentionally unlabeled.
+                }
             }
             if (hook.param === 'reason') event.reason = safeInt(args[1]);
             if (hook.param === 'mask_index') event.mask_index = safeInt(args[1]);
