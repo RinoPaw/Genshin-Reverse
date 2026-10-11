@@ -83,3 +83,7 @@ A workflow is orchestration, not the canonical implementation of a reverse-engin
 ## Validation boundary
 
 Exploratory research may iterate with cheap local checks and opt-in exact-sample jobs. Full validation must not be skipped before asking the user to test a promoted change, before preparing an upstream submission, or before publishing/regenerating canonical target artifacts.
+
+### Temporary 2026-10-11 Amber avatar-input research
+
+`research-amber-avatar-input-71.yml` runs one hash-verified 7.1 static disassembly of `StopLocalAvatar`, player-input gates, quest-dialog gate and `StartGuide` to validate the newly recovered historical AQ356 script path. This read-only topic-specific workflow is temporary and will be retired after its source-bound findings are recorded; it is not an ordinary CI dependency.
