@@ -30,8 +30,9 @@ jobs:
         run: |
           python - <<'PY'
           from genshinre.nativeprofile import PROFILE_71
+          from pathlib import Path
           from genshinre.sampleidentity import require_sha256
-          require_sha256("inputs/7.1.0-global/GenshinImpact.exe", PROFILE_71.exe_sha256, label="7.1 Global client")
+          require_sha256(Path("inputs/7.1.0-global/GenshinImpact.exe"), PROFILE_71.exe_sha256, label="7.1 Global client")
           PY
           python tools/trace_native_call_edges.py \
             inputs/7.1.0-global/GenshinImpact.exe \
