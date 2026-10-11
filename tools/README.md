@@ -11,6 +11,12 @@ Current helpers:
 - `locate_game_packet_framing_71.py` reproduces the exact-client packet-framing boundary used by the maintained runtime capture evidence and depends on Capstone.
 - `trace_native_call_edges.py` traces focused native direct-call edges with metadata ownership. It stays outside the base package because it depends on Capstone.
 - `scan_field_displacements.py` scans methods owned by one selected IL2CPP type for x86-64 memory operands using requested object displacements. It records register/addressing details and surrounding instructions so a researcher can narrow producer/consumer paths without pretending that displacement equality alone establishes field identity. The opt-in `Scan 7.1 Field Displacements` workflow runs it against the pinned exact Global 7.1 sample.
+- `extract_growth_curves.py` recreates compact progression projections from the exact pinned AstaPS-Resource revision; its original source archive is at `versions/7.1.0-global/gameplay/original/`. The later mainline progression research remains authoritative for newer conclusions.
+- `resolve_7_1_field_offsets.py` finds exact-build IL2CPP metadata registration field-offset arrays and verifies the candidate registration layout.
+- `research_quest351_keywords.py` finds Quest 351 native/localization keyword reference candidates for Issue #9.
+- `research_quest351_metadata.py` narrows Quest 351 metadata and method candidates under the pinned native profile.
+- `research_quest351_types.py` inspects candidate Quest 351 type relationships; these are research leads, not confirmed UI ownership.
+- `research_quest351_native_correlation.py` correlates exact-build Quest 351 direct callsites with quest-core methods; requires the optional Capstone dependency.
 - `runtime/` contains build-bound runtime capture helpers; reusable correlation logic lives in `genshinre.capture` / `genshinre correlate-capture`. The Python launcher reports an explicit install hint when the optional Frida bindings are missing.
 
 Optional research dependencies are deliberately kept out of the base package. Install only what the selected helper needs:
