@@ -1,3 +1,16 @@
+## Exact 7.1 input-control ABI narrowed (2026-10-11)
+
+The pinned executable's read-only native disassembly in [avatar-input research run 38108387790](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38108387790) supports explicit argument-index labeling in the prepared read-only capture, without guessing gameplay state:
+
+- `BaseActor.EnablePlayerInput @ 0x13AF5060` copies `EDX` into `EBX` (primary enable flag, instance argument #1), `R8D` into `ESI` (unlabeled secondary argument), then tail-jumps to `ActorUtils.EnablePlayerInput` with `ECX=EBX` and `EDX=ESI`.
+- `ActorUtils.EnablePlayerInput @ 0x13A9BAE0` reads `ECX` as the primary enable flag (static argument #0) and `EDX` as an additional flag; `test r8b,r8b` after `mov r8d,edx` branches on that secondary argument. Do not misinterpret raw argument #1 as the primary enable state.
+- `ActorUtils.SetUILockState @ 0x13AA0120` reads its bool from `ECX`, taking distinct set/clear branches and writing a global byte to 1/0. The capture labels this primary argument `ui_locked`, separately from the `InteractionManager._lockedReasonSet` reasons.
+- `ActorUtils.SetLevelQuestDialogEnableState @ 0x13ABEED0` reads its first bool from `ECX`; the capture labels it `enabled`. The interpretation of other input/quest helper arguments remains unresolved.
+- `GlobalActor.StartGuide @ 0xFE284A0` copies the guide name pointer from `RDX`, confirming the existing probe's instance argument #1 read.
+- `GlobalActor.StopLocalAvatar @ 0xFE296E0` resolves through a virtual function pointer at `[vtable+0x690]` and passes zero in `EDX`; the exact virtual target and lasting control effect remain unverified. Thus historical AQ356's StopLocalAvatar call cannot be equated to an indefinite player-input lock.
+
+**Capture boundary:** Historical AQ356 invokes `StopLocalAvatar` on `OnSubStart35601`, before Amber dialogue. The native capture must attach **before the end of quest 36005 / before 35601 starts** to observe that transition; simply attaching shortly before NpcTalkReq(35601) can miss it. This is a historical-script timing precaution, not a confirmed 7.1 execution fact. The probe remains read-only and still requires in-game validation; no AstaPS gameplay fix is claimed.
+
 ## Historical AQ356 also stops the avatar before dialogue; expanded exact-7.1 input probe (2026-10-11)
 
 Review of the same **historical 4.8** [AQ356 Lua](https://github.com/Hiro420/GS_Lua/blob/f9eb0f823c15c0bf26e6a2a0406697655ac07af7/lua/Actor/Quest/AQ356.lua) reveals that `OnSubStart35601` calls `globalActor:StopLocalAvatar()` **before** `PlayCutsceneIndex(36001)` and its eventual interaction request. The historical `OnSubFinish35601` calls `StartGuide("GuideQuestGuide")` without an explicit `EnablePlayerInput(true)` in that handler. Comparison with [historical AQ354 Lua](https://github.com/Hiro420/GS_Lua/blob/f9eb0f823c15c0bf26e6a2a0406697655ac07af7/lua/Actor/Quest/AQ354.lua) shows that some other prologue sequences **explicitly** call `EnablePlayerInput(false)` and then `EnablePlayerInput(true)` before starting a guide. This establishes a plausible separate **avatar/input gate** to inspect if no BlackMask appears. It does **not** establish that `StopLocalAvatar` by itself disables movement indefinitely, or that the pinned 7.1 AQ356 performs the same calls.
