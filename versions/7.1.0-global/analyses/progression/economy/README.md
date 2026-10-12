@@ -1,5 +1,28 @@
 # Native reward economy
 
+## Current AstaPS Dungeon claim-path audit (2026-10-13)
+
+[Current static claim-path snapshot](7.1-current-asta-dungeon-reward-audit.json) is pinned to [AstaPS 1c2cb794](https://github.com/RinoPaw/AstaPS/commit/1c2cb79444ae911baf1fb8a11875ac32ae9783c4) (PR #120), with eight checked server blobs and the original source-graph/preview snapshots. Its **B-level static conclusions are candidates**, not verified native probabilities or successful in-game claims.
+
+- Source coverage: **373** Dungeon rows, **166** linked roots, **140** missing roots, **67** without pointers.
+- **278** configured `DungeonDrop.json` pools: **262** pass deterministic structural checks, **16** fail (**6** empty item pools and **10** artifact pools containing weapon-ascension materials). Structural validity does not establish ItemData/family verification or an official drop rate.
+- Candidate routes: **131** native-with-proxy fallback, **35** native-only, **131** proxy-only; **75** lack a payable source in the audited DomainStatue claim path and Dungeon **5116** fails the initial source gate. A candidate can still fail runtime validation.
+- Immediate repair leads: the **9** missing-root artifact domains with rejected proxy pools are `4480, 4484, 4665, 4683, 4687, 5018, 5022, 5060, 5064`.
+- All **66** Boss Dungeon rows lack a payable source *in this particular claim path*. Other world/weekly Boss consumers have not been audited, so this does not prove all Boss rewards are broken.
+- The current server binds `IAOMJCLOIEL` to `statueDrop`, checks native leaf families and proxy structure, and never treats reward-preview items as payable loot. Rejected pools do not by themselves trigger the old charge-then-exception outcome; inventory/payment checks and a receipt journal now guard granting, although MongoDB writes are not multi-document atomic.
+
+Reproduce with the pinned server checkout from this repository root:
+
+```sh
+python -m genshinre.currentdungeonaudit /path/to/AstaPS --check
+python -m unittest tests.test_current_dungeonaudit -v
+```
+
+The audit fails closed on changed server blobs and exact source snapshots. A later AstaPS commit requires a new model check and explicit re-pinning.
+
+### Historical configured reward audit (2026-10-09)
+
+
 - [Native drop economy](7.1-native-drop-economy.md) covers Ley Line yields and unresolved Domain/Boss distributions.
 - [Dungeon previews](7.1-dungeon-reward-previews.json) contain advertised items, not probabilities.
 - [Growth baseline](../7.1-resource-growth-observations.json) supplies progression requirements.
