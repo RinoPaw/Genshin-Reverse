@@ -9,6 +9,8 @@ The 7.1 client resource ownership boundary is documented in [the quest native-re
 - [Chapter 1301 / MQ3000–3006](chapter1301/README.md): 110 historically identical prerequisite rows; the derived 7.1 quest files lack meaningful `acceptCond` on those rows and add current-only `300012`. Its historical graph has **not** been validated as a 7.1 runtime fix.
 - [Chapter 1301 structured evidence](chapter1301/evidence.json): claim-specific status and source pins.
 
+- [Mondstadt 7.1 prologue integration archive](mondstadt-prologue/README.md): original 40-quest static gate, compatible field provenance, and exact current-tree differences. Source-archived only; no production patch pending.
+
 ## Previous AstaPS resource repair
 
 [AstaPS-Resource PR #17](https://github.com/MeChen618/AstaPS-Resource/pull/17), merged at `5ff5f0b083fd3683aca894e4ebc2ba602306820f`, changed the **derived, flattened** `ExcelBinOutput/QuestExcelConfigData.json` for 314 existing subquest rows, affecting only `acceptCond` and `acceptCondComb`. Of those, 34 compound-condition restorations were cross-checked against GCResource 3.7 and 4.0. CI was run; a complete 7.1 client progression test was **not** run. Do not label the PR's compatibility fields native 7.1.
