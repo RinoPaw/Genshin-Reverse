@@ -35,3 +35,15 @@ The unmodified archive tools assume the current working directory is a **Resourc
 ## Disposition
 
 No surviving integration-only production code was justified for upstream promotion at this checkpoint. Keep the core compatibility/native boundary in [the prerequisite index](../README.md). Future functional fixes require a reproduced current-client issue, native or corroborated compatibility evidence, narrow diff, relevant CI, and then actual game testing. Do not replay the old `38402` rollback, `35301` Amber grant, or broad QuestExcel generator.
+
+## Earlier Rino compatibility branch (same checkpoint)
+
+A separate tree/row comparison also examined [`fix/mondstadt-71-rino-compat` at `71765773`](https://github.com/RinoPaw/AstaPS-Resource/tree/7176577352b0907906980d39117bbe9a7887fb02) against the same upstream `5ff5f0b0` baseline. Only **three** source Quest JSON files differ among the 4,421 files:
+
+- `382.json` / `38201.finishCondComb`: the older branch lacks upstream's `LOGIC_OR`.
+- `384.json` / `38402.failExec`: the older branch retains `QUEST_EXEC_ROLLBACK_QUEST(38401)`. Both historical GCResource `3700` and `4000` have byte-identical MQ384 blobs (`d1e9558fbdc32c674da2c3352036e7103a66321c`) including this action, but neither current 7.1 source nor flattened QuestExcel defines a corresponding `failCond`. Resource [PR #14](https://github.com/MeChen618/AstaPS-Resource/pull/14) intentionally removed it.
+- `398.json` / `39807.finishCondComb`: the older branch lacks upstream's `LOGIC_OR`.
+
+The old branch's other gameplay and quest field differences reflect already-merged fixes, older ability/gadget, routing and Fontaine resource snapshots, or deprecated flattened QuestExcel and tooling. Its earlier Mondstadt audit (`b27dc228`, 482 lines) is superseded by the exact later `d24e472f` audit (523 lines) preserved here. The earlier branch also retains obsolete QuestExcel rewriting workflows and the duplicated native `quests.json`; neither should be promoted.
+
+**Disposition:** both the earlier compatibility and the later integration research branches may be retired as active Resource branches after confirming their remote heads remain at the pinned SHAs. Their exact research commits and code evidence are anchored above; keep current resources on upstream `main`. This conclusion is static evidence only and does not establish complete client progression.
