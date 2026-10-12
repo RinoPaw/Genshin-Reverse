@@ -29,3 +29,5 @@ These notes date from October 4, 2026 and describe work that predates PR #17. Th
 3. Keep the original 7.1 `BinOutput/Quest` ownership boundary distinct from historical `acceptCond` materialization.
 4. Make overlays narrow, idempotent, reject unexpected input and show exact changed fields.
 5. Run CI before any upstream submission or client test. Never auto-write from exploratory discovery workflows.
+
+- [PR #17 historical read-only audit scripts](pr17-audit-archive/README.md): pinned evidence, original CI runs and safe reproduction boundary. Archived only; the merge is already complete.
