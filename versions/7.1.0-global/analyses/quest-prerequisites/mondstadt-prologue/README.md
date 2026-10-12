@@ -10,7 +10,7 @@ This directory preserves a self-contained static audit and the associated integr
 - Original investigation: [integration branch at dd263d75](https://github.com/RinoPaw/AstaPS-Resource/tree/dd263d7547e23e9645ff2d397efa54185b797e26).
 - Server baseline: [MeChen618/AstaPS@7cc148d1](https://github.com/MeChen618/AstaPS/tree/7cc148d1f752a43d4b9146b3b73f26875902546f); runtime work merged via [#71](https://github.com/MeChen618/AstaPS/pull/71), [#87](https://github.com/MeChen618/AstaPS/pull/87), and [#84](https://github.com/MeChen618/AstaPS/pull/84).
 - Resource compatibility changes merged in [#13](https://github.com/MeChen618/AstaPS-Resource/pull/13) and [#14](https://github.com/MeChen618/AstaPS-Resource/pull/14); later [#17](https://github.com/MeChen618/AstaPS-Resource/pull/17) restored 314 reviewed flattened prerequisite rows.
-- Existing Genshin-Reverse [native Quest ownership analysis](../../../../windows-x64/analyses/quest-extraction/README.md): ordinary 7.1 full Quest retains `failExec`, `failCond`, `finishCond`, `finishExec`, not legacy `acceptCond`/`beginExec`.
+- Existing Genshin-Reverse [native Quest ownership analysis](../../../windows-x64/analyses/quest-extraction/README.md): ordinary 7.1 full Quest retains `failExec`, `failCond`, `finishCond`, `finishExec`, not legacy `acceptCond`/`beginExec`.
 
 ## Exact current-tree comparison
 
