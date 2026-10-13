@@ -1,5 +1,9 @@
 # Native reward economy
 
+## DropTable provenance (2026-10-13)
+
+[Source comparison and reproducibility report](7.1-drop-table-provenance.md): AstaPS-Resource's two `Server/` drop tables are row-for-row identical to LunaGC-Resources data already present in an April 2026 `6.5.0 GC` commit (13,823 main nodes and 1,885 subnodes). The comparison recovers **0 of the 140** missing 7.1 Dungeon roots. The provenance of the original extraction remains unverified; do not treat this import as a verified 7.1 server dump.
+
 ## Current AstaPS Dungeon claim-path audit (2026-10-13)
 
 [Current static claim-path snapshot](7.1-current-asta-dungeon-reward-audit.json) is pinned to [AstaPS 1c2cb794](https://github.com/RinoPaw/AstaPS/commit/1c2cb79444ae911baf1fb8a11875ac32ae9783c4) (PR #120), with eight checked server blobs and the original source-graph/preview snapshots. Its **B-level static conclusions are candidates**, not verified native probabilities or successful in-game claims.
