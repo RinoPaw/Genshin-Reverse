@@ -2,7 +2,7 @@
 
 ## DropTable provenance (2026-10-13)
 
-[Source comparison and reproducibility report](7.1-drop-table-provenance.md): AstaPS-Resource's two `Server/` drop tables are identical to LunaGC-Resources data already present in April 2026 (`6.5.0 GC`), which recovers **0** missing roots. A separate, later **LunaGCR 7.0** comparison finds **68 of 140** missing 7.1 Dungeon roots (24 talent, 24 weapon, 20 artifact) alongside 100 associated old-only subnodes; all 68 recovered graphs have 7.1 preview-matching item families, but their weights have an explicit **6.6-era** history and are **not** verified 7.1-native rates. The other **72** roots remain unresolved. The original extraction provenance remains unverified.
+[Source comparison and reproducibility report](7.1-drop-table-provenance.md): AstaPS-Resource's two `Server/` drop tables are identical to LunaGC-Resources data already present in April 2026 (`6.5.0 GC`), which recovers **0** missing roots. A separate, later **LunaGCR 7.0** comparison finds **68 of 140** missing 7.1 Dungeon roots (24 talent, 24 weapon, 20 artifact) with 94 of the 100 old-only subnodes actually reachable from those restored roots; all 68 recovered graphs have 7.1 preview-matching item families, but their weights have an explicit **6.6-era** history and are **not** verified 7.1-native rates. The other **72** roots remain unresolved. The original extraction provenance remains unverified.
 
 ## Current AstaPS Dungeon claim-path audit (2026-10-13)
 
