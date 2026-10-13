@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "target": "AstaPS 7.1 artifact Dungeon native-only validation edge",
+  "evidence": "B-level static consumer analysis backed by 7.1 source rows; no live claim or native probability assertion",
+  "source": {
+    "serverRepository": "RinoPaw/AstaPS",
+    "serverCommit": "1c2cb79444ae911baf1fb8a11875ac32ae9783c4",
+    "serverItemDataBlob": "33283737a0720c451b33ceb07c7adb7fabf5439d",
+    "serverDropTableDataBlob": "e2f1cd15b8ba6a01a2f95eadaa38229422554f55",
+    "serverDomainDropSafetyBlob": "5ed3537057a23e5d28a688e9fedfac0b1d814fe9",
+    "serverDomainStatueDropServiceBlob": "3cc0854ad2e785f4f14a303672726e99e19d0dbd",
+    "resourceRepository": "RinoPaw/AstaPS-Resource",
+    "resourceCommit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+    "displayItemBlob": "39e922b84bb42781765868d4efb7d5700967f061",
+    "reliquaryBlob": "dc617e939a0ad4864f88e32dbf98ace9ac11649f",
+    "domainGraphBlob": "b5686edf379c01f8a2d1cd323c9a9bf82628e558",
+    "previewSnapshotBlob": "8f662184de522c2548bbbdab44d418e4e17e3fed",
+    "currentAuditSnapshotBlob": "c30d3de71e84dc0e7afe1891f8dea05091d96a24"
+  },
+  "summary": {
+    "affectedDungeonCount": 7,
+    "nativeSourceSetsMatchAdvertisedSets": 7,
+    "predictedRejectedBeforePayment": 7
+  },
+  "interpretation": "Each native root contains reliquary items from the advertised artifact sets, but the preview uses ITEM_DISPLAY IDs that ItemData does not load as ITEM_RELIQUARY. The native validator receives zero expected reliquary families when the configured proxy is invalid. Both reward sources are rejected before charging. Exact native drop rates and client claim behavior are not proven.",
+  "dungeons": [
+    {
+      "dungeonId": 5000,
+      "nativeRootId": 85112000,
+      "previewDisplayItemIds": [
+        400002,
+        400045,
+        400046,
+        400047
+      ],
+      "previewArtifactSetIds": [
+        10001,
+        10010
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10001,
+        10010
+      ],
+      "nativeReliquaryItemCount": 35,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5001,
+      "nativeRootId": 85112500,
+      "previewDisplayItemIds": [
+        400002,
+        400046,
+        400047
+      ],
+      "previewArtifactSetIds": [
+        10001,
+        10010
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10001,
+        10010
+      ],
+      "nativeReliquaryItemCount": 30,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5002,
+      "nativeRootId": 85113000,
+      "previewDisplayItemIds": [
+        400002,
+        400046,
+        400047
+      ],
+      "previewArtifactSetIds": [
+        10001,
+        10010
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10001,
+        10010
+      ],
+      "nativeReliquaryItemCount": 30,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5008,
+      "nativeRootId": 85213000,
+      "previewDisplayItemIds": [
+        400017,
+        400061,
+        400062
+      ],
+      "previewArtifactSetIds": [
+        10004,
+        10013
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10004,
+        10013
+      ],
+      "nativeReliquaryItemCount": 30,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5050,
+      "nativeRootId": 85143500,
+      "previewDisplayItemIds": [
+        400017,
+        400018,
+        400037,
+        400038,
+        400208,
+        400213
+      ],
+      "previewArtifactSetIds": [
+        10004,
+        10008,
+        15025,
+        15026
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10004,
+        10008,
+        15025,
+        15026
+      ],
+      "nativeReliquaryItemCount": 60,
+      "rejectedProxyIssues": [
+        "RELIQUARY_WEAPON_MATERIAL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5100,
+      "nativeRootId": 85122500,
+      "previewDisplayItemIds": [
+        400007,
+        400051,
+        400052
+      ],
+      "previewArtifactSetIds": [
+        10002,
+        10011
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10002,
+        10011
+      ],
+      "nativeReliquaryItemCount": 30,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    },
+    {
+      "dungeonId": 5101,
+      "nativeRootId": 85123000,
+      "previewDisplayItemIds": [
+        400007,
+        400051,
+        400052
+      ],
+      "previewArtifactSetIds": [
+        10002,
+        10011
+      ],
+      "directReliquaryPreviewItemIds": [],
+      "nativeReliquarySetIds": [
+        10002,
+        10011
+      ],
+      "nativeReliquaryItemCount": 30,
+      "rejectedProxyIssues": [
+        "INVALID_ITEM_POOL"
+      ],
+      "predictedCurrentRewardSource": "NONE"
+    }
+  ]
+}
