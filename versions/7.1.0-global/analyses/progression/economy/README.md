@@ -22,18 +22,18 @@ The audit fails closed on changed server blobs and exact source snapshots. A lat
 
 ### Seven artifact roots rejected by the preview-family gate (2026-10-13)
 
-The [native-only artifact validation audit](7.1-artifact-native-only-claim-audit.json) cross-joins the exact 7.1 \`DisplayItemExcelConfigData\` (\`ITEM_DISPLAY\`, with \`param\` identifying a set), \`ReliquaryExcelConfigData\` (\`ITEM_RELIQUARY\`, with \`setId\`), reward previews and reachable positive-weight drop leaves against the current AstaPS claim consumer. A [reproducible collector](../../../../../genshinre/reliquaryclaimaudit.py) pins the two resource blobs and prior research snapshots.
+The [native-only artifact validation audit](7.1-artifact-native-only-claim-audit.json) cross-joins the exact 7.1 `DisplayItemExcelConfigData` (`ITEM_DISPLAY`, with `param` identifying a set), `ReliquaryExcelConfigData` (`ITEM_RELIQUARY`, with `setId`), reward previews and reachable positive-weight drop leaves against the current AstaPS claim consumer. A [reproducible collector](../../../../../genshinre/reliquaryclaimaudit.py) pins the two resource blobs and prior research snapshots.
 
-**Seven additional artifact Dungeons** \`5000, 5001, 5002, 5008, 5050, 5100, 5101\` have an existing native root but an invalid proxy pool. Every native root reaches genuine reliquary item IDs, and their set IDs exactly match the advertised preview sets. Yet their previews contain only display-item IDs for artifacts, not inventory-reliquary IDs. The current \`DomainStatueDropService\` filters the preview through \`ItemData\` and \`ITEM_RELIQUARY\`, leaving an empty set of expected artifact families. As \`DomainDropSafety.matchesNativeFamilies\` then rejects the otherwise present native root and the proxy was already rejected, the selected reward source is \`NONE\`. The claim aborts **before payment** in this pinned implementation.
+**Seven additional artifact Dungeons** `5000, 5001, 5002, 5008, 5050, 5100, 5101` have an existing native root but an invalid proxy pool. Every native root reaches genuine reliquary item IDs, and their set IDs exactly match the advertised preview sets. Yet their previews contain only display-item IDs for artifacts, not inventory-reliquary IDs. The current `DomainStatueDropService` filters the preview through `ItemData` and `ITEM_RELIQUARY`, leaving an empty set of expected artifact families. As `DomainDropSafety.matchesNativeFamilies` then rejects the otherwise present native root and the proxy was already rejected, the selected reward source is `NONE`. The claim aborts **before payment** in this pinned implementation.
 
-This narrows the artifact-specific source failure set to **16 candidates**: the nine missing-root/invalid-proxy rows above plus these seven existing-root/invalid-proxy rows. It does **not** establish in-game reachability or successful/failed live claims. A future repair should use a verified \`DisplayItem.param → Reliquary.setId\` relation for artifact-family validation, **not** accept all native roots blindly; the actual 7.1 native distribution and correct claim path still need testing.
+This narrows the artifact-specific source failure set to **16 candidates**: the nine missing-root/invalid-proxy rows above plus these seven existing-root/invalid-proxy rows. It does **not** establish in-game reachability or successful/failed live claims. A future repair should use a verified `DisplayItem.param → Reliquary.setId` relation for artifact-family validation, **not** accept all native roots blindly; the actual 7.1 native distribution and correct claim path still need testing.
 
-Reproduce against the exact pinned \`AstaPS-Resource\` checkout:
+Reproduce against the exact pinned `AstaPS-Resource` checkout:
 
-\`\`\`sh
+```sh
 python -m genshinre.reliquaryclaimaudit /path/to/AstaPS-Resource --check
 python -m unittest tests.test_reliquaryclaimaudit -v
-\`\`\`
+```
 
 ### Historical configured reward audit (2026-10-09)
 
