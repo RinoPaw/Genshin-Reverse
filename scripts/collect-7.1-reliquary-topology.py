@@ -25,10 +25,23 @@ EXPECTED_BLOBS = {
 }
 
 
-def load_resources(directory: Path) -> tuple[dict[str, list[dict]], dict[str, dict]]:
+# The 7.1 CN mirror is a *structural* comparison; its extraction lineage
+# is not independently verified.
+CN_SOURCE = "DimbreathBot/AnimeGameData"
+CN_COMMIT = "792978e5503ecfba73dcb3562ed44a0d35a2abe2"
+CN_BLOBS = {
+    "ReliquaryExcelConfigData.json": "391ed48beb26490193968c19136db8377af06fb2",
+    "ReliquaryMainPropExcelConfigData.json": "a487d0a1941d9393afdd230f73b1947fda300c2b",
+    "ReliquaryAffixExcelConfigData.json": "e3b18f74944e95745182a8df8bb29c33d3781684",
+}
+
+
+def load_resources(
+    directory: Path, expected_blobs: dict[str, str] = EXPECTED_BLOBS
+) -> tuple[dict[str, list[dict]], dict[str, dict]]:
     tables = {}
     evidence = {}
-    for filename, expected in EXPECTED_BLOBS.items():
+    for filename, expected in expected_blobs.items():
         raw = (directory / filename).read_bytes()
         actual = hashlib.sha1(f"blob {len(raw)}\0".encode("ascii") + raw).hexdigest()
         if actual != expected:
@@ -144,15 +157,67 @@ def build_snapshot(tables: dict[str, list[dict]], evidence: dict[str, dict]) -> 
     }
 
 
+
+def compare_cn_structure(
+    primary: dict[str, list[dict]], cn: dict[str, list[dict]]
+) -> dict[str, float | int]:
+    """Fail if normalized structural identities differ across two 7.1 dumps.
+
+    Ignore restored weight fields and tolerate the CN dump's rounded floats.
+    This is not a check of extractor independence or RNG behavior.
+    """
+    fields = {
+        "ReliquaryExcelConfigData": (
+            "rankLevel", "equipType", "setId", "mainPropDepotId",
+            "appendPropDepotId", "appendPropNum", "maxLevel", "addPropLevels",
+        ),
+        "ReliquaryMainPropExcelConfigData": ("propDepotId", "propType"),
+        "ReliquaryAffixExcelConfigData": ("depotId", "propType"),
+    }
+    max_affix_delta = 0.0
+    for name, keys in fields.items():
+        left = {row["id"]: row for row in primary[name]}
+        right = {row["id"]: row for row in cn[name]}
+        if len(left) != len(primary[name]) or len(right) != len(cn[name]):
+            raise ValueError(f"{name}: duplicate ID in a compared dump")
+        if left.keys() != right.keys():
+            raise ValueError(f"{name}: item ID coverage differs across dumps")
+        for row_id, a in left.items():
+            b = right[row_id]
+            for key in keys:
+                if a.get(key) != b.get(key):
+                    raise ValueError(f"{name} {row_id}: structural field {key} differs")
+            if name == "ReliquaryAffixExcelConfigData":
+                if a.get("group_id", a.get("groupId")) != b.get("groupId", b.get("group_id")):
+                    raise ValueError(f"{name} {row_id}: group ID differs")
+                delta = abs(a["propValue"] - b["propValue"])
+                max_affix_delta = max(max_affix_delta, delta)
+                if delta > 0.0001:
+                    raise ValueError(f"{name} {row_id}: roll value differs by {delta}")
+    return {
+        "reliquaryItems": len(primary["ReliquaryExcelConfigData"]),
+        "mainPropRows": len(primary["ReliquaryMainPropExcelConfigData"]),
+        "affixRollRows": len(primary["ReliquaryAffixExcelConfigData"]),
+        "maxAffixRoundingDifference": max_affix_delta,
+    }
+
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--resources", type=Path, required=True,
                         help="unaltered ExcelBinOutput from the pinned Resource commit")
+    parser.add_argument("--cn-resources", type=Path,
+                        help="optionally check the pinned 7.1 CN mirror's topology")
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--check", action="store_true",
                         help="compare regenerated observations with the committed snapshot")
     args = parser.parse_args()
     tables, evidence = load_resources(args.resources)
+    if args.cn_resources is not None:
+        cn, _ = load_resources(args.cn_resources, CN_BLOBS)
+        comparison = compare_cn_structure(tables, cn)
+        print(f"PASS: pinned 7.1 CN structure matches ({comparison})")
     snapshot = build_snapshot(tables, evidence)
     if args.check:
         if json.loads(args.output.read_text(encoding="utf-8")) != snapshot:
