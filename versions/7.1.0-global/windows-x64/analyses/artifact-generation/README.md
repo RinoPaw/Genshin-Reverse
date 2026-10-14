@@ -56,6 +56,7 @@ initial-roll odds. Similarly, source row frequency is not a probability:
 
 The 7.1 CN dump
 `DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2`
+(exact Git blob IDs checked by the collector in optional CN comparison mode)
 has the same **4,352** Reliquary item IDs and matching rarity, slot, set,
 main/append depot, initial-count and upgrade-checkpoint fields; its **66**
 main-prop IDs/depots/stat types and **350** affix IDs/depots/stat types
@@ -72,6 +73,9 @@ To regenerate from the original unmodified pinned ExcelBinOutput:
 ```sh
 python scripts/collect-7.1-reliquary-topology.py --resources /path/to/AstaPS-Resource/ExcelBinOutput --check
 python -m unittest tests.test_reliquary_topology -v
+
+# Optional: separately check a checkout of the pinned DimbreathBot/AnimeGameData CN 7.1 dump
+python scripts/collect-7.1-reliquary-topology.py --resources /path/to/AstaPS-Resource/ExcelBinOutput --cn-resources /path/to/AnimeGameData/ExcelBinOutput --check
 ```
 
 This closes the source-level depot foreign-key and special-pool *enumeration*
