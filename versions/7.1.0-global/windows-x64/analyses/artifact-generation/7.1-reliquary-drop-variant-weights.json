@@ -1,0 +1,1769 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact 7.1.0 Global resource integration",
+  "scope": "Raw DropTable configured weights and Reliquary item-ID crosswalk; no proof of original DropTable extraction, runtime randomType semantics or authoritative 7.1 server behavior",
+  "source": {
+    "repository": "RinoPaw/Genshin-Reverse",
+    "inputGitBlobs": {
+      "dropGraph": "b5686edf379c01f8a2d1cd323c9a9bf82628e558",
+      "reliquaryTopology": "345d4c96803605509cc55e485b4a5f30f35453c0"
+    },
+    "resourceRepository": "RinoPaw/AstaPS-Resource",
+    "resourceCommit": "b0f3a2791607cab2a4c24cb9ef249dd2d94d7ffd",
+    "resourceGitBlobs": {
+      "dropTable": "b46d383b535babd1be6b95e3ea031eef64d1fdfd",
+      "dropSubTable": "9397fb0b15c8c4cc82194ec429682f2ef4333767",
+      "reliquaryExcel": "dc617e939a0ad4864f88e32dbf98ace9ac11649f"
+    }
+  },
+  "summary": {
+    "artifactDungeonRows": 98,
+    "resolvedRootCount": 54,
+    "missingRootCount": 44,
+    "configuredThreeFourBranchNodeCount": 27,
+    "resolvedDomainsWithThreeFourBranch": 27,
+    "resolvedDomainsWithoutThreeFourBranch": 27,
+    "resolvedDomainRarityFamilies": {
+      "1/2/3": 1,
+      "2/3": 5,
+      "3/4": 21,
+      "3/4/5": 27
+    },
+    "threeCountBranchWeight": 8000,
+    "fourCountBranchWeight": 2000,
+    "requiresRandomTypeSemanticsToCallProbability": true
+  },
+  "variantBranches": [
+    {
+      "nodeId": 85114515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541023,
+          "configuredWeight": 8000,
+          "itemIds": [
+            72513,
+            72523,
+            72533,
+            72543,
+            72553,
+            79513,
+            79523,
+            79533,
+            79543,
+            79553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541024,
+          "configuredWeight": 2000,
+          "itemIds": [
+            72514,
+            72524,
+            72534,
+            72544,
+            72554,
+            79514,
+            79524,
+            79534,
+            79544,
+            79554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5005
+      ]
+    },
+    {
+      "nodeId": 85115515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541023,
+          "configuredWeight": 8000,
+          "itemIds": [
+            72513,
+            72523,
+            72533,
+            72543,
+            72553,
+            79513,
+            79523,
+            79533,
+            79543,
+            79553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541024,
+          "configuredWeight": 2000,
+          "itemIds": [
+            72514,
+            72524,
+            72534,
+            72544,
+            72554,
+            79514,
+            79524,
+            79534,
+            79544,
+            79554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5006
+      ]
+    },
+    {
+      "nodeId": 85116015,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541023,
+          "configuredWeight": 8000,
+          "itemIds": [
+            72513,
+            72523,
+            72533,
+            72543,
+            72553,
+            79513,
+            79523,
+            79533,
+            79543,
+            79553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541024,
+          "configuredWeight": 2000,
+          "itemIds": [
+            72514,
+            72524,
+            72534,
+            72544,
+            72554,
+            79514,
+            79524,
+            79534,
+            79544,
+            79554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5007
+      ]
+    },
+    {
+      "nodeId": 85124515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541523,
+          "configuredWeight": 8000,
+          "itemIds": [
+            88513,
+            88523,
+            88533,
+            88543,
+            88553,
+            89513,
+            89523,
+            89533,
+            89543,
+            89553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541524,
+          "configuredWeight": 2000,
+          "itemIds": [
+            88514,
+            88524,
+            88534,
+            88544,
+            88554,
+            89514,
+            89524,
+            89534,
+            89544,
+            89554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5104
+      ]
+    },
+    {
+      "nodeId": 85125515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541523,
+          "configuredWeight": 8000,
+          "itemIds": [
+            88513,
+            88523,
+            88533,
+            88543,
+            88553,
+            89513,
+            89523,
+            89533,
+            89543,
+            89553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541524,
+          "configuredWeight": 2000,
+          "itemIds": [
+            88514,
+            88524,
+            88534,
+            88544,
+            88554,
+            89514,
+            89524,
+            89534,
+            89544,
+            89554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5105
+      ]
+    },
+    {
+      "nodeId": 85126015,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541523,
+          "configuredWeight": 8000,
+          "itemIds": [
+            88513,
+            88523,
+            88533,
+            88543,
+            88553,
+            89513,
+            89523,
+            89533,
+            89543,
+            89553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541524,
+          "configuredWeight": 2000,
+          "itemIds": [
+            88514,
+            88524,
+            88534,
+            88544,
+            88554,
+            89514,
+            89524,
+            89534,
+            89544,
+            89554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5106
+      ]
+    },
+    {
+      "nodeId": 85134515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542023,
+          "configuredWeight": 8000,
+          "itemIds": [
+            93513,
+            93523,
+            93533,
+            93543,
+            93553,
+            94513,
+            94523,
+            94533,
+            94543,
+            94553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542024,
+          "configuredWeight": 2000,
+          "itemIds": [
+            93514,
+            93524,
+            93534,
+            93544,
+            93554,
+            94514,
+            94524,
+            94534,
+            94544,
+            94554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5202
+      ]
+    },
+    {
+      "nodeId": 85135515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542023,
+          "configuredWeight": 8000,
+          "itemIds": [
+            93513,
+            93523,
+            93533,
+            93543,
+            93553,
+            94513,
+            94523,
+            94533,
+            94543,
+            94553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542024,
+          "configuredWeight": 2000,
+          "itemIds": [
+            93514,
+            93524,
+            93534,
+            93544,
+            93554,
+            94514,
+            94524,
+            94534,
+            94544,
+            94554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5203
+      ]
+    },
+    {
+      "nodeId": 85144515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542523,
+          "configuredWeight": 8000,
+          "itemIds": [
+            20513,
+            20523,
+            20533,
+            20543,
+            20553,
+            21513,
+            21523,
+            21533,
+            21543,
+            21553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542524,
+          "configuredWeight": 2000,
+          "itemIds": [
+            20514,
+            20524,
+            20534,
+            20544,
+            20554,
+            21514,
+            21524,
+            21534,
+            21544,
+            21554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5052
+      ]
+    },
+    {
+      "nodeId": 85145515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542523,
+          "configuredWeight": 8000,
+          "itemIds": [
+            20513,
+            20523,
+            20533,
+            20543,
+            20553,
+            21513,
+            21523,
+            21533,
+            21543,
+            21553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542524,
+          "configuredWeight": 2000,
+          "itemIds": [
+            20514,
+            20524,
+            20534,
+            20544,
+            20554,
+            21514,
+            21524,
+            21534,
+            21544,
+            21554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5053
+      ]
+    },
+    {
+      "nodeId": 85214515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541073,
+          "configuredWeight": 8000,
+          "itemIds": [
+            74513,
+            74523,
+            74533,
+            74543,
+            74553,
+            76513,
+            76523,
+            76533,
+            76543,
+            76553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541074,
+          "configuredWeight": 2000,
+          "itemIds": [
+            74514,
+            74524,
+            74534,
+            74544,
+            74554,
+            76514,
+            76524,
+            76534,
+            76544,
+            76554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5011
+      ]
+    },
+    {
+      "nodeId": 85215515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541073,
+          "configuredWeight": 8000,
+          "itemIds": [
+            74513,
+            74523,
+            74533,
+            74543,
+            74553,
+            76513,
+            76523,
+            76533,
+            76543,
+            76553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541074,
+          "configuredWeight": 2000,
+          "itemIds": [
+            74514,
+            74524,
+            74534,
+            74544,
+            74554,
+            76514,
+            76524,
+            76534,
+            76544,
+            76554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5012
+      ]
+    },
+    {
+      "nodeId": 85216015,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541073,
+          "configuredWeight": 8000,
+          "itemIds": [
+            74513,
+            74523,
+            74533,
+            74543,
+            74553,
+            76513,
+            76523,
+            76533,
+            76543,
+            76553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541074,
+          "configuredWeight": 2000,
+          "itemIds": [
+            74514,
+            74524,
+            74534,
+            74544,
+            74554,
+            76514,
+            76524,
+            76534,
+            76544,
+            76554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5013
+      ]
+    },
+    {
+      "nodeId": 85224515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541573,
+          "configuredWeight": 8000,
+          "itemIds": [
+            73513,
+            73523,
+            73533,
+            73543,
+            73553,
+            80513,
+            80523,
+            80533,
+            80543,
+            80553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541574,
+          "configuredWeight": 2000,
+          "itemIds": [
+            73514,
+            73524,
+            73534,
+            73544,
+            73554,
+            80514,
+            80524,
+            80534,
+            80544,
+            80554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5109
+      ]
+    },
+    {
+      "nodeId": 85225515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541573,
+          "configuredWeight": 8000,
+          "itemIds": [
+            73513,
+            73523,
+            73533,
+            73543,
+            73553,
+            80513,
+            80523,
+            80533,
+            80543,
+            80553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541574,
+          "configuredWeight": 2000,
+          "itemIds": [
+            73514,
+            73524,
+            73534,
+            73544,
+            73554,
+            80514,
+            80524,
+            80534,
+            80544,
+            80554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5110
+      ]
+    },
+    {
+      "nodeId": 85226015,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541573,
+          "configuredWeight": 8000,
+          "itemIds": [
+            73513,
+            73523,
+            73533,
+            73543,
+            73553,
+            80513,
+            80523,
+            80533,
+            80543,
+            80553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541574,
+          "configuredWeight": 2000,
+          "itemIds": [
+            73514,
+            73524,
+            73534,
+            73544,
+            73554,
+            80514,
+            80524,
+            80534,
+            80544,
+            80554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5111
+      ]
+    },
+    {
+      "nodeId": 85234515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542073,
+          "configuredWeight": 8000,
+          "itemIds": [
+            95513,
+            95523,
+            95533,
+            95543,
+            95553,
+            96513,
+            96523,
+            96533,
+            96543,
+            96553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542074,
+          "configuredWeight": 2000,
+          "itemIds": [
+            95514,
+            95524,
+            95534,
+            95544,
+            95554,
+            96514,
+            96524,
+            96534,
+            96544,
+            96554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5206
+      ]
+    },
+    {
+      "nodeId": 85235515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542073,
+          "configuredWeight": 8000,
+          "itemIds": [
+            95513,
+            95523,
+            95533,
+            95543,
+            95553,
+            96513,
+            96523,
+            96533,
+            96543,
+            96553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542074,
+          "configuredWeight": 2000,
+          "itemIds": [
+            95514,
+            95524,
+            95534,
+            95544,
+            95554,
+            96514,
+            96524,
+            96534,
+            96544,
+            96554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5207
+      ]
+    },
+    {
+      "nodeId": 85314515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541223,
+          "configuredWeight": 8000,
+          "itemIds": [
+            71513,
+            71523,
+            71533,
+            71543,
+            71553,
+            90513,
+            90523,
+            90533,
+            90543,
+            90553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541224,
+          "configuredWeight": 2000,
+          "itemIds": [
+            71514,
+            71524,
+            71534,
+            71544,
+            71554,
+            90514,
+            90524,
+            90534,
+            90544,
+            90554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5122
+      ]
+    },
+    {
+      "nodeId": 85315515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541223,
+          "configuredWeight": 8000,
+          "itemIds": [
+            71513,
+            71523,
+            71533,
+            71543,
+            71553,
+            90513,
+            90523,
+            90533,
+            90543,
+            90553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541224,
+          "configuredWeight": 2000,
+          "itemIds": [
+            71514,
+            71524,
+            71534,
+            71544,
+            71554,
+            90514,
+            90524,
+            90534,
+            90544,
+            90554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5123
+      ]
+    },
+    {
+      "nodeId": 85324515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541623,
+          "configuredWeight": 8000,
+          "itemIds": [
+            81513,
+            81523,
+            81533,
+            81543,
+            81553,
+            82513,
+            82523,
+            82533,
+            82543,
+            82553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541624,
+          "configuredWeight": 2000,
+          "itemIds": [
+            81514,
+            81524,
+            81534,
+            81544,
+            81554,
+            82514,
+            82524,
+            82534,
+            82544,
+            82554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5113
+      ]
+    },
+    {
+      "nodeId": 85325515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541623,
+          "configuredWeight": 8000,
+          "itemIds": [
+            81513,
+            81523,
+            81533,
+            81543,
+            81553,
+            82513,
+            82523,
+            82533,
+            82543,
+            82553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541624,
+          "configuredWeight": 2000,
+          "itemIds": [
+            81514,
+            81524,
+            81534,
+            81544,
+            81554,
+            82514,
+            82524,
+            82534,
+            82544,
+            82554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5114
+      ]
+    },
+    {
+      "nodeId": 85326015,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541623,
+          "configuredWeight": 8000,
+          "itemIds": [
+            81513,
+            81523,
+            81533,
+            81543,
+            81553,
+            82513,
+            82523,
+            82533,
+            82543,
+            82553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541624,
+          "configuredWeight": 2000,
+          "itemIds": [
+            81514,
+            81524,
+            81534,
+            81544,
+            81554,
+            82514,
+            82524,
+            82534,
+            82544,
+            82554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5115
+      ]
+    },
+    {
+      "nodeId": 85334515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542123,
+          "configuredWeight": 8000,
+          "itemIds": [
+            97513,
+            97523,
+            97533,
+            97543,
+            97553,
+            98513,
+            98523,
+            98533,
+            98543,
+            98553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542124,
+          "configuredWeight": 2000,
+          "itemIds": [
+            97514,
+            97524,
+            97534,
+            97544,
+            97554,
+            98514,
+            98524,
+            98534,
+            98544,
+            98554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5127
+      ]
+    },
+    {
+      "nodeId": 85335515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 542123,
+          "configuredWeight": 8000,
+          "itemIds": [
+            97513,
+            97523,
+            97533,
+            97543,
+            97553,
+            98513,
+            98523,
+            98533,
+            98543,
+            98553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 542124,
+          "configuredWeight": 2000,
+          "itemIds": [
+            97514,
+            97524,
+            97534,
+            97544,
+            97554,
+            98514,
+            98524,
+            98534,
+            98544,
+            98554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5128
+      ]
+    },
+    {
+      "nodeId": 85414515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541273,
+          "configuredWeight": 8000,
+          "itemIds": [
+            91513,
+            91523,
+            91533,
+            91543,
+            91553,
+            92513,
+            92523,
+            92533,
+            92543,
+            92553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541274,
+          "configuredWeight": 2000,
+          "itemIds": [
+            91514,
+            91524,
+            91534,
+            91544,
+            91554,
+            92514,
+            92524,
+            92534,
+            92544,
+            92554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5016
+      ]
+    },
+    {
+      "nodeId": 85415515,
+      "randomType": 0,
+      "branches": [
+        {
+          "initialSubstatCount": 3,
+          "childNodeId": 541273,
+          "configuredWeight": 8000,
+          "itemIds": [
+            91513,
+            91523,
+            91533,
+            91543,
+            91553,
+            92513,
+            92523,
+            92533,
+            92543,
+            92553
+          ]
+        },
+        {
+          "initialSubstatCount": 4,
+          "childNodeId": 541274,
+          "configuredWeight": 2000,
+          "itemIds": [
+            91514,
+            91524,
+            91534,
+            91544,
+            91554,
+            92514,
+            92524,
+            92534,
+            92544,
+            92554
+          ]
+        }
+      ],
+      "reachableDungeonIds": [
+        5017
+      ]
+    }
+  ],
+  "resolvedArtifactDungeons": [
+    {
+      "dungeonId": 5000,
+      "rootDropId": 85112000,
+      "reachableReliquaryRarities": [
+        1,
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5001,
+      "rootDropId": 85112500,
+      "reachableReliquaryRarities": [
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5002,
+      "rootDropId": 85113000,
+      "reachableReliquaryRarities": [
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5003,
+      "rootDropId": 85113500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5004,
+      "rootDropId": 85114000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5005,
+      "rootDropId": 85114500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85114515
+      ]
+    },
+    {
+      "dungeonId": 5006,
+      "rootDropId": 85115500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85115515
+      ]
+    },
+    {
+      "dungeonId": 5007,
+      "rootDropId": 85116000,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85116015
+      ]
+    },
+    {
+      "dungeonId": 5008,
+      "rootDropId": 85213000,
+      "reachableReliquaryRarities": [
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5009,
+      "rootDropId": 85213500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5010,
+      "rootDropId": 85214000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5011,
+      "rootDropId": 85214500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85214515
+      ]
+    },
+    {
+      "dungeonId": 5012,
+      "rootDropId": 85215500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85215515
+      ]
+    },
+    {
+      "dungeonId": 5013,
+      "rootDropId": 85216000,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85216015
+      ]
+    },
+    {
+      "dungeonId": 5014,
+      "rootDropId": 85413500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5015,
+      "rootDropId": 85414000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5016,
+      "rootDropId": 85414500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85414515
+      ]
+    },
+    {
+      "dungeonId": 5017,
+      "rootDropId": 85415500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85415515
+      ]
+    },
+    {
+      "dungeonId": 5050,
+      "rootDropId": 85143500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5051,
+      "rootDropId": 85144000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5052,
+      "rootDropId": 85144500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85144515
+      ]
+    },
+    {
+      "dungeonId": 5053,
+      "rootDropId": 85145500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85145515
+      ]
+    },
+    {
+      "dungeonId": 5100,
+      "rootDropId": 85122500,
+      "reachableReliquaryRarities": [
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5101,
+      "rootDropId": 85123000,
+      "reachableReliquaryRarities": [
+        2,
+        3
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5102,
+      "rootDropId": 85123500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5103,
+      "rootDropId": 85124000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5104,
+      "rootDropId": 85124500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85124515
+      ]
+    },
+    {
+      "dungeonId": 5105,
+      "rootDropId": 85125500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85125515
+      ]
+    },
+    {
+      "dungeonId": 5106,
+      "rootDropId": 85126000,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85126015
+      ]
+    },
+    {
+      "dungeonId": 5107,
+      "rootDropId": 85223500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5108,
+      "rootDropId": 85224000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5109,
+      "rootDropId": 85224500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85224515
+      ]
+    },
+    {
+      "dungeonId": 5110,
+      "rootDropId": 85225500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85225515
+      ]
+    },
+    {
+      "dungeonId": 5111,
+      "rootDropId": 85226000,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85226015
+      ]
+    },
+    {
+      "dungeonId": 5112,
+      "rootDropId": 85324000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5113,
+      "rootDropId": 85324500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85324515
+      ]
+    },
+    {
+      "dungeonId": 5114,
+      "rootDropId": 85325500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85325515
+      ]
+    },
+    {
+      "dungeonId": 5115,
+      "rootDropId": 85326000,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85326015
+      ]
+    },
+    {
+      "dungeonId": 5120,
+      "rootDropId": 85313500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5121,
+      "rootDropId": 85314000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5122,
+      "rootDropId": 85314500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85314515
+      ]
+    },
+    {
+      "dungeonId": 5123,
+      "rootDropId": 85315500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85315515
+      ]
+    },
+    {
+      "dungeonId": 5125,
+      "rootDropId": 85333500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5126,
+      "rootDropId": 85334000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5127,
+      "rootDropId": 85334500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85334515
+      ]
+    },
+    {
+      "dungeonId": 5128,
+      "rootDropId": 85335500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85335515
+      ]
+    },
+    {
+      "dungeonId": 5200,
+      "rootDropId": 85133500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5201,
+      "rootDropId": 85134000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5202,
+      "rootDropId": 85134500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85134515
+      ]
+    },
+    {
+      "dungeonId": 5203,
+      "rootDropId": 85135500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85135515
+      ]
+    },
+    {
+      "dungeonId": 5204,
+      "rootDropId": 85233500,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5205,
+      "rootDropId": 85234000,
+      "reachableReliquaryRarities": [
+        3,
+        4
+      ],
+      "initialThreeFourBranchNodeIds": []
+    },
+    {
+      "dungeonId": 5206,
+      "rootDropId": 85234500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85234515
+      ]
+    },
+    {
+      "dungeonId": 5207,
+      "rootDropId": 85235500,
+      "reachableReliquaryRarities": [
+        3,
+        4,
+        5
+      ],
+      "initialThreeFourBranchNodeIds": [
+        85235515
+      ]
+    }
+  ]
+}
