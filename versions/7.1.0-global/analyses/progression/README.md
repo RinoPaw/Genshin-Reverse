@@ -110,6 +110,11 @@ Scripts and tests stay in the repository-root scripts/ and tests/ directories. M
   - current artifact findings;
   - talent mapping progress.
 
+- [7.1-reliquary-depot-topology.json](../../windows-x64/analyses/artifact-generation/7.1-reliquary-depot-topology.json)
+  - 4,352 source reliquary items linked to 66 main-prop and 350 append-prop rows;
+  - 589 five-star special append-depot rows (961–965) separated from the ordinary 501 pool;
+  - source row topology only: no recovered 7.1 drop chance or upgraded roll probability.
+
 - [7.1-native-drop-economy.md](economy/7.1-native-drop-economy.md)
   - canonical location for Ley Line, Domain, Boss, Weekly Boss and artifact reward yields;
   - currently records extraction targets and the hard progression inputs already available.
