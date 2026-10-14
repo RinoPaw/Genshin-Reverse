@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import runpy
 import unittest
 from pathlib import Path
 
@@ -110,6 +111,52 @@ class WeaponProgressionSnapshotTests(unittest.TestCase):
         self.assertEqual(summary["noMaterialCountGroupIds"], [11521])
         self.assertTrue(all(not s["costItems"] for s in self.groups[11521]["stages"]))
         self.assertTrue(all(s["coinCost"] == 0 for s in self.groups[11521]["stages"]))
+
+
+    def test_collector_rebuilds_committed_observations(self):
+        """Check Python collector parity without downloading external source data."""
+        script = Path(__file__).resolve().parents[1] / "scripts/collect-7.1-weapon-growth.py"
+        build_snapshot = runpy.run_path(str(script))["build_snapshot"]
+
+        weapons = [{
+            "id": w["weaponId"],
+            "rankLevel": w["rarity"],
+            "weaponType": w["weaponType"],
+            "icon": w["iconName"],
+            "weaponPromoteId": w["weaponPromoteId"],
+            "weaponBaseExp": w["weaponBaseExp"],
+            "weaponProp": [{
+                "propType": prop["propType"],
+                "type": prop["curveType"],
+                "initValue": prop["initialValue"],
+            } for prop in w["weaponProps"]],
+        } for w in self.data["weapons"]]
+
+        promotes = []
+        for group in self.data["promoteGroups"]:
+            for stage in group["stages"]:
+                items = stage["costItems"]
+                padded = [{} for _ in range(max((i["slot"] for i in items), default=-1) + 1)]
+                for item in items:
+                    padded[item["slot"]] = {
+                        "id": item["itemId"],
+                        "count": item["count"],
+                    }
+                promotes.append({
+                    "weaponPromoteId": group["weaponPromoteId"],
+                    "promoteLevel": stage["promoteLevel"],
+                    "unlockMaxLevel": stage["unlockMaxLevel"],
+                    "requiredPlayerLevel": stage["requiredPlayerLevel"],
+                    "coinCost": stage["coinCost"],
+                    "costItems": padded,
+                    "addProps": stage["addProps"],
+                })
+
+        rebuilt = build_snapshot({
+            "WeaponExcelConfigData": weapons,
+            "WeaponPromoteExcelConfigData": promotes,
+        }, self.data["source"]["files"])
+        self.assertEqual(rebuilt, self.data)
 
 
 if __name__ == "__main__":
