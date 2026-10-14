@@ -81,6 +81,57 @@ python scripts/collect-7.1-reliquary-topology.py --resources /path/to/AstaPS-Res
 This closes the source-level depot foreign-key and special-pool *enumeration*
 step, **not** any of the six probability/authority gates listed below.
 
+## 2026-10-15: source-graph evidence for 3/4 initial substats
+
+The [pinned drop-variant audit](7.1-reliquary-drop-variant-weights.json)
+cross-links the exact source-graph snapshot
+[7.1-domain-drop-links.json](../../../analyses/progression/economy/7.1-domain-drop-links.json)
+with the [item/depot topology](7.1-reliquary-depot-topology.json).
+
+**Concrete result:** among the 98 source artifact Dungeon rows, 54 have
+present roots. Of those, 27 root graphs include exactly one two-child
+`randomType = 0` node selecting between 5-star item variants with
+`appendPropNum = 3` and `appendPropNum = 4`. Every one of these **27**
+nodes has **configured weights 8000 and 2000**, respectively, and each branch
+reaches 10 actual five-star item IDs with ordinary affix depot `501`.
+The remaining 27 resolved Dungeon roots have no five-star item leaves and
+no such branch. Another 44 artifact Dungeon roots are missing from these tables.
+
+For example, source node `85144515` branches to:
+
+- `542523`, weight `8000`, ultimately including item `20513`
+  (3 initial substats);
+- `542524`, weight `2000`, ultimately including item `20514`
+  (4 initial substats).
+
+Its enclosing Dungeon is `5052`. The audit checks reachability by walking
+actual `DROP_NODE` references; all 27 branches have a matching source
+Dungeon root.
+
+**Evidence boundary:** these are confirmed **raw configured ratios in the
+historical Server DropTable graph**, *not confirmed official 7.1 probabilities*.
+The [DropTable provenance investigation](../../../analyses/progression/economy/7.1-drop-table-provenance.md)
+shows these exact server tables already existed in an April 2026 **6.5-labelled**
+resource revision. Their original extraction chain is unknown, and neither
+the actual `randomType = 0` 7.1 claim-time semantics nor the use of this
+graph in the official 7.1 server has been proven. The **80/20 ratio is
+conditional on interpreting this node as a weighted choice**; it must not
+be conflated with the unconditional per-Dungeon chance of getting a five-star
+artifact or generalized to all sources and acquisition methods.
+
+This is new, direct **B/compatibility-weight evidence** for the previously
+unproven 3/4 initial-count candidate. Keep that claim unresolved at the
+native Global 7.1 level until server/runtime validation and provenance gates
+are closed. It does not establish the main-/append-stat class odds, roll
+tier weights, or deterministic special-item generation.
+
+Reproduce without external downloads using the two pinned, committed snapshots:
+
+```sh
+python scripts/audit-7.1-reliquary-drop-variants.py --check
+python -m unittest tests.test_reliquary_drop_variants -v
+```
+
 ## Current conclusions
 
 ### CONFIRMED
