@@ -14,6 +14,69 @@ The integration consumer is `RinoPaw/AstaPS`. Do not promote a familiar probabil
 - metadata SHA-256: `05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0`
 - tracking issue: [#5](https://github.com/RinoPaw/Genshin-Reverse/issues/5)
 
+## 2026-10-15: complete 7.1 source-row depot topology
+
+The [machine-readable Reliquary topology](7.1-reliquary-depot-topology.json)
+now joins **4,352** `ReliquaryExcel` item rows to **66** main-prop rows
+and **350** affix-roll rows. **Every** item has a matching main-prop and
+append-prop depot. The source files are bound to three exact Git blob hashes
+from `RinoPaw/AstaPS-Resource@b0f3a279`; regenerated snapshots fail closed
+if any source blob changes.
+
+The collector deliberately **does not serialize** the integrated resource's
+`weight` or `upgradeWeight` values: their current 7.1 provenance or
+selection semantics are unproven, and the fields were restored historically.
+Those historical numbers remain isolated in the candidate CSVs.
+
+Of the **1,614** configured 5-star item rows, the append-prop depots are:
+
+| Append depot | Item rows | Slot relation |
+| --- | ---: | --- |
+| `501` | 1,025 | all five slots; contains multiple configured `appendPropNum` variants |
+| `961` | 102 | `EQUIP_NECKLACE` (plume) |
+| `962` | 102 | `EQUIP_BRACER` (flower) |
+| `963` | 127 | `EQUIP_SHOES` (sands) |
+| `964` | 128 | `EQUIP_RING` (goblet) |
+| `965` | 130 | `EQUIP_DRESS` (circlet) |
+
+Thus **589** of the 5-star *configuration rows* use special append-prop
+depots, and some also reference nonstandard main-prop depots such as
+`1095–1099`, `3093–3099` and `5088–5099`. They **must not** be
+given the ordinary `501` roll model by an artifact-generation algorithm.
+The topology alone does not prove how the special items are acquired, whether
+they can occur in ordinary drops, or whether the server chooses their affixes.
+
+The two separate 5-star IDs `20513`/`20514` carry
+`appendPropNum = 3`/`4` with matching main/append depots and enhancement
+checkpoints. The existence of both records **does not establish** the 3-vs-4
+initial-roll odds. Similarly, source row frequency is not a probability:
+**1,025 / 1,614** is a count of configured item rows, not a drop rate.
+
+### Independent-dump cross-check (structural, not independent extraction proof)
+
+The 7.1 CN dump
+`DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2`
+has the same **4,352** Reliquary item IDs and matching rarity, slot, set,
+main/append depot, initial-count and upgrade-checkpoint fields; its **66**
+main-prop IDs/depots/stat types and **350** affix IDs/depots/stat types
+also match the pinned integration source exactly. The affix JSON calls
+the group key `groupId` versus `group_id` in AstaPS-Resource.
+
+The comparison deliberately **does not** claim exact equality of restored
+numeric weight fields (which are absent from the CN export), nor does it
+establish independent extraction lineage. These mirrors support a 7.1
+**structural** topology, not an authoritative RNG consumer.
+
+To regenerate from the original unmodified pinned ExcelBinOutput:
+
+```sh
+python scripts/collect-7.1-reliquary-topology.py --resources /path/to/AstaPS-Resource/ExcelBinOutput --check
+python -m unittest tests.test_reliquary_topology -v
+```
+
+This closes the source-level depot foreign-key and special-pool *enumeration*
+step, **not** any of the six probability/authority gates listed below.
+
 ## Current conclusions
 
 ### CONFIRMED
