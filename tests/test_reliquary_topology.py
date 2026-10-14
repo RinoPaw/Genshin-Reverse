@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import runpy
 import unittest
@@ -117,6 +118,48 @@ class ReliquaryTopologyTests(unittest.TestCase):
             "ReliquaryAffixExcelConfigData": affixes,
         }, self.data["source"]["files"])
         self.assertEqual(rebuilt, self.data)
+
+
+    def test_cn_crosscheck_normalizes_schema_alias_and_rounding(self):
+        compare = runpy.run_path(str(COLLECTOR))["compare_cn_structure"]
+        main = self.data["mainProps"][0]
+        affix = self.data["appendProps"][0]
+        item = self.items[20513]
+        source = {
+            "ReliquaryExcelConfigData": [{
+                "id": item["itemId"], "rankLevel": item["rarity"],
+                "equipType": item["equipType"], "setId": item["setId"],
+                "mainPropDepotId": item["mainPropDepotId"],
+                "appendPropDepotId": item["appendPropDepotId"],
+                "appendPropNum": item["appendPropNum"],
+                "maxLevel": item["maxLevel"], "addPropLevels": item["addPropLevels"],
+            }],
+            "ReliquaryMainPropExcelConfigData": [{
+                "id": main["rowId"], "propDepotId": main["mainPropDepotId"],
+                "propType": main["propType"], "weight": 999,
+            }],
+            "ReliquaryAffixExcelConfigData": [{
+                "id": affix["rowId"], "depotId": affix["appendPropDepotId"],
+                "group_id": affix["groupId"], "propType": affix["propType"],
+                "propValue": affix["propValue"], "upgradeWeight": 999,
+            }],
+        }
+        cn = copy.deepcopy(source)
+        cn["ReliquaryMainPropExcelConfigData"][0].pop("weight")
+        cn_affix = cn["ReliquaryAffixExcelConfigData"][0]
+        cn_affix["groupId"] = cn_affix.pop("group_id")
+        cn_affix.pop("upgradeWeight")
+        cn_affix["propValue"] = round(cn_affix["propValue"], 4)
+        self.assertEqual(compare(source, cn)["reliquaryItems"], 1)
+
+        bad = copy.deepcopy(cn)
+        bad["ReliquaryExcelConfigData"][0]["mainPropDepotId"] += 1
+        with self.assertRaisesRegex(ValueError, "mainPropDepotId"):
+            compare(source, bad)
+        bad = copy.deepcopy(cn)
+        bad["ReliquaryAffixExcelConfigData"][0]["propValue"] += 1
+        with self.assertRaisesRegex(ValueError, "roll value"):
+            compare(source, bad)
 
 
 if __name__ == "__main__":
