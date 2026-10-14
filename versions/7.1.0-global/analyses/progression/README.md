@@ -115,6 +115,10 @@ Scripts and tests stay in the repository-root scripts/ and tests/ directories. M
   - 589 five-star special append-depot rows (961–965) separated from the ordinary 501 pool;
   - source row topology only: no recovered 7.1 drop chance or upgraded roll probability.
 
+- [7.1-reliquary-drop-variant-weights.json](../../windows-x64/analyses/artifact-generation/7.1-reliquary-drop-variant-weights.json)
+  - 27 reachable historical DropTable nodes explicitly select 3/4-initial-substat 5-star item variants at 8000:2000 configured weights;
+  - 27 matching artifact Dungeon roots; **B-level historical compatibility evidence**, not confirmed official 7.1 native rates.
+
 - [7.1-native-drop-economy.md](economy/7.1-native-drop-economy.md)
   - canonical location for Ley Line, Domain, Boss, Weekly Boss and artifact reward yields;
   - currently records extraction targets and the hard progression inputs already available.
