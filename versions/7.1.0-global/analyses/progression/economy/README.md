@@ -1,5 +1,9 @@
 # Native reward economy
 
+## Ordinary chest reward source review (2026-10-15)
+
+[Four-grade chest source and statistics audit](7.1-chest-reward-evidence.md): all 96 legacy tagged root IDs exist, reaching 612 nodes and 198 terminal IDs, but their Server data predates 7.1; 1,295 of 6,141 authored ordinary-grade chest instances have no region tag, and only 295/300 untagged explicit drop IDs point to present nonempty tables. Wiki gives reward ranges and possible item families, not complete per-item probabilities. Operator-authored pools therefore require clear provenance and a single reused drop executor; never promote legacy values to 7.1-native rates.
+
 ## DropTable provenance (2026-10-13)
 
 [Source comparison and reproducibility report](7.1-drop-table-provenance.md): AstaPS-Resource's two `Server/` drop tables are identical to LunaGC-Resources data already present in April 2026 (`6.5.0 GC`), which recovers **0** missing roots. A separate, later **LunaGCR 7.0** comparison finds **68 of 140** missing 7.1 Dungeon roots (24 talent, 24 weapon, 20 artifact) with 94 of the 100 old-only subnodes actually reachable from those restored roots; all 68 recovered graphs have 7.1 preview-matching item families, but their weights have an explicit **6.6-era** history and are **not** verified 7.1-native rates. The other **72** roots remain unresolved. The original extraction provenance remains unverified.
