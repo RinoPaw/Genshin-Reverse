@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_WORLD_AREA_ASSET_IDENTITY_CONFIRMED__PAYLOAD_UNEXTRACTED",
+  "source": {
+    "client": "Genshin Impact 7.1.0 Global Windows x64",
+    "indexExportSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+    "indexNameCount": 247073,
+    "verifiedRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38491255734",
+    "nativeSource": "Sophon pinned manifest + 00/31049741.blk verified + AnimeStudio.CLI 1.0.0-CI pinned hash"
+  },
+  "scanned": {
+    "candidateCount": 342,
+    "statusCounts": {
+      "HASH_ABSENT": 329,
+      "HASH_RESOLVED": 13
+    }
+  },
+  "block": {
+    "groupId": 0,
+    "blockId": 24230448
+  },
+  "worldAreaAssets": [
+    {
+      "sceneID": 3,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene3_worldArea",
+      "pathHash": "0x0C934D1C2C",
+      "exportedName": "0c934d1c",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 4,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene4_worldArea",
+      "pathHash": "0x3DF7CDEF37",
+      "exportedName": "3df7cdef",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 5,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene5_worldArea",
+      "pathHash": "0x524D1352E3",
+      "exportedName": "524d1352",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 6,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene6_worldArea",
+      "pathHash": "0xE7CDA5DCD8",
+      "exportedName": "e7cda5dc",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 7,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene7_worldArea",
+      "pathHash": "0x42CE680831",
+      "exportedName": "42ce6808",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 9,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene9_worldArea",
+      "pathHash": "0x6403CC75D7",
+      "exportedName": "6403cc75",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 10,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene10_worldArea",
+      "pathHash": "0x374D588B9F",
+      "exportedName": "374d588b",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 11,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene11_worldArea",
+      "pathHash": "0xBD6FAA4801",
+      "exportedName": "bd6faa48",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 100,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene100_worldArea",
+      "pathHash": "0xF0D16079B5",
+      "exportedName": "f0d16079",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 101,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene101_worldArea",
+      "pathHash": "0x8A14D94C67",
+      "exportedName": "8a14d94c",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 102,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene102_worldArea",
+      "pathHash": "0xFE22AFA92B",
+      "exportedName": "fe22afa9",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 103,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene103_worldArea",
+      "pathHash": "0x2214991689",
+      "exportedName": "22149916",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    },
+    {
+      "sceneID": 51195,
+      "sourcePath": "Data/_BinOutput/Scene/WorldArea/scene51195_worldArea",
+      "pathHash": "0xE0BF65B84E",
+      "exportedName": "e0bf65b8",
+      "subAssetId": 1,
+      "groupId": 0,
+      "blockId": 24230448
+    }
+  ],
+  "conclusions": [
+    "All 13 community-scene IDs have exact matching path-hash entries and resolve to the same client AssetBundle block 0/24230448.",
+    "The five hex-named scene JSON exports correspond exactly to scene100, scene101, scene102, scene103, and scene51195 source-path hashes."
+  ],
+  "limits": [
+    "Only asset-index identities; contents and freshness versus 7.0 geometry remain unverified.",
+    "40-bit path hashes can theoretically collide; export payload and original asset schema must be validated.",
+    "No original client binary, bundle or raw asset is published in this report."
+  ],
+  "next": "Reconstruct official block 0/24230448, export 13 MiHoYoBinData assets, verify exact payload hashes and decode the actual 7.1 native world area structures."
+}
