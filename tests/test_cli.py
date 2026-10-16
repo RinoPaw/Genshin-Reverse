@@ -71,7 +71,7 @@ class CliParserTests(unittest.TestCase):
 
         self.assertEqual("call-xrefs", args.command)
         self.assertEqual([0x9ED1F40, 0x9ED2100], args.target_rvas)
-        self.assertEqual("metadata/methods.csv", str(args.methods_csv))
+        self.assertEqual("metadata/methods.csv", args.methods_csv.as_posix())
         self.assertEqual(0x8000, args.max_method_body)
         self.assertEqual(32, args.window)
         self.assertEqual("calls.json", str(args.output))

@@ -88,8 +88,8 @@ def _scene_handler_dispatch(
     evidence_path = analysis_dir / _SCENE_HANDLER_EVIDENCE_FILE
     rows = _matching_csv_rows(slots_path, cmd_id, type_name)
     return {
-        "source_path": str(slots_path.relative_to(version_dir)) if slots_path.is_file() else None,
-        "evidence_path": str(evidence_path.relative_to(version_dir))
+        "source_path": slots_path.relative_to(version_dir).as_posix() if slots_path.is_file() else None,
+        "evidence_path": evidence_path.relative_to(version_dir).as_posix()
         if evidence_path.is_file()
         else None,
         "rows": rows,

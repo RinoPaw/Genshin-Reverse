@@ -27,7 +27,7 @@ class QuestBinTests(unittest.TestCase):
         )
 
         self.assertEqual("decode-quest-bin", args.command)
-        self.assertEqual("Quest/351", str(args.input))
+        self.assertEqual("Quest/351", args.input.as_posix())
         self.assertEqual("351.json", str(args.output))
 
         coverage_args = build_parser().parse_args(
