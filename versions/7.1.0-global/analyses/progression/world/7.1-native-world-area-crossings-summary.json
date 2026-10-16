@@ -1,0 +1,312 @@
+{
+  "status": "EXACT_NATIVE_7_1_POSITIVE_PARENT_CROSSINGS_AUDITED",
+  "source": {
+    "execution": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38495360232",
+    "script": "scripts/audit-7.1-native-world-area-crossings.py",
+    "assetManifest": "7.1-native-world-area-raw-assets.json",
+    "comparison": "7.1-all-world-area-scene-coverage.json",
+    "method": "Every native child outline scanned with edge intersection splits plus inward offsets and >0.25-unit minimum clearance from both polygon boundaries",
+    "clientSample": "Genshin Impact 7.1.0 Global Windows x64, exact SHA-256 verified 13 WorldArea original binary payloads"
+  },
+  "nativeParentRecords": 90,
+  "nativeChildRecords": 480,
+  "parentGateSpatialRule": "Parent X/Z must match before testing its child X/Z+Y, in native CEBMPFCJPGE.INENBAGNECA@0xD1F6C70",
+  "originalCrossingRecords": 22,
+  "byScene": [
+    {
+      "sceneID": 3,
+      "count": 21,
+      "ids": [
+        201,
+        202,
+        2102,
+        2504,
+        3003,
+        3004,
+        3204,
+        3205,
+        3302,
+        3407,
+        3408,
+        3604,
+        3606,
+        4004,
+        4005,
+        4103,
+        4104,
+        4109,
+        4702,
+        5209,
+        5210
+      ]
+    },
+    {
+      "sceneID": 4,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 5,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 6,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 7,
+      "count": 1,
+      "ids": [
+        21001
+      ]
+    },
+    {
+      "sceneID": 9,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 10,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 11,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 100,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 101,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 102,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 103,
+      "count": 0,
+      "ids": []
+    },
+    {
+      "sceneID": 51195,
+      "count": 0,
+      "ids": []
+    }
+  ],
+  "oldCommunityCrossingIDs": [
+    {
+      "sceneID": 3,
+      "areaID2": 201
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 202
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 2102
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 2504
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3003
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3004
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3204
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3205
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3302
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3407
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3408
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3604
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3606
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4004
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4005
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4103
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4104
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4109
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4702
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5209
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5210
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5502
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5602
+    },
+    {
+      "sceneID": 7,
+      "areaID2": 21001
+    }
+  ],
+  "persistingNativeCrossingIDs": [
+    {
+      "sceneID": 3,
+      "areaID2": 201
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 202
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 2102
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 2504
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3003
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3004
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3204
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3205
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3302
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3407
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3408
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3604
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 3606
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4004
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4005
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4103
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4104
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4109
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 4702
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5209
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5210
+    },
+    {
+      "sceneID": 7,
+      "areaID2": 21001
+    }
+  ],
+  "historicalOnlyNotDetectedInNative": [
+    {
+      "sceneID": 3,
+      "areaID2": 5502
+    },
+    {
+      "sceneID": 3,
+      "areaID2": 5602
+    }
+  ],
+  "nativeOnlyNewPositiveIDs": [],
+  "interpretation": "22 originally positive child/parent XZ discrepancy IDs remain positively witnessed in authentic 7.1 geometry, including the Scene 7 21001 case; two altered scene 3 geometries 5502 and 5602 no longer yield a positive sample.",
+  "limits": [
+    "No positive witness does not prove geometric containment or zero-area uncovered slivers.",
+    "The test uses native decoded X/Z polygon points and flags Y midpoint when source bounds are present; it is not an actual packet capture.",
+    "First-parent selection and area-state event timing are separate runtime questions.",
+    "The full native point coordinates are in the reproducible Actions metadata-only artifact rather than copied here."
+  ]
+}

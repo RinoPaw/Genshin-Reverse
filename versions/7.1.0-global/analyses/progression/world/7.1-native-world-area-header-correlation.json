@@ -1,0 +1,301 @@
+{
+  "status": "NATIVE_7_1_ROOT_ARRAY_COUNT_CODEC_CONFIRMED_13_OF_13",
+  "source": {
+    "raw": "7.1-native-world-area-raw-assets.json",
+    "community": "7.1-all-world-area-scene-coverage.json",
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38491462767"
+  },
+  "observation": "For all 13 exact 7.1 WorldArea payloads, byte 0 = 0xCB, bytes [1:5] are a little-endian encoded length; independent exact native array-reader RVA 0x82093B0 adds 0x91B65B45 to decode it. All 13 decoded lengths match 90 historical community top-level parent records.",
+  "hypothesizedTransformation": {
+    "byte0": "0xCB",
+    "wordLocation": "payload bytes [1:5]",
+    "wordEncoding": "uint32 little endian",
+    "nativeOperation": "(encoded_u32 + 0x91B65B45) & 0xFFFFFFFF",
+    "nativeAdditiveConstant": "0x91B65B45",
+    "equivalentSubtractionConstant": "0x6E49A4BB",
+    "scope": "The root array length only; full scene record contents not decoded",
+    "confidence": "CONFIRMED_IN_EXACT_NATIVE_7_1_READER"
+  },
+  "rows": [
+    {
+      "sceneID": 3,
+      "originalPayloadSha256": "29cedec7a59270866836a7531e388e012003267f9e66ebde9b09bc2ed9ace88c",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4fc",
+      "candidateDecodedFirstArrayCount": 65,
+      "communityLevel1Count": 65,
+      "agree": true
+    },
+    {
+      "sceneID": 4,
+      "originalPayloadSha256": "4b38763dfb71056c9b1981bc02e75e8ede3edd703796fec74e3bb4d4ffc23352",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bf",
+      "candidateDecodedFirstArrayCount": 4,
+      "communityLevel1Count": 4,
+      "agree": true
+    },
+    {
+      "sceneID": 5,
+      "originalPayloadSha256": "449216bd84a4ae07f0af30d73258611a0116a07d7cfd4ea4da1447427894f319",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 6,
+      "originalPayloadSha256": "3314f8ad89af695cf7f4356dba5f15d74169141953ccbd9086e3b4ec6d6a5a0a",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 7,
+      "originalPayloadSha256": "ee15e9b625085d6d1b7b98050047f83a56c7cc35f0688edec982ebd9fb90b556",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 9,
+      "originalPayloadSha256": "1c84dffe472bafa6184642fd7342531cb43701707903104facf630e7fd14807a",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bf",
+      "candidateDecodedFirstArrayCount": 4,
+      "communityLevel1Count": 4,
+      "agree": true
+    },
+    {
+      "sceneID": 10,
+      "originalPayloadSha256": "b31f97c97932e08acfc05e202aaf652ae0d568c9d6b7680ed52b095df93d834b",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bf",
+      "candidateDecodedFirstArrayCount": 4,
+      "communityLevel1Count": 4,
+      "agree": true
+    },
+    {
+      "sceneID": 11,
+      "originalPayloadSha256": "2836f31f6274773075f5f6145ef38dd5de933be46d7174a23f43ded48615a79e",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 100,
+      "originalPayloadSha256": "0c54cb0df97324d590ba90cb06b628c29cbeccb8b9370cf3b179a3401858feab",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4be",
+      "candidateDecodedFirstArrayCount": 3,
+      "communityLevel1Count": 3,
+      "agree": true
+    },
+    {
+      "sceneID": 101,
+      "originalPayloadSha256": "29c7db0c53a2e500cb4c4ee5e6dcb4b4642dd8011d18d5daa1d1a873bd68368a",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 102,
+      "originalPayloadSha256": "5fddd0636dca1486e5aac3c0e170c19a2c494d9f6c55cd2cf735b9eda9c757bd",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4be",
+      "candidateDecodedFirstArrayCount": 3,
+      "communityLevel1Count": 3,
+      "agree": true
+    },
+    {
+      "sceneID": 103,
+      "originalPayloadSha256": "0e217039e92d926543be12a53a04bdada046ae19c72278314941480ebcb4ccd6",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    },
+    {
+      "sceneID": 51195,
+      "originalPayloadSha256": "f6ade72a0eb47b0b2399918200590cff7d376d6c87c1a805a00bea70d19a6995",
+      "firstByteHex": "cb",
+      "encodedWordLE": "0x6e49a4bc",
+      "candidateDecodedFirstArrayCount": 1,
+      "communityLevel1Count": 1,
+      "agree": true
+    }
+  ],
+  "matchCount": 13,
+  "sceneCount": 13,
+  "decodedSum": 90,
+  "limitations": [
+    "Count codec recovered from exact native reader; nested object fields/vertex positions not yet decoded.",
+    "Even exact root counts do not establish native child counts, locations, Y bounds or parent boundary parity.",
+    "Some higher-level client area-state timing remains outside byte-level schema."
+  ],
+  "next": "Inspect exact array element reader 0x82092C0 and nested shape/child field decoders, then exhaustively parse all 13 original payloads.",
+  "nativeProof": {
+    "workflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38492455725",
+    "imageBase": "0x140000000",
+    "rootFieldOwner": "CEBMPFCJPGE (typeDefinitionIndex 24102) with one array-like field DFCALNLIJCE",
+    "rootMethod": "CEBMPFCJPGE.GMENPOPMKAA@0xD1F6FA0",
+    "rootMethodEvidence": "At 0xD1F6FDE tests first byte's sign; negative marker (0xCB) dispatches to 0x82093B0",
+    "arrayReaderRva": "0x82093B0",
+    "decodeInstructionA": "0x82093FD mov edx, 0x91b65b45",
+    "decodeInstructionB": "0x8209402 add edx, dword ptr [rax+rcx+0x20]",
+    "readCursorAdvance": "0x82093FA lea ebx, [rcx+4] then 0x8209406 stores cursor+4",
+    "arrayAllocation": "0x820941D call 0x14050B230 with decoded count R12",
+    "arrayElementReader": "0x820944E call 0x82092C0 for each allocated element",
+    "loop": "0x8209498 inc edi; 0x820949D cmp rdi,r12; jl 0x8209430",
+    "semanticStrength": "Root-count encoding independently confirmed. Equating each root element with a world parent follows the spatial object-list use and all-scene geometric counts."
+  },
+  "firstRootElementFlagEvidence": {
+    "readerRva": "0x82092C0",
+    "decode": "((raw_first_element_byte + 0x15) XOR 0x55) & 255",
+    "nativeEvidence": "0x8209304, 0x820930F, 0x8209312, 0x8209315 (bit0x40), 0x820932E (bit0x01)",
+    "source": "Payload first32BytesHex from exact pinned client, vs 13 first parent child list sizes from pinned community worldArea data",
+    "agreement": "13 of 13 native bit 0x01 agree with community first-parent child list being nonempty (9 nonempty and 4 empty). This proves only flag/presence correlation, not all child records or data equality.",
+    "rows": [
+      {
+        "sceneID": 3,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 10,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 4,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0x00",
+        "decodedMaskHex": "0x40",
+        "shapeBit0x40": true,
+        "childBit0x01": false,
+        "historicalCommunityFirstParentChildPolygonRecords": 0,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 5,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 9,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 6,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 7,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 7,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 9,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 9,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0x00",
+        "decodedMaskHex": "0x40",
+        "shapeBit0x40": true,
+        "childBit0x01": false,
+        "historicalCommunityFirstParentChildPolygonRecords": 0,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 10,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0x00",
+        "decodedMaskHex": "0x40",
+        "shapeBit0x40": true,
+        "childBit0x01": false,
+        "historicalCommunityFirstParentChildPolygonRecords": 0,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 11,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 9,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 100,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 3,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 101,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 10,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 102,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 15,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 103,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0xff",
+        "decodedMaskHex": "0x41",
+        "shapeBit0x40": true,
+        "childBit0x01": true,
+        "historicalCommunityFirstParentChildPolygonRecords": 13,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      },
+      {
+        "sceneID": 51195,
+        "firstParentOriginalByteIndex": 5,
+        "firstParentEncodedByteHex": "0x00",
+        "decodedMaskHex": "0x40",
+        "shapeBit0x40": true,
+        "childBit0x01": false,
+        "historicalCommunityFirstParentChildPolygonRecords": 0,
+        "observedChildBitAgreesWithHistoricalNonempty": true
+      }
+    ]
+  }
+}

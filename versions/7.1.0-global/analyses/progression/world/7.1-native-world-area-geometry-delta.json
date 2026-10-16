@@ -1,0 +1,369 @@
+{
+  "status": "EXACT_ORIGINAL_7_1_VS_COMMUNITY_GEOMETRY_DIFF_BY_AREA_ID",
+  "source": {
+    "native": "Official Sophon Genshin Impact 7.1.0 Global WorldArea scene exports, per-file SHA-256 pinned; exact source 0/24230448.blk",
+    "community": "MeChen618/AstaPS-Resource@85b81a691fcf3d9e8e7db50a8febc8f9043bc084, 13 exact pinned Git blobs",
+    "primaryRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38494647548",
+    "independentIdKeyedRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38494967352",
+    "decoder": "genshinre/worldareabin.py",
+    "comparator": "scripts/compare-7.1-native-world-area.py",
+    "coordinateTolerance": 0.0001
+  },
+  "counts": {
+    "scenes": 13,
+    "identicalGeometryScenes": 12,
+    "changedGeometryScenes": 1,
+    "changedSceneID": 3,
+    "originalParents": 90,
+    "communityParents": 90,
+    "originalChildPolygonRecords": 480,
+    "communityChildPolygonRecords": 480,
+    "nativeAndCommunityChildIdInventoriesEqual": true,
+    "originalVertices": 9177,
+    "communityVertices": 9167,
+    "deltaVertices": 10,
+    "changedChildIds": 8,
+    "childOrderChangeOnly": {
+      "areaID1": 57,
+      "historicalLocalOrder": [
+        5706,
+        5703,
+        5705,
+        5701,
+        5702
+      ],
+      "originalLocalOrder": [
+        5706,
+        5703,
+        5701,
+        5705,
+        5702
+      ]
+    },
+    "nativeConfiguredButWithoutWorldAreaPolygon": 14
+  },
+  "configuredButAbsentInNativeWorldArea": [
+    {
+      "sceneID": 3,
+      "areaID1": 25,
+      "areaID2": 2501,
+      "configID": 4601
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 32,
+      "areaID2": 3120,
+      "configID": 5020
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 35,
+      "areaID2": 3512,
+      "configID": 50312
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 36,
+      "areaID2": 3602,
+      "configID": 50402
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 39,
+      "areaID2": 3912,
+      "configID": 50712
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 41,
+      "areaID2": 4105,
+      "configID": 21106
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 41,
+      "areaID2": 4107,
+      "configID": 21108
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 43,
+      "areaID2": 4301,
+      "configID": 60101
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 48,
+      "areaID2": 4805,
+      "configID": 60505
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 48,
+      "areaID2": 4807,
+      "configID": 60507
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 48,
+      "areaID2": 4808,
+      "configID": 60508
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 73,
+      "areaID2": 7301,
+      "configID": 70401
+    },
+    {
+      "sceneID": 3,
+      "areaID1": 75,
+      "areaID2": 7503,
+      "configID": 70603
+    },
+    {
+      "sceneID": 101,
+      "areaID1": 800,
+      "areaID2": 80011,
+      "configID": 680011
+    }
+  ],
+  "changedScene": {
+    "sceneID": 3,
+    "changes": [
+      {
+        "areaID1": 55,
+        "areaID2": 5502,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:55:5502:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "firstDifference": {
+              "vertexIndex": 3,
+              "axis": "x",
+              "native": 8590.9833984375,
+              "community": 8591.626953125
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 56,
+        "areaID2": 5602,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:56:5602:0",
+            "kind": "VERTEX_COUNT",
+            "native": 13,
+            "community": 8
+          },
+          {
+            "record": "child:56:5602:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 8,
+              "z": 8,
+              "y": 4
+            },
+            "firstDifference": {
+              "vertexIndex": 0,
+              "axis": "x",
+              "native": 8722.6611328125,
+              "community": 8733.283203125
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 56,
+        "areaID2": 5608,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:56:5608:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "minY",
+            "native": 252.94012451171875,
+            "community": 230.2985076904297
+          },
+          {
+            "record": "child:56:5608:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "maxY",
+            "native": 348.8773193359375,
+            "community": 352.210693359375
+          },
+          {
+            "record": "child:56:5608:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "y": 15,
+              "x": 2,
+              "z": 2
+            },
+            "firstDifference": {
+              "vertexIndex": 0,
+              "axis": "y",
+              "native": 252.94012451171875,
+              "community": 230.2985076904297
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 57,
+        "areaID2": 5701,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:57:5701:0",
+            "kind": "VERTEX_COUNT",
+            "native": 29,
+            "community": 26
+          },
+          {
+            "record": "child:57:5701:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "maxY",
+            "native": 700,
+            "community": 1000
+          },
+          {
+            "record": "child:57:5701:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 17,
+              "y": 5,
+              "z": 17
+            },
+            "firstDifference": {
+              "vertexIndex": 9,
+              "axis": "x",
+              "native": 8134.7255859375,
+              "community": 8112.056640625
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 57,
+        "areaID2": 5702,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:57:5702:0",
+            "kind": "VERTEX_COUNT",
+            "native": 16,
+            "community": 14
+          },
+          {
+            "record": "child:57:5702:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "minY",
+            "native": 600,
+            "community": -1000
+          },
+          {
+            "record": "child:57:5702:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 11,
+              "z": 11,
+              "y": 1
+            },
+            "firstDifference": {
+              "vertexIndex": 0,
+              "axis": "x",
+              "native": 8177.80078125,
+              "community": 8178.76171875
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 57,
+        "areaID2": 5703,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:57:5703:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "minY",
+            "native": 1170,
+            "community": 1143.359619140625
+          }
+        ]
+      },
+      {
+        "areaID1": 58,
+        "areaID2": 5802,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:58:5802:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 2,
+              "z": 2
+            },
+            "firstDifference": {
+              "vertexIndex": 3,
+              "axis": "x",
+              "native": 8759.2802734375,
+              "community": 8747.0576171875
+            }
+          }
+        ]
+      },
+      {
+        "areaID1": 58,
+        "areaID2": 5804,
+        "recordOrdinal": 0,
+        "changes": [
+          {
+            "record": "child:58:5804:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "minY",
+            "native": 66.89675903320312,
+            "community": -1000
+          },
+          {
+            "record": "child:58:5804:0",
+            "kind": "HEIGHT_BOUND",
+            "field": "maxY",
+            "native": 219.05889892578125,
+            "community": 1000
+          },
+          {
+            "record": "child:58:5804:0",
+            "kind": "VERTEX_COORDINATES",
+            "changedComponents": {
+              "x": 2,
+              "y": 4,
+              "z": 2
+            },
+            "firstDifference": {
+              "vertexIndex": 0,
+              "axis": "x",
+              "native": 8792.0712890625,
+              "community": 8782.2626953125
+            }
+          }
+        ]
+      }
+    ],
+    "warnings": [
+      "Positional index comparison misattributes 5701/5705 after their array order exchange; authoritative geometry change grouping is by parent and child ID.",
+      "A matching native and community child area ID inventory does not imply equal geometry.",
+      "This report confirms only WorldArea resource blobs; other runtime selection paths or separate assets remain outside its scope."
+    ]
+  },
+  "conclusion": "Eight level-2 geometry records (5502,5602,5608,5701,5702,5703,5802,5804) differ between original 7.1 and historical 7.0-lineage published resource data. Child 5705 retains its old geometry but swaps list order with 5701. Missing 14 configured children remain missing in original 7.1 WorldArea assets."
+}

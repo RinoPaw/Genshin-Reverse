@@ -6,6 +6,7 @@ Reusable repository functionality belongs in `genshinre/`. Maintained multi-step
 
 Current helpers:
 
+- `probe_world_area_native_71.py` collects pinned 7.1 native WorldArea producer and spatial-selection evidence; results are read-only candidate observations.
 - `probe_graphics_aa_menu.py` inspects exact-sample anti-aliasing menu and IL2CPP metadata candidates without modifying the executable.
 - `research_graphics_aa_callgraph.py` builds a bounded, exact-sample direct-call map for graphics setting owners using optional Capstone; menu ownership remains unconfirmed.
 - `decode_protocol_handler_parameters_71.py` independently decodes exact-7.1 parameter records and checks known handler controls. It stays separate from the normal decoded metadata path so it remains an independent evidence layer.

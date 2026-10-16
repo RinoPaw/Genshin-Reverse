@@ -1,0 +1,747 @@
+{
+  "target": "7.1.0-global/windows-x64",
+  "status": "STATIC_CLIENT_PACKET_IDENTITY_CONFIRMED__REQUEST_PRODUCER_UNRESOLVED",
+  "exact_sample": {
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadata_sha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0"
+  },
+  "capture": {
+    "run_id": 38487190697,
+    "url": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38487190697",
+    "runner_workflow": "probe-7.1-world-area.yml",
+    "method": "Exact sample profile SHA256 enforced; streamed published methods.csv, fields.csv; full-PE E8 rel32 direct-call scan plus instruction-boundary validation"
+  },
+  "native_registry": [
+    {
+      "role": "request",
+      "semantic_reference": "AstaPS EnterWorldAreaReq",
+      "cmd_id": 25407,
+      "type_name": "GEAMLDNCCEP",
+      "type_definition_index": 82921,
+      "get_cmd_id_rva": "0x104B5AB0",
+      "type_slot_rva": "0x57F2910"
+    },
+    {
+      "role": "response",
+      "semantic_reference": "AstaPS EnterWorldAreaRsp",
+      "cmd_id": 6774,
+      "type_name": "ICMCPHPFIKJ",
+      "type_definition_index": 83231,
+      "get_cmd_id_rva": "0x136E72D0",
+      "type_slot_rva": "0x57F5498"
+    }
+  ],
+  "request_methods": [
+    {
+      "method": ".ctor",
+      "rva": "0x104B5670"
+    },
+    {
+      "method": "KCLBBFDAMDF",
+      "rva": "0x104B5680"
+    },
+    {
+      "method": "CopyFrom",
+      "rva": "0x104B5690",
+      "parameter_types": [
+        "GEAMLDNCCEP"
+      ]
+    },
+    {
+      "method": "IENGFLPCLNM",
+      "rva": "0x104B5700",
+      "parameter_types": [
+        "EIBJNHDPEMB"
+      ]
+    },
+    {
+      "method": "EBAAKGIEFHO",
+      "rva": "0x104B5950"
+    },
+    {
+      "method": "HKFIBILBMDF",
+      "rva": "0x104B56E0"
+    },
+    {
+      "method": "AEGNNPENLNM",
+      "rva": "0x104B5AB0"
+    },
+    {
+      "method": "NKFCABIOGLE",
+      "rva": "0x104B5AC0"
+    }
+  ],
+  "fields": {
+    "request": [
+      {
+        "field_index": 412084,
+        "name": "BDACPMHCJGH",
+        "type": "uint32"
+      },
+      {
+        "field_index": 412085,
+        "name": "LGANHLIBCEI",
+        "type": "uint32"
+      }
+    ],
+    "response": [
+      {
+        "field_index": 413356,
+        "name": "BDACPMHCJGH",
+        "type": "uint32"
+      },
+      {
+        "field_index": 413357,
+        "name": "LGANHLIBCEI",
+        "type": "uint32"
+      },
+      {
+        "field_index": 413358,
+        "name": "BLPJNJBFDJJ",
+        "type": "int32"
+      }
+    ]
+  },
+  "external_signature_references": [
+    {
+      "role": "response_consumer_candidate",
+      "owner_type": "KLLNGCPBLMM",
+      "owner_type_definition_index": 74397,
+      "method_name": "AOBLMEIIJCC",
+      "method_index": 615854,
+      "rva": "0xF054180",
+      "parameter_types": [
+        "ICMCPHPFIKJ"
+      ]
+    }
+  ],
+  "negative_results": {
+    "external_request_signature_references": 0,
+    "validated_e8_rel32_direct_calls_to_request_methods": 0,
+    "external_direct_caller_methods_found": 0
+  },
+  "interpretation": "No external direct-call/signature edge does not show the request is unused. Indirect/generic calls, metadata class pointers, runtime dispatch and client area precedence remain unverified.",
+  "followup": "Validate 24 X/Z mismatch witnesses under an explicitly labeled historical-community-geometry predictor using parent-first X/Z and child XYZ; compare actual native 7.1 geometry/runtime packets when obtainable.",
+  "native_type_slot_cross_refs": {
+    "workflow_run_id": 38487515704,
+    "note": "Type-slot xrefs are RIP-relative references found in exact client. They identify code referencing the request class slot, not necessarily a request sending path.",
+    "request_slot": "0x57F2910",
+    "request_hits": [
+      {
+        "site_rva": "0x7F8A316",
+        "owner": "FBGCJGDKLLB..ctor",
+        "owner_rva": "0x7F7D850",
+        "role": "registry constructor",
+        "confidence": "static_identity"
+      },
+      {
+        "site_rva": "0xF05DA27",
+        "owner": "KLLNGCPBLMM.FBJEEOLKAAD",
+        "owner_rva": "0xF05DA10",
+        "owner_method_index": 615926,
+        "owner_parameter_types": [
+          "EOFNANCNGFK"
+        ],
+        "role": "area request type-slot consumer candidate",
+        "confidence": "candidate"
+      },
+      {
+        "site_rva": "0x104B5ACC",
+        "owner": "GEAMLDNCCEP.NKFCABIOGLE",
+        "owner_rva": "0x104B5AC0",
+        "role": "self registration reference",
+        "confidence": "static_identity"
+      }
+    ],
+    "response_slot": "0x57F5498",
+    "response_hits": [
+      {
+        "site_rva": "0x7F830A0",
+        "owner": "FBGCJGDKLLB..ctor",
+        "owner_rva": "0x7F7D850",
+        "role": "registry constructor"
+      },
+      {
+        "site_rva": "0x136E716C",
+        "owner": "ICMCPHPFIKJ.NKFCABIOGLE",
+        "owner_rva": "0x136E7160",
+        "role": "self registration reference"
+      }
+    ],
+    "request_method_pointer_holders": {
+      "begin": "0x2DACFD0",
+      "end_inclusive": "0x2DAD008",
+      "entries": 8,
+      "code_rip_xrefs_found": 0,
+      "warning": "Absence of direct RIP references to method-pointer table slots does not eliminate generic or indirect dispatch."
+    }
+  },
+  "failed_field_offset_path": {
+    "workflow_run_id": 38487515704,
+    "tool": "tools/resolve_7_1_field_offsets.py",
+    "valid_registration_candidates": 0,
+    "result": "UNRESOLVED",
+    "note": "Existing field-offset locator found no valid metadata-registration layout for the selected request/response fields; no runtime field offsets assigned."
+  },
+  "native_producer_candidate": {
+    "workflow_run_id": 38487736933,
+    "workflow_url": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38487736933",
+    "status": "HIGH_CONFIDENCE_REQUEST_CONSTRUCTION__NETWORK_SEND_AND_AREA_SELECTOR_UNRESOLVED",
+    "method": {
+      "type_name": "KLLNGCPBLMM",
+      "type_definition_index": 74397,
+      "name": "FBJEEOLKAAD",
+      "method_index": 615926,
+      "rva": "0xF05DA10",
+      "end_rva": "0xF05DBE0",
+      "parameter_type": "EOFNANCNGFK"
+    },
+    "instruction_edges": [
+      {
+        "site": "0xF05DA27",
+        "operation": "load exact request-type slot 0x57F2910"
+      },
+      {
+        "site": "0xF05DA2E",
+        "operation": "call object allocation helper",
+        "target": "0x1184DFE0",
+        "helper_owner": "PFKFIFOEHNA.JGIBJCAEEBB",
+        "signature": "Il2CppRuntimeClassHandle"
+      },
+      {
+        "site": "0xF05DA3F",
+        "operation": "read 32-bit input value at +0x5C"
+      },
+      {
+        "site": "0xF05DA57",
+        "operation": "store that value into request +0x18"
+      },
+      {
+        "site": "0xF05DA5D",
+        "operation": "branch when input +0x5C equals 2"
+      },
+      {
+        "site": "0xF05DA62",
+        "operation": "branch when input +0x5C equals 1"
+      },
+      {
+        "site": "0xF05DA67",
+        "operation": "for input type 1: load area selector from input +0x58"
+      },
+      {
+        "site": "0xF05DA90",
+        "operation": "for input type 2: load area selector from input +0x48"
+      },
+      {
+        "site": "0xF05DA73/0xF05DA9C",
+        "operation": "pass area selector through common conversion helper",
+        "target": "0xBB15F50"
+      },
+      {
+        "site": "0xF05DAB8",
+        "operation": "store converted area selector into request +0x1C"
+      },
+      {
+        "site": "0xF05DADF",
+        "operation": "pass request object in RDX to downstream handler"
+      },
+      {
+        "site": "0xF05DAE5",
+        "operation": "call downstream packet handling/send candidate",
+        "target": "0x7246860",
+        "callee": "EDKMMIPJHJA.DMLCLHCBOBJ"
+      }
+    ],
+    "wire_serialization": {
+      "rva": "0x104B5700",
+      "method": "GEAMLDNCCEP.IENGFLPCLNM",
+      "role": "write_to_method_confirmed_by_tag_encoding",
+      "request_field_at_offset_0x18": {
+        "tag_value": 8,
+        "protobuf_field_number": 1,
+        "wire_type": 0,
+        "observation": "0x104B5766 writes tag byte 0x08, then loads [rdi+0x18]"
+      },
+      "request_field_at_offset_0x1C": {
+        "tag_value": 32,
+        "protobuf_field_number": 4,
+        "wire_type": 0,
+        "observation": "0x104B57E1 writes tag byte 0x20, then loads [rdi+0x1C]"
+      },
+      "size_method": {
+        "rva": "0x104B5950",
+        "method": "GEAMLDNCCEP.EBAAKGIEFHO",
+        "role": "serialized_size_candidate"
+      }
+    },
+    "source_callers": {
+      "rva": "0x8CB5580",
+      "type_name": "HJJINELFFMJ",
+      "method_name": "MDBCMKFJJNN",
+      "method_index": 293454,
+      "parameter_types": [
+        "bool",
+        "bool"
+      ],
+      "validated_direct_call_sites": [
+        "0x8CB580F",
+        "0x8CB59E0"
+      ]
+    },
+    "other_response_owner": {
+      "rva": "0xF054180",
+      "type_name": "KLLNGCPBLMM",
+      "method": "AOBLMEIIJCC",
+      "parameter_types": [
+        "ICMCPHPFIKJ"
+      ],
+      "validated_direct_callers": 0
+    },
+    "caution": "Evidence binds request construction and a downstream call, but without the producer caller's scene/position logic and network dispatch verification no client LEVEL_1/LEVEL_2 precedence can be concluded."
+  },
+  "area_update_owner": {
+    "sample": "7.1.0-global/windows-x64",
+    "workflow_run_id": 38488077301,
+    "status": "NATIVE_CALLGRAPH_CONFIRMED__PARENT_GATE_UNVERIFIED",
+    "method": {
+      "type": "HJJINELFFMJ",
+      "type_definition_index": 37197,
+      "method": "MDBCMKFJJNN",
+      "method_index": 293454,
+      "rva": "0x8CB5580",
+      "end_rva": "0x8CB5D50",
+      "parameters": [
+        "bool",
+        "bool"
+      ]
+    },
+    "direct_callers": [
+      {
+        "type": "HJJINELFFMJ",
+        "method": "Tick",
+        "rva": "0x8CB5220",
+        "callsite": "0x8CB5241"
+      },
+      {
+        "type": "KLLNGCPBLMM",
+        "method": "HLDGHKOJODF",
+        "rva": "0xF0732B0",
+        "callsite": "0xF0732F7"
+      }
+    ],
+    "native_calls": [
+      {
+        "site": "0x8CB55E9",
+        "target": "0x8CC18F0",
+        "callee": "HJJINELFFMJ.FJLEHAEPFIE",
+        "usage": "local area state / coordinate candidate"
+      },
+      {
+        "site": "0x8CB5621",
+        "target": "0x8CBA430",
+        "callee": "HJJINELFFMJ.IDLBPNPOJPL",
+        "usage": "area data lookup candidate"
+      },
+      {
+        "site": "0x8CB580F",
+        "target": "0xF05DA10",
+        "callee": "KLLNGCPBLMM.FBJEEOLKAAD",
+        "usage": "request constructor and dispatch"
+      },
+      {
+        "site": "0x8CB5838",
+        "target": "0x8CBA430",
+        "callee": "HJJINELFFMJ.IDLBPNPOJPL",
+        "usage": "area data lookup candidate"
+      },
+      {
+        "site": "0x8CB58E9",
+        "target": "0x8CD8710",
+        "callee": "HJJINELFFMJ.FGMFHMFGJJH",
+        "usage": "area object/state callback"
+      },
+      {
+        "site": "0x8CB59BB",
+        "target": "0x8CD8710",
+        "callee": "HJJINELFFMJ.FGMFHMFGJJH",
+        "usage": "area object/state callback"
+      },
+      {
+        "site": "0x8CB59E0",
+        "target": "0xF05DA10",
+        "callee": "KLLNGCPBLMM.FBJEEOLKAAD",
+        "usage": "second request constructor/dispatch"
+      },
+      {
+        "site": "0x8CB59FB",
+        "target": "0x8CD8710",
+        "callee": "HJJINELFFMJ.FGMFHMFGJJH",
+        "usage": "area object/state callback"
+      }
+    ],
+    "candidate_class": {
+      "type": "EOFNANCNGFK",
+      "type_definition_index": 27203,
+      "declared_fields": 22,
+      "field_idx_136423": {
+        "name": "MBOHIOJBBHO",
+        "type": "IPOIKFOIOEO"
+      },
+      "note": "Same obfuscated token as WorldAreaConfigData LEVEL_1/LEVEL_2 value: candidate cross-resource identity, not yet proven native enum semantic."
+    },
+    "scene_owner_cached_fields": [
+      {
+        "type_name": "EOFNANCNGFK",
+        "field_index": 186096
+      },
+      {
+        "type_name": "EOFNANCNGFK",
+        "field_index": 186111
+      },
+      {
+        "type_name": "EOFNANCNGFK",
+        "field_index": 186125
+      }
+    ],
+    "open_gate": "Disassemble both request callsite windows around 0x8CB580F/0x8CB59E0, and isolate area lookup/state cache methods 0x8CBA430/0x8CD8710. Only after verifying request mode1 vs mode2 source and parent check may client precedence be assigned."
+  },
+  "area_update_detailed": {
+    "workflow_run_id": 38488420239,
+    "url": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38488420239",
+    "status": "CONFIRMED_TWO_REQUEST_PATHS_AND_ID_LOOKUPS__PRECEDENCE_UNRESOLVED",
+    "position_acquisition": {
+      "callsite": "0x8CB55E9",
+      "owner": "HJJINELFFMJ.FJLEHAEPFIE@0x8CC18F0",
+      "native_behavior": "Obtains position through virtual interface and creates 16-byte valid positional snapshot"
+    },
+    "first_send": {
+      "callsite": "0x8CB580F",
+      "request_input_register": "RDX=RBX",
+      "trace": [
+        {
+          "site": "0x8CB57F0",
+          "operation": "call CFMLMIMHMDB.CDILLIFELOK (Notify,bool,bool)"
+        },
+        {
+          "site": "0x8CB580C",
+          "operation": "mov rdx, rbx"
+        },
+        {
+          "site": "0x8CB580F",
+          "operation": "call KLLNGCPBLMM.FBJEEOLKAAD (construct area request)"
+        },
+        {
+          "site": "0x8CB5814",
+          "operation": "set owner flag [rsi+0x261] = 1"
+        },
+        {
+          "site": "0x8CB581B",
+          "operation": "cache region object RBX in owner [rsi+0x180]"
+        }
+      ]
+    },
+    "second_send": {
+      "callsite": "0x8CB59E0",
+      "request_input_register": "RDX=R15",
+      "trace": [
+        {
+          "site": "0x8CB5838",
+          "operation": "call HJJINELFFMJ.IDLBPNPOJPL area ID lookup candidate"
+        },
+        {
+          "site": "0x8CB587F",
+          "operation": "call CEBMPFCJPGE.INENBAGNECA(pos)"
+        },
+        {
+          "site": "0x8CB58D1",
+          "operation": "call HJFGDBFJKGP.OOAFBGBKPKO with two uint32 inputs"
+        },
+        {
+          "site": "0x8CB58FA",
+          "operation": "store selected integer in owner [rsi+0x23c]"
+        },
+        {
+          "site": "0x8CB591C",
+          "operation": "store new pointer R15 in owner [rsi+0x108]"
+        },
+        {
+          "site": "0x8CB59B0",
+          "operation": "call notification CFMLMIMHMDB.CDILLIFELOK"
+        },
+        {
+          "site": "0x8CB59DD",
+          "operation": "mov rdx, r15"
+        },
+        {
+          "site": "0x8CB59E0",
+          "operation": "call request constructor"
+        },
+        {
+          "site": "0x8CB59FB",
+          "operation": "call scene area callback HJJINELFFMJ.FGMFHMFGJJH"
+        }
+      ]
+    },
+    "candidate_helper_functions": [
+      {
+        "rva": "0x8CBA430",
+        "type": "HJJINELFFMJ",
+        "name": "IDLBPNPOJPL",
+        "method_index": 293510,
+        "observed": "Indexes owner dictionary at +0x190, may resolve ID and/or load area record",
+        "certainty": "native lookup structure verified; semantics unverified"
+      },
+      {
+        "rva": "0x8CD8710",
+        "type": "HJJINELFFMJ",
+        "name": "FGMFHMFGJJH",
+        "method_index": 293508,
+        "observed": "Accepts EOFNANCNGFK; performs scene update side effects",
+        "certainty": "native typed method identity"
+      },
+      {
+        "rva": "0x8CC18F0",
+        "type": "HJJINELFFMJ",
+        "name": "FJLEHAEPFIE",
+        "method_index": 293599,
+        "observed": "Obtains position from virtual method and populates snapshot with validity flag",
+        "certainty": "native instruction evidence"
+      }
+    ],
+    "input_type_context": {
+      "type_name": "EOFNANCNGFK",
+      "type_definition_index": 27203,
+      "field_count": 22,
+      "field_type_at_index_136423": {
+        "name": "MBOHIOJBBHO",
+        "type": "IPOIKFOIOEO",
+        "observation": "Name token matches LEVEL_1/LEVEL_2 field in community WorldAreaConfig; native numeric value not assigned"
+      },
+      "owner_hjj_type_fields": [
+        {
+          "index": 186096,
+          "type": "EOFNANCNGFK"
+        },
+        {
+          "index": 186111,
+          "type": "EOFNANCNGFK"
+        },
+        {
+          "index": 186125,
+          "type": "EOFNANCNGFK"
+        }
+      ]
+    },
+    "evidence_limit": "First path sends RBX, second sends R15 (a possibly updated region object); none of the observed calls alone prove a parent-gating condition. ID comparison, selection & whether parent and child can independently match remain unresolved."
+  },
+  "parent_scoped_second_level_lookup_candidate": {
+    "status": "DIRECT_INSTRUCTION_CHAIN_CONFIRMED__SUPPLEMENTARY_TO_CONFIRMED_SPATIAL_PARENT_GATE",
+    "exact_client_run": 38488697939,
+    "location": "HJJINELFFMJ.MDBCMKFJJNN@0x8CB5580",
+    "steps": [
+      {
+        "site": "0x8CB56EC",
+        "instruction": "mov edi, [rsi+0x21C]",
+        "fact": "load scene-like owner index"
+      },
+      {
+        "site": "0x8CB570B",
+        "instruction": "call 0x1366D470",
+        "fact": "obtain first-stage selected area record (RBX) using scene-like index and first-stage spatial candidate"
+      },
+      {
+        "site": "0x8CB5838",
+        "instruction": "call 0x8CBA430",
+        "fact": "reacquire scene-indexed area data"
+      },
+      {
+        "site": "0x8CB587F",
+        "instruction": "call 0xD1F6C70",
+        "fact": "spatial-query candidate pointer"
+      },
+      {
+        "site": "0x8CB5889",
+        "instruction": "mov eax, [rax+0x1C]",
+        "fact": "read second-stage area candidate ID from spatial result"
+      },
+      {
+        "site": "0x8CB5895",
+        "instruction": "call 0xBB15F50",
+        "fact": "normalize/convert second-stage area ID"
+      },
+      {
+        "site": "0x8CB58A3",
+        "instruction": "mov eax, [rbx+0x4C]",
+        "fact": "load value from first-stage area record"
+      },
+      {
+        "site": "0x8CB58B2",
+        "instruction": "call 0xBB15F50",
+        "fact": "normalize/convert first-stage area record value"
+      },
+      {
+        "site": "0x8CB58CD",
+        "instruction": "mov ecx, ebp",
+        "fact": "set first nested-lookup key from first-stage area record"
+      },
+      {
+        "site": "0x8CB58CF",
+        "instruction": "mov edx, edi",
+        "fact": "set second nested-lookup key from second-stage spatial result"
+      },
+      {
+        "site": "0x8CB58D1",
+        "instruction": "call 0x1366D2F0",
+        "fact": "two-key nested dictionary lookup, returning a record pointer if found"
+      },
+      {
+        "site": "0x8CB5900",
+        "instruction": "test rax, rax",
+        "fact": "only when second nested lookup succeeds is second record cached at [rsi+0x108], with subsequent request at 0x8CB59E0"
+      }
+    ],
+    "callee": "HJFGDBFJKGP.OOAFBGBKPKO@0x1366D2F0",
+    "callee_native_facts": [
+      "First keyed lookup against a global dictionary/table and possible canonicalization of first key via 0xF04D380.",
+      "Then access [rax+0x20808] and perform lookup by first key to obtain inner dictionary.",
+      "Look up second key in inner dictionary, returning pointer or null."
+    ],
+    "interpretation": "Client second-stage record selection explicitly uses a value read from its first-stage record. Parent-scoped hierarchy gating is plausible, but the first record's +0x4C semantic and the source/internals of the nested dictionary are not yet verified.",
+    "further_test": "Disassemble first-stage resolver 0x1366D470, independent position queries 0xD1F67A0 and 0xD1F6C70, and ID conversion 0xF04D380; then correlate with static 23 crossing witness points."
+  },
+  "native_parent_gated_spatial_search": {
+    "status": "CONFIRMED_PARENT_GATE_HEIGHT_MODE_AND_FIRST_MATCH_ORDER",
+    "sample": "7.1.0-global/windows-x64; exact SHA checked by workflow",
+    "evidence_workflow_run": 38490261052,
+    "source": "Exact client method CEBMPFCJPGE.INENBAGNECA@0xD1F6C70",
+    "proven_claim": "The queried position is checked against a parent polygon before that parent's nested child polygons are tested; a parent miss skips that parent's child candidates.",
+    "instruction_chain": [
+      {
+        "rva": "0xD1F6C92",
+        "assembly": "mov rbx, [rdx+0x10]",
+        "observation": "fetch parent array/list"
+      },
+      {
+        "rva": "0xD1F6CCB",
+        "assembly": "mov rsi, [rbx+rdi*8+0x20]",
+        "observation": "fetch candidate parent"
+      },
+      {
+        "rva": "0xD1F6CD9",
+        "assembly": "mov rdx, [rsi+0x18]",
+        "observation": "fetch parent polygon/region shape"
+      },
+      {
+        "rva": "0xD1F6CEF",
+        "assembly": "mov rcx, [rdx+0x10]",
+        "observation": "load geometric test object"
+      },
+      {
+        "rva": "0xD1F6D10",
+        "assembly": "xor r8d, r8d",
+        "observation": "parent test passes mode/flag 0"
+      },
+      {
+        "rva": "0xD1F6D13",
+        "assembly": "call 0x151F72810",
+        "observation": "evaluate position against parent shape"
+      },
+      {
+        "rva": "0xD1F6D18",
+        "assembly": "test al, al",
+        "observation": "check parent geometric test boolean"
+      },
+      {
+        "rva": "0xD1F6D1A",
+        "assembly": "jne 0xD1F6D6D",
+        "observation": "only parent hit enters nested child traversal"
+      },
+      {
+        "rva": "0xD1F6D1C",
+        "assembly": "inc rdi",
+        "observation": "parent miss advances to next parent"
+      },
+      {
+        "rva": "0xD1F6D6D",
+        "assembly": "mov rbx, [rsi+0x10]",
+        "observation": "parent hit fetches child list"
+      },
+      {
+        "rva": "0xD1F6DAB",
+        "assembly": "mov r12, [rbx+rdi*8+0x20]",
+        "observation": "fetch child candidate"
+      },
+      {
+        "rva": "0xD1F6DC2",
+        "assembly": "mov rcx, [r12+0x10]",
+        "observation": "load child geometric test object"
+      },
+      {
+        "rva": "0xD1F6DE4",
+        "assembly": "mov r8b, 1",
+        "observation": "child test passes mode/flag 1"
+      },
+      {
+        "rva": "0xD1F6DE7",
+        "assembly": "call 0x151F72810",
+        "observation": "evaluate position against child shape"
+      }
+    ],
+    "limitations": [
+      "The 7.1-labelled community geometry is unchanged from historical 7.0; native 7.1 assets may differ.",
+      "Zero/missing minY or maxY in community dumps is not independently validated against native runtime geometry initialization.",
+      "The confirmed first-hit order is scoped to method 0xD1F6C70, not all possible area state transitions or notifications."
+    ],
+    "related_parent_lookup": {
+      "method": "HJFGDBFJKGP.OOAFBGBKPKO@0x1366D2F0",
+      "owner": "HJJINELFFMJ.MDBCMKFJJNN@0x8CB5580",
+      "observation": "Two-key dictionary lookup where first key is read from parent-level area record +0x4C, second key is the child spatial result.",
+      "status": "CONFIRMED_CODE_PATH__KEY_SEMANTICS_CANDIDATE"
+    },
+    "implication": "Server implementations should not independently search all second-level polygons without considering parent geometric membership if pursuing parity with this 7.1 client control flow.",
+    "native_contains_test": {
+      "status": "NATIVE_STATIC_CONFIRMED",
+      "workflow_url": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38490261052",
+      "method_rva": "0x11F72810",
+      "method_va": "0x151F72810",
+      "image_base": "0x140000000",
+      "input_vector3": {
+        "x": "+0x00",
+        "y": "+0x04",
+        "z": "+0x08"
+      },
+      "bounding_box": {
+        "shape_min_x": "+0x24",
+        "shape_min_y": "+0x28",
+        "shape_min_z": "+0x2C",
+        "shape_max_x": "+0x30",
+        "shape_max_y": "+0x34",
+        "shape_max_z": "+0x38",
+        "xyz_intervals": "inclusive for ordered finite values; NaN/unordered cases not characterized"
+      },
+      "always_tested_xz": "0x11F7282C through 0x11F72853 reject point outside X/Z bounding box",
+      "height_gate": "0x11F7285E test r9b,r9b; je 0x11F72878 skips Y checks for 0",
+      "height_test": "0x11F72863–0x11F72876, with nonzero flag, rejects Y below minY or above maxY",
+      "polygon_test": "0x11F72878–0x11F728AC obtains polygon at shape+0x10 and tests the point's X/Z via 0x146C8CC60 VA",
+      "parent_flag": {
+        "caller": "0xD1F6D13",
+        "value": 0,
+        "height_ignored": true
+      },
+      "child_flag": {
+        "caller": "0xD1F6DE7",
+        "value": 1,
+        "height_required": true
+      }
+    },
+    "first_hit_precedence": {
+      "status": "CONFIRMED_IN_THIS_NATIVE_SPATIAL_METHOD",
+      "parent_scan": "Iterates parent list in stored order; first parent X/Z hit enters only that parent's children",
+      "parent_miss": "0xD1F6D1C increments parent index and retries",
+      "child_scan": "Iterates selected parent's child list in stored order, checking each child's X/Z and inclusive Y",
+      "child_hit": "0xD1F6DEE jumps to return pointer at 0xD1F6E46",
+      "all_children_miss": "0xD1F6DFE jumps to 0xD1F6E43, clears result and returns null; does not try another overlapping parent",
+      "limitation": "This is first-matching-parent/child in this spatial query. Higher-level area event and dynamic state may introduce additional selection policy."
+    }
+  }
+}
