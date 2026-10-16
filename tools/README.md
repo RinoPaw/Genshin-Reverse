@@ -6,6 +6,7 @@ Reusable repository functionality belongs in `genshinre/`. Maintained multi-step
 
 Current helpers:
 
+- `probe_world_area_native_71.py` collects pinned 7.1 native WorldArea producer and spatial-selection evidence; results are read-only candidate observations.
 - `decode_protocol_handler_parameters_71.py` independently decodes exact-7.1 parameter records and checks known handler controls. It stays separate from the normal decoded metadata path so it remains an independent evidence layer.
 - `disassemble_rva.py` is the small generic exact-sample RVA disassembler used by the opt-in disassembly workflow and focused investigations. It stays outside the base package because it depends on Capstone.
 - `locate_game_packet_framing_71.py` reproduces the exact-client packet-framing boundary used by the maintained runtime capture evidence and depends on Capstone.
