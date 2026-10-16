@@ -47,3 +47,14 @@ A separate tree/row comparison also examined [`fix/mondstadt-71-rino-compat` at 
 The old branch's other gameplay and quest field differences reflect already-merged fixes, older ability/gadget, routing and Fontaine resource snapshots, or deprecated flattened QuestExcel and tooling. Its earlier Mondstadt audit (`b27dc228`, 482 lines) is superseded by the exact later `d24e472f` audit (523 lines) preserved here. The earlier branch also retains obsolete QuestExcel rewriting workflows and the duplicated native `quests.json`; neither should be promoted.
 
 **Disposition:** both the earlier compatibility and the later integration research branches may be retired as active Resource branches after confirming their remote heads remain at the pinned SHAs. Their exact research commits and code evidence are anchored above; keep current resources on upstream `main`. This conclusion is static evidence only and does not establish complete client progression.
+
+## Retired partial native-mainline resource experiment (2026-10-16)
+
+The separate historical [`rino-native-mainline-quests` head](https://github.com/RinoPaw/AstaPS-Resource/commit/cb30d8701d73698249178d95984f722210e649cd) is also ready to retire **as a deployable Resource branch**.
+
+- Its Git tree at that head contains **no `BinOutput/Quest` directory**. The main Resource checkout retains the full 4,421-file directory. Do not deploy or merge the historical partial branch.
+- Its historical root `quests.json` blob is `08c4b87b807863168c5e56c567e053c722bfb8fd` (3,367,764 bytes); the separately archived Genshin-Reverse `versions/7.1.0-global/quests.json` blob at `60306497` is `cf1d5813080b5f4f404c2a84cab2d21869b08f33` (20,471,369 bytes). **These snapshots are not byte-equivalent; do not treat one as a verified replacement for the other.** Neither should overwrite live Resource JSON.
+- The native-type-name enrichment and one-off [Mondstadt type census workflow](https://github.com/RinoPaw/AstaPS-Resource/commit/cb30d8701d73698249178d95984f722210e649cd) are superseded for maintained research by the [exact 7.1 full Quest decoder](../../../windows-x64/analyses/quest-extraction/README.md): 4,417/4,417 complete native payloads, 93 recovered QuestContent and 100 QuestExec type identities, with 71,051 entry-level cross-checks.
+- The old branch's incomplete resource replacement and exploratory `.github/workflows` tasks should not be carried into current upstream. Retain the commit link here as provenance and continue only on a concrete unresolved item in [issue #20](https://github.com/RinoPaw/Genshin-Reverse/issues/20).
+
+This is a disposition of an **old integration attempt**, not evidence that every private-server Quest compatibility condition is solved.
