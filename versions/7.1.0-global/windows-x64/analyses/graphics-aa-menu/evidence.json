@@ -1,0 +1,120 @@
+{
+  "topic": "graphics-aa-menu",
+  "state": "ACTIVE",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json",
+    "exe_sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+  },
+  "questions": [
+    "Which IL2CPP/UI model owns the Anti-Aliasing options visible in graphics settings?",
+    "How are option choices mapped to the actual FSR2 rendering path and persisted?",
+    "Can a distinct DLSS 5 option be added without changing native FSR2?"
+  ],
+  "claims": [
+    {
+      "id": "user-sample-pinned-identity",
+      "status": "CONFIRMED",
+      "statement": "The user-supplied read-only probe reports the exact pinned 7.1 Global executable SHA-256; these published metadata indexes therefore match that executable.",
+      "evidence": [
+        {
+          "kind": "user-generated-probe",
+          "source": "tools/probe_graphics_aa_menu.py",
+          "locator": "report.identity.sha256",
+          "note": "Observed SHA-256 matches versions/7.1.0-global/windows-x64/hashes.json; raw executable and local output not committed."
+        }
+      ]
+    },
+    {
+      "id": "known-postprocess-types",
+      "status": "CONFIRMED",
+      "statement": "Published 7.1 metadata contains FFX_FSR2 (9325), ConsumerMode (9384), SubpixelMorphologicalAntialiasing (9390) and TemporalAntialiasing (9399). ConsumerMode declares SMAA_FSR2.",
+      "evidence": [
+        {
+          "kind": "published-sample-metadata",
+          "source": "../../metadata/types.csv",
+          "locator": "type_definition_index=9325,9384,9390,9399"
+        },
+        {
+          "kind": "published-sample-metadata",
+          "source": "../../metadata/fields.csv",
+          "locator": "type_definition_index=9384; field_name=SMAA_FSR2"
+        }
+      ],
+      "notes": "This establishes the rendering-side metadata identities, not which class populates the graphics settings dropdown."
+    },
+    {
+      "id": "native-aa-label",
+      "status": "UNRESOLVED",
+      "statement": "The pinned executable has ASCII AntiAliasing at RVA 0x3AB387A, but the targeted native xref scan found no direct code references and no pointer holders. The string is not yet linked to the graphics settings UI.",
+      "evidence": [
+        {
+          "kind": "user-generated-probe",
+          "source": "tools/probe_graphics_aa_menu.py",
+          "locator": "report.pe_string_hits: literal=AntiAliasing; rva=0x3AB387A"
+        },
+        {
+          "kind": "user-generated-native-xref-report",
+          "source": "tools/probe_graphics_aa_menu.py --literal AntiAliasing --with-xrefs",
+          "locator": "report.native_xrefs.direct_code_xref_count=0; pointer_holder_count=0; literal RVA=0x3AB387A"
+        }
+      ]
+    },
+    {
+      "id": "unresolved-menu-owner",
+      "status": "UNRESOLVED",
+      "statement": "No verified UI dropdown creation callback, selection mapping, persistence, or safe add-option hook has been identified.",
+      "evidence": [
+        {
+          "kind": "research-boundary",
+          "source": "README.md"
+        }
+      ]
+    },
+    {
+      "id": "actual-graphics-setting-tab-type",
+      "status": "CONFIRMED",
+      "statement": "Exact pinned 7.1 metadata contains MoleMole.MonoSettingGraphicsTab (type_definition_index 18970; 6 methods, 8 fields) and MoleMole.MonoSettingGroup (13019; 21 methods, 17 fields), providing concrete UI-side owners for the next probe.",
+      "evidence": [
+        {
+          "kind": "published-sample-metadata",
+          "source": "../../metadata/types.csv",
+          "locator": "type_definition_index=18970 and 13019"
+        }
+      ],
+      "notes": "Their presence and names are confirmed; their responsibility for creating the antialiasing list or saving its value remains unverified."
+    },
+    {
+      "id": "postprocess-aa-enum",
+      "status": "CONFIRMED",
+      "statement": "The pinned type table contains a PostProcessing Antialiasing type at index 9450 with seven fields. Its relationship to the graphics settings dropdown remains unknown.",
+      "evidence": [
+        {
+          "kind": "published-sample-metadata",
+          "source": "../../metadata/types.csv",
+          "locator": "type_definition_index=9450; field_start=45876; field_count=7"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json",
+    "../../metadata/types.csv",
+    "../../metadata/fields.csv",
+    "../../metadata/methods.csv"
+  ],
+  "next_steps": [
+    "Collect exact type-owner methods/fields for 18970, 13019, 9450, 18971, 9330 and 9384 via focus-only probe.",
+    "Inspect the graph from MoleMole.MonoSettingGraphicsTab and MonoSettingGroup through options and persistence; verify game UI ownership before any hook.",
+    "Separate the UI's DLSS5 selection state from native rendering enum; keep original FSR2 behavior unchanged."
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Treat UnityEngine.QualitySettings.set_antiAliasing as the native Genshin graphics dropdown handler",
+      "reason": "It is a generic Unity engine API. Its presence in the metadata does not establish that the game's settings UI dispatches through it."
+    }
+  ]
+}
