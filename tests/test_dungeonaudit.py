@@ -97,7 +97,12 @@ class DungeonAuditSnapshotTests(unittest.TestCase):
         models = snapshot['proxyGroupModels']
         self.assertTrue(all(k in models for r in rows for k in r.get('proxyGroupModelIds', [])))
         for path, expected in snapshot['generator']['toolGitBlobShas'].items():
-            self.assertEqual(git_blob((root/path).read_bytes()), expected)
+            # Snapshot hashes identify Git blobs, which use repository LF text.
+            # Existing Windows worktrees may retain CRLF despite .gitattributes;
+            # validate the canonical source bytes without losing provenance.
+            self.assertTrue(str(path).endswith('.py'))
+            checkout_bytes = (root/path).read_bytes()
+            self.assertEqual(git_blob(checkout_bytes.replace(b'\r\n', b'\n')), expected)
 
 
 if __name__ == '__main__':
