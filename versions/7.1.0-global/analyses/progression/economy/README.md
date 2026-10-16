@@ -125,3 +125,13 @@ Next: first fix and claim-test empty pools/cost safety, then correct the ten
 material-filled artifact proxies using verified artifact data; restore material
 rewards for the sixteen fallback domains. Community drop statistics can guide
 quantity distributions after these structural defects are addressed.
+
+## Historical chest source graph reproducer (2026-10-16)
+
+[Historical tagged chest root snapshot](7.1-historical-chest-native-roots.json) preserves 168 source rows (tag, level, root) from the former Resource audit branch `audit/chest-region-tags-71`. The [read-only native-source audit script](../../../../../scripts/audit-7.1-legacy-chest-sources.py) compares combat/puzzle *configured graph structures* and authored Lua chest fields against a chosen Resource checkout. It takes the resource tree as an explicit argument and writes results only if `--output` is provided. No temporary GitHub Action workflow is needed.
+
+```sh
+python scripts/audit-7.1-legacy-chest-sources.py --resource-root ../AstaPS-Resource --output chest-native-sources.json
+```
+
+The historical `ChestDrop.json` selections and Server DropTable rows are **not** proven original 7.1 rates. Equal or unequal graph hashes do not prove equal or unequal terminal-item probability distributions. The snapshot is evidence, not live server configuration. Original file revisions: [roots](https://github.com/RinoPaw/AstaPS-Resource/blob/8be655e9f2c5471248f3441166194c979f515a8e/tools/chest_native_roots_71.json) and [audit script](https://github.com/RinoPaw/AstaPS-Resource/blob/8be655e9f2c5471248f3441166194c979f515a8e/tools/audit_chest_native_sources.py).
