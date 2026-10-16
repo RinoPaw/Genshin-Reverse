@@ -1,0 +1,62 @@
+{
+  "status": "EXACT_NATIVE_7_1_TARGETED_PARENT_TOPOLOGY",
+  "method": "Shapely validity+2D Polygon.covered_by; invalid polygons are not repaired or promoted",
+  "sceneID": 3,
+  "targets": [
+    {
+      "areaID1": 55,
+      "areaID2": 5502,
+      "nativeParentValid": true,
+      "nativeChildValid": true,
+      "parentValidity": "Valid Geometry",
+      "childValidity": "Valid Geometry",
+      "parentAreaXZ": 1899011.9247897863,
+      "childAreaXZ": 17888.246689796448,
+      "nativeChildCoveredByDeclaredParent": true,
+      "childAreaOutsideDeclaredParentXZ": 0,
+      "uncoveredFractionOfChildAreaXZ": 0,
+      "status": "GEOMETRICALLY_COVERED_BY_PARENT_XZ"
+    },
+    {
+      "areaID1": 56,
+      "areaID2": 5602,
+      "nativeParentValid": true,
+      "nativeChildValid": true,
+      "parentValidity": "Valid Geometry",
+      "childValidity": "Valid Geometry",
+      "parentAreaXZ": 2845537.5783565044,
+      "childAreaXZ": 33746.211951971054,
+      "nativeChildCoveredByDeclaredParent": true,
+      "childAreaOutsideDeclaredParentXZ": 0,
+      "uncoveredFractionOfChildAreaXZ": 0,
+      "status": "GEOMETRICALLY_COVERED_BY_PARENT_XZ"
+    }
+  ],
+  "limits": [
+    "No Y-dependent child selection or area event packet is simulated.",
+    "A 2D planar polygon containment result does not independently prove all runtime area transitions."
+  ],
+  "provenance": {
+    "run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38495770956",
+    "asset": "Scene 3 from original Genshin 7.1 Global Windows x64 Sophon 0/24230448.blk",
+    "rawSha256": "fetched from 7.1-native-world-area-raw-assets.json (sceneID=3)",
+    "code": "scripts/audit-7.1-native-world-area-topology.py",
+    "geometryLibrary": "shapely==2.1.2"
+  },
+  "historicalComparison": {
+    "communityVersion": "7.0-lineage, as in MeChen618/AstaPS-Resource 7.1-labelled geometry",
+    "oldPositiveIDs": [
+      5502,
+      5602
+    ],
+    "nativeAreaOutsideParent": [
+      0,
+      0
+    ],
+    "nativeCoveredByDeclaredParent": [
+      true,
+      true
+    ]
+  },
+  "conclusion": "Native 7.1 child polygons 5502 and 5602 are valid and fully covered by their declared valid parent polygons in X/Z; both historical positive boundary-crossing cases are resolved geometrically. Parent X/Z first-client selection is independently confirmed, but runtime transitions and packet timing remain separate."
+}

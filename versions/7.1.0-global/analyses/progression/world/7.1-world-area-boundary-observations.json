@@ -1,0 +1,797 @@
+{
+  "target": "Genshin Impact 7.1.0 Global; scene 3 only",
+  "status": "RESOURCE_STATIC_VERIFIED__CLIENT_RUNTIME_UNVERIFIED",
+  "source_pins": {
+    "current_resources_git_tree": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "config_blob": "ca05682b11a4cc742c4f98d4f610bf11c9ffe980",
+    "polygon_blob": "d2687fe28c350d9c4684b0a29a5b24f3f6260936",
+    "script_scene3_blob": "dfbc7f896a56f53d2260d0706cc15587ac0e51ce",
+    "historic_LunaGCR_7_0_polygon_blob": "954b5506217d7a3d9e43474465ef769040adc480",
+    "historic_LunaGCR_7_0_config_blob": "7780a457282a40b45266e8bf6574b10244d8db0a"
+  },
+  "counts": {
+    "config_level2": 409,
+    "bin_level1": 65,
+    "bin_level2_polygons": 400,
+    "bin_distinct_level2_ids": 396,
+    "legacy_config_level2": 409,
+    "legacy_bin_level2_polygons": 400,
+    "legacy_distinct_ids": 396,
+    "alternate_script_level1": 30,
+    "alternate_script_distinct_level2_ids": 142,
+    "interior_grid_crossing_child_ids": 20,
+    "edge_split_positive_child_ids": 23
+  },
+  "missing_boundaries": [
+    {
+      "areaID1": 25,
+      "areaID2": 2501,
+      "configID": 4601,
+      "areaNameTextMapHash": 750944478,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 32,
+      "areaID2": 3120,
+      "configID": 5020,
+      "areaNameTextMapHash": 1032532022,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 35,
+      "areaID2": 3512,
+      "configID": 50312,
+      "areaNameTextMapHash": 4240803846,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 36,
+      "areaID2": 3602,
+      "configID": 50402,
+      "areaNameTextMapHash": 2012318918,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 39,
+      "areaID2": 3912,
+      "configID": 50712,
+      "areaNameTextMapHash": 1525320758,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 41,
+      "areaID2": 4105,
+      "configID": 21106,
+      "areaNameTextMapHash": 875174118,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 41,
+      "areaID2": 4107,
+      "configID": 21108,
+      "areaNameTextMapHash": 2273996166,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 43,
+      "areaID2": 4301,
+      "configID": 60101,
+      "areaNameTextMapHash": 3387531358,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 48,
+      "areaID2": 4805,
+      "configID": 60505,
+      "areaNameTextMapHash": 3810500918,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 48,
+      "areaID2": 4807,
+      "configID": 60507,
+      "areaNameTextMapHash": 3281037326,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 48,
+      "areaID2": 4808,
+      "configID": 60508,
+      "areaNameTextMapHash": 26333462,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 73,
+      "areaID2": 7301,
+      "configID": 70401,
+      "areaNameTextMapHash": 606253334,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    },
+    {
+      "areaID1": 75,
+      "areaID2": 7503,
+      "configID": 70603,
+      "areaNameTextMapHash": 599938438,
+      "has_historic_definition": true,
+      "has_historic_geometry": false,
+      "has_alternate_script_geometry": false
+    }
+  ],
+  "parent_centroid_conflicts": [
+    {
+      "areaID1": 31,
+      "areaID2": 3205,
+      "centroid": {
+        "x": 976.4,
+        "z": 6569.7
+      },
+      "child_vertices_inside_parent": 9,
+      "child_vertices_total": 17,
+      "also_in_7_0": true
+    },
+    {
+      "areaID1": 33,
+      "areaID2": 3302,
+      "centroid": {
+        "x": 2731.1,
+        "z": 4476.4
+      },
+      "child_vertices_inside_parent": 4,
+      "child_vertices_total": 12,
+      "also_in_7_0": true
+    },
+    {
+      "areaID1": 41,
+      "areaID2": 4104,
+      "centroid": {
+        "x": 1506.5,
+        "z": 2698.5
+      },
+      "child_vertices_inside_parent": 0,
+      "child_vertices_total": 25,
+      "also_in_7_0": true
+    },
+    {
+      "areaID1": 52,
+      "areaID2": 5210,
+      "centroid": {
+        "x": -544.5,
+        "z": 15059.2
+      },
+      "child_vertices_inside_parent": 2,
+      "child_vertices_total": 9,
+      "also_in_7_0": true
+    }
+  ],
+  "repeated_geometry_ids": {
+    "4903": 2,
+    "4905": 2,
+    "4913": 3
+  },
+  "source_caveats": [
+    "Historical community resources share substantial lineage and are not independent proof of client behavior.",
+    "Centroid witness only diagnoses a polygon-parent inconsistency; its priority at runtime is unknown.",
+    "Absent polygon records must not be synthesized from neighboring polygons.",
+    "Old and new geometry use different JSON field spellings: {_x,_z,_y} versus {x,z,y}; numeric normalization is required for exact comparison.",
+    "Existing AstaPS WorldAreaIndex only supports level1AreaAt(float x,float z), not level-2 lookup; prospective parent-gating cannot be treated as observed server behavior.",
+    "Interior grid coverage is finite; inside/outside sample counts are not physical area proportions and omit Y.",
+    "The edge-split scan establishes positive interior polygon discrepancies only; non-detection is not a full topological containment proof and no Y/client behavior is implied."
+  ],
+  "historical_geometry_comparison": {
+    "comparison": "entire ordered scene-3 level1+level2 geometry, after normalizing 7.1 {_x,_z,_y} vs historical {x,z,y}",
+    "equivalent": true,
+    "level1_polygons_compared": 65,
+    "level2_polygons_compared": 400,
+    "vertices_compared": 7598,
+    "all_polygon_xz_points_and_y_bounds_identical": true,
+    "conclusion": "The resource labelled 7.1 contains the same numeric scene-3 WorldArea geometry as the compared 7.0 community source; this does not verify native 7.1 geometry"
+  },
+  "interior_grid_scan": {
+    "resolution": 17,
+    "method": "17 x 17 bounding-box cell centers per child polygon; count points inside child and then test parent containment via even/odd rule",
+    "interpretation": "Positive witnesses to polygon discrepancy, not native client area selection; missing hits do not prove containment",
+    "rows": [
+      {
+        "areaID1": 2,
+        "areaID2": 201,
+        "inside_parent_samples": 159,
+        "outside_parent_samples": 9,
+        "witness": {
+          "x": 1852.73,
+          "z": -1138.97,
+          "other_level1_ids": [
+            3
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 21,
+        "areaID2": 2102,
+        "inside_parent_samples": 188,
+        "outside_parent_samples": 28,
+        "witness": {
+          "x": -1042.7,
+          "z": 2617.43,
+          "other_level1_ids": [
+            24
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 25,
+        "areaID2": 2504,
+        "inside_parent_samples": 154,
+        "outside_parent_samples": 62,
+        "witness": {
+          "x": -893.5,
+          "z": 3948.08,
+          "other_level1_ids": [
+            23
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 30,
+        "areaID2": 3003,
+        "inside_parent_samples": 127,
+        "outside_parent_samples": 90,
+        "witness": {
+          "x": 362.87,
+          "z": 6032.76,
+          "other_level1_ids": [
+            31
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 30,
+        "areaID2": 3004,
+        "inside_parent_samples": 187,
+        "outside_parent_samples": 31,
+        "witness": {
+          "x": 259.01,
+          "z": 5973.12,
+          "other_level1_ids": [
+            31
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 31,
+        "areaID2": 3204,
+        "inside_parent_samples": 118,
+        "outside_parent_samples": 74,
+        "witness": {
+          "x": 784.52,
+          "z": 6652.63,
+          "other_level1_ids": [
+            30
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 31,
+        "areaID2": 3205,
+        "inside_parent_samples": 128,
+        "outside_parent_samples": 90,
+        "witness": {
+          "x": 748.84,
+          "z": 6407.04,
+          "other_level1_ids": [
+            30
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 33,
+        "areaID2": 3302,
+        "inside_parent_samples": 28,
+        "outside_parent_samples": 180,
+        "witness": {
+          "x": 2544.29,
+          "z": 4489.16,
+          "other_level1_ids": [
+            34
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 33,
+        "areaID2": 3407,
+        "inside_parent_samples": 142,
+        "outside_parent_samples": 30,
+        "witness": {
+          "x": 2130.87,
+          "z": 4506.93,
+          "other_level1_ids": [
+            34
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 34,
+        "areaID2": 3408,
+        "inside_parent_samples": 177,
+        "outside_parent_samples": 11,
+        "witness": {
+          "x": 1986.11,
+          "z": 4890.93,
+          "other_level1_ids": [
+            33
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 36,
+        "areaID2": 3604,
+        "inside_parent_samples": 191,
+        "outside_parent_samples": 1,
+        "witness": {
+          "x": 4766.05,
+          "z": 4607.6,
+          "other_level1_ids": [
+            37
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 40,
+        "areaID2": 4004,
+        "inside_parent_samples": 140,
+        "outside_parent_samples": 21,
+        "witness": {
+          "x": 1765.99,
+          "z": 2254.15,
+          "other_level1_ids": [
+            41
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 40,
+        "areaID2": 4005,
+        "inside_parent_samples": 164,
+        "outside_parent_samples": 47,
+        "witness": {
+          "x": 1753.78,
+          "z": 2121.18,
+          "other_level1_ids": [
+            41
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4103,
+        "inside_parent_samples": 174,
+        "outside_parent_samples": 3,
+        "witness": {
+          "x": 1037.27,
+          "z": 1790.44,
+          "other_level1_ids": [
+            6
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4104,
+        "inside_parent_samples": 0,
+        "outside_parent_samples": 195,
+        "witness": {
+          "x": 1138.52,
+          "z": 2715.03,
+          "other_level1_ids": [
+            47
+          ]
+        },
+        "no_inside_parent_grid_samples": true
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4109,
+        "inside_parent_samples": 135,
+        "outside_parent_samples": 10,
+        "witness": {
+          "x": 1552.26,
+          "z": 1486.07,
+          "other_level1_ids": [
+            5
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 47,
+        "areaID2": 4702,
+        "inside_parent_samples": 134,
+        "outside_parent_samples": 23,
+        "witness": {
+          "x": 1469.24,
+          "z": 2498.93,
+          "other_level1_ids": [
+            41
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 52,
+        "areaID2": 5209,
+        "inside_parent_samples": 127,
+        "outside_parent_samples": 22,
+        "witness": {
+          "x": -91.58,
+          "z": 14790.77,
+          "other_level1_ids": []
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 52,
+        "areaID2": 5210,
+        "inside_parent_samples": 33,
+        "outside_parent_samples": 179,
+        "witness": {
+          "x": -1180.45,
+          "z": 14673.19,
+          "other_level1_ids": []
+        },
+        "no_inside_parent_grid_samples": false
+      },
+      {
+        "areaID1": 56,
+        "areaID2": 5602,
+        "inside_parent_samples": 175,
+        "outside_parent_samples": 35,
+        "witness": {
+          "x": 8557.08,
+          "z": 6504.42,
+          "other_level1_ids": [
+            57
+          ]
+        },
+        "no_inside_parent_grid_samples": false
+      }
+    ]
+  },
+  "edge_interior_scan": {
+    "clearance": 0.25,
+    "method": "Split child edges at parent intersections, probe inward offsets and retain witnesses inside child/outside parent at >=0.25 units from both boundaries; finite offsets, not complete topology",
+    "rows": [
+      {
+        "areaID1": 2,
+        "areaID2": 201,
+        "witness": {
+          "x": 1889.1334,
+          "z": -1129.975,
+          "margin": 5,
+          "child_edge": 3,
+          "other_level1_ids": [
+            3
+          ]
+        }
+      },
+      {
+        "areaID1": 2,
+        "areaID2": 202,
+        "witness": {
+          "x": 1955.6178,
+          "z": -1589.1993,
+          "margin": 1,
+          "child_edge": 5,
+          "other_level1_ids": [
+            1
+          ]
+        }
+      },
+      {
+        "areaID1": 21,
+        "areaID2": 2102,
+        "witness": {
+          "x": -1023.8942,
+          "z": 2687.3518,
+          "margin": 5,
+          "child_edge": 3,
+          "other_level1_ids": [
+            24
+          ]
+        }
+      },
+      {
+        "areaID1": 25,
+        "areaID2": 2504,
+        "witness": {
+          "x": -785.0504,
+          "z": 3803.9082,
+          "margin": 5,
+          "child_edge": 6,
+          "other_level1_ids": [
+            23
+          ]
+        }
+      },
+      {
+        "areaID1": 30,
+        "areaID2": 3003,
+        "witness": {
+          "x": 514.8233,
+          "z": 6029.2641,
+          "margin": 5,
+          "child_edge": 6,
+          "other_level1_ids": [
+            31
+          ]
+        }
+      },
+      {
+        "areaID1": 30,
+        "areaID2": 3004,
+        "witness": {
+          "x": 699.2157,
+          "z": 6360.0398,
+          "margin": 5,
+          "child_edge": 9,
+          "other_level1_ids": [
+            31
+          ]
+        }
+      },
+      {
+        "areaID1": 31,
+        "areaID2": 3204,
+        "witness": {
+          "x": 918.9476,
+          "z": 6510.5649,
+          "margin": 5,
+          "child_edge": 7,
+          "other_level1_ids": [
+            30
+          ]
+        }
+      },
+      {
+        "areaID1": 31,
+        "areaID2": 3205,
+        "witness": {
+          "x": 1038.0254,
+          "z": 6807.515,
+          "margin": 5,
+          "child_edge": 8,
+          "other_level1_ids": [
+            30
+          ]
+        }
+      },
+      {
+        "areaID1": 33,
+        "areaID2": 3302,
+        "witness": {
+          "x": 2923.5361,
+          "z": 4529.7574,
+          "margin": 5,
+          "child_edge": 11,
+          "other_level1_ids": [
+            35
+          ]
+        }
+      },
+      {
+        "areaID1": 33,
+        "areaID2": 3407,
+        "witness": {
+          "x": 2358.2731,
+          "z": 4538.6778,
+          "margin": 5,
+          "child_edge": 5,
+          "other_level1_ids": [
+            34
+          ]
+        }
+      },
+      {
+        "areaID1": 34,
+        "areaID2": 3408,
+        "witness": {
+          "x": 2037.0893,
+          "z": 4786.2843,
+          "margin": 5,
+          "child_edge": 6,
+          "other_level1_ids": [
+            33
+          ]
+        }
+      },
+      {
+        "areaID1": 36,
+        "areaID2": 3604,
+        "witness": {
+          "x": 4782.8725,
+          "z": 4617.4835,
+          "margin": 2.6077,
+          "child_edge": 15,
+          "other_level1_ids": [
+            37
+          ]
+        }
+      },
+      {
+        "areaID1": 36,
+        "areaID2": 3606,
+        "witness": {
+          "x": 4140.3532,
+          "z": 4888.2848,
+          "margin": 2.8858,
+          "child_edge": 1,
+          "other_level1_ids": [
+            35
+          ]
+        }
+      },
+      {
+        "areaID1": 40,
+        "areaID2": 4004,
+        "witness": {
+          "x": 1815.8181,
+          "z": 2385.4494,
+          "margin": 5,
+          "child_edge": 16,
+          "other_level1_ids": [
+            41
+          ]
+        }
+      },
+      {
+        "areaID1": 40,
+        "areaID2": 4005,
+        "witness": {
+          "x": 1786.4304,
+          "z": 2330.4771,
+          "margin": 5,
+          "child_edge": 2,
+          "other_level1_ids": [
+            41
+          ]
+        }
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4103,
+        "witness": {
+          "x": 968.2414,
+          "z": 1847.0785,
+          "margin": 2,
+          "child_edge": 19,
+          "other_level1_ids": [
+            6
+          ]
+        }
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4104,
+        "witness": {
+          "x": 1421.2125,
+          "z": 2517.2937,
+          "margin": 5,
+          "child_edge": 24,
+          "other_level1_ids": [
+            47
+          ]
+        }
+      },
+      {
+        "areaID1": 41,
+        "areaID2": 4109,
+        "witness": {
+          "x": 1578.2117,
+          "z": 1462.8947,
+          "margin": 5,
+          "child_edge": 8,
+          "other_level1_ids": [
+            5
+          ]
+        }
+      },
+      {
+        "areaID1": 47,
+        "areaID2": 4702,
+        "witness": {
+          "x": 1549.63,
+          "z": 2536.1839,
+          "margin": 5,
+          "child_edge": 5,
+          "other_level1_ids": [
+            41
+          ]
+        }
+      },
+      {
+        "areaID1": 52,
+        "areaID2": 5209,
+        "witness": {
+          "x": -39.9626,
+          "z": 14721.7042,
+          "margin": 5,
+          "child_edge": 2,
+          "other_level1_ids": []
+        }
+      },
+      {
+        "areaID1": 52,
+        "areaID2": 5210,
+        "witness": {
+          "x": 145.0686,
+          "z": 15608.5123,
+          "margin": 5,
+          "child_edge": 8,
+          "other_level1_ids": []
+        }
+      },
+      {
+        "areaID1": 55,
+        "areaID2": 5502,
+        "witness": {
+          "x": 8591.3423,
+          "z": 7877.7887,
+          "margin": 0.5,
+          "child_edge": 2,
+          "other_level1_ids": [
+            56
+          ]
+        }
+      },
+      {
+        "areaID1": 56,
+        "areaID2": 5602,
+        "witness": {
+          "x": 8597.4103,
+          "z": 6433.5836,
+          "margin": 5,
+          "child_edge": 4,
+          "other_level1_ids": [
+            57
+          ]
+        }
+      }
+    ]
+  }
+}

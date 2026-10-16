@@ -1,0 +1,180 @@
+{
+  "status": "ALL_13_EXACT_7_1_SCENE_PAYLOADS_FULLY_DECODED_AND_CONSUMED",
+  "sample": "7.1.0-global/windows-x64",
+  "nativeProofRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38494188404",
+  "pinnedPayloads": "7.1-native-world-area-raw-assets.json",
+  "parser": "genshinre/worldareabin.py",
+  "verification": "Every scene source raw and decoded payload SHA256 verified against exact official 7.1 AssetBundle export; each parsed to precise end of payload with no trailing bytes.",
+  "counts": {
+    "scenes": 13,
+    "fullyConsumed": 13,
+    "parents": 90,
+    "childRecords": 480,
+    "vertices": 9177,
+    "historicalCommunityVertices": 9167
+  },
+  "scenes": [
+    {
+      "sceneID": 3,
+      "parents": 65,
+      "children": 400,
+      "vertices": 7608,
+      "firstParent": {
+        "field18": 1,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 10
+      }
+    },
+    {
+      "sceneID": 4,
+      "parents": 4,
+      "children": 0,
+      "vertices": 131,
+      "firstParent": {
+        "field18": 100,
+        "field1c": null,
+        "rootRecordMask": 64,
+        "firstParentChildCount": 0
+      }
+    },
+    {
+      "sceneID": 5,
+      "parents": 1,
+      "children": 9,
+      "vertices": 202,
+      "firstParent": {
+        "field18": 200,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 9
+      }
+    },
+    {
+      "sceneID": 6,
+      "parents": 1,
+      "children": 7,
+      "vertices": 162,
+      "firstParent": {
+        "field18": 300,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 7
+      }
+    },
+    {
+      "sceneID": 7,
+      "parents": 1,
+      "children": 9,
+      "vertices": 180,
+      "firstParent": {
+        "field18": 210,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 9
+      }
+    },
+    {
+      "sceneID": 9,
+      "parents": 4,
+      "children": 0,
+      "vertices": 134,
+      "firstParent": {
+        "field18": 400,
+        "field1c": null,
+        "rootRecordMask": 64,
+        "firstParentChildCount": 0
+      }
+    },
+    {
+      "sceneID": 10,
+      "parents": 4,
+      "children": 0,
+      "vertices": 170,
+      "firstParent": {
+        "field18": 500,
+        "field1c": null,
+        "rootRecordMask": 64,
+        "firstParentChildCount": 0
+      }
+    },
+    {
+      "sceneID": 11,
+      "parents": 1,
+      "children": 9,
+      "vertices": 108,
+      "firstParent": {
+        "field18": 600,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 9
+      }
+    },
+    {
+      "sceneID": 100,
+      "parents": 3,
+      "children": 6,
+      "vertices": 147,
+      "firstParent": {
+        "field18": 700,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 3
+      }
+    },
+    {
+      "sceneID": 101,
+      "parents": 1,
+      "children": 10,
+      "vertices": 91,
+      "firstParent": {
+        "field18": 800,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 10
+      }
+    },
+    {
+      "sceneID": 102,
+      "parents": 3,
+      "children": 17,
+      "vertices": 149,
+      "firstParent": {
+        "field18": 900,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 15
+      }
+    },
+    {
+      "sceneID": 103,
+      "parents": 1,
+      "children": 13,
+      "vertices": 92,
+      "firstParent": {
+        "field18": 1000,
+        "field1c": null,
+        "rootRecordMask": 65,
+        "firstParentChildCount": 13
+      }
+    },
+    {
+      "sceneID": 51195,
+      "parents": 1,
+      "children": 0,
+      "vertices": 3,
+      "firstParent": {
+        "field18": 99,
+        "field1c": null,
+        "rootRecordMask": 64,
+        "firstParentChildCount": 0
+      }
+    }
+  ],
+  "limitations": [
+    "Exact source binary grammar and decoded counts proven by complete byte consumption; per-ID and per-vertex community comparison not yet recorded in this artifact.",
+    "The original 7.1 client data yields 10 more vertices than community 7.0-lineage output, but source of the difference is not located by these totals alone.",
+    "Raw proprietary original bytes are not committed."
+  ],
+  "next": "Compare all original 7.1 area IDs and X/Z vertices, parent/child Y bounds and 24 parent-gated witnesses against Git-blob-pinned community JSON."
+}

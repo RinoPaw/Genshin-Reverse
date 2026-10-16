@@ -1,0 +1,185 @@
+{
+  "status": "NATIVE_7_1_ROOT_ARRAY_READER_AND_COUNT_CONFIRMED__NESTED_FIELDS_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "verification": {
+    "workflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38491733921",
+    "source": "Pinned repository metadata/fields.csv + methods.csv; streaming joins against exact legacy resource tokens"
+  },
+  "queriedHistoricalNames": [
+    "OBKNAJCIHEA",
+    "LKBLPFHOAFB",
+    "OPHHFKKPLDI",
+    "JLFEAGHGCLP",
+    "BFLLDPOAJGD",
+    "BBLLBIOLMHP",
+    "EOIFEEDBAFJ",
+    "MHLOLALFHHF",
+    "NFFDCMLAAFO"
+  ],
+  "nativeNameMatches": 0,
+  "confirmedNativeReaderTypeLeads": [
+    {
+      "nativeType": "CEBMPFCJPGE",
+      "typeDefinitionIndex": 24102,
+      "methodsWithBinaryReaderSignature": [
+        {
+          "name": "OHPBNHHCBLB",
+          "rva": "0xD1F6ED0",
+          "parameterType": "FNIAHJGHFAK"
+        },
+        {
+          "name": "GMENPOPMKAA",
+          "rva": "0xD1F6FA0",
+          "parameterType": "FNIAHJGHFAK"
+        }
+      ],
+      "role": "WorldArea spatial root container candidate: also owns nested child polygon spatial query 0xD1F6C70",
+      "roleConfidence": "candidate"
+    },
+    {
+      "nativeType": "EOFNANCNGFK",
+      "typeDefinitionIndex": 27203,
+      "methodsWithBinaryReaderSignature": [
+        {
+          "name": "GMENPOPMKAA",
+          "rva": "0x125E6590",
+          "parameterType": "FNIAHJGHFAK"
+        }
+      ],
+      "role": "WorldArea spatial input/state data candidate; 22 metadata fields",
+      "roleConfidence": "candidate"
+    }
+  ],
+  "limits": [
+    "The root array length is confirmed from independent original bytes and native instructions.",
+    "Element data and polygon/child field layout have not been decoded.",
+    "Older community names have zero exact matches in 7.1 field metadata, so field meanings cannot be transferred by token identity."
+  ],
+  "next": "Disassemble 0x13C58500 (Vector3) and 0x13C59930 (point collection). Implement fully bounded original 7.1 geometry reader with full input consumption and compare against community JSON.",
+  "rootArrayReader": {
+    "type": "CEBMPFCJPGE",
+    "typeDefinitionIndex": 24102,
+    "fieldName": "DFCALNLIJCE",
+    "fieldIndex": 121675,
+    "fieldType": "kind_0x1D",
+    "fieldRuntimeOffsetCandidate": "0x10 (observed both parser and polygon matcher; metadata offset not recovered)",
+    "method": "GMENPOPMKAA@0xD1F6FA0",
+    "markerInstruction": "0xD1F6FDE cmp byte ptr [rax+rcx+0x20],0; 0xD1F6FE6 js (negative marker path)",
+    "arrayDecoder": "0x82093B0",
+    "countEncoding": "(encoded_u32 + 0x91B65B45) mod 2^32",
+    "countDecode": "0x82093FD mov edx,0x91B65B45; 0x8209402 add edx,[rax+rcx+0x20]",
+    "arrayElementDecoder": "0x82092C0",
+    "sampleAgreement": "13 of 13 exact original scene payloads yield 90 records matching historical root region counts",
+    "evidence": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38492455725",
+    "confidence": "CONFIRMED_FIRST_ARRAY_LENGTH_ONLY"
+  },
+  "rootElementReader": {
+    "status": "EXACT_NATIVE_7_1_BYTE_MASK_AND_BRANCHES_CONFIRMED__FIELD_SEMANTICS_PENDING",
+    "readerRva": "0x82092C0",
+    "nativeRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38492740637",
+    "input": "A root-array item allocated by the confirmed array decoder 0x82093B0",
+    "mask": {
+      "read": "0x8209304 movzx ebx, byte ptr [rax+rcx+0x20]",
+      "cursorAdvance": "0x820930C mov [rdi+0x28],eax",
+      "transform": "(encodedByte + 0x15) XOR 0x55, modulo 256",
+      "instructions": [
+        "0x820930F add bl,0x15",
+        "0x8209312 xor bl,0x55"
+      ],
+      "branches": [
+        "0x8209315 test bl,0x40",
+        "0x820932E test bl,1"
+      ]
+    },
+    "nestedPaths": [
+      {
+        "objectOffset": "0x18",
+        "readerRva": "0x87B0460",
+        "semanticCandidate": "first-stage area record (includes shape pointer and two u32 fields)",
+        "evidence": "0x8209351 stores parent record at +0x18; 0x8209360 passes it to reader 0x87B0460"
+      },
+      {
+        "objectOffset": "0x10",
+        "readerRva": "0x87B02F0",
+        "semanticCandidate": "array of second-stage area records",
+        "evidence": "0x820936E passes parent object+0x10 to array reader; each entry parsed with 0x87B0460"
+      }
+    ],
+    "limitation": "This reader branch alone does not prove which content is present for each original scene. Inspect nested reader and full byte consumption."
+  },
+  "nativeAreaRecordAndChildArray": {
+    "evidenceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38493114804",
+    "status": "CONFIRMED_NATIVE_DECODER_CONTROL_FLOW__FULL_BYTE_CONSUMPTION_PENDING",
+    "parentRootElementReader": "0x82092C0 (passes parent+0x18 to per-area record decoder and parent+0x10 to child array decoder)",
+    "perAreaRecordReader": {
+      "rva": "0x87B0460",
+      "observed": "Reads one 8-bit presence marker and transforms with +0xFC modulo 256; calls spatial-shape reader on object+0x10, decodes two uint32-like record members at +0x18 and +0x1C",
+      "marker": "0x87B04A6 movzx ebx,[cursor]; 0x87B04B1 add bl,0xFC",
+      "shapePath": "0x87B05CF call VA 0x151F72A40 (RVA 0x11F72A40); stores nested shape object at parent_record+0x10",
+      "fieldOffsets": [
+        "0x18",
+        "0x1C"
+      ],
+      "scalarOperations": [
+        "0x87B0613 add edx,[input_u32] with 0x7B4A79A4 for field at +0x18 (dependent on mask 0x04)",
+        "0x87B0585 xor input_u32 with 0xB3B8156D for field at +0x1C (dependent on mask 0x20)"
+      ],
+      "limitation": "The precise IDs represented by two u32 fields and default in-memory wrapper values require complete decode."
+    },
+    "childArrayReader": {
+      "rva": "0x87B02F0",
+      "count": "0x87B033A reads uint32, 0x87B0345 mov r12d,0xFBD01BCE; 0x87B034B xor r12,rax",
+      "items": "0x87B039E calls per-area record 0x87B0460 per element; index increments at 0x87B03E8 and loops to decoded R12 count",
+      "parentMember": "0x10 in 0x82092C0",
+      "note": "Despite historic community naming, this is an array of *area records*, not array of vertex vectors."
+    },
+    "nestedSpatialShapeReader": {
+      "status": "EXACT_NATIVE_FIELDS_LOCATED__INNER_POINT_DECODER_PENDING",
+      "rva": "0x11F72A40",
+      "owner": "Native area shape deserializer reached from 0x87B0460 at RVA 0x87B05CF",
+      "evidence": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38493415248",
+      "presenceByte": {
+        "native": "0x11F72A86 movzx ebx,[cursor], 0x11F72A90 add bl,0x5F",
+        "transformation": "(encodedByte + 0x5F) modulo 256"
+      },
+      "dependentFields": [
+        {
+          "bit": "0x02",
+          "storageOffset": "0x20",
+          "type": "bool",
+          "native": "0x11F72AD0 compare serialized byte 0xF4; store not-equal at shape+0x20"
+        },
+        {
+          "bit": "0x10",
+          "storageOffset": "0x3C",
+          "type": "uint32",
+          "native": "0x11F72B0D mov esi,0xC9C5C7DB; 0x11F72B12 xor esi,[input_u32]; 0x11F72B19 store [shape+0x3C]"
+        },
+        {
+          "bit": "0x80",
+          "storageOffset": "0x24",
+          "type": "Vector3-like 12-byte",
+          "native": "0x11F72B53..0x11F72B67 call VA 0x153C58500 (RVA 0x13C58500)"
+        },
+        {
+          "bit": "0x01",
+          "storageOffset": "0x30",
+          "type": "Vector3-like 12-byte",
+          "native": "0x11F72BDE..0x11F72BF2 call VA 0x153C58500 (RVA 0x13C58500)"
+        },
+        {
+          "bit": "0x20",
+          "storageOffset": "0x18",
+          "type": "polygon-vertex collection candidate",
+          "native": "0x11F72C41..0x11F72C50 tail calls VA 0x153C59930 (RVA 0x13C59930)"
+        }
+      ],
+      "runtimeRelation": "Native spatial containment computes XYZ bounds using shape+0x24..+0x38 and obtains polygon at shape+0x10 lazily. Serialized collection at +0x18 may build that cache. Need confirm.",
+      "limits": [
+        "The two nested vector and point-collection reader codecs are not yet recovered; no geometry coordinate data claimed.",
+        "Bit assignments are exact x86 branch observations, not historical JSON field-name inference."
+      ]
+    },
+    "caution": "Array structure and field transforms are exact native code observations; neither native region semantics nor polygon vertices have been fully reconstructed yet."
+  }
+}

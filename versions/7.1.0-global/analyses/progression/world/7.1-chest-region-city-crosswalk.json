@@ -1,0 +1,674 @@
+{
+  "target": "7.1.0-global",
+  "kind": "city-to-level1-worldarea-crosswalk",
+  "status": "CONFIRMED_FOR_PINNED_RESOURCE_TABLES",
+  "source": {
+    "repository": "RinoPaw/AstaPS-Resource",
+    "cityConfig": "ExcelBinOutput/CityConfigData.json",
+    "cityConfigBlob": "5dfc60ed18df294bfbb4e4469bcae12b589b8c10",
+    "worldAreaConfig": "ExcelBinOutput/WorldAreaConfigData.json",
+    "worldAreaConfigBlob": "ca05682b11a4cc742c4f98d4f610bf11c9ffe980"
+  },
+  "totals": {
+    "cityEntries": 16,
+    "level1Areas": 90,
+    "definedLevel2Areas": 488,
+    "unassignedLevel1Areas": 0,
+    "multiAssignedLevel1Areas": 0,
+    "level2WithoutDefinedParent": 0
+  },
+  "cities": [
+    {
+      "cityId": 1,
+      "cityNameTextMapHash": 3559383185,
+      "cityIcon": "UI_ChapterIcon_Mengde",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 1,
+          "areaNameTextMapHash": 124522774,
+          "definedLevel2Count": 10
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 2,
+          "areaNameTextMapHash": 3158117526,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 3,
+          "areaNameTextMapHash": 141028838,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 4,
+          "areaNameTextMapHash": 390054398,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 10,
+          "areaNameTextMapHash": 4094741662,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 77,
+          "areaNameTextMapHash": 3944933398,
+          "definedLevel2Count": 3
+        }
+      ]
+    },
+    {
+      "cityId": 2,
+      "cityNameTextMapHash": 3553833321,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 5,
+          "areaNameTextMapHash": 1136517334,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 6,
+          "areaNameTextMapHash": 105116814,
+          "definedLevel2Count": 8
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 7,
+          "areaNameTextMapHash": 2202974,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 8,
+          "areaNameTextMapHash": 2923096254,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 9,
+          "areaNameTextMapHash": 4262053110,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 19,
+          "areaNameTextMapHash": 1195501630,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 6,
+          "areaID1": 300,
+          "areaNameTextMapHash": 2333606254,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 40,
+          "areaNameTextMapHash": 2963743910,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 41,
+          "areaNameTextMapHash": 4067570878,
+          "definedLevel2Count": 9
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 47,
+          "areaNameTextMapHash": 2927783014,
+          "definedLevel2Count": 2
+        }
+      ]
+    },
+    {
+      "cityId": 3,
+      "cityNameTextMapHash": 2288905665,
+      "cityIcon": "UI_ChapterIcon_Inazuma",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 11,
+          "areaNameTextMapHash": 1350805630,
+          "definedLevel2Count": 11
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 12,
+          "areaNameTextMapHash": 3676765574,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 13,
+          "areaNameTextMapHash": 2247490950,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 14,
+          "areaNameTextMapHash": 333637766,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 17,
+          "areaNameTextMapHash": 1306947598,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 18,
+          "areaNameTextMapHash": 2194420206,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 5,
+          "areaID1": 200,
+          "areaNameTextMapHash": 1930119374,
+          "definedLevel2Count": 9
+        }
+      ]
+    },
+    {
+      "cityId": 4,
+      "cityNameTextMapHash": 3901502489,
+      "cityIcon": "UI_ChapterIcon_Sumeru",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 20,
+          "areaNameTextMapHash": 2453177422,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 21,
+          "areaNameTextMapHash": 924412270,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 22,
+          "areaNameTextMapHash": 713201742,
+          "definedLevel2Count": 1
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 23,
+          "areaNameTextMapHash": 2571216078,
+          "definedLevel2Count": 8
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 24,
+          "areaNameTextMapHash": 2469985518,
+          "definedLevel2Count": 12
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 25,
+          "areaNameTextMapHash": 4237130854,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 26,
+          "areaNameTextMapHash": 1553735014,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 27,
+          "areaNameTextMapHash": 4185041038,
+          "definedLevel2Count": 11
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 28,
+          "areaNameTextMapHash": 698447358,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 29,
+          "areaNameTextMapHash": 2753638638,
+          "definedLevel2Count": 1
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 32,
+          "areaNameTextMapHash": 3082859542,
+          "definedLevel2Count": 22
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 30,
+          "areaNameTextMapHash": 1659805054,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 31,
+          "areaNameTextMapHash": 3392210230,
+          "definedLevel2Count": 6
+        }
+      ]
+    },
+    {
+      "cityId": 5,
+      "cityNameTextMapHash": 4052480193,
+      "cityIcon": "UI_ChapterIcon_Fontaine",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 33,
+          "areaNameTextMapHash": 3617186126,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 34,
+          "areaNameTextMapHash": 271055902,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 35,
+          "areaNameTextMapHash": 4215446870,
+          "definedLevel2Count": 19
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 36,
+          "areaNameTextMapHash": 2410341414,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 37,
+          "areaNameTextMapHash": 1732242622,
+          "definedLevel2Count": 8
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 38,
+          "areaNameTextMapHash": 1436418086,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 39,
+          "areaNameTextMapHash": 3815827942,
+          "definedLevel2Count": 20
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 42,
+          "areaNameTextMapHash": 3399381102,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 11,
+          "areaID1": 600,
+          "areaNameTextMapHash": 1796031926,
+          "definedLevel2Count": 9
+        }
+      ]
+    },
+    {
+      "cityId": 6,
+      "cityNameTextMapHash": 1681544697,
+      "cityIcon": "UI_ChapterIcon_Natlan",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 43,
+          "areaNameTextMapHash": 1484623990,
+          "definedLevel2Count": 9
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 44,
+          "areaNameTextMapHash": 3137238262,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 45,
+          "areaNameTextMapHash": 1923384414,
+          "definedLevel2Count": 4
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 46,
+          "areaNameTextMapHash": 3278987278,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 48,
+          "areaNameTextMapHash": 575042566,
+          "definedLevel2Count": 9
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 49,
+          "areaNameTextMapHash": 160007630,
+          "definedLevel2Count": 17
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 51,
+          "areaNameTextMapHash": 1414859974,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 52,
+          "areaNameTextMapHash": 734865486,
+          "definedLevel2Count": 10
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 53,
+          "areaNameTextMapHash": 1617506550,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 54,
+          "areaNameTextMapHash": 3311122734,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 101,
+          "areaID1": 800,
+          "areaNameTextMapHash": 1188129894,
+          "definedLevel2Count": 11
+        }
+      ]
+    },
+    {
+      "cityId": 7,
+      "cityNameTextMapHash": 2521587753,
+      "cityIcon": "UI_ChapterIcon_NodKrai",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 70,
+          "areaNameTextMapHash": 104487238,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 71,
+          "areaNameTextMapHash": 1870906814,
+          "definedLevel2Count": 10
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 72,
+          "areaNameTextMapHash": 205132150,
+          "definedLevel2Count": 8
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 73,
+          "areaNameTextMapHash": 66320678,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 74,
+          "areaNameTextMapHash": 3718088014,
+          "definedLevel2Count": 6
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 75,
+          "areaNameTextMapHash": 2382378054,
+          "definedLevel2Count": 7
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 76,
+          "areaNameTextMapHash": 1530608974,
+          "definedLevel2Count": 2
+        },
+        {
+          "sceneID": 102,
+          "areaID1": 900,
+          "areaNameTextMapHash": 267054182,
+          "definedLevel2Count": 13
+        },
+        {
+          "sceneID": 102,
+          "areaID1": 910,
+          "areaNameTextMapHash": 2400826622,
+          "definedLevel2Count": 1
+        },
+        {
+          "sceneID": 102,
+          "areaID1": 920,
+          "areaNameTextMapHash": 2062038278,
+          "definedLevel2Count": 1
+        }
+      ]
+    },
+    {
+      "cityId": 8,
+      "cityNameTextMapHash": 4030730545,
+      "cityIcon": "UI_ChapterIcon_Snezhnaya",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 55,
+          "areaNameTextMapHash": 3095198854,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 56,
+          "areaNameTextMapHash": 1648470254,
+          "definedLevel2Count": 11
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 57,
+          "areaNameTextMapHash": 1217349990,
+          "definedLevel2Count": 5
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 58,
+          "areaNameTextMapHash": 123748486,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 3,
+          "areaID1": 59,
+          "areaNameTextMapHash": 770854998,
+          "definedLevel2Count": 5
+        }
+      ]
+    },
+    {
+      "cityId": 9,
+      "cityNameTextMapHash": 978786633,
+      "cityIcon": "UI_ChapterIcon_Snezhnaya",
+      "level1Areas": [
+        {
+          "sceneID": 51195,
+          "areaID1": 99,
+          "areaNameTextMapHash": 1432347662,
+          "definedLevel2Count": 0
+        }
+      ]
+    },
+    {
+      "cityId": 99,
+      "cityNameTextMapHash": 566824185,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 3,
+          "areaID1": 16,
+          "areaNameTextMapHash": 1270408398,
+          "definedLevel2Count": 0
+        }
+      ]
+    },
+    {
+      "cityId": 100,
+      "cityNameTextMapHash": 514439353,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 4,
+          "areaID1": 100,
+          "areaNameTextMapHash": 2575710694,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 4,
+          "areaID1": 101,
+          "areaNameTextMapHash": 478064886,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 4,
+          "areaID1": 102,
+          "areaNameTextMapHash": 627398982,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 4,
+          "areaID1": 103,
+          "areaNameTextMapHash": 1223288990,
+          "definedLevel2Count": 0
+        }
+      ]
+    },
+    {
+      "cityId": 101,
+      "cityNameTextMapHash": 2032300089,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 7,
+          "areaID1": 210,
+          "areaNameTextMapHash": 3524636126,
+          "definedLevel2Count": 9
+        }
+      ]
+    },
+    {
+      "cityId": 102,
+      "cityNameTextMapHash": 209420713,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 9,
+          "areaID1": 400,
+          "areaNameTextMapHash": 672224694,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 9,
+          "areaID1": 401,
+          "areaNameTextMapHash": 3260478886,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 9,
+          "areaID1": 402,
+          "areaNameTextMapHash": 1140779310,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 9,
+          "areaID1": 403,
+          "areaNameTextMapHash": 3954131430,
+          "definedLevel2Count": 0
+        }
+      ]
+    },
+    {
+      "cityId": 103,
+      "cityNameTextMapHash": 84854953,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 10,
+          "areaID1": 500,
+          "areaNameTextMapHash": 1825201270,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 10,
+          "areaID1": 501,
+          "areaNameTextMapHash": 1000358342,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 10,
+          "areaID1": 502,
+          "areaNameTextMapHash": 4061886710,
+          "definedLevel2Count": 0
+        },
+        {
+          "sceneID": 10,
+          "areaID1": 503,
+          "areaNameTextMapHash": 2014178790,
+          "definedLevel2Count": 0
+        }
+      ]
+    },
+    {
+      "cityId": 104,
+      "cityNameTextMapHash": 467583217,
+      "cityIcon": "UI_ChapterIcon_Liyue",
+      "level1Areas": [
+        {
+          "sceneID": 100,
+          "areaID1": 700,
+          "areaNameTextMapHash": 1052868782,
+          "definedLevel2Count": 3
+        },
+        {
+          "sceneID": 100,
+          "areaID1": 701,
+          "areaNameTextMapHash": 266990862,
+          "definedLevel2Count": 1
+        },
+        {
+          "sceneID": 100,
+          "areaID1": 702,
+          "areaNameTextMapHash": 2705690798,
+          "definedLevel2Count": 2
+        }
+      ]
+    },
+    {
+      "cityId": 105,
+      "cityNameTextMapHash": 2265459073,
+      "cityIcon": "UI_ChapterIcon_Firmament",
+      "level1Areas": [
+        {
+          "sceneID": 103,
+          "areaID1": 1000,
+          "areaNameTextMapHash": 4023804094,
+          "definedLevel2Count": 13
+        }
+      ]
+    }
+  ]
+}
