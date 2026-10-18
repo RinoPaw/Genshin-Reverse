@@ -81,7 +81,6 @@ class ReliquaryAstaConsumerTests(unittest.TestCase):
         claims = copy.deepcopy(mod["read_pinned"](
             mod["CLAIMS"], mod["REQUIRED_INPUT_BLOBS"]["staticClaimRoutes"]
         ))
-        ids = set(self.snapshot["dungeons"][0].values())
         target = self.snapshot["dungeons"][0]["dungeonId"]
         row = next(x for x in claims["dungeons"] if x["dungeonId"] == target)
         row["staticClaimRoute"] = "PROXY_ONLY_CANDIDATE"
