@@ -81,6 +81,12 @@ def validate_server_checkout(root: Path) -> None:
 
 
 def build_snapshot(variant: dict, current: dict) -> dict:
+    # The older claim audit must have exercised the same Java consumer blobs,
+    # even though its overall AstaPS commit differs from the newer pin.
+    audited = current["source"]["server"]["files"]
+    for path, expected in SERVER_FILES.items():
+        if audited[path]["gitBlobSha"] != expected:
+            raise ValueError(f"legacy route audit used different Java source: {path}")
     if variant["summary"]["requiresRandomTypeSemanticsToCallProbability"] is not True:
         raise ValueError("source report no longer has an explicit probability gate")
     rows = variant["variantBranches"]
