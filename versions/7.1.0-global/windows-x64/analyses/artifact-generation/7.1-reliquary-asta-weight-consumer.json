@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "target": "AstaPS server implementation against historical 7.1-integrated drop graph",
+  "confidence": "B_SERVER_IMPLEMENTATION_CONDITIONAL",
+  "scope": "Conditioned on a validated native-root source, reaching the variant node, and running the pinned AstaPS DropSystem. Not a proof of official Global 7.1 native RNG or unconditional domain reward odds.",
+  "source": {
+    "reverseRepo": "RinoPaw/Genshin-Reverse",
+    "reverseGitBlobs": {
+      "variantBranches": "a75d55a4b2ef3cb7d427741fe2930dfac2cad3dc",
+      "staticClaimRoutes": "c30d3de71e84dc0e7afe1891f8dea05091d96a24"
+    },
+    "astaPSRepo": "RinoPaw/AstaPS",
+    "astaPSCommit": "dcf04369a356486a07be976b244b83d7208c3992",
+    "astaPSFiles": {
+      "src/main/java/emu/grasscutter/game/drop/DropSystem.java": "e04918a478e75414435f89f8bfd002f39d804af3",
+      "src/main/java/emu/grasscutter/game/dungeons/DomainStatueDropService.java": "3cc0854ad2e785f4f14a303672726e99e19d0dbd"
+    },
+    "oldClaimAuditServerCommit": "1c2cb79444ae911baf1fb8a11875ac32ae9783c4"
+  },
+  "executor": {
+    "choiceType": 0,
+    "algorithm": "sum non-zero-id edge weights; pick rand.nextInt(sum); select first cumulative weight greater than random value",
+    "sourceRoute": "NATIVE_ROOT when verifiedNative; otherwise VALIDATED_PROXY when verifiedProxy; otherwise NONE",
+    "weightThree": 8000,
+    "weightFour": 2000,
+    "conditionalThreeFraction": "4/5",
+    "conditionalFourFraction": "1/5",
+    "notProven": [
+      "official Global 7.1 DropTable provenance",
+      "official server randomType semantics",
+      "native-root source acceptance in deployed AstaPS",
+      "per-run five-star occurrence and total drop chance",
+      "four-substat probability outside these historical drop nodes"
+    ]
+  },
+  "summary": {
+    "variantSplitNodes": 27,
+    "linkedDungeons": 27,
+    "nativeWithProxyFallbackCandidates": 27,
+    "directRuntimeClaimsObserved": 0
+  },
+  "dungeons": [
+    {
+      "dungeonId": 5005,
+      "rootDropId": 85114500,
+      "choiceNodeId": 85114515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5006,
+      "rootDropId": 85115500,
+      "choiceNodeId": 85115515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5007,
+      "rootDropId": 85116000,
+      "choiceNodeId": 85116015,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5011,
+      "rootDropId": 85214500,
+      "choiceNodeId": 85214515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5012,
+      "rootDropId": 85215500,
+      "choiceNodeId": 85215515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5013,
+      "rootDropId": 85216000,
+      "choiceNodeId": 85216015,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5016,
+      "rootDropId": 85414500,
+      "choiceNodeId": 85414515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5017,
+      "rootDropId": 85415500,
+      "choiceNodeId": 85415515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5052,
+      "rootDropId": 85144500,
+      "choiceNodeId": 85144515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5053,
+      "rootDropId": 85145500,
+      "choiceNodeId": 85145515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5104,
+      "rootDropId": 85124500,
+      "choiceNodeId": 85124515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5105,
+      "rootDropId": 85125500,
+      "choiceNodeId": 85125515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5106,
+      "rootDropId": 85126000,
+      "choiceNodeId": 85126015,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5109,
+      "rootDropId": 85224500,
+      "choiceNodeId": 85224515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5110,
+      "rootDropId": 85225500,
+      "choiceNodeId": 85225515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5111,
+      "rootDropId": 85226000,
+      "choiceNodeId": 85226015,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5113,
+      "rootDropId": 85324500,
+      "choiceNodeId": 85324515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5114,
+      "rootDropId": 85325500,
+      "choiceNodeId": 85325515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5115,
+      "rootDropId": 85326000,
+      "choiceNodeId": 85326015,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5122,
+      "rootDropId": 85314500,
+      "choiceNodeId": 85314515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5123,
+      "rootDropId": 85315500,
+      "choiceNodeId": 85315515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5127,
+      "rootDropId": 85334500,
+      "choiceNodeId": 85334515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5128,
+      "rootDropId": 85335500,
+      "choiceNodeId": 85335515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5202,
+      "rootDropId": 85134500,
+      "choiceNodeId": 85134515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5203,
+      "rootDropId": 85135500,
+      "choiceNodeId": 85135515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5206,
+      "rootDropId": 85234500,
+      "choiceNodeId": 85234515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    },
+    {
+      "dungeonId": 5207,
+      "rootDropId": 85235500,
+      "choiceNodeId": 85235515,
+      "sourceClaimRoute": "NATIVE_WITH_PROXY_FALLBACK_CANDIDATE",
+      "configuredWeights": {
+        "3": 8000,
+        "4": 2000
+      },
+      "conditionalAstaPSProbability": {
+        "3": "4/5",
+        "4": "1/5"
+      }
+    }
+  ]
+}
