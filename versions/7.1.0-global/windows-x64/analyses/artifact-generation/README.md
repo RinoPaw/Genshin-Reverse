@@ -14,6 +14,56 @@ The integration consumer is `RinoPaw/AstaPS`. Do not promote a familiar probabil
 - metadata SHA-256: `05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0`
 - tracking issue: [#5](https://github.com/RinoPaw/Genshin-Reverse/issues/5)
 
+## 2026-10-18: server consumer of the 3/4-substat DropTable split
+
+The [AstaPS consumer audit](7.1-reliquary-asta-weight-consumer.json) pins
+the Java selection code to
+`RinoPaw/AstaPS@dcf04369a356486a07be976b244b83d7208c3992`.
+Its independently checked [historical source-node report](7.1-reliquary-drop-variant-weights.json)
+already identifies **27** Dungeon-reachable 5-star variant nodes with
+`randomType = 0` and explicit `8000 / 2000` configuration weights.
+
+**B-level server implementation result:** in the pinned Java
+`DropSystem.processDrop` (source blob `e04918a4`, lines 355–395),
+`randomType == 0` sums edge weights, draws `rand.nextInt(weightSum)`,
+and selects the first edge whose cumulative weight exceeds the draw.
+Accordingly, *conditional on executing one of the identified choice nodes
+through this server*, the AstaPS implementation selects the **3-substat
+branch with probability 4/5** and the **4-substat branch with probability
+1/5**. This is a mathematical result about the audited server code, not a
+Monte Carlo estimate or confirmation of official 7.1 live behavior.
+
+**Source selection is an independent gate.** The pinned
+`DomainStatueDropService` (blob `3cc0854a`, lines 295–347)
+uses a native root only after its item-family checks pass; it can
+instead roll a validated `DungeonDrop.json` proxy. All **27**
+relevant Dungeons are
+`NATIVE_WITH_PROXY_FALLBACK_CANDIDATE` in the older pinned static
+audit `1c2cb794`. This establishes *candidate routes*, not 27
+observed successful native claims. The two Java files have identical
+blob identities at the more recent audited AstaPS revision `dcf04369`.
+
+**Keep the original provenance boundary:** the imported Server DropTable
+values have a documented 6.5-era lineage, not verified 7.1 native
+extraction. Official 7.1 selection semantics, the unconditional chance
+of obtaining a five-star item, and any such rule outside these specific
+Domain roots remain unresolved. The new report must not be promoted to
+a native 7.1 probability table.
+
+Offline check (from the Genshin-Reverse repository):
+
+```sh
+python scripts/audit-7.1-reliquary-asta-consumer.py --check
+python -m unittest tests.test_reliquary_asta_weight_consumer -v
+```
+
+Optional exact Java-source verification after checking out the pinned
+AstaPS commit:
+
+```sh
+python scripts/audit-7.1-reliquary-asta-consumer.py --server-root /path/to/AstaPS --check
+```
+
 ## 2026-10-15: complete 7.1 source-row depot topology
 
 The [machine-readable Reliquary topology](7.1-reliquary-depot-topology.json)
