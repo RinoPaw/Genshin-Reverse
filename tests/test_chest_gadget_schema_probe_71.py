@@ -68,7 +68,7 @@ class TestChestGadgetSchema(unittest.TestCase):
             p.write_bytes(b"native evidence")
             data = p.read_bytes()
             expected = hashlib.sha1(b"blob " + str(len(data)).encode()
-                                    + b"\\0" + data).hexdigest()
+                                    + b"\0" + data).hexdigest()
             self.assertEqual(probe.git_blob(p), expected)
 
 
