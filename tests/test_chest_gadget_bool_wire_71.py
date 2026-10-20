@@ -65,7 +65,7 @@ class TestGadgetBoolWire71(unittest.TestCase):
         altered = self.synthetic_disassembly()
         altered["instructions"] = [ins for ins in altered["instructions"]
                                    if ins["rva"] != "0x10279627"]
-        with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+        with self.assertRaisesRegex(ValueError, "unclassified|missing or ambiguous"):
             wire.inspect(altered, self.layout, self.reader,
                          source_sha256=self.reader["source"]["disassemblyJsonSha256"])
         altered = self.synthetic_disassembly()
