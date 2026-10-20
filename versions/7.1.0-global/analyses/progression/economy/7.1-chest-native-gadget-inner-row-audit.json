@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_INNER_ROWS_VERIFIED__OUTER_FRAMING_AND_PAYOUT_UNRESOLVED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "officialManifestBlock": "00/25539185.blk",
+    "exportedAsset": "d65ab32f.dat",
+    "nativeTablePathSuffix": "GadgetExcelConfigData",
+    "rawExportBytes": 2854888,
+    "rawExportSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "payloadBytes": 2854884,
+    "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+    "nativeReaderOwner": "DCCHEHMHFGC",
+    "nativeReaderMethod": "GMENPOPMKAA",
+    "nativeReaderRva": "0x10278E50",
+    "methodIndex": 483590
+  },
+  "observedFraming": {
+    "opaqueHeaderHex": "29cc0adc",
+    "headerDecoded": false,
+    "rowCountObservedByMarker": 30599,
+    "uniqueIdCandidates": 30599,
+    "firstIdCandidate": 40000001,
+    "lastIdCandidate": 77402021,
+    "fourByteIdCandidateCount": 30599,
+    "idCandidateWireTransform": "add 0x4894CEA6 modulo 2^32; consumer UNVERIFIED",
+    "innerDecodedBytes": 2023268,
+    "outerPrefixOpaqueBytes": 709216,
+    "fourByteIdCandidateBytes": 122396,
+    "opaqueHeaderBytes": 4,
+    "prefixLengthHistogram": {
+      "6": 19,
+      "10": 165,
+      "14": 1072,
+      "18": 22913,
+      "26": 3,
+      "35": 12,
+      "36": 17,
+      "37": 20,
+      "39": 195,
+      "40": 25,
+      "41": 495,
+      "42": 8,
+      "43": 506,
+      "44": 5092,
+      "47": 3,
+      "48": 25,
+      "49": 1,
+      "52": 2,
+      "56": 5,
+      "64": 21
+    },
+    "lastDecodedInnerRecordEndsAtEof": true,
+    "coveredBytesIncludingOpaqueRegions": 2854884
+  },
+  "fieldPresenceCountByCandidateMemoryOffset": {
+    "0x48": 18563,
+    "0x50": 852,
+    "0x58": 23249,
+    "0x60": 17577,
+    "0x68": 10,
+    "0x6C": 30462,
+    "0x70": 699,
+    "0x74": 30,
+    "0x78": 21501,
+    "0x79": 47,
+    "0x7A": 7648,
+    "0x7B": 509,
+    "0x7C": 152,
+    "0x7D": 5136,
+    "0x7E": 2193,
+    "0x7F": 963,
+    "0x80": 30599,
+    "0x84": 6386,
+    "0x88": 423,
+    "0x90": 218,
+    "0x94": 9,
+    "0x98": 505
+  },
+  "enum26CrossCheck": {
+    "nativeTypeCandidateMemoryOffset": "0x6C",
+    "nativeValueCandidate": 26,
+    "rowCount": 309,
+    "nameCandidateMemoryOffset": "0x58",
+    "distinctNameStrings": 148,
+    "allHaveNameField": true,
+    "normalChestControls": [
+      {
+        "idCandidate": 70210001,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      },
+      {
+        "idCandidate": 70210002,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      },
+      {
+        "idCandidate": 70210003,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      },
+      {
+        "idCandidate": 70210004,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      },
+      {
+        "idCandidate": 70210005,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      },
+      {
+        "idCandidate": 70210006,
+        "nameString": "SceneObj_Chest_NormalChest",
+        "iconString": "UI_Icon_Intee_TreasureBox"
+      }
+    ],
+    "hasNonOrdinaryChestAndSpecialGadgetNames": true
+  },
+  "limits": [
+    "Source hash authentication covers the exact raw export only; see the separately pinned Sophon manifest and AnimeStudio provenance.",
+    "Row count is recovered from exact-client markers, not an authenticated table-header count.",
+    "The four-byte per-row ID decoding is a consistent candidate and needs the exact native map/consumer to confirm its transform.",
+    "Outer per-row prefixes and four-byte header are accounted for but still opaque.",
+    "A match with historical chest category count cross-checks identity but cannot promote historical server reward data.",
+    "0x6C enum candidate 26 includes special/puzzle objects; no ordinary four-grade classification is established.",
+    "No placed instance, native drop_tag, server payout root, item quantity or drop probability is established."
+  ]
+}
