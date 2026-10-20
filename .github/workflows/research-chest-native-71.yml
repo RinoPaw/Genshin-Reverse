@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/research-chest-native-71.yml'
+      - 'scripts/collect-7.1-native-chest-assets.py'
 
 permissions:
   contents: read
