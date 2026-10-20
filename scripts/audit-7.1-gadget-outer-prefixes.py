@@ -34,6 +34,7 @@ def observe(scan, payload: bytes) -> dict:
     chest_by_mask = defaultdict(Counter)
     first_words: dict[int, int] = {}
     first_ids: dict[int, int] = {}
+    chest_first_ids: dict[int, int] = {}
     total_prefix_bytes = 0
     header_length = 4
     if scan.opaque_header_hex != payload[:header_length].hex():
@@ -56,6 +57,7 @@ def observe(scan, payload: bytes) -> dict:
         first_ids.setdefault(candidate, row.id_candidate)
         if row.fields.get(0x6C) == 26:
             chest_by_mask[candidate][prefix_length] += 1
+            chest_first_ids.setdefault(candidate, row.id_candidate)
         total_prefix_bytes += prefix_length
 
     if total_prefix_bytes != scan.outer_prefix_bytes:
@@ -63,7 +65,7 @@ def observe(scan, payload: bytes) -> dict:
     if sum(sum(lengths.values()) for lengths in by_mask.values()) != len(scan.rows):
         raise ValueError("outer control histogram does not cover every row")
 
-    def rows_with_lengths(group: dict[int, Counter]) -> dict:
+    def rows_with_lengths(group: dict[int, Counter], example_ids: dict[int, int]) -> dict:
         return {
             f"0x{candidate:04X}": {
                 "rawFirstTwoBytesLe": f"0x{first_words[candidate]:04X}",
@@ -74,12 +76,12 @@ def observe(scan, payload: bytes) -> dict:
                     str(length): group[candidate][length]
                     for length in sorted(group[candidate])
                 },
-                "exampleGadgetIdCandidate": first_ids[candidate],
+                "exampleGadgetIdCandidate": example_ids[candidate],
             } for candidate in sorted(group)
         }
 
-    result = rows_with_lengths(by_mask)
-    chest_rows = rows_with_lengths(chest_by_mask)
+    result = rows_with_lengths(by_mask, first_ids)
+    chest_rows = rows_with_lengths(chest_by_mask, chest_first_ids)
     return {
         "schemaVersion": 1,
         "status": "EXACT_7_1_OUTER_PREFIX_CONTROL_WORD_OBSERVED__NATIVE_LOADER_UNRESOLVED",
