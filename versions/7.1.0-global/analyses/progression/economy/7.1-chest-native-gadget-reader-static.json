@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_NATIVE_GADGET_READER_DIRECT_STORES__FIELD_MAPPING_UNRESOLVED",
+  "checkedDate": "2026-10-21",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    "metadataLeads": "7.1-chest-native-gadget-schema-leads.json",
+    "nativeOwner": "DCCHEHMHFGC",
+    "typeDefinitionIndex": 60078,
+    "methodIndex": 483590,
+    "methodName": "GMENPOPMKAA",
+    "methodRva": "0x10278E50",
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39475423384",
+    "artifactName": "7.1-rva-disassembly",
+    "artifactId": 12288707906,
+    "disassemblyJsonSha256": "e43ed60f00413761ee33f3c554d35e737af81e864b9ae315fba3e28f9f50ae5b",
+    "generation": "python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe 0x10278E50 0x1400 --expected-sha256 08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d --label 7.1-Gadget-owner-60078-reader-candidate --output method-disassembly.json"
+  },
+  "disassembly": {
+    "readBytes": 5120,
+    "decodedInstructions": 1278,
+    "trailingBytes": 0,
+    "firstRetRva": "0x1027A025",
+    "instructionsThroughFirstRet": 1145,
+    "bytesThroughFirstRet": 4566,
+    "scope": "Direct mov writes to r14-based object at and before the first ret. Additional cold branches beyond the first return are outside this scan."
+  },
+  "directStoresToR14": {
+    "1": {
+      "0x78": [
+        "0x1027962E"
+      ],
+      "0x79": [
+        "0x10279464"
+      ],
+      "0x7A": [
+        "0x10279570"
+      ],
+      "0x7B": [
+        "0x10279E79"
+      ],
+      "0x7C": [
+        "0x102799D1"
+      ],
+      "0x7D": [
+        "0x10278EE7",
+        "0x10278F87"
+      ],
+      "0x7E": [
+        "0x10278EDB",
+        "0x10278F40"
+      ],
+      "0x7F": [
+        "0x1027A00E"
+      ]
+    },
+    "4": {
+      "0x68": [
+        "0x102796ED"
+      ],
+      "0x6C": [
+        "0x10279FBB"
+      ],
+      "0x70": [
+        "0x102795D6"
+      ],
+      "0x74": [
+        "0x10279681"
+      ],
+      "0x80": [
+        "0x102794B7"
+      ],
+      "0x84": [
+        "0x10279A20"
+      ],
+      "0x90": [
+        "0x10279EE7"
+      ],
+      "0x94": [
+        "0x10279F61"
+      ]
+    },
+    "8": {
+      "0x48": [
+        "0x10279406"
+      ],
+      "0x50": [
+        "0x10279977"
+      ],
+      "0x58": [
+        "0x10279E1D"
+      ],
+      "0x60": [
+        "0x10279D27"
+      ],
+      "0x88": [
+        "0x1027950F"
+      ],
+      "0x98": [
+        "0x10278FE5"
+      ]
+    }
+  },
+  "observations": [
+    "In the scanned first-return region, 8 distinct direct byte store offsets are contiguous 0x78..0x7F.",
+    "The same region has 8 distinct dword and 6 distinct qword store offsets, 22 distinct direct store offsets total.",
+    "The store order is not metadata declaration order, and branch-specific duplicate writes occur at 0x7D and 0x7E.",
+    "This is consistent with the 22-field metadata owner as a structural lead, not a verified field-to-offset mapping."
+  ],
+  "limitations": [
+    "The scan stops at first ret and does not capture all cold/error-path code or indirect stores.",
+    "Assigning individual obfuscated boolean names to byte offsets requires validated IL2CPP layout.",
+    "A native method containing direct object stores does not alone prove GadgetExcel table loader, row count, read mask or semantics.",
+    "Client identity does not authenticate chest type/quality or 7.1 server drop roots, payout quantities or probabilities."
+  ]
+}
