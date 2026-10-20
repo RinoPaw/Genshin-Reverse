@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "sample": "7.1.0-global/windows-x64",
+  "status": "NATIVE_METADATA_TOKEN_IDENTITIES_ONLY__WIRE_SCHEMA_UNRESOLVED",
+  "metadata": {
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "globalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    "fieldsCsvGitBlob": "ae01d117f4d884e891a95d529a15302a68715b04",
+    "methodsCsvGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a"
+  },
+  "hypothesisSource": "CN 7.1 community GadgetExcel Chest-key presence comparison",
+  "tokens": [
+    "NGDGAAEHPHB",
+    "MECPCDBEFBG",
+    "OLOLLKJCHHI"
+  ],
+  "tokenHits": {
+    "NGDGAAEHPHB": [
+      {
+        "fieldIndex": "298614",
+        "ownerIndex": "60078",
+        "ownerName": "DCCHEHMHFGC",
+        "fieldType": "bool"
+      }
+    ],
+    "MECPCDBEFBG": [
+      {
+        "fieldIndex": "298618",
+        "ownerIndex": "60078",
+        "ownerName": "DCCHEHMHFGC",
+        "fieldType": "bool"
+      }
+    ],
+    "OLOLLKJCHHI": [
+      {
+        "fieldIndex": "298621",
+        "ownerIndex": "60078",
+        "ownerName": "DCCHEHMHFGC",
+        "fieldType": "bool"
+      }
+    ]
+  },
+  "matchedOwnerCount": 1,
+  "owners": {
+    "60078": {
+      "fieldCount": 22,
+      "fields": [
+        {
+          "name": "KNDHCBAKPOC",
+          "type": "kind_0x1D",
+          "index": "298606"
+        },
+        {
+          "name": "BCLCICAADDG",
+          "type": "string",
+          "index": "298607"
+        },
+        {
+          "name": "AOIOIEKEDAM",
+          "type": "string",
+          "index": "298608"
+        },
+        {
+          "name": "CONMEIBGHFK",
+          "type": "string",
+          "index": "298609"
+        },
+        {
+          "name": "MOOIOFFKKMJ",
+          "type": "EEOPHKIFFPL",
+          "index": "298610"
+        },
+        {
+          "name": "JICOFLMHAHF",
+          "type": "CKEFFPHDNBC",
+          "index": "298611"
+        },
+        {
+          "name": "IPMAHMLJPJJ",
+          "type": "EEOPHKIFFPL",
+          "index": "298612"
+        },
+        {
+          "name": "NMIAMBDOEJK",
+          "type": "IKFOBHFCEOC",
+          "index": "298613"
+        },
+        {
+          "name": "NGDGAAEHPHB",
+          "type": "bool",
+          "index": "298614"
+        },
+        {
+          "name": "MEAFFJCCKNE",
+          "type": "bool",
+          "index": "298615"
+        },
+        {
+          "name": "AHACIELEHAG",
+          "type": "bool",
+          "index": "298616"
+        },
+        {
+          "name": "IDMKFDPKFEG",
+          "type": "bool",
+          "index": "298617"
+        },
+        {
+          "name": "MECPCDBEFBG",
+          "type": "bool",
+          "index": "298618"
+        },
+        {
+          "name": "IJLLLELBGGI",
+          "type": "bool",
+          "index": "298619"
+        },
+        {
+          "name": "CKIJBKMANHD",
+          "type": "bool",
+          "index": "298620"
+        },
+        {
+          "name": "OLOLLKJCHHI",
+          "type": "bool",
+          "index": "298621"
+        },
+        {
+          "name": "HPOJJONGFLI",
+          "type": "uint32",
+          "index": "298622"
+        },
+        {
+          "name": "GEDNEMKIJLP",
+          "type": "LCKJIPHHGLD",
+          "index": "298623"
+        },
+        {
+          "name": "JIIHDMGDKDN",
+          "type": "uint64",
+          "index": "298624"
+        },
+        {
+          "name": "MFLPKCGCDHE",
+          "type": "EEOPHKIFFPL",
+          "index": "298625"
+        },
+        {
+          "name": "DIFOPONDMCL",
+          "type": "EEOPHKIFFPL",
+          "index": "298626"
+        },
+        {
+          "name": "ACEICGJMJGH",
+          "type": "uint64",
+          "index": "298627"
+        }
+      ],
+      "methods": [
+        {
+          "name": ".ctor",
+          "methodIndex": "483589",
+          "rva": "0x10278E40",
+          "parameterTypes": "[]",
+          "binaryReaderSignatureCandidate": false
+        },
+        {
+          "name": "GMENPOPMKAA",
+          "methodIndex": "483590",
+          "rva": "0x10278E50",
+          "parameterTypes": "[\"FNIAHJGHFAK\"]",
+          "binaryReaderSignatureCandidate": true
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Matching an obfuscated field token does not identify its GadgetExcel table or row.",
+    "A method with a candidate binary-reader parameter is not a verified deserializer.",
+    "Field names and types do not establish wire offsets, enum meanings, chest grade or reward roots.",
+    "CN community key presence/absence remains an independent cross-source comparison."
+  ],
+  "verification": {
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39474590794",
+    "jobId": "118807149822",
+    "sourceScript": "scripts/probe-7.1-chest-gadget-schema.py",
+    "acquisition": "Pinned source CSV blob identity matched in CI; report parsed from successful workflow job output; no proprietary original bytes."
+  }
+}
