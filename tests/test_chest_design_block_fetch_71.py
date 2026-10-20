@@ -27,11 +27,11 @@ class TestChestDesignBlockFetcher(unittest.TestCase):
         def reconstruct(prefix, row, path, workers):
             key = int(Path(row["filename"]).stem)
             path.write_bytes(blobs[key])
-        with TemporaryDirectory() as directory, \\
-                patch.object(fetcher, "BLOCKS", fake_blocks), \\
-                patch.object(fetcher, "download", return_value=b"manifest"), \\
-                patch.object(fetcher, "decompress_zstd", return_value=b"decoded"), \\
-                patch.object(fetcher, "parse_manifest", return_value=rows), \\
+        with TemporaryDirectory() as directory, \
+                patch.object(fetcher, "BLOCKS", fake_blocks), \
+                patch.object(fetcher, "download", return_value=b"manifest"), \
+                patch.object(fetcher, "decompress_zstd", return_value=b"decoded"), \
+                patch.object(fetcher, "parse_manifest", return_value=rows), \
                 patch.object(fetcher, "reconstruct", side_effect=reconstruct):
             output = Path(directory)
             result = fetcher.fetch_blocks(output)
@@ -55,10 +55,10 @@ class TestChestDesignBlockFetcher(unittest.TestCase):
 
     def test_misleading_manifest_basename_rejected(self):
         data = b"short"
-        with TemporaryDirectory() as directory, \\
-                patch.object(fetcher, "BLOCKS", {31049741: fingerprints(data)}), \\
-                patch.object(fetcher, "download", return_value=b"manifest"), \\
-                patch.object(fetcher, "decompress_zstd", return_value=b"decoded"), \\
+        with TemporaryDirectory() as directory, \
+                patch.object(fetcher, "BLOCKS", {31049741: fingerprints(data)}), \
+                patch.object(fetcher, "download", return_value=b"manifest"), \
+                patch.object(fetcher, "decompress_zstd", return_value=b"decoded"), \
                 patch.object(fetcher, "parse_manifest", return_value=[
                     {"filename": "some/other/31049741.blk"}
                 ]):
