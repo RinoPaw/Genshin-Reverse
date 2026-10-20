@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/research-chest-native-71.yml'
       - 'scripts/collect-7.1-native-chest-assets.py'
+      - 'scripts/audit-7.1-gadget-native-rows.py'
+      - 'versions/7.1.0-global/analyses/progression/economy/7.1-chest-native-gadget-inner-row-audit.json'
 
 permissions:
   contents: read
