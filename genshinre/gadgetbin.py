@@ -141,7 +141,7 @@ class GadgetTableScan:
     def summary(self) -> dict:
         present = Counter()
         for row in self.rows:
-            present.update(row.fields)
+            present.update(row.fields.keys())
         return {
             "status": "EXACT_7_1_GADGET_INNER_ROWS_DECODED__OUTER_PREFIX_UNRESOLVED",
             "opaqueHeaderHex": self.opaque_header_hex,
