@@ -61,6 +61,24 @@ def audit(raw: bytes) -> dict:
                    for row in controls)):
         raise ValueError("native Gadget candidate ID/name controls failed")
 
+    boolean_tokens = {
+        0x78: "NGDGAAEHPHB", 0x79: "MEAFFJCCKNE",
+        0x7A: "AHACIELEHAG", 0x7B: "IDMKFDPKFEG",
+        0x7C: "MECPCDBEFBG", 0x7D: "IJLLLELBGGI",
+        0x7E: "CKIJBKMANHD", 0x7F: "OLOLLKJCHHI",
+    }
+    boolean_coverage = {}
+    for offset, token in boolean_tokens.items():
+        observed = [row.fields[offset] for row in enum26 if offset in row.fields]
+        if any(type(value) is not bool for value in observed):
+            raise ValueError(f"non-boolean Gadget wire field at 0x{offset:X}")
+        boolean_coverage[f"0x{offset:X}"] = {
+            "nativeToken": token,
+            "presentTrue": sum(value is True for value in observed),
+            "presentFalse": sum(value is False for value in observed),
+            "absentOnWire": len(enum26) - len(observed),
+        }
+
     return {
         "schemaVersion": 1,
         "status": "EXACT_7_1_GADGET_INNER_ROWS_VERIFIED__OUTER_FRAMING_AND_PAYOUT_UNRESOLVED",
@@ -114,6 +132,7 @@ def audit(raw: bytes) -> dict:
                 for row in controls
             ],
             "hasNonOrdinaryChestAndSpecialGadgetNames": True,
+            "candidateBooleanWireCoverage": boolean_coverage,
         },
         "limits": [
             "Source hash authentication covers the exact raw export only; see the separately pinned Sophon manifest and AnimeStudio provenance.",
