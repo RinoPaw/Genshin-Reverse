@@ -103,8 +103,10 @@ def correlate(disassembly: dict, layout: dict, reader: dict, *, digest: str) -> 
         test_idx = next(i for i, ins in enumerate(rows) if int(ins["rva"], 16) == rva)
         nxt = rows[test_idx + 1:test_idx + 5]
         branches = [ins for ins in nxt if ins["mnemonic"] in ("je", "jne")]
-        if len(branches) != 1:
-            raise ValueError(f"no unique local branch after 0x{rva:X}")
+        if not branches:
+            raise ValueError(f"no local branch after 0x{rva:X}")
+        # Subsequent branches may guard the input buffer, not this mask.
+        # The first conditional after TEST consumes the tested zero flag.
         field = fields[offset]
         records.append({
             "fieldToken": field["fieldName"],
