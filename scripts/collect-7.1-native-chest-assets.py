@@ -40,6 +40,10 @@ def unpack_pinned_cli(archive: Path, output: Path) -> Path:
     dlls: list[Path] = []
     with tarfile.open(archive, mode="r:gz") as tar:
         for member in tar:
+            # Official CLI tarballs may contain a harmless root-directory
+            # entry ".". Never extract or traverse it as a file.
+            if member.isdir() and member.name in (".", "./"):
+                continue
             name = PurePosixPath(member.name)
             if (not name.parts or name.is_absolute()
                     or any(part in ("..", ".") for part in name.parts)
