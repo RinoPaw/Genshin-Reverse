@@ -24,7 +24,7 @@ METHODS_BLOB = "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a"
 
 def git_blob(path: Path) -> str:
     digest = hashlib.sha1()
-    digest.update(f"blob {path.stat().st_size}\\0".encode())
+    digest.update(f"blob {path.stat().st_size}\0".encode())
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
