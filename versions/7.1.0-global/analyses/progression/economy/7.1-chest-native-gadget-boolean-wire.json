@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_BOOLEAN_READ_BRANCHES__SEMANTICS_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "source": {
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39475423384",
+    "disassemblyArtifact": "7.1-rva-disassembly/method-disassembly.json",
+    "disassemblySha256": "e43ed60f00413761ee33f3c554d35e737af81e864b9ae315fba3e28f9f50ae5b",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "readerRva": "0x10278E50",
+    "layoutCandidate": "7.1-chest-native-gadget-layout-candidate.json"
+  },
+  "byteFields": [
+    {
+      "fieldName": "NGDGAAEHPHB",
+      "fieldIndex": 298614,
+      "candidateMemoryOffset": "0x78",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x10279625",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x31",
+          "predicateRva": "0x10279627",
+          "predicate": "SETNE",
+          "storeRva": "0x1027962E"
+        }
+      ],
+      "zeroStores": []
+    },
+    {
+      "fieldName": "MEAFFJCCKNE",
+      "fieldIndex": 298615,
+      "candidateMemoryOffset": "0x79",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x1027945B",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x48",
+          "predicateRva": "0x1027945D",
+          "predicate": "SETNE",
+          "storeRva": "0x10279464"
+        }
+      ],
+      "zeroStores": []
+    },
+    {
+      "fieldName": "AHACIELEHAG",
+      "fieldIndex": 298616,
+      "candidateMemoryOffset": "0x7A",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x10279567",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x5B",
+          "predicateRva": "0x10279569",
+          "predicate": "SETNE",
+          "storeRva": "0x10279570"
+        }
+      ],
+      "zeroStores": []
+    },
+    {
+      "fieldName": "IDMKFDPKFEG",
+      "fieldIndex": 298617,
+      "candidateMemoryOffset": "0x7B",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x10279E70",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x4D",
+          "predicateRva": "0x10279E72",
+          "predicate": "SETNE",
+          "storeRva": "0x10279E79"
+        }
+      ],
+      "zeroStores": []
+    },
+    {
+      "fieldName": "MECPCDBEFBG",
+      "fieldIndex": 298618,
+      "candidateMemoryOffset": "0x7C",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x102799C8",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x95",
+          "predicateRva": "0x102799CA",
+          "predicate": "SETNE",
+          "storeRva": "0x102799D1"
+        }
+      ],
+      "zeroStores": []
+    },
+    {
+      "fieldName": "IJLLLELBGGI",
+      "fieldIndex": 298619,
+      "candidateMemoryOffset": "0x7D",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x10278F81",
+          "inputRegister": "dl",
+          "encodedFalseByte": "0x35",
+          "predicateRva": "0x10278F84",
+          "predicate": "SETNE",
+          "storeRva": "0x10278F87"
+        }
+      ],
+      "zeroStores": [
+        "0x10278EE7"
+      ]
+    },
+    {
+      "fieldName": "CKIJBKMANHD",
+      "fieldIndex": 298620,
+      "candidateMemoryOffset": "0x7E",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x10278F3A",
+          "inputRegister": "dl",
+          "encodedFalseByte": "0x62",
+          "predicateRva": "0x10278F3D",
+          "predicate": "SETNE",
+          "storeRva": "0x10278F40"
+        }
+      ],
+      "zeroStores": [
+        "0x10278EDB"
+      ]
+    },
+    {
+      "fieldName": "OLOLLKJCHHI",
+      "fieldIndex": 298621,
+      "candidateMemoryOffset": "0x7F",
+      "decodedByteBranches": [
+        {
+          "comparisonRva": "0x1027A009",
+          "inputRegister": "al",
+          "encodedFalseByte": "0x52",
+          "predicateRva": "0x1027A00B",
+          "predicate": "SETNE",
+          "storeRva": "0x1027A00E"
+        }
+      ],
+      "zeroStores": []
+    }
+  ],
+  "limits": [
+    "Each decoded branch compares one encoded input byte with a fixed immediate, then SETNE writes one memory byte.",
+    "The encoded comparison constant describes the zero/false branch for this reader, not a generic asset decryption key.",
+    "Zero-write paths are only reported where the scanned basic region includes an explicit zero assignment.",
+    "The field-to-offset association depends on the separately documented 22-field candidate memory layout.",
+    "Presence mask linkage, file framing, original field semantics and full GadgetExcel row decoding remain unresolved.",
+    "No chest grade, special context, tag source, server root or reward probabilities follow from these instructions."
+  ]
+}
