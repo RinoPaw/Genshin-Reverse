@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_CLIENT_GADGET_ASSET_IDENTITY_AND_BINARY_CONFIRMED__NATIVE_FIELDS_UNRESOLVED",
+  "checkedDate": "2026-10-21",
+  "target": "Genshin Impact 7.1.0 Global Windows x64",
+  "origin": {
+    "type": "official-client-sophon-manifest-chunks",
+    "manifestAndChunkSource": "genshinre.nativeprofile.PROFILE_71",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    "designIndex": {
+      "manifestPathSuffix": "/assetbundles/blocks/00/31049741.blk",
+      "manifestMd5": "a390222739d22aafb110019d10bff7e8",
+      "blockBytes": 2464870,
+      "blockSha256": "7364cb91628b27fd299bef6a8d3e5f58b618552a63f118fe1107da2ae57d0504",
+      "rawIndexSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+      "rawIndexNameCount": 247073
+    },
+    "gadgetBundle": {
+      "manifestPathSuffix": "/assetbundles/blocks/00/25539185.blk",
+      "manifestMd5": "8ce0bb0ac5ec42315f0f98d52e5d7c73",
+      "blockBytes": 25812595,
+      "blockSha256": "afa9512cf4fb5d629558cd972b48b104752fa56d8a9f440f71dd8110d2121bf7"
+    },
+    "exporter": {
+      "repository": "EIHRTeam/AnimeStudio",
+      "release": "v1.0.0-CI",
+      "archive": "AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz",
+      "archiveSha256": "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1",
+      "exportMode": "--game GI --types MiHoYoBinData --export_type Raw --logger_flags Error"
+    }
+  },
+  "verification": {
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39472887205",
+    "priorIndexRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39472547166",
+    "temporaryWorkflowCommit": "02b75918a044a9f28754b584787f3b181db79fd9",
+    "indexControls": [
+      {
+        "path": "Data/_ExcelBinOutput/QuestExcelConfigData",
+        "pathHash": "0x3B87AE8396",
+        "nameMatchCount": 1,
+        "exportedName": "3b87ae83",
+        "subAssetId": 178,
+        "blockReferenceCount": 1,
+        "status": "HASH_RESOLVED",
+        "blockId": 25539185,
+        "groupId": 0,
+        "unknown0": 0,
+        "unknown1": 0
+      },
+      {
+        "path": "Data/_ExcelBinOutput/DungeonExcelConfigData",
+        "pathHash": "0xC39AEC1E04",
+        "nameMatchCount": 1,
+        "exportedName": "c39aec1e",
+        "subAssetId": 178,
+        "blockReferenceCount": 1,
+        "status": "HASH_RESOLVED",
+        "blockId": 25539185,
+        "groupId": 0,
+        "unknown0": 0,
+        "unknown1": 0
+      }
+    ],
+    "candidateCount": 14,
+    "candidateStatusCounts": {
+      "HASH_ABSENT": 11,
+      "HASH_RESOLVED": 3
+    },
+    "pathGroups": {
+      "gadget-identity": [
+        {
+          "path": "Data/_ExcelBinOutput/GadgetExcelConfigData",
+          "pathHash": "0xD65AB32F6B",
+          "nameMatchCount": 1,
+          "exportedName": "d65ab32f",
+          "subAssetId": 178,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 25539185,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        },
+        {
+          "path": "Data/_ExcelBinOutput/GadgetPropExcelConfigData",
+          "pathHash": "0xE37E87283C",
+          "nameMatchCount": 1,
+          "exportedName": "e37e8728",
+          "subAssetId": 178,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 25539185,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        },
+        {
+          "path": "Data/_ExcelBinOutput/GadgetInteractExcelConfigData",
+          "pathHash": "0xC71A7EA9A1",
+          "nameMatchCount": 1,
+          "exportedName": "c71a7ea9",
+          "subAssetId": 178,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 25539185,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        }
+      ],
+      "chest-selector": [
+        {
+          "path": "Data/_ExcelBinOutput/ChestDropData",
+          "pathHash": "0x252D6099A6",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_ExcelBinOutput/ChestDropExcelConfigData",
+          "pathHash": "0x79ECA992E9",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_ExcelBinOutput/ChestExcelConfigData",
+          "pathHash": "0x92C9023FAB",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_BinOutput/ChestDropData",
+          "pathHash": "0x9043EC526C",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        }
+      ],
+      "drop-graph": [
+        {
+          "path": "Data/_ExcelBinOutput/DropTableExcelConfigData",
+          "pathHash": "0x0B408CB3CE",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_ExcelBinOutput/DropSubTableExcelConfigData",
+          "pathHash": "0x4BA93C1CC9",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_BinOutput/DropTreeData",
+          "pathHash": "0xEAAF171657",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_BinOutput/DropLeafData",
+          "pathHash": "0x5486421BD2",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        }
+      ],
+      "authored-instance": [
+        {
+          "path": "Data/_BinOutput/Scene/3/scene3_group133003154",
+          "pathHash": "0x4F6C4F4E55",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_BinOutput/Scene/3/scene3_group133003154.lua",
+          "pathHash": "0x1E2CFF426A",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        },
+        {
+          "path": "Data/_BinOutput/Scene/Scene3/scene3_group133003154",
+          "pathHash": "0x15A7EEDC93",
+          "nameMatchCount": 0,
+          "status": "HASH_ABSENT"
+        }
+      ]
+    }
+  },
+  "nativeExportFingerprints": {
+    "GadgetExcelConfigData": {
+      "sourcePath": "Data/_ExcelBinOutput/GadgetExcelConfigData",
+      "pathHash": "0xD65AB32F6B",
+      "exportedName": "d65ab32f",
+      "blockGroupId": 0,
+      "blockId": 25539185,
+      "rawBytes": 2854888,
+      "rawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+      "payloadBytes": 2854884,
+      "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+      "payloadFirst32Hex": "29cc0adc91ab72fc9b66a30f489c4a0ff7c26a8a19395b8bcdb997cbd2bcffff",
+      "nativeRowSchemaVerified": false
+    },
+    "GadgetPropExcelConfigData": {
+      "sourcePath": "Data/_ExcelBinOutput/GadgetPropExcelConfigData",
+      "pathHash": "0xE37E87283C",
+      "exportedName": "e37e8728",
+      "blockGroupId": 0,
+      "blockId": 25539185,
+      "rawBytes": 9392,
+      "rawSha256": "8907f4b717cd450ce084bd3a1a6a73e4409b8280fb4c74605afa520efbbc6a54",
+      "payloadBytes": 9388,
+      "payloadSha256": "a12f433fe834576f84cbd5521c5715a27dc64eed0ee0137eb0cb24573d38d091",
+      "payloadFirst32Hex": "9002d35bd8161b7b664e1fa33d0c73bce6d3462af074f69bcc988023f78d5013",
+      "nativeRowSchemaVerified": false
+    },
+    "GadgetInteractExcelConfigData": {
+      "sourcePath": "Data/_ExcelBinOutput/GadgetInteractExcelConfigData",
+      "pathHash": "0xC71A7EA9A1",
+      "exportedName": "c71a7ea9",
+      "blockGroupId": 0,
+      "blockId": 25539185,
+      "rawBytes": 39172,
+      "rawSha256": "6481cd8b92185ffc13ffe8a12332eba8d53139077c75738aa40d15fc5bc8c24e",
+      "payloadBytes": 39165,
+      "payloadSha256": "ce9fcd3b2d7deb76c7e9f2a4ca2738f8d9e0e8500b7bb101768cd18be059fb11",
+      "payloadFirst32Hex": "6dd1d925362a2dff879dcd2207c6bd09a8a83e4121f928dcd7eb999965e715f9",
+      "nativeRowSchemaVerified": false
+    }
+  },
+  "limitations": [
+    "Path-hash membership establishes a candidate identity and location; collisions and wrong semantic assumptions require native checks.",
+    "The asset block and raw MiHoYoBinData bytes are verified against pinned Sophon manifest and exporter hashes; row deserializers and complete byte-consuming field decoders are not yet proven.",
+    "No 7.1-native ordinary chest grade, special context, combat/puzzle selector, tag origin, reward root, item counts or probabilities were authenticated.",
+    "HASH_ABSENT applies only to these eleven tested path hypotheses in this one asset index. Do not infer server-only tables are missing or original client scene Lua is absent.",
+    "No original asset bytes or copyrighted decoded resource rows are committed."
+  ]
+}
