@@ -141,7 +141,60 @@ def table_audit(later, tree, leaf):
             'sample':sample,'terminalItemIdentityValidated':False,'native71Verified':False}
 
 
-def compare_tree_revisions(earlier, later):
+
+def compare_selected_roots(older, newer, comparable_columns, selection):
+    """Audit direct historical tree rows; no official 7.1 payout claim."""
+    from collections import Counter
+
+    chosen = {}
+    seen_sources = set()
+    for item in selection:
+        if not isinstance(item, dict) or not all(k in item for k in ('root', 'tag', 'level')):
+            raise ValueError('Selected root entry requires root/tag/level')
+        ident = str(item['root'])
+        if not ident.isdecimal() or int(ident) <= 0:
+            raise ValueError(f'Invalid selected root ID: {ident}')
+        source_key = (str(item['tag']), int(item['level']))
+        if source_key in seen_sources:
+            raise ValueError(f'Duplicate source tag/level: {source_key}')
+        seen_sources.add(source_key)
+        chosen.setdefault(ident, []).append(source_key)
+
+    shared = sorted((k for k in chosen if k in older and k in newer), key=int)
+    older_only = sorted((k for k in chosen if k in older and k not in newer), key=int)
+    newer_only = sorted((k for k in chosen if k in newer and k not in older), key=int)
+    neither = sorted((k for k in chosen if k not in older and k not in newer), key=int)
+    deltas = {
+        k: [c for c in sorted(comparable_columns) if older[k][c] != newer[k][c]]
+        for k in shared
+    }
+    fields = Counter(c for k in shared for c in deltas[k])
+    examples = []
+    for ident in ('51010000', '51010500', '52010000', '52010500'):
+        if ident in deltas:
+            examples.append({
+                'root': int(ident), 'changeCount': len(deltas[ident]),
+                'changes': [
+                    {'field': c, 'earlier': older[ident][c], 'later': newer[ident][c]}
+                    for c in deltas[ident][:12]
+                ],
+            })
+    return {
+        'selectedSourceRows': len(selection),
+        'distinctSelectedRoots': len(chosen),
+        'sharedRoots': len(shared),
+        'sharedRootsChanged': sum(bool(v) for v in deltas.values()),
+        'sharedRootsUnchanged': sum(not v for v in deltas.values()),
+        'earlierOnlyRoots': len(older_only), 'laterOnlyRoots': len(newer_only),
+        'absentInBothTrees': len(neither),
+        'absentInBothIds': [int(x) for x in neither],
+        'changedFieldCounts': dict(sorted(fields.items())),
+        'examples': examples,
+        'evidenceClass': 'historical-server-compatibility',
+        'native71Verified': False,
+    }
+
+def compare_tree_revisions(earlier, later, selected_roots=None):
     """Compare matching drop IDs using shared column names."""
     def indexed(rows, name):
         out = {}
@@ -161,10 +214,13 @@ def compare_tree_revisions(earlier, later):
     if '51010500' in shared:
         sample = {c: {'older': old['51010500'].get(c), 'newer': new['51010500'].get(c)}
                   for c in ('子掉落1ID', '子掉落1数量区间')}
-    return {'olderRows': len(earlier), 'newerRows': len(later),
+    result = {'olderRows': len(earlier), 'newerRows': len(later),
             'sharedDropIds': len(shared), 'changedPayloadOrStructure': count,
             'changedSourceType': sources, 'unchangedPayloadOrStructure': len(shared)-count,
             'example51010500': sample, 'native71Verified': False}
+    if selected_roots is not None:
+        result['selectedRoots'] = compare_selected_roots(old, new, payload, selected_roots)
+    return result
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -174,6 +230,7 @@ def main():
         p.add_argument('--'+n+'-blob')
     p.add_argument('--early-tree', type=Path)
     p.add_argument('--early-tree-blob')
+    p.add_argument('--selected-roots', type=Path, help='JSON historical selector rows, requires --early-tree')
     p.add_argument('--detail-output',type=Path,help='Write complete early-vs-later delta to a JSON file')
     args=p.parse_args()
     paths={n:getattr(args,n) for n in names}
@@ -191,11 +248,20 @@ def main():
             'gitBlobs':blobs,
             'sha256':{n:hashlib.sha256(path.read_bytes()).hexdigest() for n,path in paths.items()},
             'original71Authority':'UNRESOLVED'}
+    if args.selected_roots and not args.early_tree:
+        p.error('--selected-roots requires --early-tree')
     if args.early_tree:
         earlier_sha=git_blob(args.early_tree)
         if args.early_tree_blob and earlier_sha!=args.early_tree_blob:
             p.error('early-tree Git blob mismatch')
-        result['earlierTreeRevision']=compare_tree_revisions(tsv(args.early_tree),tsv(args.tree))
+        selected = None
+        if args.selected_roots:
+            selected = json.loads(args.selected_roots.read_text(encoding='utf-8-sig'))
+            if not isinstance(selected, list):
+                p.error('--selected-roots must be a JSON array')
+        result['earlierTreeRevision']=compare_tree_revisions(tsv(args.early_tree),tsv(args.tree),selected)
+        if selected is not None:
+            result['selectedRootsSha256']=hashlib.sha256(args.selected_roots.read_bytes()).hexdigest()
         result['gitBlobs']['earlierTree']=earlier_sha
         result['sha256']['earlierTree']=hashlib.sha256(args.early_tree.read_bytes()).hexdigest()
     elif args.early_tree_blob:

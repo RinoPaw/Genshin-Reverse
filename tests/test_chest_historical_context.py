@@ -52,6 +52,33 @@ class HistoricalContextTest(unittest.TestCase):
     def test_earlier_tree_duplicate_id_rejected(self):
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             audit.compare_tree_revisions([node(1, 102),node(1, 202)],[node(1, 102)])
+
+    def test_selected_roots_direct_diff_and_absence_are_separate(self):
+        older = [node(100, 102), node(300, 102), node(51010000, 102)]
+        newer = [node(100, 202), node(200, 102), node(51010000, 202)]
+        selectors = [{'tag': tag, 'level': 1, 'root': ident}
+                     for tag, ident in (('a', 100), ('b', 200), ('c', 300),
+                                        ('d', 400), ('e', 51010000))]
+        summary = audit.compare_tree_revisions(older, newer, selectors)['selectedRoots']
+        self.assertEqual(
+            (5, 2, 2, 0, 1, 1, 1),
+            tuple(summary[k] for k in (
+                'distinctSelectedRoots', 'sharedRoots', 'sharedRootsChanged',
+                'sharedRootsUnchanged', 'earlierOnlyRoots', 'laterOnlyRoots',
+                'absentInBothTrees')))
+        self.assertEqual([400], summary['absentInBothIds'])
+        self.assertEqual(2, summary['changedFieldCounts']['子掉落1ID'])
+        self.assertEqual('202', summary['examples'][0]['changes'][0]['later'])
+        self.assertFalse(summary['native71Verified'])
+
+    def test_selected_roots_reject_ambiguous_source(self):
+        selectors = [{'tag': 'a', 'level': 1, 'root': 100}] * 2
+        with self.assertRaisesRegex(ValueError, 'Duplicate source'):
+            audit.compare_tree_revisions([node(100, 102)], [node(100, 202)], selectors)
+        with self.assertRaisesRegex(ValueError, 'Invalid selected root'):
+            audit.compare_tree_revisions([node(100, 102)], [node(100, 202)],
+                                         [{'tag': 'a', 'level': 1, 'root': 'abc'}])
+
     def test_bad_tsv_headers(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'a.tsv'
