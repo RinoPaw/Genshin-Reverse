@@ -29,6 +29,9 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path("work/chest-71-gadget-metadata.json").read_text())
+          print("CHEST_GADGET_NATIVE_SCHEMA_BEGIN")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          print("CHEST_GADGET_NATIVE_SCHEMA_END")
           print("Status:", report["status"])
           print("Matched owner count:", report["matchedOwnerCount"])
           for token, rows in report["tokenHits"].items():
