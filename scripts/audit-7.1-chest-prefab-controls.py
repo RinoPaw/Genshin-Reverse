@@ -49,7 +49,8 @@ def controls(scan, payload: bytes) -> dict:
                     or any(off in fields for off in OTHER_BOOL)):
                 raise ValueError(f"original prefab fields differ at {candidate_id}")
             observed_list = fields.get(0x48)
-            if (observed_list != ["item"]) if level == 1 else (0x48 in fields):
+            if (level == 1 and observed_list != ["item"]
+                    or level != 1 and 0x48 in fields):
                 raise ValueError(f"original prefab list-presence differs at {candidate_id}")
             prefix = payload[row.prefix_start:row.id_wire_offset]
             if (len(prefix) != 18
