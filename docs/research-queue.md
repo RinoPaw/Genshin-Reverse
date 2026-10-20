@@ -24,6 +24,7 @@ A task moves up when it blocks an AstaPS change. It moves down or pauses when a 
 | P1 | [#4 Barbara C6 exact AbilityInvokeEntry / revive wire path](https://github.com/RinoPaw/Genshin-Reverse/issues/4) | UNRESOLVED wire edge; config-confirmed trigger model | lets AstaPS retire Barbara-specific trigger emulation once the native Ability path is proven |
 | P1 | [#5 Artifact main/sub-stat weighting source of truth](https://github.com/RinoPaw/Genshin-Reverse/issues/5) | UNRESOLVED parent; historical continuity and restored tables documented | gives AstaPS provenance-backed artifact generation instead of community/historical probability tables |
 | P1 | [#10 ReliquaryMainProp exact weight field / consumer](https://github.com/RinoPaw/Genshin-Reverse/issues/10) | UNRESOLVED | first narrow #5 closure: bind the historical main-prop weight field and weighted-selection semantics on exact Global 7.1 |
+| P1 | [#31 Original 7.1 chest identity and reward source chain](https://github.com/RinoPaw/Genshin-Reverse/issues/31) | ACTIVE; historical 980-row 2.8-labelled TSV subset proven; exact native 7.1 source unresolved | certify gadget/scene identity and reward owner before using inherited Loot CSS probabilities |
 | P1 | [#20 remaining ordinary Quest compatibility acceptCond/beginExec gaps](https://github.com/RinoPaw/Genshin-Reverse/issues/20) | ACTIVE / UNRESOLVED | recover or classify the remaining 4,901 acceptCond and 112 beginExec compatibility gaps without collapsing provenance classes |
 | P1/P2 | [#7 Structural protobuf recovery from obfuscated metadata](https://github.com/RinoPaw/Genshin-Reverse/issues/7) | EVALUATION | can recover richer field/container/oneof structure for unknown packets and future version migration |
 | P2 | [#6 Version-independent MHY string-literal recovery](https://github.com/RinoPaw/Genshin-Reverse/issues/6) | EVALUATION | may provide reusable semantic anchors and reduce per-version metadata reverse work |
@@ -45,8 +46,9 @@ The queue is AstaPS-driven. Work in this order unless new evidence changes the i
 2. Return to #9 after the death-lifecycle blockers because it is a larger client-state investigation with an upstream integration consumer.
 3. Treat #8 as closed extraction/ownership work. Work #20 only from new evidence classes; do not reopen exhausted QuestExcel-tail or sibling-resource searches.
 4. Use #10 as the next narrow P1 data-fidelity target; promote into parent #5 only after the exact field consumer is proven.
-5. Keep #4 available for gameplay fidelity, but do not prioritize it above a current reproducible P0.
-6. Work on #7 or #6 only when the resulting infrastructure directly shortens an active protocol/native investigation or when no higher-priority consumer is waiting.
+5. For #31, authenticate chest identity and the source chain before promoting inherited Loot values; keep the unknowns explicit.
+6. Keep #4 available for gameplay fidelity, but do not prioritize it above a current reproducible P0.
+7. Work on #7 or #6 only when the resulting infrastructure directly shortens an active protocol/native investigation or when no higher-priority consumer is waiting.
 
 Do not keep more than one broad infrastructure investigation active merely because the tooling is interesting. A reusable method earns maintenance cost by closing concrete current-version questions.
 

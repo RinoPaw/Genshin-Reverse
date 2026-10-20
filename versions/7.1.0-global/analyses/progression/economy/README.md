@@ -1,5 +1,10 @@
 # Native reward economy
 
+## Historical chest-drop ancestry (2026-10-21)
+
+[Reproducible historical TSV / server JSON six-field comparison](7.1-chest-historical-lineage.md): every one of **980** 2.8-labelled historical records is present unchanged in the 1,771-row AstaPS ChestDrop JSON, which has 791 extra rows. Chinese combat/puzzle tags predate the later Chiori import. This proves historical content continuity, **not** native 7.1 source or rates. [#31](https://github.com/RinoPaw/Genshin-Reverse/issues/31) tracks exact-original source authentication.
+
+
 ## Ordinary chest reward source review (2026-10-15)
 
 [Four-grade chest source and statistics audit](7.1-chest-reward-evidence.md): all 96 legacy tagged root IDs exist, reaching 612 nodes and 198 terminal IDs, but their Server data predates 7.1; 1,295 of 6,141 authored ordinary-grade chest instances have no region tag, and only 295/300 untagged explicit drop IDs point to present nonempty tables. Wiki gives reward ranges and possible item families, not complete per-item probabilities. Operator-authored pools therefore require clear provenance and a single reused drop executor; never promote legacy values to 7.1-native rates.
