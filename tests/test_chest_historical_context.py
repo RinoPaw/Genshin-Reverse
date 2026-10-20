@@ -58,5 +58,19 @@ class HistoricalContextTest(unittest.TestCase):
             path.write_text('a\tb\n1\t2\n',encoding='utf8')
             with self.assertRaises(ValueError): audit.tsv(path,audit.EARLY_COLUMNS)
 
+    def test_complete_differences_keep_original_codes(self):
+        earlier=[r(1,'same',10,'11007'),r(6,'changed',20,'11007'),r(11,'old-only',30,'11007')]
+        later=[r(1,'same',10,'19'),r(6,'changed',40,'19'),r(20,'new-only',50,'19')]
+        result=audit.historical_pairs(earlier,later,full=True)
+        self.assertEqual((2,1,1,1,1),(
+            result['sameLevelAndTag'],result['sameRootAndCount'],
+            result['differentRootOrCount'],result['earlierOnlyKeys'],result['laterOnlyKeys']))
+        self.assertEqual((20,40),(result['changedRows'][0]['earlierRoot'],
+                                  result['changedRows'][0]['laterRoot']))
+        self.assertEqual((1,1),(len(result['earlierOnlyRows']),len(result['laterOnlyRows'])))
+        self.assertEqual([{'earlierCode':'11007','laterCode':'19','matchedKeys':2}],
+                         result['sourceTypeTransitions'])
+        self.assertFalse(result['sourceTypeComparable'])
+
 if __name__=='__main__':
     unittest.main()

@@ -27,28 +27,53 @@ def git_blob(path: Path):
     raw = path.read_bytes()
     return hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
 
-def historical_pairs(early, later):
-    def keyed(rows,label):
-        out={}
+def historical_pairs(early, later, *, full=False):
+    """Compare historical level/tag selections, keeping type codes as raw evidence."""
+    from collections import Counter
+    def keyed(rows, label):
+        out = {}
         for row in rows:
-            k=(row['最小等级'],row['总索引'])
-            if k in out: raise ValueError(f'{label} duplicate level/tag: {k}')
-            out[k]=row
+            k = (row['最小等级'], row['总索引'])
+            if k in out:
+                raise ValueError(f'{label} duplicate level/tag: {k}')
+            out[k] = row
         return out
-    a,b=keyed(early,'early'),keyed(later,'later')
-    common=a.keys() & b.keys()
-    equal={k for k in common if (a[k]['掉落ID'],a[k]['掉落次数'])==(b[k]['掉落ID'],b[k]['掉落次数'])}
-    different=sorted(common-equal)
-    return {
-        'earlierRows':len(early),'laterRows':len(later),
-        'sameLevelAndTag':len(common),'sameRootAndCount':len(equal),
-        'differentRootOrCount':len(different),
-        'earlierOnlyKeys':len(a.keys()-b.keys()),'laterOnlyKeys':len(b.keys()-a.keys()),
-        'changedExamples':[{'level':level,'tag':tag,'earlierRoot':a[(level,tag)]['掉落ID'],
-                            'laterRoot':b[(level,tag)]['掉落ID']} for level,tag in different[:12]],
-        'sourceTypeComparable':False,
-        'note':'Source type is differently encoded in five-/six-column copies; do not equate codes.'
+    a, b = keyed(early, 'early'), keyed(later, 'later')
+    common = a.keys() & b.keys()
+    equal = {k for k in common if (a[k]['掉落ID'], a[k]['掉落次数'])
+             == (b[k]['掉落ID'], b[k]['掉落次数'])}
+    order = lambda k: (k[1], int(k[0]))
+    different = sorted(common - equal, key=order)
+    transitions = Counter((a[k]['产出来源类型'], b[k]['产出来源类型']) for k in common)
+    result = {
+        'earlierRows': len(early), 'laterRows': len(later),
+        'sameLevelAndTag': len(common), 'sameRootAndCount': len(equal),
+        'differentRootOrCount': len(different),
+        'earlierOnlyKeys': len(a.keys()-b.keys()), 'laterOnlyKeys': len(b.keys()-a.keys()),
+        'changedExamples': [{'level': level, 'tag': tag,
+                             'earlierRoot': a[(level,tag)]['掉落ID'],
+                             'laterRoot': b[(level,tag)]['掉落ID']}
+                            for level,tag in different[:12]],
+        'sourceTypeTransitions': [
+            {'earlierCode': x, 'laterCode': y, 'matchedKeys': n}
+            for (x,y),n in sorted(transitions.items())],
+        'sourceTypeComparable': False,
+        'note': 'Observed source-type pairs describe shared keys, not a universal numeric-code translation or native schema.'
     }
+    if full:
+        result['changedRows'] = [
+            {'minLevel': int(level), 'tag': tag,
+             'earlierRoot': int(a[(level,tag)]['掉落ID']),
+             'laterRoot': int(b[(level,tag)]['掉落ID']),
+             'earlierCount': int(a[(level,tag)]['掉落次数']),
+             'laterCount': int(b[(level,tag)]['掉落次数']),
+             'earlierSourceType': a[(level,tag)]['产出来源类型'],
+             'laterSourceType': b[(level,tag)]['产出来源类型'],
+             'laterCategory': b[(level,tag)].get('类别','')}
+            for level,tag in different]
+        result['earlierOnlyRows'] = [a[k] for k in sorted(a.keys()-b.keys(), key=order)]
+        result['laterOnlyRows'] = [b[k] for k in sorted(b.keys()-a.keys(), key=order)]
+    return result
 
 def arrangement_audit(later, limits):
     tags={r['总索引'] for r in later}
@@ -149,6 +174,7 @@ def main():
         p.add_argument('--'+n+'-blob')
     p.add_argument('--early-tree', type=Path)
     p.add_argument('--early-tree-blob')
+    p.add_argument('--detail-output',type=Path,help='Write complete early-vs-later delta to a JSON file')
     args=p.parse_args()
     paths={n:getattr(args,n) for n in names}
     blobs={n:git_blob(path) for n,path in paths.items()}
@@ -174,6 +200,15 @@ def main():
         result['sha256']['earlierTree']=hashlib.sha256(args.early_tree.read_bytes()).hexdigest()
     elif args.early_tree_blob:
         p.error('--early-tree-blob requires --early-tree')
+    if args.detail_output:
+        details={
+            'historicalDelta':historical_pairs(earlier,historical,full=True),
+            'gitBlobs':result['gitBlobs'],
+            'sha256':result['sha256'],
+            'original71Authority':'UNRESOLVED'
+        }
+        args.detail_output.parent.mkdir(parents=True,exist_ok=True)
+        args.detail_output.write_text(json.dumps(details,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':
