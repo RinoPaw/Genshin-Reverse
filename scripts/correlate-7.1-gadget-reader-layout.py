@@ -55,11 +55,14 @@ def correlate(schema: dict, reader: dict) -> dict:
             or schema["metadata"]["globalMetadataSha256"] != PROFILE_71.metadata_sha256
             or reader["source"]["metadataSha256"] != PROFILE_71.metadata_sha256):
         raise ValueError("7.1 native source identity mismatch")
-    if (reader["source"]["nativeOwner"] != schema["owners"][OWNER]["methods"][1].get("ownerName",
-                                                                                reader["source"]["nativeOwner"])
+    if (reader["source"]["nativeOwner"] != "DCCHEHMHFGC"
             or reader["source"]["typeDefinitionIndex"] != int(OWNER)
             or reader["source"]["methodIndex"] != 483590
-            or reader["source"]["methodRva"] != "0x10278E50"):
+            or reader["source"]["methodRva"] != "0x10278E50"
+            or not any(method["methodIndex"] == "483590"
+                       and method["rva"] == "0x10278E50"
+                       and method["name"] == "GMENPOPMKAA"
+                       for method in schema["owners"][OWNER]["methods"])):
         raise ValueError("unexpected Gadget reader identity")
     owner = schema["owners"][OWNER]
     fields = owner["fields"]
