@@ -48,16 +48,19 @@ jobs:
           raw=p.read_bytes()
           assert hashlib.sha256(raw).hexdigest()=="a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35"
           assert len(raw)==2854888
-          pathlib.Path("work/source-artifact").mkdir(parents=True,exist_ok=True)
-          (pathlib.Path("work/source-artifact")/p.name).write_bytes(raw)
           report=json.loads(pathlib.Path("work/chest-evidence.json").read_text())
           print("VERIFIED native candidate statuses:",report["candidateStatusCounts"])
           print("VERIFIED gadget raw SHA-256:",hashlib.sha256(raw).hexdigest())
           PY
-      - name: Retain exact candidate asset briefly for isolated decoder research
+      - name: Audit full original Gadget inner rows against committed snapshot
+        run: |
+          python scripts/audit-7.1-gadget-native-rows.py \
+            --raw-export work/native-gadget/export-25539185/MiHoYoBinData/d65ab32f.dat \
+            --check
+      - name: Retain source-control evidence only (no game asset bytes)
         uses: actions/upload-artifact@v7
         with:
-          name: exact-7.1-gadget-raw-local-research
-          path: work/source-artifact/d65ab32f.dat
+          name: exact-7.1-gadget-audit-report
+          path: work/chest-evidence.json
           if-no-files-found: error
           retention-days: 1
