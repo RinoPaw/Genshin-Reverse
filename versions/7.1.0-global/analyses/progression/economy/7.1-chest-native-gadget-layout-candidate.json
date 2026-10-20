@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_NATIVE_STORE_SIGNATURE_MATCHES_ONE_CANDIDATE_LAYOUT__WIRE_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "owner": "DCCHEHMHFGC",
+  "ownerTypeDefinitionIndex": 60078,
+  "readerMethodIndex": 483590,
+  "readerRva": "0x10278E50",
+  "sourceReports": [
+    "7.1-chest-native-gadget-schema-leads.json",
+    "7.1-chest-native-gadget-reader-static.json"
+  ],
+  "assumptions": {
+    "objectFieldBaseCandidate": "0x48",
+    "objectHeaderAndInheritedFieldsBeforeCandidate": "UNRESOLVED",
+    "fieldOrder": "exact metadata declaration order",
+    "pointerWidth": 8,
+    "uint64Alignment": 8,
+    "unknownManagedWrappers": "candidate 4-byte storage; native layout and wire transforms unverified",
+    "readerRegister": "r14",
+    "scanLimit": "first ret in pinned static reader trace"
+  },
+  "result": {
+    "metadataFields": 22,
+    "matchedDirectStoreOffsets": 22,
+    "candidateBaseMatches": 1,
+    "mapping": [
+      {
+        "fieldName": "KNDHCBAKPOC",
+        "fieldIndex": 298606,
+        "metadataType": "kind_0x1D",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x48",
+        "directStoreRvas": [
+          "0x10279406"
+        ]
+      },
+      {
+        "fieldName": "BCLCICAADDG",
+        "fieldIndex": 298607,
+        "metadataType": "string",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x50",
+        "directStoreRvas": [
+          "0x10279977"
+        ]
+      },
+      {
+        "fieldName": "AOIOIEKEDAM",
+        "fieldIndex": 298608,
+        "metadataType": "string",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x58",
+        "directStoreRvas": [
+          "0x10279E1D"
+        ]
+      },
+      {
+        "fieldName": "CONMEIBGHFK",
+        "fieldIndex": 298609,
+        "metadataType": "string",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x60",
+        "directStoreRvas": [
+          "0x10279D27"
+        ]
+      },
+      {
+        "fieldName": "MOOIOFFKKMJ",
+        "fieldIndex": 298610,
+        "metadataType": "EEOPHKIFFPL",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x68",
+        "directStoreRvas": [
+          "0x102796ED"
+        ]
+      },
+      {
+        "fieldName": "JICOFLMHAHF",
+        "fieldIndex": 298611,
+        "metadataType": "CKEFFPHDNBC",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x6C",
+        "directStoreRvas": [
+          "0x10279FBB"
+        ]
+      },
+      {
+        "fieldName": "IPMAHMLJPJJ",
+        "fieldIndex": 298612,
+        "metadataType": "EEOPHKIFFPL",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x70",
+        "directStoreRvas": [
+          "0x102795D6"
+        ]
+      },
+      {
+        "fieldName": "NMIAMBDOEJK",
+        "fieldIndex": 298613,
+        "metadataType": "IKFOBHFCEOC",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x74",
+        "directStoreRvas": [
+          "0x10279681"
+        ]
+      },
+      {
+        "fieldName": "NGDGAAEHPHB",
+        "fieldIndex": 298614,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x78",
+        "directStoreRvas": [
+          "0x1027962E"
+        ]
+      },
+      {
+        "fieldName": "MEAFFJCCKNE",
+        "fieldIndex": 298615,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x79",
+        "directStoreRvas": [
+          "0x10279464"
+        ]
+      },
+      {
+        "fieldName": "AHACIELEHAG",
+        "fieldIndex": 298616,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7A",
+        "directStoreRvas": [
+          "0x10279570"
+        ]
+      },
+      {
+        "fieldName": "IDMKFDPKFEG",
+        "fieldIndex": 298617,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7B",
+        "directStoreRvas": [
+          "0x10279E79"
+        ]
+      },
+      {
+        "fieldName": "MECPCDBEFBG",
+        "fieldIndex": 298618,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7C",
+        "directStoreRvas": [
+          "0x102799D1"
+        ]
+      },
+      {
+        "fieldName": "IJLLLELBGGI",
+        "fieldIndex": 298619,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7D",
+        "directStoreRvas": [
+          "0x10278EE7",
+          "0x10278F87"
+        ]
+      },
+      {
+        "fieldName": "CKIJBKMANHD",
+        "fieldIndex": 298620,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7E",
+        "directStoreRvas": [
+          "0x10278EDB",
+          "0x10278F40"
+        ]
+      },
+      {
+        "fieldName": "OLOLLKJCHHI",
+        "fieldIndex": 298621,
+        "metadataType": "bool",
+        "candidateWidth": 1,
+        "candidateInstanceOffset": "0x7F",
+        "directStoreRvas": [
+          "0x1027A00E"
+        ]
+      },
+      {
+        "fieldName": "HPOJJONGFLI",
+        "fieldIndex": 298622,
+        "metadataType": "uint32",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x80",
+        "directStoreRvas": [
+          "0x102794B7"
+        ]
+      },
+      {
+        "fieldName": "GEDNEMKIJLP",
+        "fieldIndex": 298623,
+        "metadataType": "LCKJIPHHGLD",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x84",
+        "directStoreRvas": [
+          "0x10279A20"
+        ]
+      },
+      {
+        "fieldName": "JIIHDMGDKDN",
+        "fieldIndex": 298624,
+        "metadataType": "uint64",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x88",
+        "directStoreRvas": [
+          "0x1027950F"
+        ]
+      },
+      {
+        "fieldName": "MFLPKCGCDHE",
+        "fieldIndex": 298625,
+        "metadataType": "EEOPHKIFFPL",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x90",
+        "directStoreRvas": [
+          "0x10279EE7"
+        ]
+      },
+      {
+        "fieldName": "DIFOPONDMCL",
+        "fieldIndex": 298626,
+        "metadataType": "EEOPHKIFFPL",
+        "candidateWidth": 4,
+        "candidateInstanceOffset": "0x94",
+        "directStoreRvas": [
+          "0x10279F61"
+        ]
+      },
+      {
+        "fieldName": "ACEICGJMJGH",
+        "fieldIndex": 298627,
+        "metadataType": "uint64",
+        "candidateWidth": 8,
+        "candidateInstanceOffset": "0x98",
+        "directStoreRvas": [
+          "0x10278FE5"
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "The mapping is consistent with all recorded R14 direct stores, conditional on width and alignment assumptions.",
+    "This does not independently prove an IL2CPP field-offset table or inherited base layout.",
+    "A memory-store mapping is not a serialized GadgetExcel decoder or evidence of all row values.",
+    "Opaque native names and bool fields have no authenticated semantic labels yet.",
+    "No chest grade, special context, instance drop tag, payout root or probabilities are certified."
+  ]
+}
