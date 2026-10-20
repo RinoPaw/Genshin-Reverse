@@ -115,12 +115,40 @@ def table_audit(later, tree, leaf):
             'rootsAbsentFromBoth':sorted(roots-nodes.keys()),
             'sample':sample,'terminalItemIdentityValidated':False,'native71Verified':False}
 
+
+def compare_tree_revisions(earlier, later):
+    """Compare matching drop IDs using shared column names."""
+    def indexed(rows, name):
+        out = {}
+        for row in rows:
+            key = row['掉落ID']
+            if not key or key in out:
+                raise ValueError(f'{name}: duplicate or missing drop ID {key!r}')
+            out[key] = row
+        return out
+    old, new = indexed(earlier, 'older'), indexed(later, 'newer')
+    shared = old.keys() & new.keys()
+    columns = set(earlier[0]) & set(later[0]) if earlier and later else set()
+    payload = columns - {'产出来源类型'}
+    count = sum(any(old[k][c] != new[k][c] for c in payload) for k in shared)
+    sources = sum(old[k]['产出来源类型'] != new[k]['产出来源类型'] for k in shared)
+    sample = {}
+    if '51010500' in shared:
+        sample = {c: {'older': old['51010500'].get(c), 'newer': new['51010500'].get(c)}
+                  for c in ('子掉落1ID', '子掉落1数量区间')}
+    return {'olderRows': len(earlier), 'newerRows': len(later),
+            'sharedDropIds': len(shared), 'changedPayloadOrStructure': count,
+            'changedSourceType': sources, 'unchangedPayloadOrStructure': len(shared)-count,
+            'example51010500': sample, 'native71Verified': False}
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     names=('early','historical','arrangement','tree','leaf')
     for n in names:
         p.add_argument('--'+n,type=Path,required=True)
         p.add_argument('--'+n+'-blob')
+    p.add_argument('--early-tree', type=Path)
+    p.add_argument('--early-tree-blob')
     args=p.parse_args()
     paths={n:getattr(args,n) for n in names}
     blobs={n:git_blob(path) for n,path in paths.items()}
@@ -137,6 +165,15 @@ def main():
             'gitBlobs':blobs,
             'sha256':{n:hashlib.sha256(path.read_bytes()).hexdigest() for n,path in paths.items()},
             'original71Authority':'UNRESOLVED'}
+    if args.early_tree:
+        earlier_sha=git_blob(args.early_tree)
+        if args.early_tree_blob and earlier_sha!=args.early_tree_blob:
+            p.error('early-tree Git blob mismatch')
+        result['earlierTreeRevision']=compare_tree_revisions(tsv(args.early_tree),tsv(args.tree))
+        result['gitBlobs']['earlierTree']=earlier_sha
+        result['sha256']['earlierTree']=hashlib.sha256(args.early_tree.read_bytes()).hexdigest()
+    elif args.early_tree_blob:
+        p.error('--early-tree-blob requires --early-tree')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':

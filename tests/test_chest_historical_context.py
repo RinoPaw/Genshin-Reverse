@@ -36,6 +36,22 @@ class HistoricalContextTest(unittest.TestCase):
         self.assertEqual(4,report['rootsInTree'])
         self.assertFalse(report['sample'][0]['sameExpandedHistoricalGraph'])
         self.assertFalse(report['native71Verified'])
+    def test_earlier_tree_distinguishes_payload_edits_from_source_codes(self):
+        older = [node(51010500, 102)]
+        newer = [node(51010500, 102)]
+        older[0]['产出来源类型'] = '11007'
+        older[0]['子掉落1数量区间'] = '30'
+        newer[0]['产出来源类型'] = '19'
+        newer[0]['子掉落1数量区间'] = '20'
+        result = audit.compare_tree_revisions(older, newer)
+        self.assertEqual(1, result['changedPayloadOrStructure'])
+        self.assertEqual(1, result['changedSourceType'])
+        self.assertEqual({'older':'30','newer':'20'},
+                         result['example51010500']['子掉落1数量区间'])
+        self.assertFalse(result['native71Verified'])
+    def test_earlier_tree_duplicate_id_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            audit.compare_tree_revisions([node(1, 102),node(1, 202)],[node(1, 102)])
     def test_bad_tsv_headers(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'a.tsv'
