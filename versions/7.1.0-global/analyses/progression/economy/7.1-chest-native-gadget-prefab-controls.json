@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_CLIENT_CHEST_PREFAB_NAME_CONTROLS__GRADE_AND_PAYOUT_UNRESOLVED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "assetName": "GadgetExcelConfigData",
+    "officialClientBlock": "00/25539185.blk",
+    "rawExportSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+    "innerReaderRva": "0x10278E50"
+  },
+  "controls": {
+    "nameVariants": [
+      "Default",
+      "Locked",
+      "Bramble",
+      "Frozen"
+    ],
+    "literalNameSuffixLevels": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "verifiedGadgetDefinitionCount": 20,
+    "nativeNameFields": [
+      {
+        "gadgetIdCandidate": 70210011,
+        "nativeNameString": "SceneObj_Chest_Default_Lv1",
+        "nameSuffixLevel": 1,
+        "nameVariant": "Default",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": [
+          "item"
+        ],
+        "offset0x48PresentOnWire": true
+      },
+      {
+        "gadgetIdCandidate": 70210012,
+        "nativeNameString": "SceneObj_Chest_Locked_Lv1",
+        "nameSuffixLevel": 1,
+        "nameVariant": "Locked",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": [
+          "item"
+        ],
+        "offset0x48PresentOnWire": true
+      },
+      {
+        "gadgetIdCandidate": 70210013,
+        "nativeNameString": "SceneObj_Chest_Bramble_Lv1",
+        "nameSuffixLevel": 1,
+        "nameVariant": "Bramble",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": [
+          "item"
+        ],
+        "offset0x48PresentOnWire": true
+      },
+      {
+        "gadgetIdCandidate": 70210014,
+        "nativeNameString": "SceneObj_Chest_Frozen_Lv1",
+        "nameSuffixLevel": 1,
+        "nameVariant": "Frozen",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": [
+          "item"
+        ],
+        "offset0x48PresentOnWire": true
+      },
+      {
+        "gadgetIdCandidate": 70210021,
+        "nativeNameString": "SceneObj_Chest_Default_Lv2",
+        "nameSuffixLevel": 2,
+        "nameVariant": "Default",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210022,
+        "nativeNameString": "SceneObj_Chest_Locked_Lv2",
+        "nameSuffixLevel": 2,
+        "nameVariant": "Locked",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210023,
+        "nativeNameString": "SceneObj_Chest_Bramble_Lv2",
+        "nameSuffixLevel": 2,
+        "nameVariant": "Bramble",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210024,
+        "nativeNameString": "SceneObj_Chest_Frozen_Lv2",
+        "nameSuffixLevel": 2,
+        "nameVariant": "Frozen",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210031,
+        "nativeNameString": "SceneObj_Chest_Default_Lv3",
+        "nameSuffixLevel": 3,
+        "nameVariant": "Default",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210032,
+        "nativeNameString": "SceneObj_Chest_Locked_Lv3",
+        "nameSuffixLevel": 3,
+        "nameVariant": "Locked",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210033,
+        "nativeNameString": "SceneObj_Chest_Bramble_Lv3",
+        "nameSuffixLevel": 3,
+        "nameVariant": "Bramble",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210034,
+        "nativeNameString": "SceneObj_Chest_Frozen_Lv3",
+        "nameSuffixLevel": 3,
+        "nameVariant": "Frozen",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210041,
+        "nativeNameString": "SceneObj_Chest_Default_Lv4",
+        "nameSuffixLevel": 4,
+        "nameVariant": "Default",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210042,
+        "nativeNameString": "SceneObj_Chest_Locked_Lv4",
+        "nameSuffixLevel": 4,
+        "nameVariant": "Locked",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210043,
+        "nativeNameString": "SceneObj_Chest_Bramble_Lv4",
+        "nameSuffixLevel": 4,
+        "nameVariant": "Bramble",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210044,
+        "nativeNameString": "SceneObj_Chest_Frozen_Lv4",
+        "nameSuffixLevel": 4,
+        "nameVariant": "Frozen",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210051,
+        "nativeNameString": "SceneObj_Chest_Default_Lv5",
+        "nameSuffixLevel": 5,
+        "nameVariant": "Default",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210052,
+        "nativeNameString": "SceneObj_Chest_Locked_Lv5",
+        "nameSuffixLevel": 5,
+        "nameVariant": "Locked",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210053,
+        "nativeNameString": "SceneObj_Chest_Bramble_Lv5",
+        "nameSuffixLevel": 5,
+        "nameVariant": "Bramble",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      },
+      {
+        "gadgetIdCandidate": 70210054,
+        "nativeNameString": "SceneObj_Chest_Frozen_Lv5",
+        "nameSuffixLevel": 5,
+        "nameVariant": "Frozen",
+        "sourceTypeCandidate": 26,
+        "outerControlFirstTwoBytes": "91ab",
+        "outerPrefixBytesIncludingCandidateId": 22,
+        "nativeIconString": "UI_Icon_Intee_TreasureBox",
+        "offset0x84Scalar": 2,
+        "booleanTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "offset0x48StringArray": null,
+        "offset0x48PresentOnWire": false
+      }
+    ],
+    "offset0x48List": {
+      "presentWithExactlyItem": 4,
+      "absentOnWire": 16
+    }
+  },
+  "limitations": [
+    "These 20 definitions are authenticated literal original-client names and candidate row fields.",
+    "Lv1..Lv5 are name suffixes, not a proved server chest-grade enum or a payout-tier mapping.",
+    "Absent field 0x48 is kept distinct from an empty list; its purpose is not confirmed.",
+    "Candidate Gadget IDs still await independent native loader/key-consumer confirmation.",
+    "The original 7.1 server scene selectors, reward root ownership, item quantities and rates remain unresolved."
+  ]
+}
