@@ -1,6 +1,10 @@
 name: Disassemble 7.1 RVA
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/disassemble-7.1-rva.yml'
   workflow_dispatch:
     inputs:
       rva:
@@ -21,14 +25,18 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: gadget-reader-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   disassemble:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      RVA: ${{ inputs.rva }}
-      SIZE: ${{ inputs.size }}
-      LABEL: ${{ inputs.label }}
+      RVA: ${{ inputs.rva || '0x10278E50' }}
+      SIZE: ${{ inputs.size || '0x1400' }}
+      LABEL: ${{ inputs.label || '7.1-Gadget-owner-60078-reader-candidate' }}
     steps:
       - name: Checkout Genshin-Reverse
         uses: actions/checkout@v7
