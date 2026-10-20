@@ -12,7 +12,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from genshinre.assetindex import parse_asset_index, query_asset_paths
+from genshinre.assetindex import parse_asset_index, query_asset_paths, unwrap_mihoyo_bin_data
 from genshinre.nativeprofile import PROFILE_71
 
 INDEX_SHA256 = "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712"
@@ -81,6 +81,70 @@ def audit(index, *, index_sha256: str) -> dict:
     }
 
 
+
+def inspect_candidate_exports(report: dict, export_dir: Path, *, strict: bool = False) -> dict:
+    """Hash candidate raw exports; do not imply client or server authorship.
+
+    The index is independently hash-pinned by run(). The exported .dat files
+    may still originate from an unrelated bundle unless their source manifest
+    is verified separately, so all rows remain candidates.
+    """
+    hits = [item for group in report["groups"].values() for item in group
+            if item["status"] == "HASH_RESOLVED"]
+    names = {}
+    for hit in hits:
+        name = hit["exportedName"]
+        if (not isinstance(name, str) or len(name) != 8
+                or any(char not in "0123456789abcdef" for char in name)):
+            raise ValueError(f"invalid exportedName in asset hit: {name!r}")
+        if name in names and names[name] != hit["pathHash"]:
+            raise ValueError(f"ambiguous export filename {name} for multiple path hashes")
+        names[name] = hit["pathHash"]
+
+    exports = []
+    for hit in hits:
+        path = export_dir / "MiHoYoBinData" / (hit["exportedName"] + ".dat")
+        row = {
+            "candidatePath": hit["path"], "pathHash": hit["pathHash"],
+            "exportedName": hit["exportedName"], "groupId": hit["groupId"],
+            "blockId": hit["blockId"],
+        }
+        if not path.is_file():
+            row["status"] = "EXPORT_MISSING"
+            if strict:
+                raise FileNotFoundError(f"candidate export missing: {path}")
+        else:
+            raw = path.read_bytes()
+            try:
+                payload = unwrap_mihoyo_bin_data(raw)
+            except ValueError as error:
+                row.update(status="EXPORT_FRAMING_INVALID", framingError=str(error))
+                if strict:
+                    raise ValueError(f"invalid candidate export {path}: {error}") from error
+            else:
+                row.update(
+                    status="RAW_EXPORT_PRESENT_SCHEMA_UNVERIFIED",
+                    rawSize=len(raw), rawSha256=hashlib.sha256(raw).hexdigest(),
+                    payloadSize=len(payload), payloadSha256=hashlib.sha256(payload).hexdigest(),
+                    payloadFirst16BytesHex=payload[:16].hex(),
+                )
+        exports.append(row)
+    return {
+        "status": "HASH_PINNED_INDEX__EXPORT_SOURCE_AND_SCHEMA_UNVERIFIED",
+        "exportedCandidateCount": len(exports),
+        "exportStatusCounts": dict(sorted(Counter(item["status"] for item in exports).items())),
+        "exports": exports,
+        "rawAssetsCommitted": False,
+        "limitations": [
+            "Export filenames are derived from 40-bit candidate path hashes.",
+            "The index SHA-256 guards the design index, not the exporter output directory.",
+            "Raw export hashes require a separately pinned source bundle and extraction manifest.",
+            "A framed payload alone does not establish a Chest record schema, grade or rewards.",
+            "Missing guessed names and missing exports cannot prove absence from the client.",
+        ],
+    }
+
+
 def run(raw_index: bytes) -> dict:
     digest = hashlib.sha256(raw_index).hexdigest()
     if digest != INDEX_SHA256:
@@ -91,9 +155,17 @@ def run(raw_index: bytes) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index-raw", required=True, type=Path)
+    parser.add_argument("--asset-export", type=Path, help="Unmodified exact-client .dat export directory")
+    parser.add_argument("--strict-exports", action="store_true", help="Fail on missing or corrupt matching exports")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    report = json.dumps(run(args.index_raw.read_bytes()), indent=2, ensure_ascii=False) + "\n"
+    result = run(args.index_raw.read_bytes())
+    if args.strict_exports and not args.asset_export:
+        parser.error("--strict-exports requires --asset-export")
+    if args.asset_export:
+        result["candidateRawExports"] = inspect_candidate_exports(
+            result, args.asset_export, strict=args.strict_exports)
+    report = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report, encoding="utf-8")
