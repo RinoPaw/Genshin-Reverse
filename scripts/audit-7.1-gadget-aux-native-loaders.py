@@ -194,7 +194,7 @@ def verify(disassemblies: dict, original_raw: dict, methods_verified: dict) -> d
         # encoding itself. This does not disclose the runtime row type.
         class_rva = next(key for key, value in spec["anchors"].items()
                          if value[1].startswith("rcx, qword ptr [rip"))
-        blob = bytes.fromhex(instructions[class_rva]["bytes"])
+        blob = bytes.fromhex(instructions[class_rva.upper()]["bytes"])
         if len(blob) != 7 or blob[:3] != bytes.fromhex("488b0d"):
             raise ValueError(f"{name}: original class pointer instruction encoding drift")
         target = int(class_rva, 16) + len(blob) + struct.unpack_from("<i", blob, 3)[0]
