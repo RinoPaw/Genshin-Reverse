@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - '.github/workflows/probe-7.1-chest-lv3-header-counts.yml'
+      - 'scripts/probe-7.1-chest-lv3-native-header-counts.py'
+      - 'tests/test_chest_lv3_native_header_counts_71.py'
   workflow_dispatch:
 
 permissions:
