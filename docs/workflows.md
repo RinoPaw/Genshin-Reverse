@@ -91,21 +91,18 @@ A workflow is orchestration, not the canonical implementation of a reverse-engin
 Exploratory research may iterate with cheap local checks and opt-in exact-sample jobs. Full validation must not be skipped before asking the user to test a promoted change, before preparing an upstream submission, or before publishing/regenerating canonical target artifacts.
 
 
-## Temporary exact-7.1 chest Lv3 client-table path check (issue #31)
+## Retired exact-7.1 chest Lv3 source checks (issue #31)
 
-`probe-7.1-chest-lv3-tables.yml` is a temporary, **read-only** main-branch
-research runner. It exists only to execute
-`scripts/probe-7.1-chest-lv3-native-index.py` against the exact pinned
-Global 7.1 original Sophon design index, which is intentionally not
-committed to the repository. It uses the maintained hash-checked
-Sophon block acquisition/export path; outputs only a small JSON report.
-No user test or AstaPS server build depends on this action.
+The one-shot `probe-7.1-chest-lv3-tables.yml` workflow completed its
+source-acquisition gate in [run 39581235509](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39581235509)
+and its original binary fingerprint gate in [run 39581806527](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39581806527).
+The original Global 7.1 audio/handbook table paths both uniquely resolved
+to native block 25539185, and their 484 / 31,016-byte Raw exports passed
+original-client source/control/framing checks. Complete fingerprints and
+strict reproduction are retained in
+`versions/7.1.0-global/analyses/progression/economy/7.1-chest-lv3-original-index.md`
+and `scripts/probe-7.1-chest-lv3-native-index.py`. The temporary hosted
+workflow was removed after the provenance results became durable.
 
-Owner: issue #31. **Retirement gate:** retain the original-asset path
-probe result with exact input hashes in the version analysis, and remove
-this workflow from main. An absent guessed path will be reported as
-`HASH_ABSENT` only, not as absence of the corresponding feature,
-scene ownership or original server payout. The workflow grants read-only code access and temporary issue-comment write
-access solely to publish a bounded result under issue #31. It never
-publishes original asset bytes or writes the repository, and will be
-removed rather than kept as another permanent CI job.
+No original row deserializer or server payout was authenticated by this job.
+No special extra CI workflow remains active for the chest table path study.
