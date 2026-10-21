@@ -17,8 +17,6 @@ import json
 from pathlib import Path
 import re
 
-from capstone import CS_ARCH_X86, CS_MODE_64, Cs
-
 from genshinre.callxref import scan_direct_call_xrefs
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
@@ -59,6 +57,7 @@ def run(exe: Path, methods: Path) -> dict:
     calls = scan_direct_call_xrefs(
         exe, [WRITER], methods_csv=methods, window=0,
         max_method_body=0x10000)
+    from capstone import CS_ARCH_X86, CS_MODE_64, Cs
     call_rows = calls["matches"][f"0x{WRITER:X}"]
     origin_control = 0
     possible = {}
