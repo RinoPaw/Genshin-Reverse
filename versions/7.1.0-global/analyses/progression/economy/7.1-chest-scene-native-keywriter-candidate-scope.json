@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_ROW_KEY_WRAPPER_CALLSITE_CANDIDATES__VIRTUAL_DISPATCH_UNVERIFIED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "methodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+    "run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39545346441",
+    "fullCandidateReportSha256": "5a545acb63f01af15dfe2793307c14f9e71a548a829b4e190c62d8a4a6be2169",
+    "fullCandidateReportBytes": 9389773,
+    "reproducer": "scripts/probe-7.1-scene-reader-keywriters.py"
+  },
+  "nativeFilter": {
+    "wrappedU32WriterRva": "0xBB16020",
+    "readerMethodName": "GMENPOPMKAA",
+    "readerArgumentType": "FNIAHJGHFAK",
+    "keyStoreWindowBytesAfterDirectCall": 64,
+    "knownInheritedGadgetPositiveControlMethodIndex": 395933,
+    "knownInheritedGadgetWrapperCalls": 2,
+    "directWrapperCallSites": 11833,
+    "sameNameAndInputTypeCallSites": 10346,
+    "distinctSameSignatureMethodCandidates": 3094,
+    "methodsWithNativeWrappedKeyStore0x28": 485,
+    "methodsWithNativeWrappedKeyStore0x50": 168
+  },
+  "tables": {
+    "SceneTag": {
+      "loaderRva": "0x14015460",
+      "rowMemoryKeyOffset": "0x28",
+      "matches": 485,
+      "within50MetadataTypeIndices": 3,
+      "loaderTypeDefinitionIndex": 84296
+    },
+    "SceneExcel": {
+      "loaderRva": "0xA6C7000",
+      "rowMemoryKeyOffset": "0x50",
+      "matches": 168,
+      "within50MetadataTypeIndices": 0,
+      "loaderTypeDefinitionIndex": 35441
+    }
+  },
+  "verifiedVsUnknown": {
+    "exactClientWrapperWriterAndOffsets": true,
+    "methodNamesAndSignatureSourcePinned": true,
+    "objectRuntimeVirtualRowReaderResolved": false,
+    "classStaticPointerToMetadataTypeMappingProven": false,
+    "sourceRowEndToEndParsed": false,
+    "originalSceneInstanceAndServerDropTagProven": false
+  },
+  "limitations": [
+    "This is a callsite and post-call field-store scanner; matches are original-client native *leads*, not verified virtual method implementation.",
+    "Matching the first 64 bytes after E8 can include other flow paths; each candidate needs aligned whole-method control flow and vtable TypeInfo linkage.",
+    "Filtering direct calls excludes indirect or inlined conversions and inherited getters that may be read elsewhere.",
+    "Three close SceneTag metadata methods and zero close SceneExcel metadata methods match the scoped writer-screen, but metadata index proximity is not proof of row identity.",
+    "The original client contains distinct SceneTag and SceneExcel definitions; neither supplies authenticated original server chest drop_tag, reward roots or weights."
+  ]
+}
