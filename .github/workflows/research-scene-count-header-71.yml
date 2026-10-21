@@ -68,12 +68,33 @@ jobs:
             0xA6C7000 0x1200 \
             --expected-sha256 "$expected_sha" --label SceneExcel-native-loader-279989 \
             --output work/scene-excel-loader.json > /dev/null
+      - name: Verify native ADD/XOR table count idioms with Gadget positive control
+        run: |
+          python scripts/probe-7.1-scene-loader-counts.py \
+            --exe inputs/client/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --exports work/raw/export-25539185/MiHoYoBinData \
+            --output work/scene-loader-counts.json
+      - name: Disassemble two exact source-matched candidate table loaders
+        run: |
+          exe_sha=$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')
+          python tools/disassemble_rva.py \
+            inputs/client/GenshinImpact.exe 0x14015460 0x400 \
+            --expected-sha256 "$exe_sha" --label SceneTag-count-loader-candidate \
+            --output work/scenetag-native-loader.json > /dev/null
+          python tools/disassemble_rva.py \
+            inputs/client/GenshinImpact.exe 0xA6C7000 0x400 \
+            --expected-sha256 "$exe_sha" --label SceneExcel-count-loader-candidate \
+            --output work/sceneexcel-native-loader.json > /dev/null
       - name: Preserve bounded source evidence only
         uses: actions/upload-artifact@v7
         with:
           name: original-71-scene-native-count-leads
           path: |
             work/scene-header-immediates.json
+            work/scene-loader-counts.json
+            work/scenetag-native-loader.json
+            work/sceneexcel-native-loader.json
             work/scene-tag-loader.json
             work/scene-excel-loader.json
             work/source-block-identity.json
