@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "status": "HISTORICAL_SCENE_TAGS_109_OF_109_MATCH_PINNED_FORK_SELECTOR_NAMES__NO_ORIGINAL_71_REWARD_AUTHORITY",
+  "sources": {
+    "sceneArtifactRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38499376170",
+    "sceneCSVsha256": "ba53152e17dbe019482920ad179ff90c62419d385390f9d0eb952dcb7895dcc1",
+    "sceneResourceCommit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "astapsCommit": "dcf04369a356486a07be976b244b83d7208c3992",
+    "chestDropGitBlob": "789e885d37535280dc923e5c69e1aa2fc23714dd",
+    "serverDropTableGitBlob": "ca9661f68b988c8b6cae0627dadab00fe9f2c860"
+  },
+  "scene": {
+    "candidateRows": 14084,
+    "taggedRows": 9020,
+    "distinctTags": 109,
+    "sceneTagsUnmatchedInForkChestDrop": 0
+  },
+  "fork": {
+    "chestDropSelectorRows": 1771,
+    "chestDropDistinctTags": 215,
+    "sceneTagMatchedSelectorRows": 229,
+    "sceneTagMatchedDistinctRoots": 158,
+    "serverDropTableNodes": 16895,
+    "allChestDropSelectorDistinctRoots": 1687,
+    "chestDropReferencedRootsMissing": 0,
+    "chestDropReferencedRootsWithNoPositiveDirectEntries": 0,
+    "recursiveGraphTraversed": false,
+    "actualPayoutVerified": false
+  },
+  "lexicalFamilies": [
+    {
+      "name": "combat_or_puzzle",
+      "instances": 5252,
+      "tags": 46,
+      "matchedSelectorRows": 156,
+      "roots": 92
+    },
+    {
+      "name": "search_point",
+      "instances": 2869,
+      "tags": 39,
+      "matchedSelectorRows": 39,
+      "roots": 39,
+      "oneoffTrue": 983
+    },
+    {
+      "name": "mora_container",
+      "instances": 530,
+      "tags": 4,
+      "matchedSelectorRows": 4,
+      "roots": 4
+    },
+    {
+      "name": "shrine",
+      "instances": 38,
+      "tags": 4,
+      "matchedSelectorRows": 4,
+      "roots": 4
+    },
+    {
+      "name": "book_page",
+      "instances": 80,
+      "tags": 8,
+      "matchedSelectorRows": 8,
+      "roots": 8
+    },
+    {
+      "name": "event",
+      "instances": 223,
+      "tags": 6,
+      "matchedSelectorRows": 6,
+      "roots": 6
+    },
+    {
+      "name": "crimson_agate",
+      "instances": 28,
+      "tags": 2,
+      "matchedSelectorRows": 12,
+      "roots": 5
+    }
+  ],
+  "examples": [
+    {
+      "tag": "战斗低级蒙德",
+      "levels": [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      "rootIds": [
+        51010000,
+        51010100,
+        51010200,
+        51010300,
+        51010400,
+        51010500
+      ],
+      "provenance": "pinned fork ChestDrop"
+    },
+    {
+      "tag": "解谜中级璃月",
+      "levels": [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26
+      ],
+      "rootIds": [
+        52020500,
+        52020500,
+        52020500,
+        52020500,
+        52020600,
+        52020700
+      ],
+      "provenance": "pinned fork ChestDrop"
+    },
+    {
+      "tag": "搜刮点解谜通用须弥",
+      "levels": [
+        1
+      ],
+      "rootIds": [
+        20000300
+      ],
+      "provenance": "pinned fork ChestDrop"
+    },
+    {
+      "tag": "摩拉石箱须弥",
+      "levels": [
+        1
+      ],
+      "rootIds": [
+        8100300
+      ],
+      "provenance": "pinned fork ChestDrop"
+    },
+    {
+      "tag": "书页章节1稻妻",
+      "levels": [
+        1
+      ],
+      "rootIds": [
+        9000000
+      ],
+      "provenance": "pinned fork ChestDrop"
+    },
+    {
+      "tag": "灵龛蒙德",
+      "levels": [
+        1
+      ],
+      "rootIds": [
+        8000000
+      ],
+      "provenance": "pinned fork ChestDrop"
+    }
+  ],
+  "limitations": [
+    "Chinese label prefix groups are literal text classification, not verified ordinary chest rarity or playable object status.",
+    "Historical scene CSV does not include per-instance level. No concrete level-dependent selector is assigned to any one scene instance.",
+    "Only first-layer positive-weight direct root entries were checked; graph recursion, item validity and actual payouts are unknown.",
+    "Fork ordinary chest path bypasses tag-to-root lookup and often pays hardcoded tiers.",
+    "Neither historical community scene Lua nor fork reward files are authenticated original Global 7.1 server data.",
+    "Exact 7.1 official server root IDs, reward quantities and probabilities remain unknown."
+  ]
+}
