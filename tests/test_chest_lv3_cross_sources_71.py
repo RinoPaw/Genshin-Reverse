@@ -65,8 +65,10 @@ class ChestLv3CrossSourceTests(unittest.TestCase):
         bad = copy.deepcopy(self.quests)
         target = bad[-1]["triggerConfig"]["paramList"]
         target[0] = target[0].replace("70210032;", "920000;")
-        with self.assertRaisesRegex(ValueError, "native Gadget missing"):
+        with self.assertRaisesRegex(ValueError, "handbook chest-open ID list differs"):
             self.check(quests=bad)
+        with self.assertRaisesRegex(ValueError, "native Gadget missing"):
+            module.audit(self.native, self.audio, self.audio, bad, bad)
 
     def test_misleading_duplicates_and_non_integer_ids_fail(self):
         bad = copy.deepcopy(self.audio)
