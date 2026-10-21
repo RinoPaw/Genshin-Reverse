@@ -67,10 +67,19 @@ jobs:
                       break
               print("ORIGINAL_LOADER_END", label)
           PY
+      - name: Verify native Gadget auxiliary loader ownership and original source
+        run: |
+          python scripts/audit-7.1-gadget-aux-native-loaders.py \
+            --prop-disasm work/gadget-prop-loader-disassembly.json \
+            --interact-disasm work/gadget-interact-loader-disassembly.json \
+            --exports work/export/export-25539185/MiHoYoBinData \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --output work/gadget-aux-native-evidence.json
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-gadget-aux-count-probe
           path: |
+            work/gadget-aux-native-evidence.json
             work/gadget-aux-count-probe.json
             work/gadget-prop-loader-disassembly.json
             work/gadget-interact-loader-disassembly.json
