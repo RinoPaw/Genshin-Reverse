@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_AUX_GADGET_NATIVE_READER_CANDIDATES__ROW_OWNER_AND_LOOTCSS_SEMANTICS_UNVERIFIED",
+  "source": {
+    "originalClient": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "methodsCsvGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+    "wrappedU32WriterRva": "0xBB16020",
+    "nativeDirectWrapperCallSites": 11833,
+    "nativeMatchingReaderSignatureCalls": 10346,
+    "reproducer": "scripts/probe-7.1-gadget-aux-row-readers.py",
+    "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39624413563",
+    "originalFullCandidatesArtifactId": 12356062950,
+    "fullCandidateJsonBytes": 19768,
+    "fullCandidateJsonSha256": "7b51f50780722ae40a82b90e6086c1741f5b6cbd156f485d19a8de7a14a270d1"
+  },
+  "tables": {
+    "GadgetPropExcelConfigData": {
+      "verifiedManager": {
+        "nativeMethodIndex": 225673,
+        "typeDefinitionIndex": 28984,
+        "loaderRva": "0x124F2CF0",
+        "preGetterRowKeyOffset": "0x1C",
+        "rowClassStaticSlotRva": "0x57DAF50"
+      },
+      "originalRowClassStaticRipRefs": [
+        {
+          "rva": "0x124F2D94",
+          "bytes": "488b0db5812ef3"
+        },
+        {
+          "rva": "0x124F2E2A",
+          "bytes": "488b0d1f812ef3"
+        }
+      ],
+      "matchedWrappedKeyWriterMethodCandidates": 542,
+      "within50ManagerTypeIndices": 1,
+      "singleDirectWrapperCallOnlyTargetStore": 74,
+      "closestCandidate": {
+        "methodIndex": 225165,
+        "typeDefinitionIndex": 28936,
+        "name": "NHPHDCFACCL",
+        "rva": "0x9EB86F0",
+        "nativeReaderDisassemblySha256": "76c49f4e003814a5b4ce7d4150796acf1811e9da27218da73e42e3e6ea59d808",
+        "nativeInstructionsThroughFirstRet": 187,
+        "firstRetRva": "0x9EB8A02",
+        "observedNativeFirstMaskRead": "movzx esi, word ptr [rax + rdx + 0x20] @ 0x9EB8755",
+        "observedCandidateKeyStore": "mov dword ptr [r13 + 0x1c], eax @ 0x9EB8834",
+        "observedOtherPostWrapperKeyStores": [
+          "0x18",
+          "0x20"
+        ],
+        "identifiedAsActualVtableRowReader": false
+      }
+    },
+    "GadgetInteractExcelConfigData": {
+      "verifiedManager": {
+        "nativeMethodIndex": 220154,
+        "typeDefinitionIndex": 28382,
+        "loaderRva": "0x11072FA0",
+        "preGetterRowKeyOffset": "0x28",
+        "rowClassStaticSlotRva": "0x57FA548"
+      },
+      "originalRowClassStaticRipRefs": [
+        {
+          "rva": "0x11073044",
+          "bytes": "488b0dfd7478f4"
+        },
+        {
+          "rva": "0x110730DA",
+          "bytes": "488b0d677478f4"
+        }
+      ],
+      "matchedWrappedKeyWriterMethodCandidates": 485,
+      "within50ManagerTypeIndices": 1,
+      "singleDirectWrapperCallOnlyTargetStore": 69,
+      "closestCandidate": {
+        "methodIndex": 219773,
+        "typeDefinitionIndex": 28341,
+        "name": "HFMNIBLLOGG",
+        "rva": "0xBE94FB0",
+        "nativeReaderDisassemblySha256": "0be8f3091c13eb1a93f5e98c71a2c5b2f04d893d63e90fc9a5ecdd576ef1e2de",
+        "nativeInstructionsThroughFirstRet": 192,
+        "firstRetRva": "0xBE952C8",
+        "observedNativeFirstMaskRead": "movzx ebx, byte ptr [rax + rdx + 0x20] @ 0xBE9500D",
+        "observedCandidateKeyStore": "mov dword ptr [r14 + 0x28], eax @ 0xBE950AE",
+        "observedOtherPostWrapperKeyStores": [],
+        "identifiedAsActualVtableRowReader": false
+      }
+    }
+  },
+  "limits": [
+    "Two original static TypeInfo slot references for each table belong to its known loader, not an identified runtime Il2CppClass binding.",
+    "Disassembled nearby methods genuinely perform native row-mask reads and wrapped u32 field writes, but metadata proximity does not establish the loader's vtable target.",
+    "The scanner checks original direct E8 calls to 0xBB16020 and a bounded post-call 32-bit field-store window; inherited/indirect/inlined alternatives are not excluded.",
+    "Native row masks, complete row payloads, scene-instance levels, chest grades, selector type and server reward amounts have not been proven.",
+    "No historical Lua, community JSON or private-server field name has been used as native field identity."
+  ]
+}
