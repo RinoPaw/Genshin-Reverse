@@ -93,7 +93,7 @@ Exploratory research may iterate with cheap local checks and opt-in exact-sample
 
 ## Retired exact-7.1 chest Lv3 source checks (issue #31)
 
-The one-shot `probe-7.1-chest-lv3-tables.yml` workflow completed its
+The retired one-shot Lv3 asset-index workflow completed its
 source-acquisition gate in [run 39581235509](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39581235509)
 and its original binary fingerprint gate in [run 39581806527](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39581806527).
 The original Global 7.1 audio/handbook table paths both uniquely resolved
