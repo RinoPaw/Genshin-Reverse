@@ -1,120 +1,600 @@
 {
-  "schemaVersion": 1,
-  "status": "EXACT_71_GADGET_DEFINITION_ATTRIBUTES_AND_HISTORICAL_INSTANCE_DISCRIMINATORS__REWARDS_OUT_OF_SCOPE",
-  "provenance": {
-    "originalGlobal71GadgetRawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
-    "originalClientControl": "7.1-chest-native-gadget-prefab-controls.json",
-    "historicalSceneCsvSha256": "ba53152e17dbe019482920ad179ff90c62419d385390f9d0eb952dcb7895dcc1",
-    "historicalSceneResourceCommit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
-    "comparisonForkRewardLanguageCommit": "49e2183ceed3f68e3fa2df8e51b850a29288451a"
-  },
-  "originalGlobal71Definition": {
-    "nativeGadgetRecords": 30599,
-    "nativeType26Records": 309,
-    "nativeType26DistinctNameStrings": 148,
-    "nativeNamePrefixSceneObjChestRecords": 162,
-    "nativeNamePrefixSearchPointRecords": 21,
-    "otherType26Records": 126,
-    "verifiedCoreNames": 20,
-    "nativeCoreIdSuffixLevels": [1, 2, 3, 4, 5],
-    "nativeCoreNameVariants": ["Default", "Locked", "Bramble", "Frozen"],
-    "verifiedFields": [
-      "pre-wrapper gadget scalar key",
-      "native name string (candidate jsonName)",
-      "numeric native type code",
-      "candidate icon string",
-      "opaque scalar and 22 other presence-gated fields"
-    ],
-    "unknownSemantics": [
-      "actual server chest grade",
-      "scene placement",
-      "instance drop tag",
-      "true/false boolean meaning",
-      "payable reward source"
+  "schemaVersion": 2,
+  "status": "ORIGINAL_GLOBAL_7_1_CLIENT_NATIVE_GADGET_FIELDS_ONLY",
+  "scope": "Original Global 7.1 GadgetExcelConfigData client binary decoded from exact SHA-pinned Sophon asset. No community JSON, historical Lua, private-server fields, inferred reward categories or drop data.",
+  "sources": {
+    "originalSophonBlock": "00/25539185.blk",
+    "rawExport": "d65ab32f.dat",
+    "rawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+    "originalClientExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "inheritedReaderRva": "0xBD56F60",
+    "gadgetReaderRva": "0x10278E50",
+    "tableLoaderRva": "0x968F690",
+    "decoder": "genshinre/gadgetbin.py",
+    "sourceReports": [
+      "7.1-chest-native-gadget-inner-row-audit.json",
+      "7.1-chest-native-gadget-prefab-controls.json",
+      "7.1-chest-native-gadget-type26-name-groups.json"
     ]
   },
-  "historicalSceneCoverage": {
-    "candidateRows": 14084,
-    "distinctGadgetIds": 171,
-    "gadgetIdsWithMultipleSourceKinds": 37,
-    "gadgetIdsWithAllThreeSourceKinds": 21,
-    "gadgetIdsWithMultipleDistinctDropTags": 28,
-    "gadgetIdsWithMoreThanOneChineseGradeSubstring": 3,
-    "gadgetIdsMatchingOriginalNative20Core": 0,
-    "instanceLevelIncludedInCsv": false,
-    "sourceDistribution": {
-      "drop_tag": 9020,
-      "explicit_id": 1339,
-      "no_metadata": 3725
+  "table": {
+    "decodedRows": 30599,
+    "uniquePreWrapperKeys": 30599,
+    "consumedOriginalPayloadBytes": 2854884,
+    "unparsedBytes": 0,
+    "inheritedFieldSlots": 8,
+    "gadgetFieldSlots": 22,
+    "optionalFieldsHavePresenceMasks": true
+  },
+  "inheritedFields": [
+    {
+      "candidateMemoryOffset": "0x10",
+      "wireDecodedType": "string",
+      "verifiedRole": "opaque inherited string"
     },
-    "examples": {
-      "70210101": {"drop_tag": 2447, "explicit_id": 88, "no_metadata": 1388, "distinctTags": 33},
-      "70211101": {"drop_tag": 1455, "explicit_id": 51, "no_metadata": 90, "distinctTags": 7},
-      "70211001": {"drop_tag": 498, "explicit_id": 26, "no_metadata": 54, "distinctTags": 6},
-      "70217020": {"drop_tag": 218, "explicit_id": 1, "no_metadata": 0, "distinctTags": 2}
+    {
+      "candidateMemoryOffset": "0x18",
+      "wireDecodedType": "uint32",
+      "verifiedRole": "opaque numeric field"
+    },
+    {
+      "candidateMemoryOffset": "0x20",
+      "wireDecodedType": "uint64",
+      "verifiedRole": "opaque numeric field"
+    },
+    {
+      "candidateMemoryOffset": "0x28",
+      "wireDecodedType": "uint64",
+      "verifiedRole": "opaque numeric field"
+    },
+    {
+      "candidateMemoryOffset": "0x30",
+      "wireDecodedType": "uint32",
+      "verifiedRole": "pre-wrapper Gadget key"
+    },
+    {
+      "candidateMemoryOffset": "0x34",
+      "wireDecodedType": "uint32",
+      "verifiedRole": "opaque numeric field"
+    },
+    {
+      "candidateMemoryOffset": "0x38",
+      "wireDecodedType": "uint64",
+      "verifiedRole": "opaque numeric field"
+    },
+    {
+      "candidateMemoryOffset": "0x40",
+      "wireDecodedType": "uint64",
+      "verifiedRole": "opaque numeric field"
+    }
+  ],
+  "gadgetFields": [
+    {
+      "candidateMemoryOffset": "0x48",
+      "wireDecodedType": "array<string>",
+      "presentIn30599Rows": 18563,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x50",
+      "wireDecodedType": "string",
+      "presentIn30599Rows": 852,
+      "verifiedRole": "literal resource-name string, e.g. UI_Icon_Intee_TreasureBox"
+    },
+    {
+      "candidateMemoryOffset": "0x58",
+      "wireDecodedType": "string",
+      "presentIn30599Rows": 23249,
+      "verifiedRole": "literal native object-name string"
+    },
+    {
+      "candidateMemoryOffset": "0x60",
+      "wireDecodedType": "string",
+      "presentIn30599Rows": 17577,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x68",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 10,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x6C",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 30462,
+      "verifiedRole": "numeric field observed equal 26 in 309 rows; gameplay enum meaning unverified"
+    },
+    {
+      "candidateMemoryOffset": "0x70",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 699,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x74",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 30,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x78",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 21501,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x79",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 47,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7A",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 7648,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7B",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 509,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7C",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 152,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7D",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 5136,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7E",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 2193,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x7F",
+      "wireDecodedType": "bool",
+      "presentIn30599Rows": 963,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x80",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 30599,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x84",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 6386,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x88",
+      "wireDecodedType": "uint64",
+      "presentIn30599Rows": 423,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x90",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 218,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x94",
+      "wireDecodedType": "uint32",
+      "presentIn30599Rows": 9,
+      "verifiedRole": "meaning not verified from original client"
+    },
+    {
+      "candidateMemoryOffset": "0x98",
+      "wireDecodedType": "uint64",
+      "presentIn30599Rows": 505,
+      "verifiedRole": "meaning not verified from original client"
+    }
+  ],
+  "observationsDirectlyFromOriginal": {
+    "offset0x6CNumeric26Population": 309,
+    "offset0x6CNumeric26UniqueLiteralNames": 148,
+    "literalGroups": {
+      "literal_SceneObj_Chest_prefix": {
+        "records": 162,
+        "distinctNames": 70,
+        "examples": [
+          "SceneObj_Chest_Relic",
+          "SceneObj_Chest_Default_Lv4",
+          "SceneObj_Chest_Relic02",
+          "SceneObj_Chest_Default_Lv1",
+          "SceneObj_Chest_Locked_Lv4",
+          "SceneObj_Chest_Locked_Lv5"
+        ]
+      },
+      "literal_SearchPoint_prefix": {
+        "records": 21,
+        "distinctNames": 8,
+        "examples": [
+          "SearchPoint",
+          "SearchPoint_Rock",
+          "SearchPointV2",
+          "SearchPoint_Big",
+          "SearchPoint_HasAudio",
+          "SearchPoint_Invisible"
+        ]
+      },
+      "other_literal_names": {
+        "records": 126,
+        "distinctNames": 70,
+        "examples": [
+          "SceneObj_Desert_DeshretRune",
+          "SceneObj_Area_Zd_Property_Ani_Prop_EquipObjDrawing_01",
+          "SceneObj_Area_Xm_Property_Prop_ElementalKorybantesPickup",
+          "SceneObj_MichiaeMatsuri_Chest_01",
+          "SceneObj_Ticket_Chest_Locked_Lv1",
+          "SceneObj_Ticket_Chest_Locked_Lv2"
+        ]
+      }
+    },
+    "verifiedDefaultLockedBrambleFrozenLv1ThroughLv5": [
+      {
+        "preWrapperGadgetKey": 70210011,
+        "nameAt0x58": "SceneObj_Chest_Default_Lv1",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": [
+          "item"
+        ],
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210012,
+        "nameAt0x58": "SceneObj_Chest_Locked_Lv1",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": [
+          "item"
+        ],
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210013,
+        "nameAt0x58": "SceneObj_Chest_Bramble_Lv1",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": [
+          "item"
+        ],
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210014,
+        "nameAt0x58": "SceneObj_Chest_Frozen_Lv1",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": [
+          "item"
+        ],
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210021,
+        "nameAt0x58": "SceneObj_Chest_Default_Lv2",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210022,
+        "nameAt0x58": "SceneObj_Chest_Locked_Lv2",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210023,
+        "nameAt0x58": "SceneObj_Chest_Bramble_Lv2",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210024,
+        "nameAt0x58": "SceneObj_Chest_Frozen_Lv2",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210031,
+        "nameAt0x58": "SceneObj_Chest_Default_Lv3",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210032,
+        "nameAt0x58": "SceneObj_Chest_Locked_Lv3",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210033,
+        "nameAt0x58": "SceneObj_Chest_Bramble_Lv3",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210034,
+        "nameAt0x58": "SceneObj_Chest_Frozen_Lv3",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210041,
+        "nameAt0x58": "SceneObj_Chest_Default_Lv4",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210042,
+        "nameAt0x58": "SceneObj_Chest_Locked_Lv4",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210043,
+        "nameAt0x58": "SceneObj_Chest_Bramble_Lv4",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210044,
+        "nameAt0x58": "SceneObj_Chest_Frozen_Lv4",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210051,
+        "nameAt0x58": "SceneObj_Chest_Default_Lv5",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210052,
+        "nameAt0x58": "SceneObj_Chest_Locked_Lv5",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210053,
+        "nameAt0x58": "SceneObj_Chest_Bramble_Lv5",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      },
+      {
+        "preWrapperGadgetKey": 70210054,
+        "nameAt0x58": "SceneObj_Chest_Frozen_Lv5",
+        "numberAt0x6C": 26,
+        "resourceStringAt0x50": "UI_Icon_Intee_TreasureBox",
+        "numberAt0x84": 2,
+        "boolTrueOffsets": [
+          "0x78",
+          "0x7D",
+          "0x7E"
+        ],
+        "stringArrayAt0x48": null,
+        "basePresenceMask": "0x17"
+      }
+    ],
+    "type26BaseMaskHistogram": {
+      "0x17": 134,
+      "0x97": 175
+    },
+    "type26OptionalBooleanWireCoverage": {
+      "0x78": {
+        "nativeToken": "NGDGAAEHPHB",
+        "presentTrue": 260,
+        "presentFalse": 0,
+        "absentOnWire": 49
+      },
+      "0x79": {
+        "nativeToken": "MEAFFJCCKNE",
+        "presentTrue": 0,
+        "presentFalse": 0,
+        "absentOnWire": 309
+      },
+      "0x7A": {
+        "nativeToken": "AHACIELEHAG",
+        "presentTrue": 16,
+        "presentFalse": 0,
+        "absentOnWire": 293
+      },
+      "0x7B": {
+        "nativeToken": "IDMKFDPKFEG",
+        "presentTrue": 0,
+        "presentFalse": 0,
+        "absentOnWire": 309
+      },
+      "0x7C": {
+        "nativeToken": "MECPCDBEFBG",
+        "presentTrue": 61,
+        "presentFalse": 0,
+        "absentOnWire": 248
+      },
+      "0x7D": {
+        "nativeToken": "IJLLLELBGGI",
+        "presentTrue": 178,
+        "presentFalse": 0,
+        "absentOnWire": 131
+      },
+      "0x7E": {
+        "nativeToken": "CKIJBKMANHD",
+        "presentTrue": 302,
+        "presentFalse": 0,
+        "absentOnWire": 7
+      },
+      "0x7F": {
+        "nativeToken": "OLOLLKJCHHI",
+        "presentTrue": 108,
+        "presentFalse": 0,
+        "absentOnWire": 201
+      }
     }
   },
-  "instanceFieldsBySource": {
-    "historicalLua": [
-      "base_info.group_id",
-      "gadgets[].config_id",
-      "gadgets[].gadget_id",
-      "gadgets[].level (present in individual Lua; omitted by prior CSV)",
-      "gadgets[].area_id",
-      "gadgets[].pos and rot",
-      "gadgets[].state",
-      "gadgets[].drop_tag",
-      "gadgets[].chest_drop_id",
-      "gadgets[].drop_count",
-      "gadgets[].isOneoff",
-      "gadgets[].persistent",
-      "gadgets[].point_type",
-      "gadgets[].boss_chest.monster_config_id",
-      "gadgets[].boss_chest.resin",
-      "gadgets[].boss_chest.life_time",
-      "gadgets[].boss_chest.take_num"
-    ],
-    "runtimeOrComputed": [
-      "EntityGadget.scene.id",
-      "EntityGadget.groupId",
-      "EntityGadget.configId",
-      "EntityGadget.gadgetId",
-      "EntityGadget.content class",
-      "scene type/dungeon manager",
-      "world level / world rank",
-      "cityId and parentAreaId derived by RewardAreaResolver",
-      "blossom manager membership",
-      "runtime state"
-    ],
-    "forkOnlyImportedAnnotations": [
-      "SceneGadget.chestType",
-      "SceneGadget.chestGrade",
-      "SceneGadget.rewardRegion",
-      "chest_common/exquisite/precious/luxurious/puzzle/mora/remarkable external marker kinds"
-    ]
-  },
-  "currentlyExposedForChestInRewardBranch": {
-    "type": "chestType from fork metadata or known prefab-name pattern",
-    "grade": "fork marker grade or current-tier heuristic, only for normal",
-    "scene": "scene runtime ID",
-    "gadget": "gadget ID",
-    "group": "scene group ID",
-    "config": "scene group config ID",
-    "level": "SceneGadget.level whenever meta exists; absence versus 0 not represented",
-    "area": "derived parent area, conditional",
-    "city": "derived city, conditional",
-    "tag": "declared selector key but not populated in WorldChestLootHelper",
-    "kind": "declared selector key but not populated in WorldChestLootHelper",
-    "point": "declared selector key but not populated in WorldChestLootHelper",
-    "world_level": "declared selector key but not populated in WorldChestLootHelper"
-  },
-  "discriminatorRules": [
-    "Scope first by reward Gadget content/caller and only then add instance metadata.",
-    "Use (scene,group,config) as instance identifier where genuine groups exist; synthesized spawn IDs may require a separate provenance.",
-    "Gadget ID may participate but never exclusively decide normal vs searchpoint, Mora, Remarkable, boss, or grade.",
-    "Do not coerce historical combat/puzzle and regional drop-tag text into official grade.",
-    "Do not equate native Lv1..Lv5 prefab suffixes, 4-grade chest rarity, and Audio Mid/Hi/Top.",
-    "A field absent from scene Lua is not proof of a real zero/false value.",
-    "Exclude rewards and probabilities from the research deliverable."
+  "notEstablished": [
+    "No authenticated object placement, scene/group/config, or per-instance level from original client in this dataset.",
+    "The native numeric 26 field has no authenticated semantic enum name; do not call it reward/chest class.",
+    "Native _Lv1..Lv5 substrings and Default/Locked/Bramble/Frozen are source string contents only; no authoritative reward grade mapping.",
+    "No authoritative identification of Mora/Remarkable/shrine/Boss/ley-line/quest/dungeon gadget from this single source table.",
+    "Missing optional fields are absent on wire, not certified false or zero.",
+    "Inherited uint32 ID at 0x30 is a pre-wrapper scalar; original runtime ID substitution/getter round trip is not independently verified."
   ]
 }
