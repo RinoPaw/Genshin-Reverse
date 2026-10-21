@@ -33,12 +33,16 @@ def inspect(types: Path, methods: Path, fields: Path) -> dict:
     owned_names = set()
     loader_rows = {}
     possible_readers = []
+    exemplar_readers = {}
+    verified_related = {"DCCHEHMHFGC", "FGGKFGECPJJ"}
     # Native loader method metadata belongs to the table-owner type.
     for m in records(methods):
         if m["method_index"] in {"696653", "279989"}:
             label = "SceneTag" if m["method_index"] == "696653" else "SceneExcel"
             loader_rows[label] = dict(m)
             owned_names.add(m["type_name"])
+        if m["method_name"] == "GMENPOPMKAA" and m["type_name"] in verified_related:
+            exemplar_readers[m["type_name"]] = dict(m)
         if m["method_name"] == "GMENPOPMKAA" and m["rva"]:
             possible_readers.append({
                 "methodIndex": m["method_index"], "typeName": m["type_name"],
@@ -73,6 +77,11 @@ def inspect(types: Path, methods: Path, fields: Path) -> dict:
     # Metadata-only candidate broadening is deliberately limited to a count
     # histogram. A method name or object key offset alone is not a vtable link.
     reader_types = Counter(x["typeName"] for x in possible_readers)
+    source_argument_type = loader_rows["SceneTag"].get("parameter_types")
+    matching_argument_readers = [
+        row for row in possible_readers
+        if row["parameterTypes"] == source_argument_type
+    ]
     loader_context = {}
     for label, m in loader_rows.items():
         owner = m["type_name"]
@@ -90,7 +99,11 @@ def inspect(types: Path, methods: Path, fields: Path) -> dict:
         "loaderContext": loader_context,
         "sameObfuscatedMethodNameCount": len(possible_readers),
         "differentOwnersWithSameName": len(reader_types),
-        "sameNameOwners": dict(sorted(reader_types.items())),
+        "sourceArgumentType": source_argument_type,
+        "knownGadgetRelatedRowReaders": exemplar_readers,
+        "otherReadersWithSameArgumentTypes": len(matching_argument_readers),
+        "otherReadersWithSameArgumentTypesSample": matching_argument_readers[:24],
+        "sameNameOwnerMaxMethodCount": max(reader_types.values(), default=0),
         "limits": [
             "All method and field names are recovered obfuscated original Global 7.1 metadata tokens.",
             "Manager class fields and methods are metadata identities only and do not establish table row type.",
