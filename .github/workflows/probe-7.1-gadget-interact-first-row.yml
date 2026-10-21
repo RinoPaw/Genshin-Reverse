@@ -58,10 +58,10 @@ jobs:
               if x["mnemonic"]=="ret":break
           PY
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
-            0x14D95D180 0x180 --expected-sha256 "$EXPECTED_SHA" \
+            0xD95D180 0x180 --expected-sha256 "$EXPECTED_SHA" \
             --output work/gadget-interact-tail-helper.json > /dev/null
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
-            0x149EA9CB0 0x180 --expected-sha256 "$EXPECTED_SHA" \
+            0x9EA9CB0 0x180 --expected-sha256 "$EXPECTED_SHA" \
             --output work/gadget-interact-conditional-helper.json > /dev/null
           python - <<'PY'
           import json
