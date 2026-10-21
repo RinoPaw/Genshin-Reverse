@@ -26,8 +26,8 @@ class TestNativeSceneLoaderCounts71(unittest.TestCase):
         rows = tool.candidates_in_section(b"\x90\x90" + native, 0x968F6D7)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["candidateMovRva"], "0x968F6D9")
-        self.assertEqual(rows[0]["candidateAddRva"], "0x968F6DE")
-        self.assertEqual(rows[0]["addImmediate"], "0x23F5AB5E")
+        self.assertEqual(rows[0]["candidateArithmeticRva"], "0x968F6DE")
+        self.assertEqual(rows[0]["immediate"], "0x23F5AB5E")\n        self.assertEqual(rows[0]["operator"], "add")
         self.assertEqual(rows[0]["register"], 7)
 
     def test_other_matching_registers_and_rejects_near_misses(self):
@@ -41,8 +41,18 @@ class TestNativeSceneLoaderCounts71(unittest.TestCase):
         rows = tool.candidates_in_section(data, 0x1000)
         self.assertEqual(len(rows), 2)
         self.assertEqual([r["register"] for r in rows], [0, 3])
-        self.assertEqual([r["addImmediate"] for r in rows],
+        self.assertEqual([r["immediate"] for r in rows],
                          ["0x12345678", "0x23456789"])
+
+    def test_original_scene_tag_xor_and_scene_excel_add_idioms(self):
+        tag = bytes.fromhex("bf339d6af1337c0820")
+        scene = bytes.fromhex("bfbc1eb2b8037c0820")
+        both = tool.candidates_in_section(tag+b"\\x90"+scene, 0x1000)
+        self.assertEqual(len(both), 2)
+        self.assertEqual([(r["operator"], r["immediate"]) for r in both],
+                         [("xor", "0xF16A9D33"), ("add", "0xB8B21EBC")])
+        self.assertEqual(0xF16A9948 ^ 0xF16A9D33, 1147)
+        self.assertEqual((0x474DEA8D + 0xB8B21EBC) & 0xFFFFFFFF, 2377)
 
     def test_bad_unpinned_exports_fail_before_pe_scan(self):
         import tempfile
