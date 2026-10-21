@@ -12,6 +12,15 @@ _spec.loader.exec_module(mod)
 
 
 class OriginalGenericRegistration(unittest.TestCase):
+    def test_published_original_registration_negative_scope(self):
+        import json
+        report=json.loads((ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-gadget-aux-generic-registration-boundary.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["exeSha256"],mod.PROFILE_71.exe_sha256)
+        self.assertEqual(report["metadataRegistrationPairSignatureCandidateCount"],0)
+        self.assertEqual(report["countMarkerDiagnostics"]["typeDefinitions"]["alignedQwordOccurrenceCount"],1)
+        self.assertEqual(report["countMarkerDiagnostics"]["runtimeTypes"]["alignedQwordOccurrenceCount"],0)
+        self.assertEqual(report["metadataRegistrationCandidates"],[])
+
     def test_original_four_managers_hypothetical_indices(self):
         self.assertEqual(mod.GENERIC_INDICES["GadgetPropManagerGenericField"],0x2B581)
         self.assertEqual(mod.GENERIC_INDICES["GadgetInteractManagerGenericField"],0x2A6A4)

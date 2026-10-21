@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GENERIC_CLASS_REGISTRATION_ORIGINAL_SOURCE_PROBE__VTABLE_IDENTITY_UNVERIFIED",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalTypeDefinitionCount": 88904,
+  "runtimeTypeCount": 683574,
+  "testedRawOriginalManagerGenericInstLow32Values": {
+    "GadgetPropManagerGenericField": "0x2B581",
+    "GadgetInteractManagerGenericField": "0x2A6A4",
+    "SceneTagManagerGenericFieldControl": "0x35C81",
+    "SceneExcelManagerGenericFieldControl": "0x28AC3"
+  },
+  "metadataRegistrationPairSignatureCandidateCount": 0,
+  "countMarkerDiagnostics": {
+    "typeDefinitions": {
+      "searchedCount": 88904,
+      "alignedQwordOccurrenceCount": 1,
+      "candidateCountPointerPairs": [
+        {
+          "countRva": "0x2F8EDB0",
+          "pointerVaCandidate": "0x150000",
+          "pointerFileBacked": false,
+          "section": ".rdata"
+        }
+      ]
+    },
+    "runtimeTypes": {
+      "searchedCount": 683574,
+      "alignedQwordOccurrenceCount": 0,
+      "candidateCountPointerPairs": []
+    }
+  },
+  "metadataRegistrationCandidates": [],
+  "limitations": [
+    "The standard field-offsets/type-sizes pair signature may be absent from protected 7.1 metadata registration. Zero matches is a bounded negative scan, not proof of absent native metadata.",
+    "The metadata registration layout and generic index interpretation are hypotheses checked against the pinned original EXE.",
+    "An in-bounds table index and a plausible generic class object need validated layout and independent native callsite binding.",
+    "If candidate generic arguments are decoded, original manager field type does not alone establish the row vtable +0xF0 target.",
+    "No LootCSS grade, level, native chest classification, scene instance or reward values are inferred."
+  ],
+  "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39641127241"
+}
