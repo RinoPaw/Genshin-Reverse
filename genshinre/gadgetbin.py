@@ -20,8 +20,6 @@ U16 = 0xFFFF
 U32 = 0xFFFFFFFF
 U64 = 0xFFFFFFFFFFFFFFFF
 MASK_ADD = 0x466DB4EB
-ID_ADD_CANDIDATE = 0x4894CEA6
-MARKER = b"\xff\xff\xff\xff"
 
 # Offset, presence bit, raw-wire kind, arguments; exact native read order.
 # s: u16 length + constant, chunk-XOR UTF-8; a: u32 count + constant and s;
@@ -97,20 +95,69 @@ def _value(reader: BinaryConfigReader, kind: str, arg):
     raise GadgetBinParseError(f"unknown Gadget inner-record field kind {kind}")
 
 
+# Recovered from the exact native inherited reader
+# FGGKFGECPJJ.GMENPOPMKAA at RVA 0xBD56F60.
+HEADER_COUNT_ADD = 0x23F5AB5E
+BASE_MASK_ADD = 0x5486
+BASE_STRING_KEY = 0xDE637C82E062FF2D
+# presence flag, candidate memory displacement, wire kind and transforms.
+BASE_SCHEMA = (
+    (0x20, 0x40, "q", ("xor", 0xA269090E)),
+    (0x04, 0x20, "q", ("xor", 0x67754856)),
+    (0x01, 0x34, "d", ("add", 0xCFCCA56B)),
+    (0x80, 0x10, "string", None),
+    (0x02, 0x18, "d", ("add", 0xC6E69CA5)),
+    (0x08, 0x38, "q", ("xor", 0xA3ED922C)),
+    (0x40, 0x28, "q", ("add", 0xCD92A1B8, "xor", 0x87A58EB3)),
+    (0x10, 0x30, "d", ("add", 0x4894CEA6)),
+)
+
+
+def read_inherited_row(reader: BinaryConfigReader) -> tuple[int, dict, dict]:
+    """Read native inherited fields and ID, preserving true wire omission."""
+    mask = (reader.u16() + BASE_MASK_ADD) & U16
+    if mask & ~0xFF:
+        raise GadgetBinParseError(f"unrecognized native Gadget base mask 0x{mask:X}")
+    if not (mask & 0x10):
+        raise GadgetBinParseError("native Gadget ID absent on wire")
+    fields, spans = {}, {}
+    for flag, offset, kind, operations in BASE_SCHEMA:
+        if not (mask & flag):
+            continue
+        start = reader.pos
+        if kind == "d":
+            fields[offset] = _transform(reader.u32(), operations, width=32)
+        elif kind == "q":
+            fields[offset] = _transform(reader.u64(), operations, width=64)
+        elif kind == "string":
+            # Exactly the native u16 subtract/xor and chunk-XOR UTF-8 path.
+            length = (((reader.u16() - 0xD3) & U16) ^ 0x7C82)
+            raw = reader.take(length)
+            try:
+                fields[offset] = decode_native_chunks(
+                    raw, BASE_STRING_KEY, "xor").decode("utf-8")
+            except UnicodeDecodeError as exc:
+                raise GadgetBinParseError(
+                    f"invalid inherited Gadget UTF-8 at 0x{reader.pos-length:X}") from exc
+        else:
+            raise GadgetBinParseError(f"unrecognized base wire type {kind}")
+        spans[offset] = (start, reader.pos)
+    return mask, fields, spans
+
+
 @dataclass(frozen=True)
 class GadgetRow:
-    id_candidate: int
-    id_wire_offset: int
+    gadget_id: int
+    base_start: int
+    base_end: int
     inner_start: int
     inner_end: int
-    prefix_start: int
+    base_mask: int
     mask: int
+    base_fields: dict[int, object]
     fields: dict[int, object]
+    base_spans: dict[int, tuple[int, int]]
     spans: dict[int, tuple[int, int]]
-
-    @property
-    def prefix_bytes(self) -> int:
-        return self.inner_start - self.prefix_start
 
 
 def read_inner_row(data: bytes, offset: int) -> tuple[int, dict, dict, int]:
@@ -133,81 +180,74 @@ def read_inner_row(data: bytes, offset: int) -> tuple[int, dict, dict, int]:
 
 @dataclass(frozen=True)
 class GadgetTableScan:
-    opaque_header_hex: str
+    header_hex: str
+    header_count: int
     rows: tuple[GadgetRow, ...]
     payload_bytes: int
-    outer_prefix_bytes: int
+    base_decoded_bytes: int
 
     def summary(self) -> dict:
         present = Counter()
         for row in self.rows:
             present.update(row.fields.keys())
         return {
-            "status": "EXACT_7_1_GADGET_INNER_ROWS_DECODED__OUTER_PREFIX_UNRESOLVED",
-            "opaqueHeaderHex": self.opaque_header_hex,
-            "opaqueHeaderDecoded": False,
+            "status": "EXACT_7_1_GADGET_COMPLETE_NATIVE_TABLE_DECODE",
+            "headerHex": self.header_hex,
+            "headerCountDecoded": True,
+            "decodedHeaderCount": self.header_count,
             "rowCountObserved": len(self.rows),
-            "uniqueIdCandidates": len({row.id_candidate for row in self.rows}),
+            "uniqueIds": len({row.gadget_id for row in self.rows}),
             "payloadBytes": self.payload_bytes,
-            "outerPrefixBytesUnparsed": self.outer_prefix_bytes,
+            "baseDecodedBytes": self.base_decoded_bytes,
+            "innerDecodedBytes": sum(row.inner_end - row.inner_start for row in self.rows),
+            "unparsedBytes": 0,
             "fieldPresentCounts": {f"0x{k:X}": present[k] for k in sorted(present)},
-            "enum26CountCandidate": sum(row.fields.get(0x6C) == 26 for row in self.rows),
-            "enum26DistinctNamesCandidate": len({
+            "enum26Count": sum(row.fields.get(0x6C) == 26 for row in self.rows),
+            "enum26DistinctNames": len({
                 row.fields.get(0x58)
                 for row in self.rows if row.fields.get(0x6C) == 26
             }),
             "limitations": [
-                "The marker scan is specific to the pinned Global 7.1 Gadget binary.",
-                "Outer table header and variable per-row prefixes remain undecoded.",
-                "The candidate ID additive transform and type-code meaning need independent native consumer validation.",
-                "Full inner-record consumption does not mean all outer prefix bytes have been interpreted.",
-                "No placed chest instance, four-grade assignment, reward root, item amount or rate is certified.",
+                "All 7.1 client Gadget serialized bytes and the native table count are decoded.",
+                "The in-memory field-to-token mapping still relies on the pinned metadata layout candidate.",
+                "Semantic meanings of inherited wrapper fields and type codes remain unverified.",
+                "The client Gadget definition table has no authenticated scene drop_tag or server reward data.",
             ],
         }
 
 
 def scan_gadget_payload(data: bytes, *, expected_rows: int) -> GadgetTableScan:
-    if len(data) < 12:
-        raise GadgetBinParseError("Gadget payload too short")
-    if expected_rows <= 0:
-        raise GadgetBinParseError("expected Gadget row count must be positive")
-    # This *exact observed version* has one 0xFFFFFFFF high-mask dword per
-    # inner record. Never accept a mismatched marker count by guessing gaps.
-    positions = []
-    cursor = 0
-    while True:
-        found = data.find(MARKER, cursor)
-        if found < 0:
-            break
-        positions.append(found - 4)
-        cursor = found + 4
-    if len(positions) != expected_rows:
-        raise GadgetBinParseError(
-            f"Gadget inner-record markers {len(positions)} != expected {expected_rows}")
-    previous_end = 4
+    """Parse header and all rows sequentially by the exact native reader path."""
+    if len(data) < 4 or expected_rows <= 0:
+        raise GadgetBinParseError("invalid Gadget data size or expected count")
+    reader = BinaryConfigReader(data, error_type=GadgetBinParseError, label="Gadget")
+    header_raw = reader.u32()
+    count = (header_raw + HEADER_COUNT_ADD) & U32
+    if count != expected_rows:
+        raise GadgetBinParseError(f"native Gadget header count {count} != {expected_rows}")
+    if count > (len(data) - 4) // 14:
+        raise GadgetBinParseError("native Gadget count exceeds remaining input bounds")
     rows: list[GadgetRow] = []
-    ids: set[int] = set()
-    outer_prefix_total = 0
-    for index, inner_start in enumerate(positions):
-        id_start = inner_start - 4
-        if id_start < previous_end:
-            raise GadgetBinParseError(f"overlapping Gadget prefix at row {index}")
-        id_wire = int.from_bytes(data[id_start:inner_start], "little")
-        candidate = (id_wire + ID_ADD_CANDIDATE) & U32
-        if candidate in ids:
-            raise GadgetBinParseError(f"duplicate Gadget ID candidate {candidate}")
-        ids.add(candidate)
-        mask, fields, spans, end = read_inner_row(data, inner_start)
-        next_id_start = positions[index + 1] - 4 if index + 1 < len(positions) else len(data)
-        if end > next_id_start:
-            raise GadgetBinParseError(f"Gadget inner record overlaps next prefix at row {index}")
-        if index == len(positions) - 1 and end != len(data):
-            raise GadgetBinParseError("Gadget final inner record does not reach EOF")
-        outer_prefix_total += inner_start - previous_end
-        rows.append(GadgetRow(candidate, id_start, inner_start, end, previous_end,
-                              mask, fields, spans))
-        previous_end = end
-    return GadgetTableScan(data[:4].hex(), tuple(rows), len(data), outer_prefix_total)
+    seen: set[int] = set()
+    base_total = 0
+    for i in range(count):
+        base_start = reader.pos
+        base_mask, base_fields, base_spans = read_inherited_row(reader)
+        base_end = reader.pos
+        gadget_id = base_fields[0x30]
+        if gadget_id in seen:
+            raise GadgetBinParseError(f"duplicate Gadget ID {gadget_id} at row {i}")
+        seen.add(gadget_id)
+        inner_start = reader.pos
+        mask, fields, spans, inner_end = read_inner_row(data, inner_start)
+        reader.pos = inner_end
+        base_total += base_end - base_start
+        rows.append(GadgetRow(gadget_id, base_start, base_end, inner_start, inner_end,
+                              base_mask, mask, base_fields, fields, base_spans, spans))
+    if reader.pos != len(data):
+        raise GadgetBinParseError(
+            f"Gadget table has {len(data) - reader.pos} trailing bytes at 0x{reader.pos:X}")
+    return GadgetTableScan(data[:4].hex(), count, tuple(rows), len(data), base_total)
 
 
 def scan_gadget_raw_export(raw: bytes, *, expected_rows: int) -> GadgetTableScan:
