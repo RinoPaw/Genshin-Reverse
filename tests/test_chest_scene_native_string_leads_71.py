@@ -68,6 +68,25 @@ class TestSceneNativeLiteralLeads71(unittest.TestCase):
         self.assertTrue(any("does not prove absence" in x
                             for x in report["limitations"]))
 
+    def test_plain_string_miss_does_not_erase_verified_scene_tag_asset(self):
+        import json
+        root = (Path(__file__).resolve().parents[1] /
+                "versions/7.1.0-global/analyses/progression/economy")
+        literals = json.loads((root / "7.1-chest-scene-native-string-leads.json")
+                              .read_text(encoding="utf-8"))
+        assets = json.loads((root / "7.1-chest-scene-native-excel-entrypoints.json")
+                            .read_text(encoding="utf-8"))
+        self.assertEqual(literals["literalCandidates"]["SceneTagConfigData"]
+                         ["exactPlainLiteralCount"], 0)
+        self.assertEqual(literals["literalCandidates"]["GadgetExcelConfigData"]
+                         ["exactPlainLiteralCount"], 0)
+        verified = {row["candidateSourcePath"]: row for row in assets["assets"]}
+        self.assertEqual(verified["Data/_ExcelBinOutput/SceneTagConfigData"]
+                         ["payloadBytes"], 38941)
+        self.assertEqual(verified["Data/_ExcelBinOutput/SceneExcelConfigData"]
+                         ["payloadBytes"], 273352)
+        self.assertIn("UNRESOLVED", literals["status"])
+
     def test_unbounded_literal_hits_fail_closed(self):
         with (patch.object(probe, "require_sha256"),
               patch.object(probe, "find_pe_string_hits",
