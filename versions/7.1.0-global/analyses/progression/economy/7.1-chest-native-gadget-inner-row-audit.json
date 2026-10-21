@@ -185,5 +185,46 @@
     "Opaque in-memory wrapper fields lack authenticated gameplay semantic labels.",
     "A match with historical chest categories is a cross-check, never evidence for server rewards.",
     "No placed instance, native drop_tag, server payout root, item quantity or probability is established."
-  ]
+  ],
+  "inheritedNativeFields": {
+    "readerRva": "0xBD56F60",
+    "nativeFlagDecodeAdd": "0x5486",
+    "maskCounts": {
+      "0x11": 19,
+      "0x13": 165,
+      "0x15": 1072,
+      "0x17": 22913,
+      "0x57": 3,
+      "0x93": 29,
+      "0x95": 233,
+      "0x97": 6113,
+      "0xB5": 3,
+      "0xB7": 23,
+      "0xF7": 5,
+      "0xFF": 21
+    },
+    "chestMaskCounts": {
+      "0x17": 134,
+      "0x97": 175
+    },
+    "stringFieldMemoryOffset": "0x10",
+    "stringCount": 6427,
+    "distinctStringValues": 14,
+    "stringOccurrences": {
+      "Animal_Default_01": 9,
+      "Animal_Special_200_01": 2,
+      "Gadget_Special_Big_01": 504,
+      "Gadget_Special_Middle_01": 5132,
+      "Gadget_Special_Middle_02": 1,
+      "Gadget_Special_Middle_03": 1,
+      "Gadget_Special_Patch_01": 2,
+      "Gadget_Special_Small_01": 507,
+      "Gadget_Speical_Eldritch": 12,
+      "Gadget_Vehicle_Skiff": 49,
+      "Monster_Regisvine_Electric_01": 1,
+      "Monster_Special_200_01": 8,
+      "MonsterEquip_Default_01": 195,
+      "MonsterEquip_ShootingActivity_01": 4
+    }
+  }
 }
