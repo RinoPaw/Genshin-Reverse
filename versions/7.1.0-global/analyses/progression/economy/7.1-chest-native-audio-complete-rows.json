@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_AUDIO_NATIVE_56_ROWS_EOF_JOIN_PUBLIC_LABELS__VTABLE_AND_PAYOUT_UNVERIFIED",
+  "source": {
+    "target": "Genshin Impact 7.1.0 Global Windows x64",
+    "executableSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "asset": "Data/_ExcelBinOutput/AudioBattleFervorChestTypeMapConfigData",
+    "officialBlock": "00/25539185.blk",
+    "originalRawExport": "5560e262.dat",
+    "originalRawSha256": "c205c6d4efe69fde2b88800802816afd981a94df35e768746f5692e74febe591",
+    "originalPayloadSha256": "a59a480b86a0fcb85d7b0e4d72f631d1b78b6e2d87b58ac579c91ec4a9147257",
+    "cnPublicSource": "DimbreathBot/AnimeGameData@792978e5503ecfba73dcb3562ed44a0d35a2abe2/ExcelBinOutput/AudioBattleFervorChestTypeMapConfigData.json",
+    "cnPublicGitBlob": "f2f2f9c05e6333a9dc302b11a1bc39e16f621f5f",
+    "originalNativeSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39586611284",
+    "originalAndPublicCrosscheckRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39587278416"
+  },
+  "native": {
+    "loaderCountXor": "0x81F9C781",
+    "decodedCount": 56,
+    "candidateLoaderRva": "0x130156D0",
+    "virtualRowCallRva": "0x130157AC",
+    "candidateRowReaderType": "LAGPEMOIAKN",
+    "candidateRowReaderTypeDefinitionIndex": 36519,
+    "candidateRowReaderMethodIndex": 287887,
+    "candidateRowReaderRva": "0x77C01B0",
+    "bitKeyPresent": "0x10",
+    "bitClassPresent": "0x20",
+    "payloadBytes": 480,
+    "bytesConsumed": 480,
+    "unexplainedBytes": 0,
+    "uniquePreWrapperGadgetKeys": 56,
+    "keySequenceSha256": "9f5b79197d5adb74b6036f22a15e073f4cc2c67482ceb1e2846b8275a6d31d65",
+    "masks": {
+      "0x0010": 21,
+      "0x0030": 35
+    },
+    "numericScalars": {
+      "1": 12,
+      "2": 12,
+      "3": 11,
+      "(absent)": 21
+    }
+  },
+  "publicAssociation": {
+    "matchedKeys": 56,
+    "missingKeys": 0,
+    "conflictingValueAssociations": 0,
+    "numericToPublicLabel": [
+      {
+        "nativeValue": null,
+        "publicLabel": null,
+        "count": 21
+      },
+      {
+        "nativeValue": 1,
+        "publicLabel": "Mid",
+        "count": 12
+      },
+      {
+        "nativeValue": 2,
+        "publicLabel": "Hi",
+        "count": 12
+      },
+      {
+        "nativeValue": 3,
+        "publicLabel": "Top",
+        "count": 11
+      }
+    ],
+    "fourOriginalCoreIdsBySuffix": {
+      "Lv3": [
+        70210031,
+        70210032,
+        70210033,
+        70210034
+      ],
+      "Lv4": [
+        70210041,
+        70210042,
+        70210043,
+        70210044
+      ],
+      "Lv5": [
+        70210051,
+        70210052,
+        70210053,
+        70210054
+      ]
+    },
+    "fourOriginalCoreNumericValueBySuffix": {
+      "Lv3": 1,
+      "Lv4": 2,
+      "Lv5": 3
+    }
+  },
+  "evidenceLimitations": [
+    "The native values and presence patterns are sourced from the original executable and original client serialized table, without a community schema fallback.",
+    "The Mid/Hi/Top strings are external CN resource labels, joined by 56 pre-wrapper Gadget key scalars. Original IL2CPP enum symbolic names remain unverified.",
+    "The concrete IL2CPP row-class/vtable owner and runtime native wrapper round-trip have not been proven.",
+    "Audio labels and numeric classes are not a server-payable chest rarity, grade, combat/puzzle source, drop_tag, reward table, amount or probability.",
+    "The original Investigation table has an authenticated 252-row header/loader but lacks a verified full row-data decoder and chest-target semantics."
+  ]
+}
