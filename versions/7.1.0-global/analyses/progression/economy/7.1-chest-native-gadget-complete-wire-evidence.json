@@ -139,7 +139,14 @@
     "decoder": "genshinre/gadgetbin.py",
     "sampleAllRowsDecoded": 30599,
     "payloadLength": 2854884,
-    "unreadBytes": 0
+    "unreadBytes": 0,
+    "officialFullSourceValidationWorkflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39531061267",
+    "officialFullSourceChecks": [
+      "pinned Sophon blocks/exporter and Quest control",
+      "exact 7.1 Gadget complete native audit --check",
+      "20 original chest prefab controls --check",
+      "native base reader, u32 wrapper and map-key getter disassembly check"
+    ]
   },
   "limits": [
     "This evidence reconstructs client Gadget definitions, not actual scene placements.",
