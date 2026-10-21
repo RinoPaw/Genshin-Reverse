@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - '.github/workflows/probe-7.1-chest-lv3-header-counts.yml'
+      - 'scripts/audit-7.1-chest-audio-native-rows.py'
+      - 'tests/test_chest_audio_native_rows_71.py'
   workflow_dispatch:
 
 permissions:
