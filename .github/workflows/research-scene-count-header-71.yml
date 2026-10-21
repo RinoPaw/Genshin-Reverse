@@ -94,6 +94,13 @@ jobs:
             --scene-tag-raw work/raw/export-25539185/MiHoYoBinData/b410089f.dat \
             --scene-excel-raw work/raw/export-25539185/MiHoYoBinData/fd805cfc.dat \
             --check
+      - name: Record pinned row-reader method inventory and table-owner field layout
+        run: |
+          python scripts/probe-7.1-scene-metadata-owners.py \
+            --types versions/7.1.0-global/windows-x64/metadata/types.csv \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            --output work/scene-native-method-owners.json
       - name: Preserve bounded source evidence only
         uses: actions/upload-artifact@v7
         with:
@@ -101,6 +108,7 @@ jobs:
           path: |
             work/scene-header-immediates.json
             work/scene-loader-counts.json
+            work/scene-native-method-owners.json
             work/scenetag-native-loader.json
             work/sceneexcel-native-loader.json
             work/scene-tag-loader.json
