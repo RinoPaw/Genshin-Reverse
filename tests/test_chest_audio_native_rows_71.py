@@ -56,7 +56,7 @@ class NativeAudioChestRowsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate pre-wrapper"):
             mod.scan_payload(table([row(70210001), row(70210001)]))
         with self.assertRaisesRegex(ValueError, "truncated native gadget key"):
-            mod.scan_payload(payload[:-1])
+            mod.scan_payload(table([row(70210001, 1), row(70210002)[:-1]]))
 
     def test_missing_native_id_bit_never_gets_an_invented_key(self):
         with self.assertRaisesRegex(ValueError, "missing native gadget key"):
