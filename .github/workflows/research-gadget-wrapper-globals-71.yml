@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/research-gadget-wrapper-globals-71.yml'
+      - 'scripts/probe-7.1-gadget-wrapper-globals.py'
 
 permissions:
   contents: read
