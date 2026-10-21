@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_NATIVE_SCENE_TABLE_LITERAL_PROBE__NATIVE_FIELD_SEMANTICS_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "encodings": [
+    "ascii",
+    "utf-16le"
+  ],
+  "examinedLiterals": 8,
+  "literalCandidates": {
+    "SceneExcelConfigData": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "SceneTagConfigData": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "ScenePoint": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "scene3_group133003154": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "Scripts/Scene": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "drop_tag": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "chest_drop_id": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    },
+    "GadgetExcelConfigData": {
+      "exactPlainLiteralCount": 0,
+      "positiveBytesOnly": false,
+      "hitAndCandidateReferences": []
+    }
+  },
+  "limitations": [
+    "A missing ASCII/UTF-16LE literal in original client PE file-backed sections does not prove absence of an encoded/obfuscated table path or runtime-generated string.",
+    "The scene3_group path is an unverified historical server Lua identifier, not an authenticated official 7.1 scene placement.",
+    "RIP-relative byte matches and nearest-method annotations are leads only; native instruction disassembly and source-owner validation are still required.",
+    "SceneTag and server chest drop_tag are semantically distinct pending exact 7.1 method and field evidence.",
+    "No original client string alone authenticates server payout roots, drop probabilities or reward amounts."
+  ]
+}
