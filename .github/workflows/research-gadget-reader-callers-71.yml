@@ -47,6 +47,17 @@ jobs:
             inputs/7.1.0-global/GenshinImpact.exe 0xBD56F60 0x2000 \
             --expected-sha256 "$expected_sha" --label inherited-Gadget-reader \
             --output work/gadget-inherited-reader.json > /dev/null
+      - name: Disassemble native Gadget key conversion helpers
+        run: |
+          expected_sha=$(python -c 'from genshinre.nativeprofile import PROFILE_71;print(PROFILE_71.exe_sha256)')
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe 0xBB16020 0x400 \
+            --expected-sha256 "$expected_sha" --label Gadget-native-u32-wrapper \
+            --output work/gadget-native-u32-wrapper.json > /dev/null
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe 0xBB15F50 0x300 \
+            --expected-sha256 "$expected_sha" --label Gadget-native-map-key \
+            --output work/gadget-native-map-key.json > /dev/null
       - name: Preserve bounded inherited reader evidence
         uses: actions/upload-artifact@v7
         with:
@@ -54,5 +65,7 @@ jobs:
           path: |
             work/gadget-inherited-reader-metadata.json
             work/gadget-inherited-reader.json
+            work/gadget-native-u32-wrapper.json
+            work/gadget-native-map-key.json
           if-no-files-found: error
           retention-days: 2
