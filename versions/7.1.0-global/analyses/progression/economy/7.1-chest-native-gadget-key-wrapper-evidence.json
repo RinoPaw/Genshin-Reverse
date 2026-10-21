@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_U32_WRAPPER_AND_GETTER_TRACED__RUNTIME_TABLES_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "sources": {
+    "inherited": {
+      "rva": "0xBD56F60",
+      "disassemblySha256": "d52f3a83a010f744a38471b980ef1b94125f355856985de1212c4c71eb147d21",
+      "matchedAnchorCount": 7
+    },
+    "wrapper": {
+      "rva": "0xBB16020",
+      "disassemblySha256": "e206c1c9f062e4d8277d05ece74e7bcc63c8a6c8edaf03248937eaa6a898c581",
+      "matchedAnchorCount": 10
+    },
+    "getter": {
+      "rva": "0xBB15F50",
+      "disassemblySha256": "f7649f42eee426295c45a46cee98e72333c420c59a714e833535d8b1dc6ed319",
+      "matchedAnchorCount": 9
+    },
+    "loader": {
+      "rva": "0x968F690",
+      "disassemblySha256": "c0a6cc4f9b686002e1ee3c98bf9d9aeed749fcc10d9ea95f70161066592b744b",
+      "matchedAnchorCount": 4
+    }
+  },
+  "nativeRelationship": {
+    "inheritedReader": "FGGKFGECPJJ.GMENPOPMKAA / method 395933",
+    "preWrapperScalarOffsets": [
+      "0x18",
+      "0x30"
+    ],
+    "wireIdScalarAdd": "0x4894CEA6",
+    "writeWrapperRva": "0xBB16020",
+    "readWrapperRva": "0xBB15F50",
+    "writeByteLookupPages": [
+      "0x000",
+      "0x100",
+      "0x200",
+      "0x300"
+    ],
+    "readByteLookupPages": [
+      "0x400",
+      "0x500",
+      "0x600",
+      "0x700"
+    ],
+    "writeAdditionalXor": true,
+    "readAdditionalXor": true,
+    "tableLoader": "AACCGEFDDMD.GMENPOPMKAA / method 197827",
+    "tableLoaderKeyFieldOffset": "0x30",
+    "tableLoaderKeyGetterRva": "0xBB15F50",
+    "runtimeLookupTableValues": "UNRESOLVED",
+    "roundTripEquivalence": "UNVERIFIED"
+  },
+  "limitations": [
+    "The serialized 32-bit value is directly decoded before a native byte-substitution wrapper.",
+    "The managed field at offset 0x30 is stored after 0xBB16020, and the table loader reads it through 0xBB15F50.",
+    "A paired writer/getter is strong evidence of an intended reversible value wrapper, but equivalence for all uint32 values is not proven from these instruction slices.",
+    "The dynamically loaded substitution tables and XOR globals must be recovered or independently validated before claiming final runtime-managed ID identities.",
+    "This provides no server-side scene identifier, drop tag or reward value."
+  ]
+}
