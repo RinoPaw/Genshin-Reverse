@@ -106,3 +106,24 @@ workflow was removed after the provenance results became durable.
 
 No original row deserializer or server payout was authenticated by this job.
 No special extra CI workflow remains active for the chest table path study.
+
+
+## Temporary chest audio/handbook original-native count search (issue #31)
+
+`probe-7.1-chest-lv3-header-counts.yml` is one read-only code and asset
+research run against the **hash-pinned original Global 7.1 EXE** and both
+hash-pinned Sophon binary tables. The pinned binary data and original EXE
+cannot be kept in this source repository, so hosted source acquisition is
+needed to reproduce `scripts/probe-7.1-chest-lv3-native-header-counts.py`.
+It scans a finite set of one-step community count hypotheses against
+executable instruction bytes, with the original Gadget loader as a positive
+control. No guessed result can be promoted without native disassembly.
+
+**Owner**: #31. **Output**: bounded JSON with original EXE/table fingerprints,
+literal candidate RVAs and recognized original-Gadget-style arithmetic
+signatures, plus issue comment and short-retention evidence artifact.
+**Retirement condition**: pin outcome and limitations in
+`versions/7.1.0-global/analyses/progression/economy/` on `main`,
+remove the workflow and retain only its reusable source-gated script/tests.
+This does not run in general CI, change gameplay, store original bytes or
+submit changes to any upstream issue.
