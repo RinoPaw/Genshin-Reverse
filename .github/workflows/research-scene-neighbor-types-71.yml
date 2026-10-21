@@ -47,6 +47,28 @@ jobs:
             0xAED2EF0 0x850 --expected-sha256 "$sha" \
             --label SceneTag-adjacent-8field-row-candidate \
             --output work/scenetag-adjacent-8field-reader.json > /dev/null
+      - name: Fetch original 7.1 SceneTag and SceneExcel source exports
+        run: |
+          python scripts/fetch-7.1-design-blocks.py \
+            --output inputs/design-blocks --report work/original-blocks.json
+          mkdir -p inputs
+          curl --fail --location --retry 3 \
+            --output inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
+            https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz
+          echo "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz" | sha256sum --check
+          python scripts/collect-7.1-native-chest-assets.py \
+            --blocks inputs/design-blocks \
+            --cli-archive inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
+            --work work/original-assets --report work/native-chest-source.json
+          python scripts/audit-7.1-native-scene-entrypoints.py \
+            --index-raw work/original-assets/export-31049741/MiHoYoBinData/0000006f.dat \
+            --block-export work/original-assets/export-25539185 --check
+      - name: Reproduce two source-gated impossible candidate array allocations
+        run: |
+          python scripts/audit-7.1-scene-neighbor-reader-rejections.py \
+            --export-dir work/original-assets/export-25539185/MiHoYoBinData \
+            --native-trace-dir work \
+            --check
       - name: Narrow original virtual reader candidates by native wrapped ID field stores
         run: |
           python scripts/probe-7.1-scene-reader-keywriters.py \
