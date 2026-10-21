@@ -15,7 +15,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -28,9 +28,32 @@ jobs:
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
             --output work/scene-neighbor-types.json
+      - name: Install maintained native disassembler
+        run: python -m pip install -e . zstandard capstone
+      - name: Fetch SHA-256-pinned Global 7.1 client
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/client --python python
+      - name: Read three nearby possible scene record readers
+        run: |
+          sha=$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')
+          python tools/disassemble_rva.py inputs/client/GenshinImpact.exe \
+            0x118484D0 0x1250 --expected-sha256 "$sha" \
+            --label SceneExcel-adjacent-14field-row-candidate \
+            --output work/sceneexcel-adjacent-record-reader.json > /dev/null
+          python tools/disassemble_rva.py inputs/client/GenshinImpact.exe \
+            0x99C3380 0x950 --expected-sha256 "$sha" \
+            --label SceneTag-adjacent-string-6field-row-candidate \
+            --output work/scenetag-adjacent-string-reader.json > /dev/null
+          python tools/disassemble_rva.py inputs/client/GenshinImpact.exe \
+            0xAED2EF0 0x850 --expected-sha256 "$sha" \
+            --label SceneTag-adjacent-8field-row-candidate \
+            --output work/scenetag-adjacent-8field-reader.json > /dev/null
       - uses: actions/upload-artifact@v7
         with:
           name: exact-71-scene-type-neighbor-evidence
-          path: work/scene-neighbor-types.json
+          path: |
+            work/scene-neighbor-types.json
+            work/sceneexcel-adjacent-record-reader.json
+            work/scenetag-adjacent-string-reader.json
+            work/scenetag-adjacent-8field-reader.json
           retention-days: 2
           if-no-files-found: error
