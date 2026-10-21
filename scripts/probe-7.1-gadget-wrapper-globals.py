@@ -49,13 +49,13 @@ def audit(exe: Path, methods_csv: Path) -> dict:
             selected += rows[:128]
         selected += rows[:12]
         chosen = list({int(row["instruction_rva"], 0): row for row in selected}.values())
-        chosen.sort(key=lambda r: int(r["instruction_rva"]))
+        chosen.sort(key=lambda r: int(r["instruction_rva"], 0))
         annotations = attach_caller_methods(
             [int(row["instruction_rva"], 0) for row in chosen],
             methods_csv, max_method_body=0x10000)
         hits[name] = [
             {
-                "instructionRva": f"0x{int(row['instruction_rva']):X}",
+                "instructionRva": f"0x{int(row['instruction_rva'], 0):X}",
                 "access": row["access"],
                 "mnemonic": row["mnemonic"],
                 "hex": row["instruction_hex"],
