@@ -49,6 +49,21 @@ jobs:
           python scripts/probe-7.1-chest-scene-index.py \
             --index-raw work/asset-export/export-31049741/MiHoYoBinData/0000006f.dat \
             --output work/scene-asset-index.json
+      - name: Authenticate original SceneExcel and SceneTag exports
+        run: |
+          python scripts/audit-7.1-native-scene-entrypoints.py \
+            --index-raw work/asset-export/export-31049741/MiHoYoBinData/0000006f.dat \
+            --block-export work/asset-export/export-25539185 \
+            --output work/native-scene-entrypoints.json
+      - name: Retain bounded raw Scene Excel inputs for isolated native decoding
+        uses: actions/upload-artifact@v7
+        with:
+          name: temporary-exact-7.1-scene-excel-research
+          path: |
+            work/asset-export/export-25539185/MiHoYoBinData/fd805cfc.dat
+            work/asset-export/export-25539185/MiHoYoBinData/b410089f.dat
+          if-no-files-found: error
+          retention-days: 1
       - name: Retain source evidence without publishing original asset bytes
         uses: actions/upload-artifact@v7
         with:
@@ -56,5 +71,6 @@ jobs:
           path: |
             work/scene-asset-index.json
             work/original-source.json
+            work/native-scene-entrypoints.json
           if-no-files-found: error
           retention-days: 2
