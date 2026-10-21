@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_INTERACT_FIRST_SOURCE_NATIVE_CALL_CHAIN__VTABLE_UNRESOLVED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalRawExportSha256": "6481cd8b92185ffc13ffe8a12332eba8d53139077c75738aa40d15fc5bc8c24e",
+  "originalPayloadSha256": "ce9fcd3b2d7deb76c7e9f2a4ca2738f8d9e0e8500b7bb101768cd18be059fb11",
+  "sourceRuns": [
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39624413563",
+    "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39643045058"
+  ],
+  "exactOriginalDerivedArtifactSha256": {
+    "first": "8492df688bccf6ed9713e602d241fbbaa851778fa8af42229bc863496f218387",
+    "candidate": "0be8f3091c13eb1a93f5e98c71a2c5b2f04d893d63e90fc9a5ecdd576ef1e2de",
+    "nested": "b3ccfed6c2ae43504fe68f231075da55fe4748d1696345ba59047f43d97e73b9",
+    "tail": "21169bce1031ebc453205e2e83841f6e54e995dfd1021574159ba85666bdc9fa",
+    "conditional": "1222ae6723915d82b15d67557ece7e04a96b93ab25da90755702f961e57cf082"
+  },
+  "methodRvas": {
+    "candidate": "0xBE94FB0",
+    "nested": "0xFF7AE70",
+    "tail": "0xD95D180",
+    "conditional": "0x9EA9CB0"
+  },
+  "checkedNativeInstructionAnchors": {
+    "candidate": 11,
+    "nested": 4,
+    "tail": 1,
+    "conditional": 5
+  },
+  "sourceFirstRecord": {
+    "nativeHeaderDecodedRows": 363,
+    "firstRowCandidateByteOffset": 4,
+    "firstRowRawMaskByte": "0x36",
+    "candidateDecodedMaskByte": "0x42",
+    "rawBitZeroRequiresNestedReaderCall": false,
+    "candidateHasConditionalU32KeyRead": true,
+    "candidateHasConditionalStringRead": false,
+    "preWrapperKeyIfUninterrupted": 938583754,
+    "nativePrefixCursorIfUninterrupted": 9,
+    "recordBoundaryConfirmed": false,
+    "cursor9IsConfirmedRowEnd": false,
+    "originalDecodedKeyRemainsPreWrapper": true
+  },
+  "nativeConditionalEdges": {
+    "rawMaskBit0NestedReader": {
+      "callRva": "0xBE95121",
+      "targetRva": "0xFF7AE70",
+      "takenForActualFirstRawMask0x36": false,
+      "targetHasOwnPresenceFlagAndStringLengthTransform": true
+    },
+    "transformedMask0x20ContainerReader": {
+      "callRva": "0xBE95139",
+      "targetRva": "0x9EA9CB0",
+      "takenForActualFirstRawMask0x36": false,
+      "originalU32CountXor": "0xD78D7A5A",
+      "elementReaderCallRva": "0x9EA9D5E",
+      "elementReaderTargetRva": "0x9EA9E20"
+    },
+    "originalCandidateTailHelper": {
+      "jmpRva": "0xBE950FD",
+      "targetRva": "0xD95D180",
+      "runtimeBranchConditionsUnresolved": true
+    }
+  },
+  "limitations": [
+    "The source branch is conditional on the unverified hypothesis that this candidate is called from the original loader at first payload record offset 4.",
+    "The raw original first byte and native method opcodes are independently source pinned, but do not prove the loader's +0xF0 virtual target.",
+    "The native u32 count/loop in the conditional helper is an array-like container pattern, not a verified original semantic field name.",
+    "The original cursor at offset 9 is a conditional read-prefix extent; exact record end is not verified.",
+    "Native wrapped u32 scalar precedes the unresolved runtime key substitution; it is not a proven Gadget ID.",
+    "No scene-instance level, chest grade/type, server payout, amount or probability is proven."
+  ]
+}
