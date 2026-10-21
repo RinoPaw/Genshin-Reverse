@@ -49,6 +49,25 @@ class TestSceneNativeLiteralLeads71(unittest.TestCase):
         self.assertIn("SEMANTICS_UNRESOLVED", report["status"])
         self.assertNotIn("chestDropTagOwner", report)
 
+    def test_committed_exact_exe_negative_scope(self):
+        import json
+        report_path = (Path(__file__).resolve().parents[1] /
+                       "versions/7.1.0-global/analyses/progression/economy" /
+                       "7.1-chest-scene-native-string-leads.json")
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["exeSha256"], probe.PROFILE_71.exe_sha256)
+        self.assertEqual(report["encodings"], list(probe.ENCODINGS))
+        self.assertEqual(report["examinedLiterals"], len(probe.LITERALS))
+        self.assertEqual(list(report["literalCandidates"]), list(probe.LITERALS))
+        for literal, item in report["literalCandidates"].items():
+            with self.subTest(literal=literal):
+                self.assertEqual(item["exactPlainLiteralCount"], 0)
+                self.assertFalse(item["positiveBytesOnly"])
+                self.assertEqual(item["hitAndCandidateReferences"], [])
+        self.assertIn("UNRESOLVED", report["status"])
+        self.assertTrue(any("does not prove absence" in x
+                            for x in report["limitations"]))
+
     def test_unbounded_literal_hits_fail_closed(self):
         with (patch.object(probe, "require_sha256"),
               patch.object(probe, "find_pe_string_hits",
