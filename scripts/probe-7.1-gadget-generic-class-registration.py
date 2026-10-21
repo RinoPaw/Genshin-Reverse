@@ -122,13 +122,45 @@ def generic_index_probe(pe: PEImage, registration: dict, index: int) -> dict:
     return result
 
 
+def count_marker_diagnostics(pe: PEImage) -> dict:
+    """Find file-backed non-code count/pointer pairs without assuming layout."""
+    observed={}
+    for label, target in (("typeDefinitions", PROFILE_71.type_definition_count),
+                          ("runtimeTypes", PROFILE_71.runtime_type_count)):
+        matches=[]
+        signature=struct.pack("<Q", target)
+        for section in pe.sections:
+            if section.characteristics & 0x20000000:
+                continue
+            blob=pe.read_rva(section.virtual_address, section.raw_size)
+            search_at=0
+            while (hit:=blob.find(signature,search_at))>=0:
+                search_at=hit+1
+                rva=section.virtual_address+hit
+                if rva%8 or hit+16>len(blob):
+                    continue
+                va=struct.unpack_from("<Q",blob,hit+8)[0]
+                linked=read_exact(pe,va,8)
+                matches.append({
+                    "countRva":f"0x{rva:X}","pointerVaCandidate":f"0x{va:X}",
+                    "pointerFileBacked":len(linked)==8,
+                    "section":section.name,
+                })
+                if len(matches)>256:
+                    raise ValueError("unbounded original native count pair population")
+        observed[label]={"searchedCount":target,"alignedQwordOccurrenceCount":len(matches),
+                         "candidateCountPointerPairs":matches[:40]}
+    return observed
+
+
 def investigate(exe: Path) -> dict:
     require_sha256(exe,PROFILE_71.exe_sha256,label="original Global 7.1 EXE")
     with PEImage(exe) as pe:
         candidates=offsets.find_registration_field_offset_tables(
             pe,PROFILE_71.type_definition_count)
-        if not 1<=len(candidates)<=8:
-            raise ValueError(f"unexpected original metadata registration pair candidates: {len(candidates)}")
+        if len(candidates)>8:
+            raise ValueError("unbounded original metadata registration pair candidates")
+        count_hints=count_marker_diagnostics(pe)
         reports=[]
         for c in candidates:
             signature=c["signature_rva"]
@@ -153,8 +185,11 @@ def investigate(exe: Path) -> dict:
         "runtimeTypeCount":PROFILE_71.runtime_type_count,
         "testedRawOriginalManagerGenericInstLow32Values":{
             key:f"0x{value:X}" for key,value in GENERIC_INDICES.items()},
+        "metadataRegistrationPairSignatureCandidateCount":len(reports),
+        "countMarkerDiagnostics":count_hints,
         "metadataRegistrationCandidates":reports,
         "limitations":[
+            "The standard field-offsets/type-sizes pair signature may be absent from protected 7.1 metadata registration. Zero matches is a bounded negative scan, not proof of absent native metadata.",
             "The metadata registration layout and generic index interpretation are hypotheses checked against the pinned original EXE.",
             "An in-bounds table index and a plausible generic class object need validated layout and independent native callsite binding.",
             "If candidate generic arguments are decoded, original manager field type does not alone establish the row vtable +0xF0 target.",

@@ -3,7 +3,9 @@ name: Probe original 7.1 generic class registration
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/probe-7.1-gadget-generic-registration.yml']
+    paths:
+      - '.github/workflows/probe-7.1-gadget-generic-registration.yml'
+      - 'scripts/probe-7.1-gadget-generic-class-registration.py'
 
 permissions:
   contents: read
