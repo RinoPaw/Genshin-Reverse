@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_PROP_NEAREST_READER_DIRECT_FIRST_ROW_FALSIFIED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "rawSha256": "8907f4b717cd450ce084bd3a1a6a73e4409b8280fb4c74605afa520efbbc6a54",
+    "payloadSha256": "a12f433fe834576f84cbd5521c5715a27dc64eed0ee0137eb0cb24573d38d091",
+    "originalPayloadBytes": 9388,
+    "loaderRva": "0x124F2CF0",
+    "methodIndexCandidate": 225165,
+    "readerRvaCandidate": "0x9EB86F0",
+    "nativeDisassemblySha256": "76c49f4e003814a5b4ce7d4150796acf1811e9da27218da73e42e3e6ea59d808",
+    "disassemblySourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39624413563"
+  },
+  "firstRecordProof": {
+    "tableHeaderDecodedRows": 326,
+    "candidateFirstRowStartOffset": 4,
+    "candidateDecodedMask": "0xB9DA",
+    "candidateFirstIntegerDecoded": 3347551526,
+    "candidateStringLength": 30606,
+    "remainingPayloadBytes": 9376,
+    "candidateStringExceedsSourceByBytes": 21230,
+    "directAtFirstRowPossible": false
+  },
+  "limitations": [
+    "This rejects the candidate method as a direct reader starting at table payload offset four.",
+    "The loader may call an inherited/base reader or use an earlier row prefix; no concrete +0xF0 virtual target is identified.",
+    "Unused high mask bits were not assumed invalid; the native-required string length alone exceeds the entire source remainder.",
+    "No LootCSS grade, level, type, original placement, reward amounts or probabilities are inferred.",
+    "No original raw asset bytes or decoded proprietary rows are committed."
+  ]
+}

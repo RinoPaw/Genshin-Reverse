@@ -30,6 +30,16 @@ class GadgetPropCandidateBoundary71(unittest.TestCase):
         self.assertEqual(witness["candidateStringExceedsSourceByBytes"], 21230)
         self.assertFalse(witness["directAtFirstRowPossible"])
 
+    def test_published_negative_original_source_report(self):
+        report=json.loads((ROOT / "versions/7.1.0-global/analyses/progression/economy/7.1-gadget-prop-nearest-reader-first-row-falsification.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["source"]["exeSha256"],mod.PROFILE_71.exe_sha256)
+        self.assertEqual(report["source"]["rawSha256"],mod.RAW_SHA256)
+        self.assertEqual(report["source"]["payloadSha256"],mod.PAYLOAD_SHA256)
+        self.assertEqual(report["source"]["nativeDisassemblySha256"],mod.DISASSEMBLY_SHA256)
+        self.assertEqual(report["firstRecordProof"]["candidateStringLength"],30606)
+        self.assertEqual(report["firstRecordProof"]["remainingPayloadBytes"],9376)
+        self.assertFalse(report["firstRecordProof"]["directAtFirstRowPossible"])
+
     def test_modified_source_boundary_must_fail_closed(self):
         buffer = bytearray(9388)
         struct.pack_into("<I", buffer, 0, 0x5BD30290)
