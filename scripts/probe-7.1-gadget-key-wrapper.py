@@ -107,6 +107,10 @@ def inspect(samples: dict[str, dict], digests: dict[str, str]) -> dict:
             "tableLoaderKeyGetterRva": "0xBB15F50",
             "runtimeLookupTableValues": "UNRESOLVED",
             "roundTripEquivalence": "UNVERIFIED",
+            "sharedStaticOwnerPointerRva": "0x57831E8",
+            "sharedXorWordRva": "0x578B100",
+            "runtimeGlobalsProbe": "7.1-chest-native-gadget-wrapper-global-boundary.json",
+            "staticPeBackedBytesAvailable": False,
         },
         "limitations": [
             "The serialized 32-bit value is directly decoded before a native byte-substitution wrapper.",
@@ -114,6 +118,7 @@ def inspect(samples: dict[str, dict], digests: dict[str, str]) -> dict:
             "A paired writer/getter is strong evidence of an intended reversible value wrapper, but equivalence for all uint32 values is not proven from these instruction slices.",
             "The dynamically loaded substitution tables and XOR globals must be recovered or independently validated before claiming final runtime-managed ID identities.",
             "This provides no server-side scene identifier, drop tag or reward value.",
+            "Exact-client static global xref scan confirmed both shared addresses; 0x57831E8 has over one million generic MOV/LEA pattern matches and neither address has directly file-backed bytes. Lookup tables still need runtime initialization evidence.",
         ],
     }
 
