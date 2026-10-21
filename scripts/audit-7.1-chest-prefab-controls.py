@@ -55,7 +55,8 @@ def controls(scan, payload: bytes) -> dict:
             prefix = payload[row.base_start:row.base_end]
             if (len(prefix) != 22
                     or prefix[:2] != b"\x91\xab"
-                    or row.inner_start != row.base_end\n                    or row.base_mask != 0x17):
+                    or row.inner_start != row.base_end
+                    or row.base_mask != 0x17):
                 raise ValueError(f"original prefab outer prefix differs at {candidate_id}")
             findings.append({
                 "gadgetIdPreWrapperScalar": candidate_id,
@@ -63,7 +64,8 @@ def controls(scan, payload: bytes) -> dict:
                 "nameSuffixLevel": level,
                 "nameVariant": style,
                 "sourceTypeCandidate": 26,
-                "nativeInheritedMask": "0x17",\n                "nativeMaskWireBytes": "91ab",
+                "nativeInheritedMask": "0x17",
+                "nativeMaskWireBytes": "91ab",
                 "nativeInheritedBytes": 22,
                 "nativeIconString": ICON,
                 "offset0x84Scalar": 2,
@@ -80,7 +82,9 @@ def controls(scan, payload: bytes) -> dict:
             "officialClientBlock": "00/25539185.blk",
             "rawExportSha256": RAW_SHA256,
             "payloadSha256": PAYLOAD_SHA256,
-            "innerReaderRva": "0x10278E50",\n            "inheritedReaderRva": "0xBD56F60",\n            "nativeTableLoaderRva": "0x968F690",
+            "innerReaderRva": "0x10278E50",
+            "inheritedReaderRva": "0xBD56F60",
+            "nativeTableLoaderRva": "0x968F690",
         },
         "controls": {
             "nameVariants": list(KINDS),
@@ -125,7 +129,8 @@ def main() -> None:
         print("PASS: 20 original chest name/field controls from exact 7.1 client")
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "
+",
                                encoding="utf-8")
         print("Recorded 20 exact native 7.1 chest prefab name controls")
 
