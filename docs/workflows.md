@@ -105,6 +105,7 @@ Owner: issue #31. **Retirement gate:** retain the original-asset path
 probe result with exact input hashes in the version analysis, and remove
 this workflow from main. An absent guessed path will be reported as
 `HASH_ABSENT` only, not as absence of the corresponding feature,
-scene ownership or original server payout. The workflow grants read-only
-repository permissions, never publishes the original asset bytes, and
-will be removed rather than kept as another permanent CI job.
+scene ownership or original server payout. The workflow grants read-only code access and temporary issue-comment write
+access solely to publish a bounded result under issue #31. It never
+publishes original asset bytes or writes the repository, and will be
+removed rather than kept as another permanent CI job.
