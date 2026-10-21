@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_71_SCENE_NEIGHBOR_METHODS_DIRECT_ROW_PARSE_FALSIFIED__ACTUAL_VTABLE_UNRESOLVED",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "candidates": {
+    "SceneTagConfigData": {
+      "table": "SceneTagConfigData",
+      "nativeMethodOwnerCandidate": "BHENIHLFFDD",
+      "nativeMethodIndex": 696555,
+      "nativeMethodRva": "0xAED2EF0",
+      "rawExportSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+      "payloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+      "candidateEntryOffsetAfterTableCount": 4,
+      "firstRawMask": "0x440D",
+      "candidateDecodedMask": "0x329B",
+      "candidateArrayFlag": "0x1",
+      "firstArrayCountWireOffset": 18,
+      "firstArrayCountWireU32": "0xB02416CC",
+      "candidateArrayLength": 494924424,
+      "remainingPayloadBytes": 38919,
+      "nativeInstructionAnchorsMatched": 5,
+      "claim": "DIRECT_FIRST_ROW_READER_CANDIDATE_INCONSISTENT_WITH_ORIGINAL_PAYLOAD"
+    },
+    "SceneExcelConfigData": {
+      "table": "SceneExcelConfigData",
+      "nativeMethodOwnerCandidate": "PDNKJGEJJAA",
+      "nativeMethodIndex": 279984,
+      "nativeMethodRva": "0x118484D0",
+      "rawExportSha256": "970ffecdec5b1f9368b6db5c7c0129a9f0b9ba624f81d5289e3142572caebb8d",
+      "payloadSha256": "588563f62149d62038c7ee3b179e50191ecc9a3cfc003353e18a831918d27f6a",
+      "candidateEntryOffsetAfterTableCount": 4,
+      "firstRawMask": "0x7565314C",
+      "candidateDecodedMask": "0x7565314C",
+      "candidateArrayFlag": "0x100",
+      "firstArrayCountWireOffset": 12,
+      "firstArrayCountWireU32": "0x4E0467E4",
+      "candidateArrayLength": 4223952863,
+      "remainingPayloadBytes": 273336,
+      "nativeInstructionAnchorsMatched": 5,
+      "claim": "DIRECT_FIRST_ROW_READER_CANDIDATE_INCONSISTENT_WITH_ORIGINAL_PAYLOAD"
+    }
+  },
+  "limitations": [
+    "These first-row array bounds rule out direct invocation of these particular neighboring methods at serialized offset 4; they are not a search of all possible row readers.",
+    "The original vtable+0xF0 target has not been established from native registration data; metadata adjacency never proves it.",
+    "The method call graph, array allocator and dynamic field defaults outside these first mandatory reads have not been modeled.",
+    "No SceneTag game-state field, official scene instance or server chest drop_tag or reward root has been decoded."
+  ]
+}
