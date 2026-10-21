@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "status": "GLOBAL_7_1_SCENE_NAME_HYPOTHESES_TESTED__ORIGINAL_INSTANCE_UNRESOLVED",
+  "source": {
+    "version": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "designIndexRawSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+    "designIndexNameCount": 247073,
+    "historicalSample": "scene=3, group=133003154",
+    "hypothesesAreSourcePaths": false,
+    "indexType": "MiHoYoBinData only"
+  },
+  "controls": {
+    "known-Excel": {
+      "path": "Data/_ExcelBinOutput/QuestExcelConfigData",
+      "pathHash": "0x3B87AE8396",
+      "nameMatchCount": 1,
+      "exportedName": "3b87ae83",
+      "subAssetId": 178,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 25539185,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0
+    },
+    "known-scene-area": {
+      "path": "Data/_BinOutput/Scene/WorldArea/scene3_worldArea",
+      "pathHash": "0x0C934D1C2C",
+      "nameMatchCount": 1,
+      "exportedName": "0c934d1c",
+      "subAssetId": 1,
+      "blockReferenceCount": 1,
+      "status": "HASH_RESOLVED",
+      "blockId": 24230448,
+      "groupId": 0,
+      "unknown0": 0,
+      "unknown1": 0
+    }
+  },
+  "candidateCount": 805,
+  "candidatesSha256": "581a0cea93f782765c70be258723ffb0fbf1c012a16d23403edf1c8a01eeaec9",
+  "statusCounts": {
+    "HASH_ABSENT": 802,
+    "HASH_RESOLVED": 3
+  },
+  "groups": {
+    "scene-excel-config": {
+      "hypothesesTested": 7,
+      "statusCounts": {
+        "HASH_ABSENT": 5,
+        "HASH_RESOLVED": 2
+      },
+      "matchesOrAmbiguous": [
+        {
+          "path": "Data/_ExcelBinOutput/SceneExcelConfigData",
+          "pathHash": "0xFD805CFCAA",
+          "nameMatchCount": 1,
+          "exportedName": "fd805cfc",
+          "subAssetId": 178,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 25539185,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        },
+        {
+          "path": "Data/_ExcelBinOutput/SceneTagConfigData",
+          "pathHash": "0xB410089FF4",
+          "nameMatchCount": 1,
+          "exportedName": "b410089f",
+          "subAssetId": 178,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 25539185,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        }
+      ]
+    },
+    "historical-group-name-hypotheses": {
+      "hypothesesTested": 672,
+      "statusCounts": {
+        "HASH_ABSENT": 672
+      },
+      "matchesOrAmbiguous": []
+    },
+    "adjacent-scene-point-and-support-hypotheses": {
+      "hypothesesTested": 126,
+      "statusCounts": {
+        "HASH_ABSENT": 125,
+        "HASH_RESOLVED": 1
+      },
+      "matchesOrAmbiguous": [
+        {
+          "path": "Data/_BinOutput/Scene/Point/scene3_point",
+          "pathHash": "0xBC3AE3E1FD",
+          "nameMatchCount": 1,
+          "exportedName": "bc3ae3e1",
+          "subAssetId": 1,
+          "blockReferenceCount": 1,
+          "status": "HASH_RESOLVED",
+          "blockId": 24230448,
+          "groupId": 0,
+          "unknown0": 0,
+          "unknown1": 0
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "An original-client path-hash match is an asset identity lead requiring exact original payload bytes and a native reader.",
+    "An unmatched guessed name does not prove the corresponding asset or scene Lua absent from the client, other asset indexes or server.",
+    "Unity TextAsset, script bundles and other asset-type suffixes are outside this MiHoYoBinData-only test.",
+    "The tested scene/group identifier came from historical Lua, which is not an authenticated Global 7.1 original placement.",
+    "Scene gadget definitions, server-owned drop_tag and reward roots cannot be inferred from index negatives or geographic WorldArea hits."
+  ]
+}
