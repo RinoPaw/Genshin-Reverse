@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "status": "EXACT_7_1_GADGET_INNER_ROWS_VERIFIED__OUTER_FRAMING_AND_PAYOUT_UNRESOLVED",
+  "schemaVersion": 2,
+  "status": "EXACT_7_1_GADGET_COMPLETE_NATIVE_TABLE_WIRE__SEMANTIC_REWARDS_UNRESOLVED",
   "source": {
     "sample": "7.1.0-global/windows-x64",
     "officialManifestBlock": "00/25539185.blk",
@@ -13,22 +13,32 @@
     "nativeReaderOwner": "DCCHEHMHFGC",
     "nativeReaderMethod": "GMENPOPMKAA",
     "nativeReaderRva": "0x10278E50",
-    "methodIndex": 483590
+    "methodIndex": 483590,
+    "baseReaderTypeDefinitionIndex": 49659,
+    "baseReaderMethodIndex": 395933,
+    "baseReaderRva": "0xBD56F60",
+    "tableLoaderMethodIndex": 197827,
+    "tableLoaderRva": "0x968F690"
   },
   "observedFraming": {
-    "opaqueHeaderHex": "29cc0adc",
-    "headerDecoded": false,
-    "rowCountObservedByMarker": 30599,
-    "uniqueIdCandidates": 30599,
-    "firstIdCandidate": 40000001,
-    "lastIdCandidate": 77402021,
-    "fourByteIdCandidateCount": 30599,
-    "idCandidateWireTransform": "add 0x4894CEA6 modulo 2^32; consumer UNVERIFIED",
+    "headerHex": "29cc0adc",
+    "headerDecoded": true,
+    "headerDecodedCount": 30599,
+    "headerCountNativeAdd": "0x23F5AB5E",
+    "rowCount": 30599,
+    "uniqueNativeIds": 30599,
+    "firstNativeId": 40000001,
+    "lastNativeId": 77402021,
+    "nativeIdMemoryOffset": "0x30",
+    "nativeIdDecodeAdd": "0x4894CEA6",
+    "baseMaskDecodeAdd": "0x5486",
+    "nativeBaseDecodedBytes": 831612,
+    "nativeBaseOtherFieldBytes": 709216,
+    "nativeIdFieldBytes": 122396,
     "innerDecodedBytes": 2023268,
-    "outerPrefixOpaqueBytes": 709216,
-    "fourByteIdCandidateBytes": 122396,
-    "opaqueHeaderBytes": 4,
-    "prefixLengthHistogram": {
+    "headerBytes": 4,
+    "unparsedBytes": 0,
+    "baseOtherFieldLengthHistogram": {
       "6": 19,
       "10": 165,
       "14": 1072,
@@ -50,8 +60,8 @@
       "56": 5,
       "64": 21
     },
-    "lastDecodedInnerRecordEndsAtEof": true,
-    "coveredBytesIncludingOpaqueRegions": 2854884
+    "lastDecodedRecordEndsAtEof": true,
+    "coveredBytes": 2854884
   },
   "fieldPresenceCountByCandidateMemoryOffset": {
     "0x48": 18563,
@@ -86,32 +96,32 @@
     "allHaveNameField": true,
     "normalChestControls": [
       {
-        "idCandidate": 70210001,
+        "gadgetId": 70210001,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       },
       {
-        "idCandidate": 70210002,
+        "gadgetId": 70210002,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       },
       {
-        "idCandidate": 70210003,
+        "gadgetId": 70210003,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       },
       {
-        "idCandidate": 70210004,
+        "gadgetId": 70210004,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       },
       {
-        "idCandidate": 70210005,
+        "gadgetId": 70210005,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       },
       {
-        "idCandidate": 70210006,
+        "gadgetId": 70210006,
         "nameString": "SceneObj_Chest_NormalChest",
         "iconString": "UI_Icon_Intee_TreasureBox"
       }
@@ -169,12 +179,11 @@
     }
   },
   "limits": [
-    "Source hash authentication covers the exact raw export only; see the separately pinned Sophon manifest and AnimeStudio provenance.",
-    "Row count is recovered from exact-client markers, not an authenticated table-header count.",
-    "The four-byte per-row ID decoding is a consistent candidate and needs the exact native map/consumer to confirm its transform.",
-    "Outer per-row prefixes and four-byte header are accounted for but still opaque.",
-    "A match with historical chest category count cross-checks identity but cannot promote historical server reward data.",
-    "0x6C enum candidate 26 includes special/puzzle objects; no ordinary four-grade classification is established.",
-    "No placed instance, native drop_tag, server payout root, item quantity or drop probability is established."
+    "SHA-256 validates the exact 7.1 Gadget Raw export; source block and extraction chain are pinned separately.",
+    "All 30,599 table rows, the native header count, inherited fields and inner fields consume all payload bytes.",
+    "Native enum-26 includes special/puzzle objects; no ordinary four-grade reward classification follows.",
+    "Opaque in-memory wrapper fields lack authenticated gameplay semantic labels.",
+    "A match with historical chest categories is a cross-check, never evidence for server rewards.",
+    "No placed instance, native drop_tag, server payout root, item quantity or probability is established."
   ]
 }
