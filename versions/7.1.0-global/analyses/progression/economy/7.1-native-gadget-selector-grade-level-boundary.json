@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "status": "VERIFIED_ORIGINAL_7_1_GADGET_FIELD_CONTROLS__SELECTOR_SEMANTICS_UNRESOLVED",
+  "source": {
+    "nativeVectorInventory": "versions/7.1.0-global/analyses/progression/economy/7.1-native-gadget-field-vectors.json",
+    "originalRawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "gadgetReaderRva": "0x10278E50",
+    "inheritedReaderRva": "0xBD56F60",
+    "origin": "source-verified original GadgetExcelConfigData rows; this audit uses decoded vectors"
+  },
+  "observations": {
+    "canonicalLiteralLvControls": [
+      {
+        "preWrapperKey": 70210011,
+        "literalName": "SceneObj_Chest_Default_Lv1",
+        "literalLvSuffix": 1,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210012,
+        "literalName": "SceneObj_Chest_Locked_Lv1",
+        "literalLvSuffix": 1,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210013,
+        "literalName": "SceneObj_Chest_Bramble_Lv1",
+        "literalLvSuffix": 1,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210014,
+        "literalName": "SceneObj_Chest_Frozen_Lv1",
+        "literalLvSuffix": 1,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210021,
+        "literalName": "SceneObj_Chest_Default_Lv2",
+        "literalLvSuffix": 2,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210022,
+        "literalName": "SceneObj_Chest_Locked_Lv2",
+        "literalLvSuffix": 2,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210023,
+        "literalName": "SceneObj_Chest_Bramble_Lv2",
+        "literalLvSuffix": 2,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210024,
+        "literalName": "SceneObj_Chest_Frozen_Lv2",
+        "literalLvSuffix": 2,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210031,
+        "literalName": "SceneObj_Chest_Default_Lv3",
+        "literalLvSuffix": 3,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210032,
+        "literalName": "SceneObj_Chest_Locked_Lv3",
+        "literalLvSuffix": 3,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210033,
+        "literalName": "SceneObj_Chest_Bramble_Lv3",
+        "literalLvSuffix": 3,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210034,
+        "literalName": "SceneObj_Chest_Frozen_Lv3",
+        "literalLvSuffix": 3,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210041,
+        "literalName": "SceneObj_Chest_Default_Lv4",
+        "literalLvSuffix": 4,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210042,
+        "literalName": "SceneObj_Chest_Locked_Lv4",
+        "literalLvSuffix": 4,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210043,
+        "literalName": "SceneObj_Chest_Bramble_Lv4",
+        "literalLvSuffix": 4,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210044,
+        "literalName": "SceneObj_Chest_Frozen_Lv4",
+        "literalLvSuffix": 4,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210051,
+        "literalName": "SceneObj_Chest_Default_Lv5",
+        "literalLvSuffix": 5,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210052,
+        "literalName": "SceneObj_Chest_Locked_Lv5",
+        "literalLvSuffix": 5,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210053,
+        "literalName": "SceneObj_Chest_Bramble_Lv5",
+        "literalLvSuffix": 5,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      },
+      {
+        "preWrapperKey": 70210054,
+        "literalName": "SceneObj_Chest_Frozen_Lv5",
+        "literalLvSuffix": 5,
+        "offset0x84": 2,
+        "inherited0x18": 5001
+      }
+    ],
+    "normalChestLiteralSix": [
+      {
+        "preWrapperKey": 70210001,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70210002,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70210003,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70210004,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70210005,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70210006,
+        "offset0x84": "absent"
+      }
+    ],
+    "sameLiteralDefaultLv4": [
+      {
+        "preWrapperKey": 70210041,
+        "offset0x84": "2"
+      },
+      {
+        "preWrapperKey": 70210115,
+        "offset0x84": "absent"
+      },
+      {
+        "preWrapperKey": 70210123,
+        "offset0x84": "absent"
+      },
+      {
+        "preWrapperKey": 70211021,
+        "offset0x84": "absent"
+      },
+      {
+        "preWrapperKey": 70211121,
+        "offset0x84": "absent"
+      },
+      {
+        "preWrapperKey": 70211123,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70211150,
+        "offset0x84": "1"
+      },
+      {
+        "preWrapperKey": 70211162,
+        "offset0x84": "absent"
+      }
+    ],
+    "numeric26Offset0x84Counts": {
+      "1": 97,
+      "2": 21,
+      "4": 29,
+      "absent": 162
+    },
+    "repeatedLiteralNamesWithDifferent0x84": [
+      "SceneObj_Chest_Bramble_Lv1",
+      "SceneObj_Chest_Default_Lv1",
+      "SceneObj_Chest_Default_Lv2",
+      "SceneObj_Chest_Default_Lv4",
+      "SceneObj_Chest_Default_Lv5",
+      "SceneObj_Chest_Frozen_Lv1",
+      "SceneObj_Chest_Locked_Lv1",
+      "SceneObj_Chest_Locked_Lv2",
+      "SceneObj_Chest_Locked_Lv4",
+      "SceneObj_Chest_Locked_Lv5",
+      "SceneObj_Chest_NormalChest"
+    ],
+    "namedSceneObjChestOutsideNumeric26": [
+      {
+        "preWrapperKey": 70210114,
+        "literalName": "SceneObj_Chest_Hero_02",
+        "offset0x6C": 47
+      },
+      {
+        "preWrapperKey": 70217003,
+        "literalName": "SceneObj_Chest_Wendy_Sword",
+        "offset0x6C": 19
+      },
+      {
+        "preWrapperKey": 70220129,
+        "literalName": "SceneObj_Chest_Default_Fake_Lv2",
+        "offset0x6C": 19
+      },
+      {
+        "preWrapperKey": 70900272,
+        "literalName": "SceneObj_Chest_Hero_Treasure",
+        "offset0x6C": 30
+      },
+      {
+        "preWrapperKey": 70900287,
+        "literalName": "SceneObj_Chest_RigidMove_WhiteBox",
+        "offset0x6C": 19
+      }
+    ]
+  },
+  "limits": [
+    "These are original-client Gadget definition values, not verified scene-instance properties.",
+    "0x84 is insufficient to represent the five literal Lv suffixes in these 20 controls.",
+    "A literal Lv suffix is not an authenticated ordinary chest reward grade or scene level.",
+    "The original source has no proven semantic binding to LootCSS grade or level.",
+    "Pre-wrapper keys are not the verified final runtime wrapper values.",
+    "No community, historical Lua, private-server semantics or reward tables were used."
+  ]
+}
