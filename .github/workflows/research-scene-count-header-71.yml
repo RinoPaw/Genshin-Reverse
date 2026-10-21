@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/research-scene-count-header-71.yml'
+      - 'scripts/probe-7.1-scene-metadata-owners.py'
 
 permissions:
   contents: read
