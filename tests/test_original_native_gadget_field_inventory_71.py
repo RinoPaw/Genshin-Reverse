@@ -48,7 +48,10 @@ class NativeOnlyRewardGadgetInventoryTests(unittest.TestCase):
         data_keys = set(report)
         self.assertFalse(data_keys & BAD_SOURCE_KEYS)
         self.assertFalse(set(report["sources"]) & BAD_SOURCE_KEYS)
-        self.assertIn("Unknown", DOC.read_text(encoding="utf-8") + "Unknown")
+        doc = DOC.read_text(encoding="utf-8")
+        self.assertIn("只展示经过原版客户端二进制", doc)
+        self.assertIn("0x30", doc)
+        self.assertIn("0x6C", doc)
         coverage = report["observationsDirectlyFromOriginal"]["type26OptionalBooleanWireCoverage"]
         self.assertTrue(all(set(x) == {"presentTrue", "presentFalse", "absentOnWire"}
                             and sum(x.values()) == 309 for x in coverage.values()))
