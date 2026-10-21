@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 from genshinre.nativeprofile import PROFILE_71
-from tools.disassemble_rva import disassemble_rva
 
 TARGETS = {
     "audioLoader": {
@@ -112,6 +111,8 @@ def verify(disasm: dict[str, dict]) -> dict:
 
 
 def audit(exe: Path) -> dict:
+    from tools.disassemble_rva import disassemble_rva
+
     disasm = {
         key: disassemble_rva(
             exe, t["entryRva"], t["size"],
