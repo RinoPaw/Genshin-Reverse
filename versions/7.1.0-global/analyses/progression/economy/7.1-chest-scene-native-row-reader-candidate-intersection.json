@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_NATIVE_READER_KEYWRITER_NEIGHBOR_INTERSECTION__VTABLE_UNRESOLVED",
+  "originalClientExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "inputArtifacts": {
+    "nativeKeyWriterFullReportSha256": "5a545acb63f01af15dfe2793307c14f9e71a548a829b4e190c62d8a4a6be2169",
+    "metadataNeighborFullReportSha256": "8bd079ed0f05843bb87966f5e2b61c4736c319697c19eb2ac24ebf041fed73aa"
+  },
+  "tables": {
+    "SceneTag": {
+      "originalNativeKeyOffset": "0x28",
+      "originalManagerTypeIndex": 84296,
+      "keyWriterMethods": 485,
+      "metadataNeighborReaderMethods": 9,
+      "intersectionCount": 2,
+      "intersectionCandidates": [
+        {
+          "methodIndex": 696555,
+          "typeName": "BHENIHLFFDD",
+          "typeDefinitionIndex": 84285,
+          "rva": "0xAED2EF0",
+          "relativeTypeIndex": -11,
+          "falsifiedAsDirectOffsetFourReader": true
+        },
+        {
+          "methodIndex": 696558,
+          "typeName": "IKEJJGKKAOO",
+          "typeDefinitionIndex": 84286,
+          "rva": "0x99C3380",
+          "relativeTypeIndex": -10,
+          "falsifiedAsDirectOffsetFourReader": false
+        }
+      ],
+      "verifiedDirectOffsetFourFalsificationsWithinKeyWriterSet": [
+        696555
+      ],
+      "unfalsifiedKeyWriterCandidateCount": 484,
+      "singleNativeWrapperCallAndOnlyMatchingStore": 69
+    },
+    "SceneExcel": {
+      "originalNativeKeyOffset": "0x50",
+      "originalManagerTypeIndex": 35441,
+      "keyWriterMethods": 168,
+      "metadataNeighborReaderMethods": 10,
+      "intersectionCount": 0,
+      "intersectionCandidates": [],
+      "verifiedDirectOffsetFourFalsificationsWithinKeyWriterSet": [],
+      "unfalsifiedKeyWriterCandidateCount": 168,
+      "singleNativeWrapperCallAndOnlyMatchingStore": 13
+    }
+  },
+  "limitations": [
+    "Metadata neighborhood is a heuristic; absence from the nearby set does not exclude a real row reader.",
+    "The key-wrapper writer native call-site selection covers direct calls and a bounded post-call store window; inherited, inlined or indirect writes may be missed.",
+    "Only separately source-falsified direct first-record readers are marked false. The other SceneTag neighbor method remains unresolved.",
+    "One call to an ID wrapper plus matching field offset is no proof of the correct row type or vtable slot +0xF0.",
+    "No original SceneTag data fields, placements, server chest drop_tag, reward roots or payout quantities can be inferred."
+  ]
+}
