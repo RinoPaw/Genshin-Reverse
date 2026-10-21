@@ -1,10 +1,8 @@
-name: Temporary exact 7.1 chest native count-header search
+name: Temporary exact 7.1 chest table loader disassembly
 on:
   push:
     paths:
       - '.github/workflows/probe-7.1-chest-lv3-header-counts.yml'
-      - 'scripts/probe-7.1-chest-lv3-native-header-counts.py'
-      - 'tests/test_chest_lv3_native_header_counts_71.py'
   workflow_dispatch:
 
 permissions:
@@ -16,80 +14,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  source-pinned-native:
+  original-7-1-disassembly:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
       - run: python -m pip install -e . zstandard capstone
-      - name: Verify focused native count scanner tests
-        run: python -m unittest tests.test_chest_lv3_native_header_counts_71 -v
-      - name: Audit original IL2CPP audio chest field-token owner candidates
-        run: |
-          python -m unittest tests.test_chest_audio_native_metadata_71 -v
-          python scripts/probe-7.1-chest-audio-native-metadata.py --output work/audio-chest-native-metadata.json > /dev/null
-      - name: Fetch original hash-pinned executable and metadata
+      - name: Check native disassembly assertions
+        run: python -m unittest tests.test_chest_native_loaders_71 -v
+      - name: Fetch exact SHA-256-pinned Global 7.1 EXE
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
-      - name: Fetch exact original Sophon design blocks
-        run: python scripts/fetch-7.1-design-blocks.py --output work/blocks
-      - name: Fetch source-pinned binary extractor
+      - name: Audit original native table loader and row-reader candidates
         run: |
-          mkdir -p work
-          curl --fail --location --retry 3 --silent --show-error \
-            https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
-            --output work/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz
-      - name: Verify original Quest and Gadget Raw-export controls
-        run: |
-          python scripts/collect-7.1-native-chest-assets.py \
-            --blocks work/blocks \
-            --cli-archive work/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
-            --work work/export \
-            --report work/source-controls.json > /dev/null
-      - name: Search original native loader count transforms
-        run: |
-          python scripts/probe-7.1-chest-lv3-native-header-counts.py \
+          python scripts/audit-7.1-chest-native-loaders.py \
             --exe inputs/7.1.0-global/GenshinImpact.exe \
-            --exports work/export/export-25539185/MiHoYoBinData \
-            --output work/native-chest-lv3-header-evidence.json
-      - name: Post minimal candidate results under issue 31
+            --output work/chest-original-native-loader-disassembly.json
+      - name: Publish bounded evidence in issue 31
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
           import json,os
           from pathlib import Path
-          r=json.loads(Path('work/native-chest-lv3-header-evidence.json').read_text())
+          r=json.loads(Path('work/chest-original-native-loader-disassembly.json').read_text())
           lines=[
-            'Original Global 7.1 audio/handbook native header-count candidate scan (#31)',
+            'Original Global 7.1 chest audio/investigation loader aligned native disassembly (#31)',
             '',
-            f'- Exact sample: https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}',
-            f'- Original EXE SHA-256: {r["originalExeSha256"]}',
-            f'- Positive Gadget native count loader: {r["gadgetPositiveLoaderSignature"]}',
+            f'- Source: https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}',
+            f'- Source executable SHA-256: {r["originalExeSha256"]}',
           ]
-          meta=json.loads(Path('work/audio-chest-native-metadata.json').read_text())
-          lines.append(f'- Original metadata token hits: {meta["fieldTokenHitCounts"]}; both-token owners: {meta["ownerWithBothTokens"]}')
-          for name,data in r['tables'].items():
-            hits=data['literalImmediateHits']
-            candidates=data['gadgetIdiomSignatureCandidates']
-            lines.append(f'- {name}: rawHeader={data["rawHeaderLE"]}, community count hint={data["hypotheticalCommunityRowCount"]}, immediate matches={hits}, matching Gadget opcode candidates={len(candidates)}')
-            lines.append('  - transformations: '+str(data['hypotheticalNativeArithmeticConstants']))
-            for site in candidates[:5]:
-              lines.append(f'  - candidate RVA 0x{site["rva"]:X}, op={site["operator"]}, imm=0x{site["immediate"]:08X}')
-          lines.extend(['','Only a bounded one-step arithmetic search. Candidate bytes require original disassembly and independently proved row reader; no 7.1 chest scene placement, drop_tag, payout, grade or chance is established. AstaPS Loot unchanged.'])
-          Path('work/chest-native-header-comment.md').write_text(chr(10).join(lines)+chr(10),encoding='utf-8')
+          for key,reg in r['regions'].items():
+            lines.append(f'- {key}: entry={reg["candidateMethodEntryRva"]}, count transform={reg["fixedCountHypothesisFromHeaderAndNativeXor"]}, native MOV/XOR instruction anchors verified={reg["nativeCountInstructionAnchorsVerified"]}, vtable +0xF0 callsites in bounded region={reg["observedVirtualF0CallsInWindow"]}')
+          lines.append('These aligned native instructions and candidate row method still need runtime row class/vtable attribution and complete exact source-asset byte consumption. No chest grade, scene location or server reward is claimed.')
+          Path('work/chest-native-method-comment.md').write_text(chr(10).join(lines)+chr(10), encoding='utf-8')
           PY
-          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file work/chest-native-header-comment.md
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file work/chest-native-method-comment.md
       - uses: actions/upload-artifact@v7
         with:
-          name: exact-71-chest-lv3-native-count-candidates
-          path: |
-            work/native-chest-lv3-header-evidence.json
-            work/audio-chest-native-metadata.json
+          name: exact-71-chest-native-loader-disassembly
+          path: work/chest-original-native-loader-disassembly.json
           if-no-files-found: error
           retention-days: 3
