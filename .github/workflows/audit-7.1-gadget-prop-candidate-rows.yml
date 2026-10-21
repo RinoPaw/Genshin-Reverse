@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/audit-7.1-gadget-prop-candidate-rows.yml'
+      - 'scripts/audit-7.1-gadget-prop-candidate-rows.py'
 
 permissions:
   contents: read
