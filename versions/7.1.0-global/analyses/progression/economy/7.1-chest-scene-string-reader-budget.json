@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENETAG_CANDIDATE_696558_FORWARD_ONLY_ROW_BUDGET_REJECTION__VTABLE_UNRESOLVED",
+  "source": {
+    "table": "SceneTagConfigData",
+    "rawSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+    "payloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+    "originalExecutableSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "candidateDisassemblySha256": "7ecd093986c70a8f6ea08362f1f670166a841f0066ab0b5eec7b3f4a6be903fc",
+    "candidateMethodIndex": 696558,
+    "candidateType": "IKEJJGKKAOO",
+    "candidateRva": "0x99C3380",
+    "nativeAnchorsMatched": 17
+  },
+  "firstRow": {
+    "startOffset": 4,
+    "wireMaskU16": "0x440D",
+    "decodedMaskU16": "0xDDFD",
+    "mandatoryLengthFromBit0x20": 35703,
+    "minimumCursorAfterNativeReads": 35723,
+    "unknownBit0x01HelperMaySkipForward": true
+  },
+  "forwardOnlyRelaxedBound": {
+    "originalRowCount": 1147,
+    "maxPossibleRows": 300,
+    "candidateMeetsOriginalRowCount": false,
+    "originalPayloadBytes": 38941
+  },
+  "limitations": [
+    "The maximum is conditional on the observed bit-0x20 byte-span length being consumed and all reader helpers advancing the shared stream cursor without rewinding.",
+    "The bit-0x01 helper is allowed to skip ANY nonnegative byte count; unknown extra field reads and record semantics are omitted to favor the candidate.",
+    "This falsifies the candidate as a direct full table row parser only under those forward-only stream assumptions, not as a general native method or an inherited helper.",
+    "Original vtable+0xF0 resolution, native SceneTag field names, original scene placement and server drop_tag/reward roots remain unverified."
+  ]
+}
