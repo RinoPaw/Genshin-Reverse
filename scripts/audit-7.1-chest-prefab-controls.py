@@ -30,7 +30,7 @@ OTHER_BOOL = (0x79, 0x7A, 0x7B, 0x7C, 0x7F)
 
 
 def controls(scan, payload: bytes) -> dict:
-    by_id = {row.id_candidate: row for row in scan.rows}
+    by_id = {row.gadget_id: row for row in scan.rows}
     if len(by_id) != len(scan.rows):
         raise ValueError("duplicate Gadget candidate ID in prefab audit")
     findings = []
@@ -52,19 +52,19 @@ def controls(scan, payload: bytes) -> dict:
             if (level == 1 and observed_list != ["item"]
                     or level != 1 and 0x48 in fields):
                 raise ValueError(f"original prefab list-presence differs at {candidate_id}")
-            prefix = payload[row.prefix_start:row.id_wire_offset]
-            if (len(prefix) != 18
+            prefix = payload[row.base_start:row.base_end]
+            if (len(prefix) != 22
                     or prefix[:2] != b"\x91\xab"
-                    or row.inner_start - row.prefix_start != 22):
+                    or row.inner_start != row.base_end\n                    or row.base_mask != 0x17):
                 raise ValueError(f"original prefab outer prefix differs at {candidate_id}")
             findings.append({
-                "gadgetIdCandidate": candidate_id,
+                "gadgetIdPreWrapperScalar": candidate_id,
                 "nativeNameString": name,
                 "nameSuffixLevel": level,
                 "nameVariant": style,
                 "sourceTypeCandidate": 26,
-                "outerControlFirstTwoBytes": "91ab",
-                "outerPrefixBytesIncludingCandidateId": 22,
+                "nativeInheritedMask": "0x17",\n                "nativeMaskWireBytes": "91ab",
+                "nativeInheritedBytes": 22,
                 "nativeIconString": ICON,
                 "offset0x84Scalar": 2,
                 "booleanTrueOffsets": ["0x78", "0x7D", "0x7E"],
@@ -72,7 +72,7 @@ def controls(scan, payload: bytes) -> dict:
                 "offset0x48PresentOnWire": 0x48 in fields,
             })
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "status": "EXACT_7_1_CLIENT_CHEST_PREFAB_NAME_CONTROLS__GRADE_AND_PAYOUT_UNRESOLVED",
         "source": {
             "sample": "7.1.0-global/windows-x64",
@@ -80,7 +80,7 @@ def controls(scan, payload: bytes) -> dict:
             "officialClientBlock": "00/25539185.blk",
             "rawExportSha256": RAW_SHA256,
             "payloadSha256": PAYLOAD_SHA256,
-            "innerReaderRva": "0x10278E50",
+            "innerReaderRva": "0x10278E50",\n            "inheritedReaderRva": "0xBD56F60",\n            "nativeTableLoaderRva": "0x968F690",
         },
         "controls": {
             "nameVariants": list(KINDS),
@@ -96,7 +96,7 @@ def controls(scan, payload: bytes) -> dict:
             "These 20 definitions are authenticated literal original-client names and candidate row fields.",
             "Lv1..Lv5 are name suffixes, not a proved server chest-grade enum or a payout-tier mapping.",
             "Absent field 0x48 is kept distinct from an empty list; its purpose is not confirmed.",
-            "Candidate Gadget IDs still await independent native loader/key-consumer confirmation.",
+            "Pre-wrapper ID scalars pass through a native substitution-table transform at 0xBB16020 before being stored; the map-key getter is 0xBB15F50.",
             "The original 7.1 server scene selectors, reward root ownership, item quantities and rates remain unresolved.",
         ],
     }
