@@ -37,36 +37,38 @@ MAX_HITS = 20000
 
 
 def candidates_in_section(blob: bytes, start_rva: int) -> list[dict]:
-    """Return bounded x86 byte signatures, not aligned disassembly claims."""
+    """Return bounded matching-register ADD/XOR x86 patterns, not full disassembly."""
     found = []
-    offset = 0
-    while True:
-        pos = blob.find(b"\x03", offset)
-        if pos < 0:
-            break
-        offset = pos + 1
-        if pos < 5 or pos + 4 > len(blob):
-            continue
-        # add r32, [rax + rcx + 0x20], x86-64 ModRM + SIB sequence;
-        # preceding B8+reg imm32 is the native Gadget table idiom.
-        modrm = blob[pos + 1]
-        if (modrm & 0xC7) != 0x44 or blob[pos + 2:pos + 4] != b"\x08\x20":
-            continue
-        reg = (modrm >> 3) & 7
-        if blob[pos - 5] != 0xB8 + reg:
-            continue
-        constant = int.from_bytes(blob[pos-4:pos], "little")
-        found.append({
-            "candidateMovRva": f"0x{start_rva+pos-5:X}",
-            "candidateAddRva": f"0x{start_rva+pos:X}",
-            "register": reg,
-            "addImmediate": f"0x{constant:08X}",
-            "signatureHex": blob[pos-5:pos+4].hex(),
-            "localPrefixHex": blob[max(0, pos-21):pos-5].hex(),
-        })
-        if len(found) > MAX_HITS:
-            raise ValueError("unbounded native table loader pattern count")
-    return found
+    for operator, opcode in (("add", 0x03), ("xor", 0x33)):
+        offset = 0
+        while True:
+            pos = blob.find(bytes([opcode]), offset)
+            if pos < 0:
+                break
+            offset = pos + 1
+            if pos < 5 or pos + 4 > len(blob):
+                continue
+            # x86-64: add/xor r32,[rax+rcx+0x20] with matching preceding
+            # mov r32,imm32. Source-positive Gadget uses BF imm32 03 7C 08 20.
+            modrm = blob[pos + 1]
+            if (modrm & 0xC7) != 0x44 or blob[pos+2:pos+4] != b"\\x08\\x20":
+                continue
+            reg = (modrm >> 3) & 7
+            if blob[pos - 5] != 0xB8 + reg:
+                continue
+            constant = int.from_bytes(blob[pos-4:pos], "little")
+            found.append({
+                "candidateMovRva": f"0x{start_rva+pos-5:X}",
+                "candidateArithmeticRva": f"0x{start_rva+pos:X}",
+                "operator": operator,
+                "register": reg,
+                "immediate": f"0x{constant:08X}",
+                "signatureHex": blob[pos-5:pos+4].hex(),
+                "localPrefixHex": blob[max(0, pos-21):pos-5].hex(),
+            })
+            if len(found) > MAX_HITS:
+                raise ValueError("unbounded original loader arithmetic pattern count")
+    return sorted(found, key=lambda row: int(row["candidateMovRva"], 16))
 
 
 def audit(exe: Path, methods: Path, exports: Path) -> dict:
@@ -97,7 +99,7 @@ def audit(exe: Path, methods: Path, exports: Path) -> dict:
                 raise ValueError("unbounded original EXE table loader candidates")
     gadget = [
         row for row in hits if row["candidateMovRva"] == "0x968F6D9"
-        and row["addImmediate"] == "0x23F5AB5E" and row["register"] == 7
+        and row["immediate"] == "0x23F5AB5E" and row["operator"] == "add" and row["register"] == 7
     ]
     if len(gadget) != 1:
         raise ValueError("known Gadget original native table-loader instruction missing")
@@ -110,9 +112,9 @@ def audit(exe: Path, methods: Path, exports: Path) -> dict:
              "methodName": m.get("method_name"), "methodRva": m.get("rva")}
             for m in annotations.get(rva, [])[:4]
         ]
-        constant = int(row["addImmediate"], 16)
+        constant = int(row["immediate"], 16)
         row["rowCountIfAppliedToSourceHeader"] = {
-            label: ((int(h["first4ByteLittleEndian"], 16) + constant) & U32)
+            label: (((int(h["first4ByteLittleEndian"], 16) + constant) & U32)\n                    if row["operator"] == "add" else\n                    (int(h["first4ByteLittleEndian"], 16) ^ constant))
             for label, h in raw_headers.items()
         }
         row["plausibleSceneCountForEitherSource"] = any(
@@ -128,7 +130,7 @@ def audit(exe: Path, methods: Path, exports: Path) -> dict:
         "exeSha256": PROFILE_71.exe_sha256,
         "sourceHeaders": raw_headers,
         "verifiedPositiveGadgetLoader": gadget[0]["candidateMovRva"],
-        "nativeSignature": "mov r32,imm32; add r32,[rax+rcx+0x20]",
+        "nativeSignature": "mov r32,imm32; add/xor r32,[rax+rcx+0x20]",
         "candidateTotal": len(hits),
         "plausibleSceneCountCandidates": len(plausible),
         "plausibleCandidates": plausible,
@@ -137,7 +139,7 @@ def audit(exe: Path, methods: Path, exports: Path) -> dict:
             "Source exports require exact official SHA-256; Gadget instruction is a verified positive control.",
             "The historical 1147 SceneTag and 2377 SceneExcel counts are ranking hints from historical AstaPS-Resource, not authenticated original 7.1 row counts.",
             "A 9-byte byte-pattern hit is not a verified aligned instruction until native disassembly and method ownership are checked.",
-            "This searches the exact Gadget loader instruction idiom; absence does not rule out other registers, other reader styles, obfuscated counts or non-executable code.",
+            "This searches the exact Gadget loader add idiom and its matching-register XOR variant; other reader styles, register layouts and multi-step count decoding remain out of scope.",
             "No SceneTag drop_tag meaning, scene instance, server payout root or reward probability is inferred.",
         ],
     }
