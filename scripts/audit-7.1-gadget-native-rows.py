@@ -51,6 +51,11 @@ def audit(raw: bytes) -> dict:
     if summary["baseDecodedBytes"] != id_bytes + opaque_prefix_bytes:
         raise ValueError("Gadget scanner misreported opaque outer prefix bytes")
 
+    base_masks = Counter(row.base_mask for row in scan.rows)
+    base_strings = Counter(
+        row.base_fields[0x10] for row in scan.rows if 0x10 in row.base_fields)
+    if len(base_masks) != 12 or len(base_strings) != 14:
+        raise ValueError("7.1 inherited Gadget mask/string diversity changed")
     enum26 = [row for row in scan.rows if row.fields.get(0x6C) == 26]
     if len(enum26) != 309 or any(0x58 not in row.fields for row in enum26):
         raise ValueError("candidate Chest subset does not match exact 7.1 asset")
@@ -124,6 +129,21 @@ def audit(raw: bytes) -> dict:
             },
             "lastDecodedRecordEndsAtEof": scan.rows[-1].inner_end == len(payload),
             "coveredBytes": PAYLOAD_SIZE,
+        },
+        "inheritedNativeFields": {
+            "readerRva": "0xBD56F60",
+            "nativeFlagDecodeAdd": "0x5486",
+            "maskCounts": {
+                f"0x{mask:02X}": base_masks[mask] for mask in sorted(base_masks)
+            },
+            "chestMaskCounts": {
+                f"0x{mask:02X}": count for mask, count
+                in sorted(Counter(row.base_mask for row in enum26).items())
+            },
+            "stringFieldMemoryOffset": "0x10",
+            "stringCount": sum(base_strings.values()),
+            "distinctStringValues": len(base_strings),
+            "stringOccurrences": dict(sorted(base_strings.items())),
         },
         "fieldPresenceCountByCandidateMemoryOffset": field_presence,
         "enum26CrossCheck": {
