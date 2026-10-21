@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_7_1_GADGET_AUX_MANAGER_NATIVE_FIELDS__ROW_VTABLE_UNRESOLVED",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "methodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "originalIl2CppTypeArrayRva": "0x2870AD0",
+  "tables": {
+    "GadgetPropExcelConfigData": {
+      "managerTypeDefinitionIndex": 28984,
+      "managerOriginalTypeName": "CLOHJDMMODM",
+      "nativeFieldCount": 2,
+      "nativeFields": [
+        {
+          "fieldIndex": 145095,
+          "fieldName": "PAAGPEHCJFI",
+          "fieldTypeIndex": 528024,
+          "metadataKindName": "kind_0x15",
+          "nativeTypeEntry": "81b50200000000001100150000000000",
+          "nativeTypeKind": "0x15",
+          "nativeTypeKindName": "genericinst",
+          "nativeTypeDataLow32": "0x2B581",
+          "classOrValueTypeDefinitionIndex": null,
+          "genericArgumentsResolved": false
+        },
+        {
+          "fieldIndex": 145096,
+          "fieldName": "PBLMHNBIAJL",
+          "fieldTypeIndex": 439094,
+          "metadataKindName": "bool",
+          "nativeTypeEntry": "ae000000000000001100020000000000",
+          "nativeTypeKind": "0x02",
+          "nativeTypeKindName": "boolean",
+          "nativeTypeDataLow32": "0xAE",
+          "classOrValueTypeDefinitionIndex": null,
+          "genericArgumentsResolved": false
+        }
+      ],
+      "originalRowTypeInfoSlotRva": "0x57DAF50",
+      "originalClassSlotEightBytesFileBacked": false,
+      "originalClassSlotFileBytesHex": null,
+      "runtimeRowClassResolved": false
+    },
+    "GadgetInteractExcelConfigData": {
+      "managerTypeDefinitionIndex": 28382,
+      "managerOriginalTypeName": "GAMAJLKMDJO",
+      "nativeFieldCount": 2,
+      "nativeFields": [
+        {
+          "fieldIndex": 142168,
+          "fieldName": "PAAGPEHCJFI",
+          "fieldTypeIndex": 526324,
+          "metadataKindName": "kind_0x15",
+          "nativeTypeEntry": "a4a60200000000001100150000000000",
+          "nativeTypeKind": "0x15",
+          "nativeTypeKindName": "genericinst",
+          "nativeTypeDataLow32": "0x2A6A4",
+          "classOrValueTypeDefinitionIndex": null,
+          "genericArgumentsResolved": false
+        },
+        {
+          "fieldIndex": 142169,
+          "fieldName": "PBLMHNBIAJL",
+          "fieldTypeIndex": 439094,
+          "metadataKindName": "bool",
+          "nativeTypeEntry": "ae000000000000001100020000000000",
+          "nativeTypeKind": "0x02",
+          "nativeTypeKindName": "boolean",
+          "nativeTypeDataLow32": "0xAE",
+          "classOrValueTypeDefinitionIndex": null,
+          "genericArgumentsResolved": false
+        }
+      ],
+      "originalRowTypeInfoSlotRva": "0x57FA548",
+      "originalClassSlotEightBytesFileBacked": false,
+      "originalClassSlotFileBytesHex": null,
+      "runtimeRowClassResolved": false
+    }
+  },
+  "limitations": [
+    "Native Il2CppType.kind is verified from exact original client bytes; genericinst raw payloads have no confirmed pointer/index mapping.",
+    "The class static slot can be runtime-initialized; file-backed bytes alone cannot prove the runtime class or virtual function.",
+    "Manager field generic arguments cannot be assigned the concrete row type without a verified metadata registration mapping.",
+    "No loot selector type, chest grade, scene level, server reward or probabilities are inferred."
+  ],
+  "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39640202512"
+}
