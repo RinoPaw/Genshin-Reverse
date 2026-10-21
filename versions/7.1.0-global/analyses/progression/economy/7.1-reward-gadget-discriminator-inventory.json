@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_71_GADGET_DEFINITION_ATTRIBUTES_AND_HISTORICAL_INSTANCE_DISCRIMINATORS__REWARDS_OUT_OF_SCOPE",
+  "provenance": {
+    "originalGlobal71GadgetRawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "originalClientControl": "7.1-chest-native-gadget-prefab-controls.json",
+    "historicalSceneCsvSha256": "ba53152e17dbe019482920ad179ff90c62419d385390f9d0eb952dcb7895dcc1",
+    "historicalSceneResourceCommit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "comparisonForkRewardLanguageCommit": "49e2183ceed3f68e3fa2df8e51b850a29288451a"
+  },
+  "originalGlobal71Definition": {
+    "nativeGadgetRecords": 30599,
+    "nativeType26Records": 309,
+    "nativeType26DistinctNameStrings": 148,
+    "nativeNamePrefixSceneObjChestRecords": 162,
+    "nativeNamePrefixSearchPointRecords": 21,
+    "otherType26Records": 126,
+    "verifiedCoreNames": 20,
+    "nativeCoreIdSuffixLevels": [1, 2, 3, 4, 5],
+    "nativeCoreNameVariants": ["Default", "Locked", "Bramble", "Frozen"],
+    "verifiedFields": [
+      "pre-wrapper gadget scalar key",
+      "native name string (candidate jsonName)",
+      "numeric native type code",
+      "candidate icon string",
+      "opaque scalar and 22 other presence-gated fields"
+    ],
+    "unknownSemantics": [
+      "actual server chest grade",
+      "scene placement",
+      "instance drop tag",
+      "true/false boolean meaning",
+      "payable reward source"
+    ]
+  },
+  "historicalSceneCoverage": {
+    "candidateRows": 14084,
+    "distinctGadgetIds": 171,
+    "gadgetIdsWithMultipleSourceKinds": 37,
+    "gadgetIdsWithAllThreeSourceKinds": 21,
+    "gadgetIdsWithMultipleDistinctDropTags": 28,
+    "gadgetIdsWithMoreThanOneChineseGradeSubstring": 3,
+    "gadgetIdsMatchingOriginalNative20Core": 0,
+    "instanceLevelIncludedInCsv": false,
+    "sourceDistribution": {
+      "drop_tag": 9020,
+      "explicit_id": 1339,
+      "no_metadata": 3725
+    },
+    "examples": {
+      "70210101": {"drop_tag": 2447, "explicit_id": 88, "no_metadata": 1388, "distinctTags": 33},
+      "70211101": {"drop_tag": 1455, "explicit_id": 51, "no_metadata": 90, "distinctTags": 7},
+      "70211001": {"drop_tag": 498, "explicit_id": 26, "no_metadata": 54, "distinctTags": 6},
+      "70217020": {"drop_tag": 218, "explicit_id": 1, "no_metadata": 0, "distinctTags": 2}
+    }
+  },
+  "instanceFieldsBySource": {
+    "historicalLua": [
+      "base_info.group_id",
+      "gadgets[].config_id",
+      "gadgets[].gadget_id",
+      "gadgets[].level (present in individual Lua; omitted by prior CSV)",
+      "gadgets[].area_id",
+      "gadgets[].pos and rot",
+      "gadgets[].state",
+      "gadgets[].drop_tag",
+      "gadgets[].chest_drop_id",
+      "gadgets[].drop_count",
+      "gadgets[].isOneoff",
+      "gadgets[].persistent",
+      "gadgets[].point_type",
+      "gadgets[].boss_chest.monster_config_id",
+      "gadgets[].boss_chest.resin",
+      "gadgets[].boss_chest.life_time",
+      "gadgets[].boss_chest.take_num"
+    ],
+    "runtimeOrComputed": [
+      "EntityGadget.scene.id",
+      "EntityGadget.groupId",
+      "EntityGadget.configId",
+      "EntityGadget.gadgetId",
+      "EntityGadget.content class",
+      "scene type/dungeon manager",
+      "world level / world rank",
+      "cityId and parentAreaId derived by RewardAreaResolver",
+      "blossom manager membership",
+      "runtime state"
+    ],
+    "forkOnlyImportedAnnotations": [
+      "SceneGadget.chestType",
+      "SceneGadget.chestGrade",
+      "SceneGadget.rewardRegion",
+      "chest_common/exquisite/precious/luxurious/puzzle/mora/remarkable external marker kinds"
+    ]
+  },
+  "currentlyExposedForChestInRewardBranch": {
+    "type": "chestType from fork metadata or known prefab-name pattern",
+    "grade": "fork marker grade or current-tier heuristic, only for normal",
+    "scene": "scene runtime ID",
+    "gadget": "gadget ID",
+    "group": "scene group ID",
+    "config": "scene group config ID",
+    "level": "SceneGadget.level whenever meta exists; absence versus 0 not represented",
+    "area": "derived parent area, conditional",
+    "city": "derived city, conditional",
+    "tag": "declared selector key but not populated in WorldChestLootHelper",
+    "kind": "declared selector key but not populated in WorldChestLootHelper",
+    "point": "declared selector key but not populated in WorldChestLootHelper",
+    "world_level": "declared selector key but not populated in WorldChestLootHelper"
+  },
+  "discriminatorRules": [
+    "Scope first by reward Gadget content/caller and only then add instance metadata.",
+    "Use (scene,group,config) as instance identifier where genuine groups exist; synthesized spawn IDs may require a separate provenance.",
+    "Gadget ID may participate but never exclusively decide normal vs searchpoint, Mora, Remarkable, boss, or grade.",
+    "Do not coerce historical combat/puzzle and regional drop-tag text into official grade.",
+    "Do not equate native Lv1..Lv5 prefab suffixes, 4-grade chest rarity, and Audio Mid/Hi/Top.",
+    "A field absent from scene Lua is not proof of a real zero/false value.",
+    "Exclude rewards and probabilities from the research deliverable."
+  ]
+}
