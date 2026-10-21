@@ -108,22 +108,26 @@ No original row deserializer or server payout was authenticated by this job.
 No special extra CI workflow remains active for the chest table path study.
 
 
-## Temporary chest audio/handbook original-native count search (issue #31)
+## Retired original 7.1 chest audio native reconstruction (issue #31)
 
-`probe-7.1-chest-lv3-header-counts.yml` is one read-only code and asset
-research run against the **hash-pinned original Global 7.1 EXE** and both
-hash-pinned Sophon binary tables. The pinned binary data and original EXE
-cannot be kept in this source repository, so hosted source acquisition is
-needed to reproduce `scripts/probe-7.1-chest-lv3-native-header-counts.py`.
-It scans a finite set of one-step community count hypotheses against
-executable instruction bytes, with the original Gadget loader as a positive
-control. No guessed result can be promoted without native disassembly.
+The temporary hosted chest count-header/row-reader orchestration is complete
+and retired. Original Global 7.1 executable and asset hashes were guarded in
+the [native header scan 39585071475](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39585071475),
+[aligned loader/row disassembly 39586029162](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39586029162),
+[full 56-row Audio source decode 39586611284](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39586611284),
+and [56-key original-to-public label join 39587278416](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39587278416).
+All runs succeeded, and the normal Python matrix CI passed on the final
+source-backed run.
 
-**Owner**: #31. **Output**: bounded JSON with original EXE/table fingerprints,
-literal candidate RVAs and recognized original-Gadget-style arithmetic
-signatures, plus issue comment and short-retention evidence artifact.
-**Retirement condition**: pin outcome and limitations in
-`versions/7.1.0-global/analyses/progression/economy/` on `main`,
-remove the workflow and retain only its reusable source-gated script/tests.
-This does not run in general CI, change gameplay, store original bytes or
-submit changes to any upstream issue.
+Reusable algorithms remain in
+`scripts/probe-7.1-chest-lv3-native-header-counts.py`,
+`scripts/probe-7.1-chest-audio-native-metadata.py`,
+`scripts/audit-7.1-chest-native-loaders.py`,
+`scripts/audit-7.1-chest-audio-native-rows.py` and
+`scripts/audit-7.1-chest-audio-public-association.py`.
+The durable source- and scope-pinned results live in
+`versions/7.1.0-global/analyses/progression/economy/7.1-chest-native-audio-complete-rows.md`
+and its JSON companion. The short-lived research workflow was removed;
+no original game binaries are vendored. Original investigation row fields,
+audio symbolic enum authority, runtime vtable registration and server
+rewards remain unverified.
