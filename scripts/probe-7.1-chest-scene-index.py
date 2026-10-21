@@ -111,7 +111,7 @@ def analyze(index, *, digest: str) -> dict:
     results = {}
     for group, paths in groups.items():
         rows = matched[offset:offset + len(paths)]
-        offsets += len(paths)
+        offset += len(paths)
         results[group] = {
             "hypothesesTested": len(paths),
             "statusCounts": dict(sorted(Counter(r["status"] for r in rows).items())),
