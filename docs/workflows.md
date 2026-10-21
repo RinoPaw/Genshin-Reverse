@@ -48,6 +48,8 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
+The temporary class-registration pointer scan for issue #31 completed successfully on the exact SHA-256-pinned Global 7.1 client ([run 39548584709](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39548584709)). Its negative scope and source-control details are retained in `versions/7.1.0-global/analyses/progression/economy/7.1-chest-scene-row-class-pointer-registration.json`, reproducible with `scripts/probe-7.1-scene-class-pointer-registration.py --check`. That workflow was retired. Separate original-client keywriter and metadata-neighbor artifacts are compared by `scripts/audit-7.1-scene-reader-candidate-intersection.py`; vtable slot `+0xF0` remains unverified. None of these results authenticates server chest loot.
+
 There is currently no topic-specific workflow on the maintained branch. Issue #31's temporary original Global 7.1 SceneTag/SceneExcel row-class studies have completed: [class static xrefs, run 39543986621](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39543986621), [metadata neighbors and native disassembly, run 39544622842](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39544622842), and [wrapped-key field stores, run 39545346441](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39545346441). Their permanent source-scoped evidence and reusable scripts live under `versions/7.1.0-global/analyses/progression/economy/` and `scripts/`. The two one-shot workflows are retired. The original virtual row reader at +0xF0 remains unverified; no original asset bytes or server reward claims were committed.
 
 
