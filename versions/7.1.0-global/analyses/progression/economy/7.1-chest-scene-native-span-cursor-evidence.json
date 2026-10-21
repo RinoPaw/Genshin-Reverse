@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_71_SCENETAG_696558_NATIVE_CURSOR_ADVANCE_PROVEN__ROW_VTABLE_UNRESOLVED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "sceneTagRawSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+    "sceneTagPayloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+    "callerDisassemblySha256": "7ecd093986c70a8f6ea08362f1f670166a841f0066ab0b5eec7b3f4a6be903fc",
+    "cursorDisassemblySha256": "b36b6da826248d18f466776595bdd8e5e5cee475abef427691d4467167c6da30",
+    "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39565602303"
+  },
+  "native": {
+    "callerMethodIndex": 696558,
+    "callerRva": "0x99C3380",
+    "callSiteRva": "0x99C37DD",
+    "calledAbsoluteVa": "0x14fd53090",
+    "helperRva": "0xFD53090",
+    "argumentPropagation": "rcx=r13 (stream); edx=edi (decoded length); helper rdi=rcx, ebp=edx",
+    "normalReturnCursorAddRva": "0xFD53179",
+    "normalReturnCursorAdd": "dword ptr [rdi + 0x28] += ebp",
+    "normalReturnCursorAdvanceMatchesSpanLength": true
+  },
+  "originalSceneTagRows": 1147,
+  "firstRowDecodedByteSpanLength": 35703,
+  "forwardOnlyMaxPossibleRows": 300,
+  "limitations": [
+    "The native helper advances the same stream cursor by the decoded byte length on successful normal return.",
+    "The 300-row upper bound also requires all additional readers to proceed forward through the logical original stream; indirect refill/buffer behavior is not fully proved.",
+    "Candidate 696558 is inconsistent with direct whole-row parsing under those conditions, but may be a helper of another class.",
+    "The actual vtable +0xF0 row reader, scene/group/config, server drop_tag, reward roots and probabilities are still unverified."
+  ]
+}
