@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/probe-7.1-gadget-aux-row-readers.yml'
+      - 'scripts/probe-7.1-gadget-aux-row-readers.py'
 
 permissions:
   contents: read
