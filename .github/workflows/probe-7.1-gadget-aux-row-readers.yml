@@ -32,9 +32,37 @@ jobs:
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --output work/native-gadget-aux-reader-candidates.json
+      - name: Disassemble nearest native Gadget auxiliary reader candidates
+        run: |
+          EXPECTED_SHA=$(python -c "from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)")
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
+            0x9EB86F0 0x1000 --expected-sha256 "$EXPECTED_SHA" \
+            --output work/prop-closest-native-reader.json > /dev/null
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
+            0xBE94FB0 0x1000 --expected-sha256 "$EXPECTED_SHA" \
+            --output work/interact-closest-native-reader.json > /dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for label, filename in [
+              ("GadgetProp", "work/prop-closest-native-reader.json"),
+              ("GadgetInteract", "work/interact-closest-native-reader.json"),
+          ]:
+              rows = json.loads(Path(filename).read_text())["instructions"]
+              until_ret = next((i + 1 for i, ins in enumerate(rows)
+                                if ins["mnemonic"] == "ret"), len(rows))
+              print(label, "disassembledInstructions", len(rows),
+                    "throughFirstRet", until_ret, "firstRetRva",
+                    rows[until_ret - 1]["rva"])
+              for ins in rows[:min(until_ret, 40)]:
+                  print(ins["rva"], ins["mnemonic"], ins["op_str"])
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-gadget-aux-reader-candidates
-          path: work/native-gadget-aux-reader-candidates.json
+          path: |
+            work/native-gadget-aux-reader-candidates.json
+            work/prop-closest-native-reader.json
+            work/interact-closest-native-reader.json
           if-no-files-found: error
           retention-days: 7
