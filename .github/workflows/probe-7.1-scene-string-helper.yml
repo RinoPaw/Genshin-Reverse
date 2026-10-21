@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/probe-7.1-scene-string-helper.yml'
+concurrency:
+  group: probe-scene-string-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -28,9 +31,9 @@ jobs:
           out=Path('work/scene-helper')
           out.mkdir(parents=True,exist_ok=True)
           for name,rva,size in [
-              ('scenetag-string-span-cursor-helper',0x14FD53090,0x800),
-              ('scenetag-optional-string-helper',0x147805FE0,0x800),
-              ('scenetag-buffer-ensure-helper',0x15269BFC0,0x400),
+              ('scenetag-string-span-cursor-helper',0x0FD53090,0x800),
+              ('scenetag-optional-string-helper',0x07805FE0,0x800),
+              ('scenetag-buffer-ensure-helper',0x1269BFC0,0x400),
           ]:
               evidence=disassemble_rva(exe,rva,size,expected_sha256=PROFILE_71.exe_sha256,label=name)
               (out/(name+'.json')).write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
