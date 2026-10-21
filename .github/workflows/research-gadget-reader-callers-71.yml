@@ -31,10 +31,24 @@ jobs:
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --output work/gadget-reader-callers.json
-      - name: Preserve bounded xref evidence
+      - name: Disassemble the two metadata-owned native callers
+        run: |
+          expected_sha=$(python -c 'from genshinre.nativeprofile import PROFILE_71; print(PROFILE_71.exe_sha256)')
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe 0x968F160 0x530 \
+            --expected-sha256 "$expected_sha" --label Gadget-caller-197826 \
+            --output work/gadget-caller-197826.json > /dev/null
+          python tools/disassemble_rva.py \
+            inputs/7.1.0-global/GenshinImpact.exe 0x968F690 0x1000 \
+            --expected-sha256 "$expected_sha" --label Gadget-caller-197827 \
+            --output work/gadget-caller-197827.json > /dev/null
+      - name: Preserve bounded xref and caller-disassembly evidence
         uses: actions/upload-artifact@v7
         with:
-          name: pinned-7.1-gadget-reader-caller-xrefs
-          path: work/gadget-reader-callers.json
+          name: pinned-7.1-gadget-reader-caller-traces
+          path: |
+            work/gadget-reader-callers.json
+            work/gadget-caller-197826.json
+            work/gadget-caller-197827.json
           if-no-files-found: error
           retention-days: 2
