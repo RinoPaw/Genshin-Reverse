@@ -107,11 +107,18 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--exe", required=True, type=Path)
     p.add_argument("--output", required=True, type=Path)
+    p.add_argument("--check", action="store_true",
+                   help="Compare source-pinned report with the committed evidence")
     args = p.parse_args()
     result = scan(args.exe)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n",
-                           encoding="utf-8")
+    if args.check:
+        if json.loads(args.output.read_text(encoding="utf-8")) != result:
+            raise SystemExit("pinned native row-class registration scan differs")
+        print("PASS: source-pinned 7.1 scene class registration evidence")
+    else:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False)+"\n",
+                               encoding="utf-8")
     print(json.dumps({
         "status": result["status"],
         "hits": {k: {
