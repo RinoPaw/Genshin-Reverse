@@ -48,7 +48,7 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
-A separate one-shot issue #31 workflow is `research-scene-manager-genericinst-71.yml`. It investigates the original SceneTag and SceneExcel manager `kind_0x15` field's exact IL2CPP runtime type entry and only follows a file-backed generic-class pointer chain when present. Its evidence is read-only, SHA-256-pinned to the original Global 7.1 executable, and bounded to the two manager types and their two declared fields. The generic pointer interpretation stays unverified until a positive control or original reader is linked. Retire this temporary workflow after committing source results and scope tests; it must not promote scene drop tags or payouts.
+The exact-7.1 SceneTag/SceneExcel generic field research is complete and its one-shot workflow has been retired. The verified original executable [source run 39544944169](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39544944169) established distinct genericinst field type indices 666588 and 545412, the matching raw Il2CppType entries, and a shared bool type index 439094. The low 32-bit generic type payloads cannot be treated as file-backed virtual addresses. Permanent research code and evidence remain in `scripts/probe-7.1-scene-manager-genericinst.py` and `versions/7.1.0-global/analyses/progression/economy/7.1-chest-scene-manager-generic-type-evidence.json`. Concrete row classes and virtual method +0xF0 remain unknown.
 
 
 
