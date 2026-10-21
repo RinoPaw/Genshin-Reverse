@@ -1,0 +1,50 @@
+name: Probe original 7.1 Gadget auxiliary count loaders
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-7.1-gadget-aux-headers.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-71-gadget-aux-headers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: python -m pip install -e . zstandard
+      - name: Acquire original hash-pinned client and Sophon blocks
+        run: |
+          bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+          python scripts/fetch-7.1-design-blocks.py --output work/blocks
+          curl --fail --location --retry 3 \
+            https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
+            --output work/animestudio.tar.gz
+          python scripts/collect-7.1-native-chest-assets.py \
+            --blocks work/blocks --cli-archive work/animestudio.tar.gz \
+            --work work/export --report work/source-verification.json
+      - name: Check exact original native count-transform sites
+        run: |
+          python scripts/probe-7.1-gadget-aux-loaders.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --exports work/export/export-25539185/MiHoYoBinData \
+            --output work/gadget-aux-count-probe.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-gadget-aux-count-probe
+          path: work/gadget-aux-count-probe.json
+          retention-days: 7
+          if-no-files-found: error

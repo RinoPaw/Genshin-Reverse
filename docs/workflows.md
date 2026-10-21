@@ -131,3 +131,7 @@ and its JSON companion. The short-lived research workflow was removed;
 no original game binaries are vendored. Original investigation row fields,
 audio symbolic enum authority, runtime vtable registration and server
 rewards remain unverified.
+
+## Temporary original Gadget auxiliary headers probe (issue #31)
+
+One read-only one-shot hosted research workflow `audit-7.1-gadget-aux-headers.yml` is temporarily present. Local CI cannot fetch the proprietary original Global 7.1 executable and official Sophon blocks. It runs reusable `scripts/probe-7.1-gadget-aux-loaders.py` against original, SHA-256-pinned `GadgetPropExcelConfigData` and `GadgetInteractExcelConfigData` Raw exports, and the exact sample executable, preserving only a small candidate-loader JSON. **Exit condition:** verify the counts/native code evidence, commit a bounded non-proprietary analysis and regressions (or a sourced negative result), and remove this workflow. The native table row-reader and LootCSS field semantic bindings remain separate unresolved gates.
