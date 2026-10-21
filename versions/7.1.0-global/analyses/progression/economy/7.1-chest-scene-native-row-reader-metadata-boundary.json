@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_LOADER_MANAGER_METADATA_CONFIRMED__VIRTUAL_ROW_OWNER_UNRESOLVED",
+  "provenance": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "methodMetadataGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+    "originalRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39543305232",
+    "sourceScript": "scripts/probe-7.1-scene-metadata-owners.py"
+  },
+  "loaderOwners": {
+    "SceneTag": {
+      "typeName": "EJCNENCJADF",
+      "typeDefinitionIndex": 84296,
+      "methodIndex": 696653,
+      "methodRva": "0x14015460",
+      "typeFieldCount": 2,
+      "typeMethodCount": 6,
+      "fieldNames": [
+        "PAAGPEHCJFI",
+        "PBLMHNBIAJL"
+      ],
+      "readerParameterType": "FNIAHJGHFAK",
+      "rowVirtualReaderOffset": "0xF0",
+      "rowKeyMemoryOffset": "0x28",
+      "nativeRowCount": 1147
+    },
+    "SceneExcel": {
+      "typeName": "HPNMCGDJOJL",
+      "typeDefinitionIndex": 35441,
+      "methodIndex": 279989,
+      "methodRva": "0xA6C7000",
+      "typeFieldCount": 2,
+      "typeMethodCount": 6,
+      "fieldNames": [
+        "PAAGPEHCJFI",
+        "PBLMHNBIAJL"
+      ],
+      "readerParameterType": "FNIAHJGHFAK",
+      "rowVirtualReaderOffset": "0xF0",
+      "rowKeyMemoryOffset": "0x50",
+      "nativeRowCount": 2377
+    }
+  },
+  "methodNameCollision": {
+    "obfuscatedMethodName": "GMENPOPMKAA",
+    "methodOccurrencesWithRva": 12277,
+    "distinctOwnerTypeNames": 10867,
+    "sameLoaderParameterSignatureOccurrences": 10760,
+    "sharedParameterSignature": "[\"FNIAHJGHFAK\"]",
+    "relatedPinnedGadgetRowReader": {
+      "typeName": "DCCHEHMHFGC",
+      "methodIndex": 483590,
+      "rva": "0x10278E50"
+    },
+    "relatedPinnedInheritedReader": {
+      "typeName": "FGGKFGECPJJ",
+      "methodIndex": 395933,
+      "rva": "0xBD56F60"
+    },
+    "methodsWithSameNameAreUnverifiedCandidates": true
+  },
+  "limitations": [
+    "Loader-owner type metadata has two declared fields and six methods, but this does not identify the separate concrete row class created by the native loader.",
+    "Native code calls the row object vtable slot +0xF0; method-name and input-parameter matches across 10760 methods cannot uniquely identify the callee.",
+    "Row key memory offsets and map insertion have native instruction evidence, but the u32 runtime value wrapper's dynamic byte tables remain unverified.",
+    "No original SceneTag row field schema, scene gadget instance source, chest drop_tag, server reward root or payout probability is authenticated by these metadata observations."
+  ]
+}
