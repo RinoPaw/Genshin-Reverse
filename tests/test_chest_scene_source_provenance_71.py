@@ -33,7 +33,7 @@ class TestOriginalSceneSourceProvenance71(unittest.TestCase):
         self.assertEqual(len(names), 805)
         import hashlib
         self.assertEqual(report["candidatesSha256"],
-                         hashlib.sha256(("\\n".join(names) + "\\n").encode()).hexdigest())
+                         hashlib.sha256((chr(10).join(names) + chr(10)).encode()).hexdigest())
         self.assertEqual(report["candidateCount"], 805)
         self.assertEqual(report["statusCounts"],
                          {"HASH_ABSENT": 802, "HASH_RESOLVED": 3})
