@@ -44,14 +44,14 @@ def audit(exe: Path, methods_csv: Path) -> dict:
         writes[name] = len(write_rows)
         anchors = {0xBB16026, 0xBB15F56, 0xBB160A3, 0xBB15F6D}
         selected = list(write_rows[:128])
-        selected += [r for r in rows if r["instruction_rva"] in anchors]
+        selected += [r for r in rows if int(r["instruction_rva"], 0) in anchors]
         if name == "xorWord":
             selected += rows[:128]
         selected += rows[:12]
-        chosen = list({int(row["instruction_rva"]): row for row in selected}.values())
+        chosen = list({int(row["instruction_rva"], 0): row for row in selected}.values())
         chosen.sort(key=lambda r: int(r["instruction_rva"]))
         annotations = attach_caller_methods(
-            [int(row["instruction_rva"]) for row in chosen],
+            [int(row["instruction_rva"], 0) for row in chosen],
             methods_csv, max_method_body=0x10000)
         hits[name] = [
             {
@@ -65,7 +65,7 @@ def audit(exe: Path, methods_csv: Path) -> dict:
                         "methodName": owner.get("method_name"),
                         "typeName": owner.get("type_name"),
                         "methodRva": owner.get("rva"),
-                    } for owner in annotations.get(int(row["instruction_rva"]), [])[:4]
+                    } for owner in annotations.get(int(row["instruction_rva"], 0), [])[:4]
                 ],
             } for row in chosen
         ]
