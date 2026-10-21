@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_WRAPPER_GLOBAL_LOCATIONS_REPRODUCED__RUNTIME_TABLE_UNKNOWN",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39532251021",
+    "script": "scripts/probe-7.1-gadget-wrapper-globals.py",
+    "sourceArtifactReportSha256": "a497cc17e2b1d8202eb0699be4cf29d71d31a231177b0229ab622c8cd4833d76"
+  },
+  "staticGlobals": {
+    "ownerPointer": {
+      "rva": "0x57831E8",
+      "reportedFileBackedBytesHex": "",
+      "ripReadRvas": [
+        "0xBB16026",
+        "0xBB15F56"
+      ],
+      "ripReadTargetRva": "0x57831E8",
+      "recognizedMovLeaReadCandidates": 1073249,
+      "recognizedMovLeaWriteCandidates": 0,
+      "description": "Generic IL2CPP statics owner pointer, used by a large number of methods; the actual substitution array is reached through managed/static memory and offset 0xF560"
+    },
+    "xorWord": {
+      "rva": "0x578B100",
+      "reportedFileBackedBytesHex": "",
+      "ripReadRvas": [
+        "0xBB160A3",
+        "0xBB15F6D"
+      ],
+      "ripReadTargetRva": "0x578B100",
+      "recognizedMovLeaReadCandidates": 430,
+      "recognizedMovLeaWriteCandidates": 0,
+      "description": "Shared word used by wrapper and getter. The writer's XOR RIP instruction at 0xBB160A3 is confirmed separately from original disassembly and outside the MOV/LEA scanner."
+    }
+  },
+  "nextProof": {
+    "runtimeArrayBytes": 2048,
+    "writeLookupPageOffsets": [
+      "0x000",
+      "0x100",
+      "0x200",
+      "0x300"
+    ],
+    "readLookupPageOffsets": [
+      "0x400",
+      "0x500",
+      "0x600",
+      "0x700"
+    ],
+    "conditionalRoundTripInvariant": "For every byte position i in [0..3] and x in [0..255], read_page_i[write_page_i[x]] == x; writer and reader additionally require the same runtime XOR word.",
+    "actualTableBytesCaptured": false,
+    "roundTripVerified": false,
+    "sceneGadgetDropTagAuthenticity": "UNRESOLVED",
+    "serverChestRewardAuthenticity": "UNRESOLVED"
+  },
+  "limitations": [
+    "These counts are raw MOV/LEA RIP-relative byte-pattern candidates from the bounded xref scanner, not an exhaustive disassembly of aligned code and not unique Gadget-specific references.",
+    "The writer's RIP-relative XOR opcode is excluded from the MOV/LEA xref scanner; no candidate MOV/LEA write was found, but indirect/other writes were not ruled out.",
+    "Unmapped file-backed reads are not proof of zero runtime values or runtime absence; they mean the exact bytes are not available from a file-backed PE section at those RVAs.",
+    "The generic static owner pointer is widely shared, making naive full xref traversal poor evidence of which method populates the Gadget wrapper's +0xF560 storage.",
+    "No runtime lookup-table bytes or evidence of their relationship were recovered; no claims about reversible runtime IDs, scene tags, or server reward distributions follow."
+  ]
+}
