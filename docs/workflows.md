@@ -139,3 +139,7 @@ The one-shot read-only original Global 7.1 Gadget auxiliary probe was completed 
 ## Retired original Gadget auxiliary row-reader filter (issue #31)
 
 The one-off read-only original Global 7.1 row-reader screen was completed in [Actions run 39624413563](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39624413563). Source-gated native key-writer call sites and TypeInfo static slot xrefs are preserved in [candidate report](../versions/7.1.0-global/analyses/progression/economy/7.1-gadget-aux-native-row-reader-candidates.json); the full raw candidate summary is SHA-256-pinned to the run's artifact. Two nearest native methods were independently disassembled, but the actual vtable +0xF0 binding and schema remain unverified. Reproduction uses `scripts/probe-7.1-gadget-aux-row-readers.py`; no temporary workflow remains active.
+
+## Temporary GadgetProp exact-byte candidate reader probe (issue #31)
+
+The one-shot read-only workflow `audit-7.1-gadget-prop-candidate-rows.yml` tests the native method 225165 GadgetProp candidate (source-verified original disassembly) against all **326** Raw-export rows from the hash-pinned official Global 7.1 Sophon asset. Retire after recording either complete source-native consumption or the source-bound falsification. The vtable binding and chest `grade` / `level` remain independent outstanding gates. Original game asset bytes are not committed.
