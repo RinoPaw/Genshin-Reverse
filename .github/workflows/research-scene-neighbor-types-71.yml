@@ -1,0 +1,36 @@
+name: Temporary exact 7.1 scene type-neighborhood audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/research-scene-neighbor-types-71.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-scene-neighbor-types-71
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Source-pinned metadata candidate inventory
+        run: |
+          python scripts/probe-7.1-scene-neighbor-types.py \
+            --types versions/7.1.0-global/windows-x64/metadata/types.csv \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            --output work/scene-neighbor-types.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: exact-71-scene-type-neighbor-evidence
+          path: work/scene-neighbor-types.json
+          retention-days: 2
+          if-no-files-found: error
