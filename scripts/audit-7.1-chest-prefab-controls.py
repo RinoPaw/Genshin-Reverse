@@ -129,8 +129,7 @@ def main() -> None:
         print("PASS: 20 original chest name/field controls from exact 7.1 client")
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "
-",
+        args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n",
                                encoding="utf-8")
         print("Recorded 20 exact native 7.1 chest prefab name controls")
 
