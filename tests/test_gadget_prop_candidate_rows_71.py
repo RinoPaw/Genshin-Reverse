@@ -1,40 +1,47 @@
-"""Verify GadgetProp row byte order and native reader candidate transforms."""
+"""Regression of original 7.1 GadgetProp candidate's first-record falsification."""
 from __future__ import annotations
 from importlib import util
+import json
 from pathlib import Path
 import struct
 import unittest
-from genshinre.binconfig import BinaryConfigReader
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = util.spec_from_file_location("native_gadget_prop_candidate",ROOT/"scripts/audit-7.1-gadget-prop-candidate-rows.py")
-mod = util.module_from_spec(SPEC)
-SPEC.loader.exec_module(mod)
+SCRIPT = ROOT / "scripts/audit-7.1-gadget-prop-candidate-rows.py"
+_spec = util.spec_from_file_location("gadget_prop_direct_boundary_71", SCRIPT)
+mod = util.module_from_spec(_spec)
+_spec.loader.exec_module(mod)
 
 
-class OriginalGadgetPropCandidateTests(unittest.TestCase):
-    def test_exact_mask_and_integer_field_sequence(self):
-        encoded_mask=(0x8D-mod.MASK_ADD)&0xFFFF
-        payload=struct.pack("<HIIII",encoded_mask,
-            0xFE010203,4,2,3)
-        reader=BinaryConfigReader(payload)
-        self.assertEqual(mod.decode_mask(encoded_mask),0x8D)
-        row=mod.candidate_row(reader,0)
-        self.assertEqual(row["nativeMask"],"0x008D")
-        self.assertEqual(row["fields"]["0x20"],0xFE010203^0x89E1EE3D)
-        self.assertEqual(row["fields"]["0x1C"],(4+0xFA34DCA4)&0xffffffff)
-        self.assertEqual(row["fields"]["0x18"],(2+0xFFE30423)&0xffffffff)
-        self.assertEqual(row["fields"]["0x24"],(3+0x4649B56A)&0xffffffff)
-        self.assertEqual(reader.pos,18)
+class GadgetPropCandidateBoundary71(unittest.TestCase):
+    def test_first_row_original_binary_witness_is_falsification(self):
+        # Prefix fields are derived from the previously SHA-pinned original source.
+        # The rest of this synthetic buffer only supplies the verified payload size.
+        buffer = bytearray(9388)
+        struct.pack_into("<I", buffer, 0, 0x5BD30290)
+        struct.pack_into("<H", buffer, 4, 0x16D8)
+        struct.pack_into("<I", buffer, 6, 0x4E667B1B)
+        struct.pack_into("<H", buffer, 10, 0xA31F)
+        witness = mod.inspect_direct_first_record(bytes(buffer))
+        self.assertEqual(witness["tableHeaderDecodedRows"], 326)
+        self.assertEqual(witness["candidateDecodedMask"], "0xB9DA")
+        self.assertEqual(witness["candidateStringLength"], 30606)
+        self.assertEqual(witness["remainingPayloadBytes"], 9376)
+        self.assertEqual(witness["candidateStringExceedsSourceByBytes"], 21230)
+        self.assertFalse(witness["directAtFirstRowPossible"])
 
-    def test_wrong_original_mask_is_rejected(self):
-        with self.assertRaisesRegex(ValueError,"unsupported"):
-            mod.decode_mask((0x10-mod.MASK_ADD)&0xFFFF)
+    def test_modified_source_boundary_must_fail_closed(self):
+        buffer = bytearray(9388)
+        struct.pack_into("<I", buffer, 0, 0x5BD30290)
+        struct.pack_into("<H", buffer, 4, 0x16D8)
+        struct.pack_into("<H", buffer, 10, 1)
+        with self.assertRaises(ValueError):
+            mod.inspect_direct_first_record(bytes(buffer))
 
-    def test_wrong_original_raw_sha_is_rejected(self):
-        with self.assertRaisesRegex(ValueError,"raw SHA-256 mismatch"):
-            mod.scan(b"fictional client bytes")
+    def test_reject_unpinned_original_raw(self):
+        with self.assertRaisesRegex(ValueError, "Raw SHA-256"):
+            mod.audit(b"not-original-source")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     unittest.main()
