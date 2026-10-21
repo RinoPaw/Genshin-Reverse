@@ -78,7 +78,7 @@ def verify(disasm: dict[str, dict]) -> dict:
                         "[rdx + 0xf0]" in r["op_str"]))]
         signatures = Counter(r["mnemonic"] for r in rows)
         near = [r for r in rows if (key == "audioRowReaderCandidate" and
-                int(r["rva"], 16) < target["entryRva"] + 0xE0) or
+                int(r["rva"], 16) < target["entryRva"] + 0x150) or
                 (key != "audioRowReaderCandidate" and
                  target["entryRva"] + 0x25 <= int(r["rva"], 16) < target["entryRva"] + 0x165)]
         reports[key] = {
