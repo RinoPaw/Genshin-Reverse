@@ -135,3 +135,7 @@ rewards remain unverified.
 ## Retired original Gadget auxiliary native loaders probe (issue #31)
 
 The one-shot read-only original Global 7.1 Gadget auxiliary probe was completed and removed after [source-verified Actions run 39621473822](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39621473822). The pinned client executable, official Sophon exports, and metadata confirmed the original 326-row GadgetProp and 363-row GadgetInteract loaders, exact row class static pointer slots and vtable +0xF0 call sites. [Reproducible native loader verification](../scripts/audit-7.1-gadget-aux-native-loaders.py), [bounded native header candidate scan](../scripts/probe-7.1-gadget-aux-loaders.py) and the [source-backed proof](../versions/7.1.0-global/analyses/progression/economy/7.1-gadget-aux-native-table-loaders.json) remain maintained. The concrete row reader classes, serialized fields and LootCSS grade/level semantics remain unresolved. No proprietary raw asset bytes were committed.
+
+## Temporary Gadget auxiliary row-reader filter (issue #31)
+
+The temporary read-only workflow `probe-7.1-gadget-aux-row-readers.yml` runs `scripts/probe-7.1-gadget-aux-row-readers.py` on the exact original Global 7.1 executable. It tests original native wrapped u32-key writer call sites and independent RIP-relative references to both verified GadgetProp/GadgetInteract row TypeInfo static slots. It produces bounded method candidates only. It must be retired after publishing the source-bound findings and tests; no client game assets are committed.

@@ -1,0 +1,39 @@
+name: Probe original 7.1 auxiliary Gadget row readers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-7.1-gadget-aux-row-readers.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-71-gadget-aux-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . zstandard capstone
+      - name: Fetch original hash-pinned Global 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Check original native row key and TypeInfo references
+        run: |
+          python scripts/probe-7.1-gadget-aux-row-readers.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --output work/native-gadget-aux-reader-candidates.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-gadget-aux-reader-candidates
+          path: work/native-gadget-aux-reader-candidates.json
+          if-no-files-found: error
+          retention-days: 7
