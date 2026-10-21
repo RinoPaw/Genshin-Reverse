@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_HEADER_AND_INHERITED_WIRE_PROVEN__SERVER_REWARDS_UNRESOLVED",
+  "source": {
+    "target": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    "methodsCsvGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+    "gadgetRawExportSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+    "sourceBlock": "00/25539185.blk"
+  },
+  "methodChain": [
+    {
+      "role": "table-loader",
+      "owner": "AACCGEFDDMD",
+      "method": "GMENPOPMKAA",
+      "methodIndex": 197827,
+      "rva": "0x968F690",
+      "disassemblySha256": "c0a6cc4f9b686002e1ee3c98bf9d9aeed749fcc10d9ea95f70161066592b744b",
+      "evidence": "0x968F6D9/0x968F6DE load and add 0x23F5AB5E to u32 row count; inner call at 0x968F76E"
+    },
+    {
+      "role": "row-loader",
+      "owner": "AACCGEFDDMD",
+      "method": "KLMKABIOJKG",
+      "methodIndex": 197826,
+      "rva": "0x968F160",
+      "disassemblySha256": "7aa3199a6f6f9a01a73f23507602bba3e6a62bcd6f84595c1ef40a126149c7fa",
+      "evidence": "direct call inner reader at 0x968F25C"
+    },
+    {
+      "role": "inner-reader",
+      "owner": "DCCHEHMHFGC",
+      "method": "GMENPOPMKAA",
+      "methodIndex": 483590,
+      "rva": "0x10278E50",
+      "disassemblySha256": "e43ed60f00413761ee33f3c554d35e737af81e864b9ae315fba3e28f9f50ae5b",
+      "evidence": "calls native inherited reader at 0x10278E79; own 22 field mask +0x466DB4EB"
+    },
+    {
+      "role": "inherited-reader",
+      "owner": "FGGKFGECPJJ",
+      "method": "GMENPOPMKAA",
+      "methodIndex": 395933,
+      "typeDefinitionIndex": 49659,
+      "rva": "0xBD56F60",
+      "disassemblySha256": "d52f3a83a010f744a38471b980ef1b94125f355856985de1212c4c71eb147d21",
+      "evidence": "u16 mask +0x5486; pre-wrapper ID u32 +0x4894CEA6 stored at displacement 0x30"
+    }
+  ],
+  "wire": {
+    "header": {
+      "widthBits": 32,
+      "decode": "add modulo 2^32",
+      "add": "0x23F5AB5E",
+      "raw": "0xDC0ACC29",
+      "decodedCount": 30599
+    },
+    "inherited": {
+      "maskWidthBits": 16,
+      "maskDecodeAdd": "0x5486",
+      "fieldsInNativeReadOrder": [
+        {
+          "flag": "0x20",
+          "offset": "0x40",
+          "kind": "uint64",
+          "operations": [
+            "xor 0xA269090E"
+          ]
+        },
+        {
+          "flag": "0x04",
+          "offset": "0x20",
+          "kind": "uint64",
+          "operations": [
+            "xor 0x67754856"
+          ]
+        },
+        {
+          "flag": "0x01",
+          "offset": "0x34",
+          "kind": "uint32",
+          "operations": [
+            "add 0xCFCCA56B"
+          ]
+        },
+        {
+          "flag": "0x80",
+          "offset": "0x10",
+          "kind": "UTF8 string",
+          "lengthDecode": "((u16 - 0xD3) mod 2^16) xor 0x7C82",
+          "stringChunkXor": "0xDE637C82E062FF2D"
+        },
+        {
+          "flag": "0x02",
+          "offset": "0x18",
+          "kind": "uint32",
+          "operations": [
+            "add 0xC6E69CA5"
+          ]
+        },
+        {
+          "flag": "0x08",
+          "offset": "0x38",
+          "kind": "uint64",
+          "operations": [
+            "xor 0xA3ED922C"
+          ]
+        },
+        {
+          "flag": "0x40",
+          "offset": "0x28",
+          "kind": "uint64",
+          "operations": [
+            "add 0xCD92A1B8",
+            "xor 0x87A58EB3"
+          ]
+        },
+        {
+          "flag": "0x10",
+          "offset": "0x30",
+          "kind": "pre-wrapper uint32 ID",
+          "operations": [
+            "add 0x4894CEA6"
+          ]
+        }
+      ]
+    },
+    "inner": {
+      "nativePresenceMaskDecodeAdd": "0x466DB4EB",
+      "fieldCount": 22
+    }
+  },
+  "reproduction": {
+    "exactSourceWorkflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39529490944",
+    "callerWorkflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39529205048",
+    "auditScript": "scripts/audit-7.1-gadget-native-rows.py",
+    "decoder": "genshinre/gadgetbin.py",
+    "sampleAllRowsDecoded": 30599,
+    "payloadLength": 2854884,
+    "unreadBytes": 0
+  },
+  "limits": [
+    "This evidence reconstructs client Gadget definitions, not actual scene placements.",
+    "Pre-wrapper ID scalar enters an additional native substitution-table transform at RVA 0xBB16020; its semantic use requires separate verification.",
+    "The previous +0x5473 outer control candidate was false and is retired; inherited native mask transform is +0x5486.",
+    "Opaque wrapper type meanings, enum labels and all original server reward data remain unverified.",
+    "Neither chest-grade mapping, drop_tag, server reward roots, nor item quantities/probabilities can be inferred from successful decoding."
+  ]
+}
