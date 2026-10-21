@@ -44,13 +44,12 @@ jobs:
             --output work/gadget-aux-count-probe.json
       - name: Disassemble both original candidate loader entrypoints
         run: |
+          EXPECTED_SHA=$(python -c "from genshinre.nativeprofile import PROFILE_71;print(PROFILE_71.exe_sha256)")
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
-            0x124F2CF0 0x320 --expected-sha256 \
-            08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d \
+            0x124F2CF0 0x320 --expected-sha256 "$EXPECTED_SHA" \
             --output work/gadget-prop-loader-disassembly.json > /dev/null
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
-            0x11072FA0 0x320 --expected-sha256 \
-            08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d \
+            0x11072FA0 0x320 --expected-sha256 "$EXPECTED_SHA" \
             --output work/gadget-interact-loader-disassembly.json > /dev/null
           python - <<'PY'
           import json
@@ -75,6 +74,7 @@ jobs:
             --exports work/export/export-25539185/MiHoYoBinData \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --output work/gadget-aux-native-evidence.json
+          cat work/gadget-aux-native-evidence.json
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-gadget-aux-count-probe
