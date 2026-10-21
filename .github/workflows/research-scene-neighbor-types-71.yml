@@ -47,6 +47,12 @@ jobs:
             0xAED2EF0 0x850 --expected-sha256 "$sha" \
             --label SceneTag-adjacent-8field-row-candidate \
             --output work/scenetag-adjacent-8field-reader.json > /dev/null
+      - name: Narrow original virtual reader candidates by native wrapped ID field stores
+        run: |
+          python scripts/probe-7.1-scene-reader-keywriters.py \
+            --exe inputs/client/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --output work/scene-native-keywriter-candidates.json
       - uses: actions/upload-artifact@v7
         with:
           name: exact-71-scene-type-neighbor-evidence
@@ -55,5 +61,6 @@ jobs:
             work/sceneexcel-adjacent-record-reader.json
             work/scenetag-adjacent-string-reader.json
             work/scenetag-adjacent-8field-reader.json
+            work/scene-native-keywriter-candidates.json
           retention-days: 2
           if-no-files-found: error
