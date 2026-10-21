@@ -46,6 +46,7 @@ jobs:
         run: |
           python scripts/probe-7.1-chest-lv3-native-index.py \
             --index-raw work/export/export-31049741/MiHoYoBinData/0000006f.dat \
+            --block-export work/export/export-25539185 \
             --output work/chest-lv3-original-index.json
       - name: Record bounded original-index result under research issue
         env:
@@ -65,6 +66,10 @@ jobs:
           for key, entry in report['candidates'].items():
               result=entry['indexResult']
               lines.append(f'- {key} ({entry["expectedPathHash"]}): {result["status"]}; block: {result.get("groupId", "unknown")}/{result.get("blockId", "unknown")}')
+          raw_tables=report['originalTableRawExports']['tables']
+          for key, row in raw_tables.items():
+              lines.append(f'- Exact exported {key}: {row["status"]}; rawBytes={row.get("rawBytes")}; rawSha256={row.get("rawSha256")}; payloadSha256={row.get("payloadSha256")}')
+          lines.append('Source-block raw fingerprints are still not original row deserializers.')
           lines.append('Name-hash membership does not establish reward grade, source scene placement or payout. HASH_ABSENT only applies to the guessed path. Loot remains unchanged.')
           Path('work/chest-lv3-note.md').write_text(chr(10).join(lines)+chr(10),encoding='utf-8')
           PY
