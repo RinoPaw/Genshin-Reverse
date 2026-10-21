@@ -93,6 +93,17 @@ class TestOriginalSceneNativeLoaders71(unittest.TestCase):
             with self.assertRaisesRegex(scenebin71.SceneBin71Error, "raw export SHA-256"):
                 probe.verify_native(disassembly, wrong)
 
+    def test_original_client_scene_tag_does_not_authorize_server_loot(self):
+        report = json.loads(REPORT.read_text(encoding="utf-8"))
+        self.assertTrue(any("no authenticated relationship" in note
+                            for note in report["limitations"]))
+        tag = report["nativeTables"]["SceneTagConfigData"]
+        self.assertFalse(tag["rowSchemaDecoded"])
+        self.assertFalse(tag["serverDropTagProven"])
+        self.assertFalse(tag["sceneGadgetOwnershipProven"])
+        self.assertEqual(tag["rowReaderDispatch"],
+                         "virtual CALL [row.vtable + 0xF0]")
+
     def test_unrecognized_loader_anchor_rejected(self):
         sources, native, disassembly, raw = self.fake_materials()
         item = copy.deepcopy(native["SceneTagConfigData"])
