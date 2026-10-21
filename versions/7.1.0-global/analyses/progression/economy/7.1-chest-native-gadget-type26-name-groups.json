@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_GADGET_TYPE26_LITERAL_NAME_GROUPS__REWARD_CLASSIFICATION_UNVERIFIED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "officialBlock": "00/25539185.blk",
+    "asset": "GadgetExcelConfigData",
+    "rawExportSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+    "payloadSha256": "b8f35d6f3fe1aec90398ccbbe205335fe0d9ae45245b206096be5e434746c354",
+    "nativeTableLoaderRva": "0x968F690",
+    "nativeInheritedReaderRva": "0xBD56F60",
+    "nativeGadgetReaderRva": "0x10278E50"
+  },
+  "observed": {
+    "allGadgetDefinitions": 30599,
+    "nativeTypeCodeCandidate": 26,
+    "nativeType26Definitions": 309,
+    "distinctNameStrings": 148,
+    "groupingRule": "case-sensitive literal string startswith only",
+    "groups": {
+      "literal_SceneObj_Chest_prefix": {
+        "records": 162,
+        "distinctLiteralNames": 70,
+        "withLiteralLv1ThroughLv5Suffix": 63,
+        "exampleNameFrequencies": [
+          {
+            "name": "SceneObj_Chest_Relic",
+            "records": 13
+          },
+          {
+            "name": "SceneObj_Chest_Default_Lv4",
+            "records": 8
+          },
+          {
+            "name": "SceneObj_Chest_Relic02",
+            "records": 8
+          },
+          {
+            "name": "SceneObj_Chest_Default_Lv1",
+            "records": 6
+          },
+          {
+            "name": "SceneObj_Chest_Locked_Lv4",
+            "records": 6
+          },
+          {
+            "name": "SceneObj_Chest_Locked_Lv5",
+            "records": 6
+          }
+        ]
+      },
+      "literal_SearchPoint_prefix": {
+        "records": 21,
+        "distinctLiteralNames": 8,
+        "withLiteralLv1ThroughLv5Suffix": 0,
+        "exampleNameFrequencies": [
+          {
+            "name": "SearchPoint",
+            "records": 13
+          },
+          {
+            "name": "SearchPoint_Rock",
+            "records": 2
+          },
+          {
+            "name": "SearchPointV2",
+            "records": 1
+          },
+          {
+            "name": "SearchPoint_Big",
+            "records": 1
+          },
+          {
+            "name": "SearchPoint_HasAudio",
+            "records": 1
+          },
+          {
+            "name": "SearchPoint_Invisible",
+            "records": 1
+          }
+        ]
+      },
+      "other_literal_names": {
+        "records": 126,
+        "distinctLiteralNames": 70,
+        "withLiteralLv1ThroughLv5Suffix": 23,
+        "exampleNameFrequencies": [
+          {
+            "name": "SceneObj_Desert_DeshretRune",
+            "records": 27
+          },
+          {
+            "name": "SceneObj_Area_Zd_Property_Ani_Prop_EquipObjDrawing_01",
+            "records": 15
+          },
+          {
+            "name": "SceneObj_Area_Xm_Property_Prop_ElementalKorybantesPickup",
+            "records": 4
+          },
+          {
+            "name": "SceneObj_MichiaeMatsuri_Chest_01",
+            "records": 4
+          },
+          {
+            "name": "SceneObj_Ticket_Chest_Locked_Lv1",
+            "records": 3
+          },
+          {
+            "name": "SceneObj_Ticket_Chest_Locked_Lv2",
+            "records": 3
+          }
+        ]
+      }
+    },
+    "embeddedSearchPointOutsideLiteralPrefix": 2,
+    "literalLvSuffixTotal": 86
+  },
+  "limitations": [
+    "Literal name prefixes are directly read from the original client and do not encode payable chest classification.",
+    "A Gadget type-code candidate 26 also covers SearchPoint, puzzle and event objects; treating every row as an ordinary chest is unsafe.",
+    "Literal Lv1..Lv5 suffixes do not identify server reward grades or item amounts.",
+    "The inherited uint32 key is a pre-wrapper wire scalar; runtime substitution-table round trip is unverified.",
+    "The exact 7.1 scene/group/config placement and server drop_tag owner remain unknown.",
+    "The optional detailed output is decoded derivative data, not verified original scene placement or server reward data."
+  ]
+}
