@@ -89,3 +89,22 @@ A workflow is orchestration, not the canonical implementation of a reverse-engin
 ## Validation boundary
 
 Exploratory research may iterate with cheap local checks and opt-in exact-sample jobs. Full validation must not be skipped before asking the user to test a promoted change, before preparing an upstream submission, or before publishing/regenerating canonical target artifacts.
+
+
+## Temporary exact-7.1 chest Lv3 client-table path check (issue #31)
+
+`probe-7.1-chest-lv3-tables.yml` is a temporary, **read-only** main-branch
+research runner. It exists only to execute
+`scripts/probe-7.1-chest-lv3-native-index.py` against the exact pinned
+Global 7.1 original Sophon design index, which is intentionally not
+committed to the repository. It uses the maintained hash-checked
+Sophon block acquisition/export path; outputs only a small JSON report.
+No user test or AstaPS server build depends on this action.
+
+Owner: issue #31. **Retirement gate:** retain the original-asset path
+probe result with exact input hashes in the version analysis, and remove
+this workflow from main. An absent guessed path will be reported as
+`HASH_ABSENT` only, not as absence of the corresponding feature,
+scene ownership or original server payout. The workflow grants read-only
+repository permissions, never publishes the original asset bytes, and
+will be removed rather than kept as another permanent CI job.
