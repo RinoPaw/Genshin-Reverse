@@ -91,7 +91,7 @@ def summarize(writers: dict, refs: dict) -> dict:
         "methodsGitBlob": writer.METHODS_BLOB,
         "nativeWrapperRva": f"0x{writer.WRITER:X}",
         "nativeDirectWrapperCalls": writers["directNativeWriterCalls"],
-        "nativeMatchingSignatureCalls": writers["sameNameAndArgumentCalls"],
+        "nativeMatchingSignatureCalls": writers["sameReaderNameAndArgumentCalls"],
         "tables": out,
         "limitations": [
             "Post-call stores are alignment-checked native candidates, not authenticated row-class identities.",

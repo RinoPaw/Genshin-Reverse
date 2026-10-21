@@ -19,7 +19,7 @@ class GadgetAuxNativeRowReaderTests(unittest.TestCase):
         rows={"exeSha256":mod.PROFILE_71.exe_sha256,
               "methodsGitBlob":mod.writer.METHODS_BLOB,
               "wrappedUint32WriterRva":"0xBB16020",
-              "directNativeWriterCalls":1,"sameNameAndArgumentCalls":1,
+              "directNativeWriterCalls":1,"sameReaderNameAndArgumentCalls":1,
               "keyOffsetCandidates":{name:{"memoryOffset":f"0x{spec['keyOffset']:X}",
                                            "methods":[],"methodCount":0}
                                      for name,spec in mod.SOURCES.items()}}
