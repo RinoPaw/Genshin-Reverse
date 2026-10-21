@@ -32,7 +32,7 @@ EXPECTED_TRIGGER_IDS = 88
 
 def pinned_json(path: Path, expected_blob: str):
     raw = path.read_bytes()
-    digest = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\\0" + raw).hexdigest()
+    digest = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
     if digest != expected_blob:
         raise ValueError(f"public source-copy Git blob mismatch: {path}")
     return json.loads(raw)
