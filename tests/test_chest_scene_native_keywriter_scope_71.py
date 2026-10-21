@@ -41,6 +41,11 @@ class TestNativeSceneKeywriterCandidateScope71(unittest.TestCase):
         self.assertFalse(r["verifiedVsUnknown"]["objectRuntimeVirtualRowReaderResolved"])
         self.assertFalse(r["verifiedVsUnknown"]["sourceRowEndToEndParsed"])
         self.assertFalse(r["verifiedVsUnknown"]["originalSceneInstanceAndServerDropTagProven"])
+        self.assertEqual(r["tables"]["SceneTag"]["matches"], 485)
+        self.assertEqual(r["tables"]["SceneExcel"]["matches"], 168)
+        self.assertEqual(r["nativeFilter"]["knownInheritedGadgetPositiveControlMethodIndex"], 395933)
+        self.assertTrue(any("not verified" in item.lower()
+                            for item in r["limitations"]))
 
 
 if __name__ == "__main__":
