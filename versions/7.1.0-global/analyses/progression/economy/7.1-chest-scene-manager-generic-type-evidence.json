@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "status": "GLOBAL_7_1_SCENE_MANAGER_GENERICINST_NATIVE_TYPES__ROW_VTABLE_UNRESOLVED",
+  "source": {
+    "sample": "7.1.0-global/windows-x64",
+    "originalExecutableSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "sourceWorkflow": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39544944169",
+    "reproducer": "scripts/probe-7.1-scene-manager-genericinst.py",
+    "reader": "genshinre/typearray.py",
+    "originalManagerFields": "versions/7.1.0-global/windows-x64/metadata/fields.csv"
+  },
+  "observations": {
+    "SceneTagConfigData": {
+      "originalManagerType": "EJCNENCJADF",
+      "originalManagerTypeDefinitionIndex": 84296,
+      "fields": [
+        {
+          "originalName": "PAAGPEHCJFI",
+          "fieldTypeIndex": 666588,
+          "nativeTypeKind": 21,
+          "nativeTypeKindName": "genericinst",
+          "nativeTypeEntryHex": "815c0300000000001100150000000000",
+          "rawDataLow32": "0x35C81",
+          "candidateIl2CppGenericClassVaFileBacked": false
+        },
+        {
+          "originalName": "PBLMHNBIAJL",
+          "fieldTypeIndex": 439094,
+          "nativeTypeKind": 2,
+          "nativeTypeKindName": "boolean",
+          "nativeTypeEntryHex": "ae000000000000001100020000000000"
+        }
+      ]
+    },
+    "SceneExcelConfigData": {
+      "originalManagerType": "HPNMCGDJOJL",
+      "originalManagerTypeDefinitionIndex": 35441,
+      "fields": [
+        {
+          "originalName": "PAAGPEHCJFI",
+          "fieldTypeIndex": 545412,
+          "nativeTypeKind": 21,
+          "nativeTypeKindName": "genericinst",
+          "nativeTypeEntryHex": "c38a0200000000001100150000000000",
+          "rawDataLow32": "0x28AC3",
+          "candidateIl2CppGenericClassVaFileBacked": false
+        },
+        {
+          "originalName": "PBLMHNBIAJL",
+          "fieldTypeIndex": 439094,
+          "nativeTypeKind": 2,
+          "nativeTypeKindName": "boolean",
+          "nativeTypeEntryHex": "ae000000000000001100020000000000"
+        }
+      ]
+    }
+  },
+  "interpretation": {
+    "genericManagerFieldsNativeKindConfirmed": true,
+    "genericFieldLow32ValuesDistinct": true,
+    "sharedBoolTypeIndex": 439094,
+    "confirmedManagedGenericArgumentTypes": [],
+    "confirmedConcreteSceneRowTypeDefinitionIndices": [],
+    "rowReaderVirtualSlot": "0xF0",
+    "warning": "The 0x35C81 and 0x28AC3 words are IL2CPP generic-instantiation type data; neither has an authenticated conversion to a concrete row TypeDefinitionIndex. They are too small to be ordinary VA pointers in this PE image."
+  },
+  "limitations": [
+    "Only exact Global 7.1 original executable type-array entries and independently recovered obfuscated metadata manager fields are authenticated.",
+    "The raw kind_0x15 data low words are evidence; interpreting them as generic registration indices requires validating the protected IL2CPP registration layout.",
+    "A manager's generic instance may identify a Dictionary rather than the row class itself; generic arguments and vtable method at +0xF0 are not yet recovered.",
+    "Neither SceneTag nor SceneExcel fields establish scene instance ownership or the server Lua chest drop_tag, roots, or reward probabilities."
+  ]
+}
