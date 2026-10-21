@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_BIN_NATIVE_COUNTS_MATCH_RAW_MOTIFS__ROW_DELIMITERS_UNVERIFIED",
+  "source": "original 7.1 Global Sophon SceneTag and SceneExcel exports; source SHA-256 checked in scenebin71",
+  "tables": {
+    "SceneTagConfigData": {
+      "originalRawExportSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+      "originalPayloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+      "nativeLoaderRowCount": 1147,
+      "motifBytesHex": "690d4f",
+      "motifOccurrences": 1147,
+      "allOffsetsSha256": "960a89ca333aaf76ed49e0feb6eb5368a63797df85de8282752b72c4572656b4",
+      "firstOffsets": [
+        12,
+        56,
+        109,
+        153,
+        201,
+        256,
+        309,
+        346,
+        381,
+        408,
+        444,
+        474
+      ],
+      "lastOffsets": [
+        38551,
+        38585,
+        38618,
+        38652,
+        38681,
+        38712,
+        38753,
+        38789,
+        38823,
+        38849,
+        38888,
+        38924
+      ],
+      "neighborDistanceMin": 24,
+      "neighborDistanceMedian": 33,
+      "neighborDistanceMax": 57,
+      "mostCommonNeighborDistances": [
+        {
+          "bytes": 32,
+          "pairs": 210
+        },
+        {
+          "bytes": 33,
+          "pairs": 153
+        },
+        {
+          "bytes": 34,
+          "pairs": 135
+        },
+        {
+          "bytes": 31,
+          "pairs": 117
+        },
+        {
+          "bytes": 35,
+          "pairs": 116
+        },
+        {
+          "bytes": 36,
+          "pairs": 69
+        },
+        {
+          "bytes": 30,
+          "pairs": 58
+        },
+        {
+          "bytes": 29,
+          "pairs": 53
+        },
+        {
+          "bytes": 37,
+          "pairs": 42
+        },
+        {
+          "bytes": 38,
+          "pairs": 23
+        }
+      ],
+      "nativeFieldOwnerIdentified": false,
+      "motifProvenRowDelimiter": false
+    },
+    "SceneExcelConfigData": {
+      "originalRawExportSha256": "970ffecdec5b1f9368b6db5c7c0129a9f0b9ba624f81d5289e3142572caebb8d",
+      "originalPayloadSha256": "588563f62149d62038c7ee3b179e50191ecc9a3cfc003353e18a831918d27f6a",
+      "nativeLoaderRowCount": 2377,
+      "motifBytesHex": "00000000",
+      "motifOccurrences": 2377,
+      "allOffsetsSha256": "89b7209f022dd3f0aa03bee4a021eb2088d59c47bfde3aff5eb6c0107c8aaf1d",
+      "firstOffsets": [
+        8,
+        48,
+        88,
+        129,
+        234,
+        283,
+        407,
+        514,
+        633,
+        692,
+        801,
+        867
+      ],
+      "lastOffsets": [
+        272444,
+        272522,
+        272595,
+        272672,
+        272750,
+        272823,
+        272900,
+        272978,
+        273051,
+        273128,
+        273206,
+        273279
+      ],
+      "neighborDistanceMin": 37,
+      "neighborDistanceMedian": 121,
+      "neighborDistanceMax": 189,
+      "mostCommonNeighborDistances": [
+        {
+          "bytes": 110,
+          "pairs": 242
+        },
+        {
+          "bytes": 141,
+          "pairs": 184
+        },
+        {
+          "bytes": 148,
+          "pairs": 153
+        },
+        {
+          "bytes": 117,
+          "pairs": 115
+        },
+        {
+          "bytes": 123,
+          "pairs": 83
+        },
+        {
+          "bytes": 125,
+          "pairs": 60
+        },
+        {
+          "bytes": 135,
+          "pairs": 51
+        },
+        {
+          "bytes": 111,
+          "pairs": 48
+        },
+        {
+          "bytes": 122,
+          "pairs": 45
+        },
+        {
+          "bytes": 115,
+          "pairs": 44
+        }
+      ],
+      "nativeFieldOwnerIdentified": false,
+      "motifProvenRowDelimiter": false
+    }
+  },
+  "limitations": [
+    "Motif equality with native row count is an independent byte-layout observation; there is no proven per-record alignment or assigned native field at either sequence.",
+    "A four-zero-byte motif may be a serialized default or padding; interpreting it as a marker/record delimiter requires the exact native row reader.",
+    "The SceneTag 69 0D 4F motif may cross a serialized scalar boundary; field ownership is not established by frequency.",
+    "Only the exact original binary and recovered native loader headers are authenticated; the virtual row reader at slot +0xF0 has not been recovered.",
+    "Neither motif demonstrates scene placement, server drop_tag mapping, payout root, quantity or weight."
+  ]
+}
