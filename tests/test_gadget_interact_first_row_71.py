@@ -27,6 +27,17 @@ class TestInteractNativeBranch(unittest.TestCase):
         self.assertEqual(record["candidateDecodedMaskByte"],"0x00")
         self.assertFalse(record["candidateHasConditionalStringRead"])
         self.assertFalse(record["candidateHasConditionalU32KeyRead"])
+        self.assertIsNone(record["preWrapperKeyIfUninterrupted"])
+
+    def test_native_candidate_uninterrupted_first_key(self):
+        original_word=0x12345678
+        payload=struct.pack("<I",0x25D9D16D)+bytes([0x36])+struct.pack("<I",original_word)+bytes(12)
+        record=m.inspect_prefix(payload)
+        self.assertEqual(record["candidateDecodedMaskByte"],"0x42")
+        self.assertEqual(record["preWrapperKeyIfUninterrupted"],
+                         ((original_word ^ 0x2B845856)+0x8B76314E)&0xffffffff)
+        self.assertEqual(record["nativePrefixCursorIfUninterrupted"],9)
+        self.assertFalse(record["recordBoundaryConfirmed"])
 
     def test_wrong_original_count_rejected(self):
         with self.assertRaisesRegex(ValueError,"row count mismatch"):

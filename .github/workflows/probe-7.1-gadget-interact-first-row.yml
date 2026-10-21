@@ -3,7 +3,9 @@ name: Probe original 7.1 GadgetInteract first row native branches
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/probe-7.1-gadget-interact-first-row.yml']
+    paths:
+      - '.github/workflows/probe-7.1-gadget-interact-first-row.yml'
+      - 'scripts/probe-7.1-gadget-interact-first-row.py'
 
 permissions:
   contents: read
@@ -41,7 +43,6 @@ jobs:
             --output work/gadget-interact-71-first-native-branch.json
       - name: Inspect candidate direct nested reader disassembly
         run: |
-          python scripts/fetch-7.1-samples.sh --help >/dev/null 2>&1 || true
           bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
           EXPECTED_SHA=$(python -c "from genshinre.nativeprofile import PROFILE_71;print(PROFILE_71.exe_sha256)")
           python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
@@ -56,11 +57,32 @@ jobs:
               print(x["rva"],x["mnemonic"],x["op_str"])
               if x["mnemonic"]=="ret":break
           PY
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
+            0x14D95D180 0x180 --expected-sha256 "$EXPECTED_SHA" \
+            --output work/gadget-interact-tail-helper.json > /dev/null
+          python tools/disassemble_rva.py inputs/7.1.0-global/GenshinImpact.exe \
+            0x149EA9CB0 0x180 --expected-sha256 "$EXPECTED_SHA" \
+            --output work/gadget-interact-conditional-helper.json > /dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name,path in [
+              ("tail","work/gadget-interact-tail-helper.json"),
+              ("conditional","work/gadget-interact-conditional-helper.json")
+          ]:
+              d=json.loads(Path(path).read_text())
+              print("GADGET_INTERACT_NATIVE_HELPER",name,d["start_rva"])
+              for x in d["instructions"][:85]:
+                  print(x["rva"],x["mnemonic"],x["op_str"])
+                  if x["mnemonic"]=="ret":break
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-gadget-interact-native-first-row
           path: |
             work/gadget-interact-71-first-native-branch.json
             work/gadget-interact-nested-candidate.json
+            work/gadget-interact-tail-helper.json
+            work/gadget-interact-conditional-helper.json
           retention-days: 7
           if-no-files-found: error

@@ -38,6 +38,19 @@ def inspect_prefix(payload:bytes)->dict:
     # Original 0xBE95018 branch goes to 0xBE95102 if (raw & 1).
     nested=bool(raw&1)
     decoded=raw^0x74
+    # The original candidate tests 0x20 before its key read; this branch
+    # delegates to another method and may advance the cursor. Never treat
+    # the following bytes as a key on that path.
+    delegates_before_key=bool(decoded&0x20)
+    native_key=None
+    prefix_end=None
+    if not nested and not delegates_before_key and decoded&0x40:
+        if len(payload)<9:
+            raise ValueError("truncated native GadgetInteract key prefix")
+        original_key_word=struct.unpack_from("<I",payload,5)[0]
+        native_key=(original_key_word ^ 0x2B845856)
+        native_key=(native_key+0x8B76314E)&0xFFFFFFFF
+        prefix_end=9
     result={
         "rawHeaderU32":f"0x{header:08X}",
         "nativeHeaderDecodedRows":count,
@@ -49,6 +62,9 @@ def inspect_prefix(payload:bytes)->dict:
         "candidateHasConditionalU32KeyRead":bool(decoded&0x40),
         "candidateHasConditionalStringRead":bool(decoded&0x10),
         "candidateOtherBits":{f"0x{x:02X}":bool(decoded&x) for x in (0x01,0x20)},
+        "preWrapperKeyIfUninterrupted":native_key,
+        "nativePrefixCursorIfUninterrupted":prefix_end,
+        "prefixEndsAtRowBoundaryProven":False,
         "recordBoundaryConfirmed":False,
     }
     return result
@@ -75,6 +91,8 @@ def probe(raw:bytes)->dict:
         "limitations":[
             "Original bytes establish only the branch that this candidate would take if called at the first record after the four-byte header.",
             "The native direct nested call under raw mask bit 0 is part of the candidate code; its exact schema and inherited cursor consumption are unresolved.",
+            "The native prefix cursor after the first u32 is conditional; a subsequent tail helper may still consume source bytes. It is not an established row boundary.",
+            "The calculated key is the candidate's original pre-wrapper u32 scalar, with runtime wrapper mapping unresolved.",
             "No row field labels, chest type/grade/level, scene instance, probabilities or reward contents are inferred.",
             "The concrete native vtable +0xF0 method remains unknown."
         ],
