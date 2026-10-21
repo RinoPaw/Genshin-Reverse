@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: chest-lv3-native-index-${{ github.ref }}
@@ -46,6 +47,28 @@ jobs:
           python scripts/probe-7.1-chest-lv3-native-index.py \
             --index-raw work/export/export-31049741/MiHoYoBinData/0000006f.dat \
             --output work/chest-lv3-original-index.json
+      - name: Record bounded original-index result under research issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report=json.loads(Path('work/chest-lv3-original-index.json').read_text())
+          lines=[
+              'Original Global 7.1 design-index check for issue #31',
+              '',
+              f'- Action: https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}',
+              f'- Original index SHA-256: {report["indexRawSha256"]}',
+              f'- Original index name count: {report["indexNameCount"]}',
+          ]
+          for key, entry in report['candidates'].items():
+              result=entry['indexResult']
+              lines.append(f'- {key} ({entry["expectedPathHash"]}): {result["status"]}; block: {result.get("groupId", "unknown")}/{result.get("blockId", "unknown")}')
+          lines.append('Name-hash membership does not establish reward grade, source scene placement or payout. HASH_ABSENT only applies to the guessed path. Loot remains unchanged.')
+          Path('work/chest-lv3-note.md').write_text(chr(10).join(lines)+chr(10),encoding='utf-8')
+          PY
+          gh issue comment 31 --repo "$GITHUB_REPOSITORY" --body-file work/chest-lv3-note.md
       - uses: actions/upload-artifact@v7
         with:
           name: chest-lv3-exact-71-original-index
