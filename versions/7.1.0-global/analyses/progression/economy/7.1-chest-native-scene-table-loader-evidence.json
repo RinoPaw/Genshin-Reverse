@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_EXCEL_AND_TAG_NATIVE_HEADER_LOOP_CONFIRMED__ROW_FIELDS_UNKNOWN",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "nativeTables": {
+    "SceneTagConfigData": {
+      "source": "SceneTagConfigData",
+      "rawExportSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+      "payloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+      "rawHeaderU32": "0xF16A9948",
+      "nativeOperation": "xor",
+      "nativeImmediate": "0xF16A9D33",
+      "nativeRowCount": 1147,
+      "payloadBytes": 38941,
+      "rowSchemaDecoded": false,
+      "sceneGadgetOwnershipProven": false,
+      "serverDropTagProven": false,
+      "nativeLoaderOwner": "EJCNENCJADF.GMENPOPMKAA",
+      "nativeMethodIndex": 696653,
+      "nativeLoaderRva": "0x14015460",
+      "nativeDisassemblySha256": "7bf1d07589a75cc3a790728de46fc0c5c083bc8e11652e435222c25a074f26ba",
+      "matchedInstructionAnchors": 7,
+      "rowReaderDispatch": "virtual CALL [row.vtable + 0xF0]",
+      "rowKeyMemoryOffset": "0x28",
+      "rowKeyGetterRva": "0xBB15F50",
+      "headerAndLoopVerifiedFromOriginalClient": true
+    },
+    "SceneExcelConfigData": {
+      "source": "SceneExcelConfigData",
+      "rawExportSha256": "970ffecdec5b1f9368b6db5c7c0129a9f0b9ba624f81d5289e3142572caebb8d",
+      "payloadSha256": "588563f62149d62038c7ee3b179e50191ecc9a3cfc003353e18a831918d27f6a",
+      "rawHeaderU32": "0x474DEA8D",
+      "nativeOperation": "add",
+      "nativeImmediate": "0xB8B21EBC",
+      "nativeRowCount": 2377,
+      "payloadBytes": 273352,
+      "rowSchemaDecoded": false,
+      "sceneGadgetOwnershipProven": false,
+      "serverDropTagProven": false,
+      "nativeLoaderOwner": "HPNMCGDJOJL.GMENPOPMKAA",
+      "nativeMethodIndex": 279989,
+      "nativeLoaderRva": "0xA6C7000",
+      "nativeDisassemblySha256": "c629e084fcf9b5357de330d49ee681bb3c7d50181c404071a5b054fdafb93725",
+      "matchedInstructionAnchors": 7,
+      "rowReaderDispatch": "virtual CALL [row.vtable + 0xF0]",
+      "rowKeyMemoryOffset": "0x50",
+      "rowKeyGetterRva": "0xBB15F50",
+      "headerAndLoopVerifiedFromOriginalClient": true
+    }
+  },
+  "limitations": [
+    "Original table counts are confirmed by exact native instruction anchors and SHA-256-pinned original client source payloads, independent of historical JSON row counts.",
+    "Both native table loaders iterate decoded counts, instantiate a row object and invoke a virtual row reader at vtable +0xF0.",
+    "Native loader inserts rows keyed by a wrapper-read uint32 memory slot; the runtime substitution lookup relation remains unverified.",
+    "The concrete virtual row class, serialized field mask and per-field read schema have not yet been resolved.",
+    "SceneTagConfigData is an original client SceneTag table; there is no authenticated relationship to historical server Lua chest drop_tag or payout tables."
+  ]
+}
