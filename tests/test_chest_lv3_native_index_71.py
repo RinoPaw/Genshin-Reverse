@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 from pathlib import Path
+import struct
+import tempfile
+from unittest import mock
 import unittest
 
 from genshinre.assetindex import (
@@ -50,6 +54,36 @@ class ChestLv3OriginalIndexTests(unittest.TestCase):
                          ["indexResult"]["nameMatchCount"], 0)
         self.assertEqual(result["status"],
                          "EXACT_7_1_GLOBAL_DESIGN_INDEX_PATH_PROBE__ROW_SEMANTICS_UNVERIFIED")
+
+    def test_source_block_export_fingerprint_is_nonsemantic(self):
+        report = probe.audit(fixture(resolved=("audioChestType", "handbookOpenChest")),
+                             sha256=probe.INDEX_SHA256)
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp) / "MiHoYoBinData"
+            directory.mkdir()
+            gadget = b"native source control"
+            (directory / probe.GADGET_EXPORT).write_bytes(gadget)
+            sources = {
+                "audioChestType": b"MidHiTop",
+                "handbookOpenChest": b"open",
+            }
+            for key, payload in sources.items():
+                name = report["candidates"][key]["indexResult"]["exportedName"] + ".dat"
+                (directory / name).write_bytes(struct.pack("<I", len(payload)) + payload)
+            with mock.patch.object(probe, "GADGET_RAW_SHA256",
+                                   hashlib.sha256(gadget).hexdigest()):
+                original = probe.inspect_original_export_dir(report, Path(temp))
+                self.assertEqual(original["tables"]["audioChestType"]
+                                 ["plainAsciiOccurrencesAreNotFieldProof"]["Mid"], 1)
+                self.assertEqual(original["tables"]["handbookOpenChest"]
+                                 ["payloadBytes"], 4)
+                self.assertIn("ROW_SCHEMA_UNVERIFIED", original["status"])
+                bad = report["candidates"]["audioChestType"]["indexResult"]["exportedName"]
+                (directory / (bad + ".dat")).write_bytes(struct.pack("<I", 99) + b"x")
+                with self.assertRaisesRegex(ValueError, "declares"):
+                    probe.inspect_original_export_dir(report, Path(temp))
+            with self.assertRaisesRegex(ValueError, "Gadget raw export control"):
+                probe.inspect_original_export_dir(report, Path(temp))
 
     def test_fail_closed_wrong_source_and_control(self):
         with self.assertRaisesRegex(ValueError, "SHA-256"):
