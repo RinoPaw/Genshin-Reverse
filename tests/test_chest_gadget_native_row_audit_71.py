@@ -33,22 +33,31 @@ class TestGadgetAudit71(unittest.TestCase):
         self.assertEqual(report["source"]["rawExportSha256"], audit.RAW_SHA256)
         self.assertEqual(report["source"]["payloadSha256"], audit.PAYLOAD_SHA256)
         frame = report["observedFraming"]
-        self.assertEqual(frame["rowCountObservedByMarker"], audit.ROW_COUNT)
-        self.assertEqual(frame["uniqueIdCandidates"], audit.ROW_COUNT)
-        self.assertEqual(frame["firstIdCandidate"], 40000001)
-        self.assertTrue(frame["lastDecodedInnerRecordEndsAtEof"])
-        self.assertFalse(frame["headerDecoded"])
+        self.assertEqual(frame["rowCount"], audit.ROW_COUNT)
+        self.assertEqual(frame["uniqueNativeIds"], audit.ROW_COUNT)
+        self.assertEqual(frame["firstNativeId"], 40000001)
+        self.assertTrue(frame["lastDecodedRecordEndsAtEof"])
+        self.assertTrue(frame["headerDecoded"])
+        self.assertEqual(frame["headerDecodedCount"], 30599)
+        self.assertEqual(frame["baseMaskDecodeAdd"], "0x5486")
         self.assertEqual(
             frame["innerDecodedBytes"] +
-            frame["outerPrefixOpaqueBytes"] +
-            frame["fourByteIdCandidateBytes"] +
-            frame["opaqueHeaderBytes"],
+            frame["nativeBaseDecodedBytes"] +
+            frame["headerBytes"],
             audit.PAYLOAD_SIZE)
-        histogram = frame["prefixLengthHistogram"]
+        histogram = frame["baseOtherFieldLengthHistogram"]
         self.assertEqual(sum(histogram.values()), audit.ROW_COUNT)
         self.assertEqual(sum(int(k) * v for k, v in histogram.items()),
-                         frame["outerPrefixOpaqueBytes"])
+                         frame["nativeBaseOtherFieldBytes"])
         self.assertEqual(len(report["fieldPresenceCountByCandidateMemoryOffset"]), 22)
+        base = report["inheritedNativeFields"]
+        self.assertEqual(sum(base["maskCounts"].values()), audit.ROW_COUNT)
+        self.assertEqual(base["maskCounts"]["0x17"], 22913)
+        self.assertEqual(base["maskCounts"]["0x97"], 6113)
+        self.assertEqual(base["chestMaskCounts"], {"0x17": 134, "0x97": 175})
+        self.assertEqual(base["distinctStringValues"], 14)
+        self.assertEqual(base["stringCount"], 6427)
+        self.assertEqual(sum(base["stringOccurrences"].values()), 6427)
 
     def test_enum26_and_boolean_wire_missingness_are_explicit(self):
         subset = self.report["enum26CrossCheck"]
@@ -56,7 +65,7 @@ class TestGadgetAudit71(unittest.TestCase):
         self.assertEqual(subset["rowCount"], 309)
         self.assertEqual(subset["distinctNameStrings"], 148)
         self.assertEqual(
-            [row["idCandidate"] for row in subset["normalChestControls"]],
+            [row["gadgetId"] for row in subset["normalChestControls"]],
             list(range(70210001, 70210007)))
         self.assertEqual(len(subset["candidateBooleanWireCoverage"]), 8)
         for stat in subset["candidateBooleanWireCoverage"].values():
