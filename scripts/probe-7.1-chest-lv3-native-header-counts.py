@@ -50,7 +50,7 @@ def candidate_constants(header: int, count: int) -> dict[str, int]:
     }
 
 
-def signature_hits(section: bytes, section_rva: int) -> list[dict]:
+def signature_hits(section: bytes, section_rva: int, allowed: set[tuple[str, int]]) -> list[dict]:
     """Nine-byte Gadget-style MOV immediate then matching ADD/XOR, file-backed."""
     rows = []
     for operation, opcode in (("add", 0x03), ("xor", 0x33)):
@@ -65,10 +65,13 @@ def signature_hits(section: bytes, section_rva: int) -> list[dict]:
             reg = (modrm >> 3) & 7
             if section[at - 5] != 0xB8 + reg:
                 continue
+            immediate = int.from_bytes(section[at - 4:at], "little")
+            if (operation, immediate) not in allowed:
+                continue
             rows.append({
                 "rva": section_rva + at - 5,
                 "operator": operation,
-                "immediate": int.from_bytes(section[at - 4:at], "little"),
+                "immediate": immediate,
                 "signatureHex": section[at - 5:at + 4].hex(),
             })
             if len(rows) > MAX_TOTAL_SITES:
@@ -105,10 +108,16 @@ def inspect_sections(sections: list[tuple[int, bytes]], sources: dict) -> dict:
             raw = int(word, 16).to_bytes(4, "little")
             needles.setdefault(raw, []).append((name, operator))
     all_matches = {name: [] for name in sources}
+    allowed = {(GADGET_POSITIVE_OPCODE, 0x23F5AB5E)}
+    for detail in sources.values():
+        allowed.update(
+            (op, int(detail["hypotheticalNativeArithmeticConstants"][op], 16))
+            for op in ("add", "xor")
+        )
     signature = []
     positive = []
     for start, code in sections:
-        for found in signature_hits(code, start):
+        for found in signature_hits(code, start, allowed):
             if found["rva"] == GADGET_POSITIVE_RVA:
                 positive.append(found)
             if any(
