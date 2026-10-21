@@ -107,7 +107,7 @@ def analyze(index, *, digest: str) -> dict:
     if len(matched) != len(names):
         raise ValueError("scene path query cardinality changed")
     statuses = Counter(row["status"] for row in matched)
-    offsets = 0
+    offset = 0
     results = {}
     for group, paths in groups.items():
         rows = matched[offset:offset + len(paths)]
