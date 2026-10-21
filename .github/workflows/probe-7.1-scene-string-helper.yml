@@ -1,0 +1,44 @@
+name: Temporary exact 7.1 Scene byte-reader helpers
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-7.1-scene-string-helper.yml'
+permissions:
+  contents: read
+jobs:
+  native-helper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . capstone zstandard
+      - run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Source-gated native helper disassemblies
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from tools.disassemble_rva import disassemble_rva
+          from genshinre.nativeprofile import PROFILE_71
+          import json
+          exe=Path('inputs/7.1.0-global/GenshinImpact.exe')
+          out=Path('work/scene-helper')
+          out.mkdir(parents=True,exist_ok=True)
+          for name,rva,size in [
+              ('scenetag-string-span-cursor-helper',0x14FD53090,0x800),
+              ('scenetag-optional-string-helper',0x147805FE0,0x800),
+              ('scenetag-buffer-ensure-helper',0x15269BFC0,0x400),
+          ]:
+              evidence=disassemble_rva(exe,rva,size,expected_sha256=PROFILE_71.exe_sha256,label=name)
+              (out/(name+'.json')).write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+              print(name,hex(rva),'instructions',evidence['instruction_count'])
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: exact-71-scene-helper-disassembly
+          path: work/scene-helper/*.json
+          if-no-files-found: error
+          retention-days: 7
