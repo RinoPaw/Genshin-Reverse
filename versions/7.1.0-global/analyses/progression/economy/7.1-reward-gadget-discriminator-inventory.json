@@ -540,49 +540,41 @@
     },
     "type26OptionalBooleanWireCoverage": {
       "0x78": {
-        "nativeToken": "NGDGAAEHPHB",
         "presentTrue": 260,
         "presentFalse": 0,
         "absentOnWire": 49
       },
       "0x79": {
-        "nativeToken": "MEAFFJCCKNE",
         "presentTrue": 0,
         "presentFalse": 0,
         "absentOnWire": 309
       },
       "0x7A": {
-        "nativeToken": "AHACIELEHAG",
         "presentTrue": 16,
         "presentFalse": 0,
         "absentOnWire": 293
       },
       "0x7B": {
-        "nativeToken": "IDMKFDPKFEG",
         "presentTrue": 0,
         "presentFalse": 0,
         "absentOnWire": 309
       },
       "0x7C": {
-        "nativeToken": "MECPCDBEFBG",
         "presentTrue": 61,
         "presentFalse": 0,
         "absentOnWire": 248
       },
       "0x7D": {
-        "nativeToken": "IJLLLELBGGI",
         "presentTrue": 178,
         "presentFalse": 0,
         "absentOnWire": 131
       },
       "0x7E": {
-        "nativeToken": "CKIJBKMANHD",
         "presentTrue": 302,
         "presentFalse": 0,
         "absentOnWire": 7
       },
       "0x7F": {
-        "nativeToken": "OLOLLKJCHHI",
         "presentTrue": 108,
         "presentFalse": 0,
         "absentOnWire": 201
