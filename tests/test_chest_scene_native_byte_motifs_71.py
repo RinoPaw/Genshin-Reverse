@@ -33,6 +33,19 @@ class TestOriginalSceneMotifs71(unittest.TestCase):
                          (2377, 2377))
         self.assertEqual(tag["motifBytesHex"], "690d4f")
         self.assertEqual(excel["motifBytesHex"], "00000000")
+        # Distinct variable-length motifs are observations only. Guard
+        # a small offset window and spacing to catch byte-offset drift.
+        self.assertEqual(tag["firstOffsets"][:4], [12, 56, 109, 153])
+        self.assertEqual(tag["lastOffsets"][-3:], [38849, 38888, 38924])
+        self.assertEqual((tag["neighborDistanceMin"],
+                          tag["neighborDistanceMedian"],
+                          tag["neighborDistanceMax"]), (24, 33, 57))
+        self.assertEqual(excel["firstOffsets"][:4], [8, 48, 88, 129])
+        self.assertEqual(excel["lastOffsets"][-3:], [273128, 273206, 273279])
+        self.assertEqual((excel["neighborDistanceMin"],
+                          excel["neighborDistanceMedian"],
+                          excel["neighborDistanceMax"]), (37, 121, 189))
+
         self.assertEqual(tag["allOffsetsSha256"],
                          "960a89ca333aaf76ed49e0feb6eb5368a63797df85de8282752b72c4572656b4")
         self.assertEqual(excel["allOffsetsSha256"],
