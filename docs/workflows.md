@@ -48,6 +48,9 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
+The temporary `research-scene-neighbor-types-71.yml` workflow belongs to issue #31. It fetches the pinned Global 7.1 executable and inspects narrow method/type neighborhoods near the authenticated SceneTag and SceneExcel native loader anchors. The output is a two-day candidate-only artifact; metadata proximity alone cannot prove the row class or native virtual slot +0xF0. Retire this workflow once candidate screening is recorded with its source identity and tests. It does not publish original game bytes or modify AstaPS rewards.
+
+
 The exact-7.1 SceneTag/SceneExcel generic field research is complete and its one-shot workflow has been retired. The verified original executable [source run 39544944169](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39544944169) established distinct genericinst field type indices 666588 and 545412, the matching raw Il2CppType entries, and a shared bool type index 439094. The low 32-bit generic type payloads cannot be treated as file-backed virtual addresses. Permanent research code and evidence remain in `scripts/probe-7.1-scene-manager-genericinst.py` and `versions/7.1.0-global/analyses/progression/economy/7.1-chest-scene-manager-generic-type-evidence.json`. Concrete row classes and virtual method +0xF0 remain unknown.
 
 
