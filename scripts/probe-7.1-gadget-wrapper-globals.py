@@ -12,6 +12,7 @@ import argparse
 import json
 from pathlib import Path
 
+from genshinre.callxref import attach_caller_methods
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 from genshinre.sampleidentity import require_sha256
@@ -29,16 +30,32 @@ def audit(exe: Path, methods_csv: Path) -> dict:
                 "fileSectionValueHex": pe.read_rva(rva, 8 if name == "staticOwnerPointer" else 4).hex()
             } for name, rva in GLOBALS.items()
         }
-    result = scan_rip_xrefs(exe, list(GLOBALS.values()), window=12,
-                            methods_csv=methods_csv, max_method_body=0x10000)
+    result = scan_rip_xrefs(exe, list(GLOBALS.values()), window=0,
+                            methods_csv=None)
     hits = {}
+    counts = {}
+    writes = {}
     for name, rva in GLOBALS.items():
         rows = result["matches"].get(f"0x{rva:X}", [])
-        if len(rows) > 10000:
-            raise ValueError(f"unbounded native global xref count at 0x{rva:X}")
+        counts[name] = len(rows)
+        # This IL2CPP statics pointer has many references. Count exhaustively
+        # but retain bounded samples and all possible write sites up to cap.
+        write_rows = [row for row in rows if row["access"] == "write"]
+        writes[name] = len(write_rows)
+        anchors = {0xBB16026, 0xBB15F56, 0xBB160A3, 0xBB15F6D}
+        selected = list(write_rows[:128])
+        selected += [r for r in rows if r["instruction_rva"] in anchors]
+        if name == "xorWord":
+            selected += rows[:128]
+        selected += rows[:12]
+        chosen = list({int(row["instruction_rva"]): row for row in selected}.values())
+        chosen.sort(key=lambda r: int(r["instruction_rva"]))
+        annotations = attach_caller_methods(
+            [int(row["instruction_rva"]) for row in chosen],
+            methods_csv, max_method_body=0x10000)
         hits[name] = [
             {
-                "instructionRva": f"0x{int(row['instruction_rva'], 16):X}",
+                "instructionRva": f"0x{int(row['instruction_rva']):X}",
                 "access": row["access"],
                 "mnemonic": row["mnemonic"],
                 "hex": row["instruction_hex"],
@@ -48,9 +65,9 @@ def audit(exe: Path, methods_csv: Path) -> dict:
                         "methodName": owner.get("method_name"),
                         "typeName": owner.get("type_name"),
                         "methodRva": owner.get("rva"),
-                    } for owner in row.get("caller_methods", [])[:4]
+                    } for owner in annotations.get(int(row["instruction_rva"]), [])[:4]
                 ],
-            } for row in rows
+            } for row in chosen
         ]
     return {
         "schemaVersion": 1,
@@ -58,7 +75,9 @@ def audit(exe: Path, methods_csv: Path) -> dict:
         "sample": PROFILE_71.identity,
         "exeSha256": PROFILE_71.exe_sha256,
         "globallyReferencedLocations": globals_on_disk,
-        "xrefs": hits,
+        "totalXrefsByGlobal": counts,
+        "totalCandidateWritesByGlobal": writes,
+        "boundedXrefSamples": hits,
         "limitations": [
             "RIP-relative byte pattern hits require aligned disassembly review before attributing global writes.",
             "The +0xF560 instance pointer and its 2048-byte lookup are runtime allocated, not proven by reading the on-disk static owner slot.",
@@ -81,9 +100,8 @@ def main() -> None:
     print(json.dumps({
         "status": report["status"],
         "globalLocations": report["globallyReferencedLocations"],
-        "xrefs": {k: len(v) for k,v in report["xrefs"].items()},
-        "writes": {k: [r["instructionRva"] for r in v if r["access"]=="write"]
-                   for k,v in report["xrefs"].items()}
+        "xrefs": report["totalXrefsByGlobal"],
+        "writes": report["totalCandidateWritesByGlobal"],
     }, indent=2))
 
 
