@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_AUX_GADGET_NATIVE_TABLE_LOADERS_CONFIRMED__ROW_READER_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "methodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "tables": {
+    "GadgetPropExcelConfigData": {
+      "rawSha256": "8907f4b717cd450ce084bd3a1a6a73e4409b8280fb4c74605afa520efbbc6a54",
+      "payloadSha256": "a12f433fe834576f84cbd5521c5715a27dc64eed0ee0137eb0cb24573d38d091",
+      "payloadBytes": 9388,
+      "originalHeaderU32": "0x5BD30290",
+      "nativeCountImmediate": "0x5BD303D6",
+      "nativeCountOperation": "xor",
+      "nativeDecodedRowCount": 326,
+      "methodIndex": 225673,
+      "nativeManagerType": "CLOHJDMMODM",
+      "nativeManagerTypeDefinitionIndex": 28984,
+      "loaderRva": "0x124F2CF0",
+      "verifiedNativeInstructions": 8,
+      "rowClassStaticSlotRva": "0x57DAF50",
+      "rowReaderDispatch": "virtual CALL [row.vtable + 0xF0]",
+      "preGetterRowKeyMemoryOffset": "0x1C",
+      "nativeWrappedKeyGetterRva": "0xBB15F50",
+      "rowReaderOwnerConfirmed": false,
+      "rowFieldsDecoded": false,
+      "chestGradeProven": false,
+      "sceneInstanceLevelProven": false
+    },
+    "GadgetInteractExcelConfigData": {
+      "rawSha256": "6481cd8b92185ffc13ffe8a12332eba8d53139077c75738aa40d15fc5bc8c24e",
+      "payloadSha256": "ce9fcd3b2d7deb76c7e9f2a4ca2738f8d9e0e8500b7bb101768cd18be059fb11",
+      "payloadBytes": 39165,
+      "originalHeaderU32": "0x25D9D16D",
+      "nativeCountImmediate": "0xDA262FFE",
+      "nativeCountOperation": "add",
+      "nativeDecodedRowCount": 363,
+      "methodIndex": 220154,
+      "nativeManagerType": "GAMAJLKMDJO",
+      "nativeManagerTypeDefinitionIndex": 28382,
+      "loaderRva": "0x11072FA0",
+      "verifiedNativeInstructions": 8,
+      "rowClassStaticSlotRva": "0x57FA548",
+      "rowReaderDispatch": "virtual CALL [row.vtable + 0xF0]",
+      "preGetterRowKeyMemoryOffset": "0x28",
+      "nativeWrappedKeyGetterRva": "0xBB15F50",
+      "rowReaderOwnerConfirmed": false,
+      "rowFieldsDecoded": false,
+      "chestGradeProven": false,
+      "sceneInstanceLevelProven": false
+    }
+  },
+  "limitations": [
+    "Original native table counts, loop, row alloc and virtual slot are verified; concrete virtual row reader remains unknown.",
+    "RIP-relative TypeInfo static slots are exact original instructions but not runtime class identities.",
+    "Field offsets 0x1C/0x28 identify pre-getter wrapped row keys, not LootCSS grade, level or type.",
+    "Source table identity is hash-checked; no official scene instance or reward field is inferred."
+  ]
+}

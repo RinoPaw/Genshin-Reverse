@@ -23,6 +23,24 @@ class NativeAuxGadgetLoaders(unittest.TestCase):
                          {"GadgetPropExcelConfigData": 326,
                           "GadgetInteractExcelConfigData": 363})
 
+    def test_published_verified_original_loader_report(self):
+        report = json.loads((ROOT / "versions/7.1.0-global/analyses/progression/economy/7.1-gadget-aux-native-table-loaders.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["exeSha256"], PROFILE_71.exe_sha256)
+        self.assertEqual(report["methodsGitBlob"], mod.METHODS_BLOB)
+        self.assertEqual(set(report["tables"]), set(mod.SOURCE))
+        for name, spec in mod.SOURCE.items():
+            row = report["tables"][name]
+            self.assertEqual(row["nativeDecodedRowCount"], spec["rowCount"])
+            self.assertEqual(row["loaderRva"], spec["loaderRva"])
+            self.assertEqual(row["methodIndex"], spec["methodIndex"])
+            self.assertEqual(row["rowClassStaticSlotRva"], spec["rowClassStaticSlot"])
+            self.assertEqual(row["preGetterRowKeyMemoryOffset"], spec["keyOffset"])
+            self.assertEqual(row["verifiedNativeInstructions"], len(spec["anchors"]))
+            self.assertEqual(row["rowReaderDispatch"], "virtual CALL [row.vtable + 0xF0]")
+            self.assertFalse(row["rowFieldsDecoded"])
+            self.assertFalse(row["chestGradeProven"])
+            self.assertFalse(row["sceneInstanceLevelProven"])
+
     def test_native_header_decode_rejects_unpinned_bytes(self):
         for source in mod.SOURCE.values():
             payload = struct.pack("<I",
