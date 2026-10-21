@@ -86,6 +86,14 @@ jobs:
             inputs/client/GenshinImpact.exe 0xA6C7000 0x400 \
             --expected-sha256 "$exe_sha" --label SceneExcel-count-loader-candidate \
             --output work/sceneexcel-native-loader.json > /dev/null
+      - name: Verify both original native loader proofs and committed 7.1 counts
+        run: |
+          python scripts/audit-7.1-scene-native-loaders.py \
+            --scene-tag-disasm work/scene-tag-loader.json \
+            --scene-excel-disasm work/scene-excel-loader.json \
+            --scene-tag-raw work/raw/export-25539185/MiHoYoBinData/b410089f.dat \
+            --scene-excel-raw work/raw/export-25539185/MiHoYoBinData/fd805cfc.dat \
+            --check
       - name: Preserve bounded source evidence only
         uses: actions/upload-artifact@v7
         with:
