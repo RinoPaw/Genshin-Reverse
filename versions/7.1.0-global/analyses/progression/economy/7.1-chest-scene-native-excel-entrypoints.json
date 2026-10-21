@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "GLOBAL_7_1_SCENE_EXCEL_AND_TAG_NATIVE_BYTES_VERIFIED__FIELD_MEANING_UNKNOWN",
+  "sample": "7.1.0-global/windows-x64",
+  "indexRawExportSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+  "verifiedGadgetControlSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35",
+  "originalBlockId": 25539185,
+  "assets": [
+    {
+      "candidateSourcePath": "Data/_ExcelBinOutput/SceneExcelConfigData",
+      "namePathHash": "0xFD805CFCAA",
+      "nameCollisionCount": 1,
+      "sourceBlockGroupId": 0,
+      "sourceBlockId": 25539185,
+      "rawExportName": "fd805cfc.dat",
+      "rawExportBytes": 273356,
+      "rawExportSha256": "970ffecdec5b1f9368b6db5c7c0129a9f0b9ba624f81d5289e3142572caebb8d",
+      "payloadBytes": 273352,
+      "payloadSha256": "588563f62149d62038c7ee3b179e50191ecc9a3cfc003353e18a831918d27f6a",
+      "payloadFirst32Hex": "8dea4d474c31657500000000e467044ecdf7f329cb8d90193e390596645de5ce",
+      "wholePayloadUtf8": false
+    },
+    {
+      "candidateSourcePath": "Data/_ExcelBinOutput/SceneTagConfigData",
+      "namePathHash": "0xB410089FF4",
+      "nameCollisionCount": 1,
+      "sourceBlockGroupId": 0,
+      "sourceBlockId": 25539185,
+      "rawExportName": "b410089f.dat",
+      "rawExportBytes": 38948,
+      "rawExportSha256": "f0cada8ea11c59fb32b72f0dd19e3aaf69af31382ed012573b9de92954567075",
+      "payloadBytes": 38941,
+      "payloadSha256": "9c043ecdbfba6a17c00243b37ae2bb3566ac9c09dcf800b648a76c3e113958ee",
+      "payloadFirst32Hex": "48996af10d445c9fe9c4a115690d4ff90eb1cc1624b0bcf90effffffffed0e88",
+      "wholePayloadUtf8": false
+    }
+  ],
+  "limitations": [
+    "Sophon block origin and exporter SHA-256 must independently be verified by the calling acquisition workflow.",
+    "The original 7.1 Gadget control authenticates the extraction directory but does not prove the schema of these SceneExcel/SceneTag rows.",
+    "SceneTagConfigData is a client-side Excel table name; it is not authenticated as a server chest drop_tag selector.",
+    "Scene/Gadget instance placement, group/config identity, official server reward roots and probabilities remain unverified.",
+    "No unmodified original raw export bytes are committed to this research repository."
+  ]
+}
