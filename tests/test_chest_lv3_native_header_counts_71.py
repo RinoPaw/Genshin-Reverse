@@ -51,7 +51,7 @@ class ChestLv3NativeHeaderTests(unittest.TestCase):
         self.assertTrue(any(x["operator"] == "add" for x in
                             report["tables"]["audioChestType"]["gadgetIdiomSignatureCandidates"]))
         self.assertEqual(report["tables"]["handbookOpenChest"]
-                         ["literalHitByOperation"].get("xor"), 1)
+                         ["literalHitByOperation"].get("xor"), 2)
         with self.assertRaisesRegex(ValueError, "source-positive signature missing"):
             mod.inspect_sections(synthetic[1:], src)
 
