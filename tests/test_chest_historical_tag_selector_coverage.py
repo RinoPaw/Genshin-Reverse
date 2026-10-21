@@ -80,6 +80,29 @@ class HistoricalChestTagSelectorTests(unittest.TestCase):
             audit.analyze(scenes, [selector("战斗低级蒙德", threshold=0)],
                           enforce_original=False)
 
+    def test_direct_root_presence_is_distinct_from_payable_reward_graph(self):
+        selectors = [selector("战斗低级蒙德", 1, 51010000),
+                     selector("战斗低级蒙德", 6, 51010100),
+                     selector("搜刮点解谜通用须弥", 1, 20000300)]
+        table = [
+            {"id": 51010000, "dropVec": [{"itemId": 102, "weight": 10000}]},
+            {"id": 51010100, "dropVec": []},
+            {"id": 20000300, "dropVec": [{"itemId": 202, "weight": 1}]},
+        ]
+        checked = audit.audit_selected_roots(selectors, selectors, table,
+                                             enforce_original=False)
+        self.assertEqual(checked["allChestDropSelectors"]["referencedDistinctRoots"], 3)
+        self.assertEqual(checked["allChestDropSelectors"]["rootsWithPositiveDirectEntry"], 2)
+        self.assertEqual(checked["allChestDropSelectors"]["rootsWithoutPositiveDirectEntry"],
+                         [51010100])
+        self.assertFalse(checked["rootGraphAndFinalPayableItemsValidated"])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            audit.audit_selected_roots(selectors, selectors, table + [table[0]],
+                                      enforce_original=False)
+        without = audit.audit_selected_roots(
+            selectors, selectors, table[:2], enforce_original=False)
+        self.assertEqual(without["allChestDropSelectors"]["missingRootIds"], [20000300])
+
     def test_checksum_gate_blocks_source_drift(self):
         raw = b"sample source"
         sha = hashlib.sha256(raw).hexdigest()
