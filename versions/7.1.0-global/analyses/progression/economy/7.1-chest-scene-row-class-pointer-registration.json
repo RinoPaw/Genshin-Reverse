@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_ROW_CLASS_POINTER_REGISTRATION_PROBE__VTABLE_TARGET_UNRESOLVED",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "imageBase": "0x140000000",
+  "sourceNativeMethods": {
+    "SceneTagLoaderRva": "0x14015460",
+    "SceneExcelLoaderRva": "0xA6C7000",
+    "objectAllocationRva": "0x140529A10",
+    "virtualReaderSlotBytes": "0xF0"
+  },
+  "tables": {
+    "SceneTag": {
+      "classSlotRva": "0x57EA618",
+      "nativeLoaderInstructionRva": "0x14015504",
+      "fullVaQwordHolders": [],
+      "rvaDwordCandidates": [],
+      "adjacentFullVaHolders": []
+    },
+    "SceneExcel": {
+      "classSlotRva": "0x58113D0",
+      "nativeLoaderInstructionRva": "0xA6C70A4",
+      "fullVaQwordHolders": [],
+      "rvaDwordCandidates": [],
+      "adjacentFullVaHolders": []
+    }
+  },
+  "limitations": [
+    "The class static slot RVAs are proven by exact original native loader MOV instructions.",
+    "A file-backed image VA holder may be a type registration pointer or unrelated pointer consumer; identifying its array owner requires native code/metadata traversal.",
+    "Four-byte RVA scans may match unaligned byte patterns or numeric values and are not proof of a pointer.",
+    "Zero direct holders in file-backed data does not exclude runtime initialized class pointers or image relocation table encodings.",
+    "No SceneTag row parser at vtable+0xF0, placement, original Lua drop_tag or server chest payout is authenticated."
+  ]
+}
