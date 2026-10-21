@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_SCENE_ROW_CLASS_STATIC_XREF_CANDIDATES__VIRTUAL_TARGET_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "sharedObjectAllocatorRva": "0x140529A10",
+  "tables": {
+    "SceneTag": {
+      "loaderRva": "0x14015460",
+      "rowClassStaticPointerRva": "0x57EA618",
+      "rowClassLoadInstructionRva": "0x14015504",
+      "rowObjectAllocCallRva": "0x1401550B",
+      "rowReaderVirtualCallRva": "0x1401553C",
+      "referenceCount": 2,
+      "referenceSites": [
+        {
+          "rva": "0x14015504",
+          "instructionBytes": "488b0d0d517df1",
+          "candidateAccess": "read",
+          "metadataOwners": [
+            {
+              "methodIndex": "696653",
+              "type": "EJCNENCJADF",
+              "method": "GMENPOPMKAA",
+              "rva": "0x14015460",
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ]
+        },
+        {
+          "rva": "0x1401559A",
+          "instructionBytes": "488b0d77507df1",
+          "candidateAccess": "read",
+          "metadataOwners": [
+            {
+              "methodIndex": "696653",
+              "type": "EJCNENCJADF",
+              "method": "GMENPOPMKAA",
+              "rva": "0x14015460",
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ]
+        }
+      ]
+    },
+    "SceneExcel": {
+      "loaderRva": "0xA6C7000",
+      "rowClassStaticPointerRva": "0x58113D0",
+      "rowClassLoadInstructionRva": "0xA6C70A4",
+      "rowObjectAllocCallRva": "0xA6C70AB",
+      "rowReaderVirtualCallRva": "0xA6C70DC",
+      "referenceCount": 2,
+      "referenceSites": [
+        {
+          "rva": "0xA6C70A4",
+          "instructionBytes": "488b0d25a314fb",
+          "candidateAccess": "read",
+          "metadataOwners": [
+            {
+              "methodIndex": "279989",
+              "type": "HPNMCGDJOJL",
+              "method": "GMENPOPMKAA",
+              "rva": "0xA6C7000",
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ]
+        },
+        {
+          "rva": "0xA6C713A",
+          "instructionBytes": "488b0d8fa214fb",
+          "candidateAccess": "read",
+          "metadataOwners": [
+            {
+              "methodIndex": "279989",
+              "type": "HPNMCGDJOJL",
+              "method": "GMENPOPMKAA",
+              "rva": "0xA6C7000",
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Both global pointer locations are traced from aligned original 7.1 native MOV instructions immediately preceding the object-allocation helper.",
+    "References to a class pointer can lead to its concrete row type but are not themselves proof of the virtual method at +0xF0.",
+    "Near-method attribution uses a bounded nearest metadata RVA; method-body overlap or thunk references require aligned disassembly.",
+    "Runtime initialization of the class pointer, virtual slot mapping and original row field wire reader remain unresolved.",
+    "The client SceneTag table cannot certify a historical server chest drop_tag or payout source."
+  ]
+}
