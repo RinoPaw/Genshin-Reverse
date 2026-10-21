@@ -48,7 +48,7 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
-Active one-shot research workflow: `research-gadget-reader-callers-71.yml` (issue #31). This hosted-only job fetches the exact SHA-256-pinned 7.1 Global Windows executable and runs the existing direct-call and pointer-xref scanners for Gadget inner-reader RVA `0x10278E50`. Output is a bounded two-day xref artifact without client bytes. The concrete owner is the #31 native Gadget outer-table loader investigation; no maintained sample file contains the full executable. **Retirement:** commit and verify the narrow caller evidence, then remove this workflow. It never edits generated data or AstaPS loot.
+There is currently no topic-specific workflow on the maintained branch. The temporary Gadget caller/base-reader trace finished its #31 evidence gate, and its source-pinned method RVAs, disassembly hashes, full native schema and reproducible decoder are recorded in `versions/7.1.0-global/analyses/progression/economy/7.1-chest-native-gadget-complete-wire-evidence.json`. The temporary workflow has been retired; original executable and Gadget raw bytes remain outside Git. Ordinary CI performs synthetic and committed-evidence checks only.
 
 The former QuestExcel table-assets probe reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
 
