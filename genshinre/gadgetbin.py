@@ -1,12 +1,11 @@
-"""Exact Global 7.1 GadgetExcel *inner-record* wire scanner.
+"""Exact 7.1 Global GadgetExcel table and inherited-row native decoder.
 
-This uses the version-pinned 22-field reader reconstructed from
-DCCHEHMHFGC.GMENPOPMKAA. The outer table header and per-record prefix are
-not decoded: an exact-client marker permits read-only inner-record recovery,
-and each skipped outer prefix is accounted for explicitly.
-
-Field names here are candidate object displacements. Wrapper identities,
-semantic enum labels, and server reward data are not inferred.
+The pinned table loader, inherited reader and Gadget-specific reader
+are at RVAs 0x968F690, 0xBD56F60 and 0x10278E50 respectively.
+Inherited uint32 fields at 0x18 and 0x30 expose pre-wrapper wire scalars.
+Native 0xBB16020 applies a dynamic substitution/XOR wrapper;
+0xBB15F50 is the corresponding getter. Runtime lookup tables and their
+round-trip equivalence remain unverified. No server payout is inferred.
 """
 from __future__ import annotations
 
@@ -147,6 +146,7 @@ def read_inherited_row(reader: BinaryConfigReader) -> tuple[int, dict, dict]:
 
 @dataclass(frozen=True)
 class GadgetRow:
+    """ID field is the recovered pre-wrapper wire scalar."""
     gadget_id: int
     base_start: int
     base_end: int
