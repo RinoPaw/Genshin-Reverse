@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Audit the exact original Global 7.1 Gadget table without publishing asset bytes.
 
-Input must be the exact pinned AnimeStudio Raw export d65ab32f.dat. Nothing in
-this tool certifies native table-header framing, name semantics, or server loot.
+Input must be the exact pinned AnimeStudio Raw export d65ab32f.dat. All bytes are consumed by the recovered native base and inner readers.
+Semantic field labels and server loot ownership remain separate investigations.
 """
 from __future__ import annotations
 
@@ -36,19 +36,19 @@ def audit(raw: bytes) -> dict:
     scan = scan_gadget_payload(payload, expected_rows=ROW_COUNT)
     summary = scan.summary()
     if (summary["rowCountObserved"] != ROW_COUNT
-            or summary["uniqueIdCandidates"] != ROW_COUNT):
+            or summary["uniqueIds"] != ROW_COUNT):
         raise ValueError("native Gadget row count/IDs do not match pinned sample")
     field_presence = summary["fieldPresentCounts"]
     if len(field_presence) != 22:
         raise ValueError("Gadget row field coverage changed")
 
-    prefix_length = Counter(row.prefix_bytes - 4 for row in scan.rows)
+    prefix_length = Counter((row.base_end - row.base_start) - 4 for row in scan.rows)
     inner_bytes = sum(row.inner_end - row.inner_start for row in scan.rows)
     id_bytes = ROW_COUNT * 4
     opaque_prefix_bytes = sum(prefix_length[length] * length for length in prefix_length)
     if 4 + id_bytes + opaque_prefix_bytes + inner_bytes != PAYLOAD_SIZE:
         raise ValueError("Gadget observed byte partition does not cover the sample")
-    if summary["outerPrefixBytesUnparsed"] != id_bytes + opaque_prefix_bytes:
+    if summary["baseDecodedBytes"] != id_bytes + opaque_prefix_bytes:
         raise ValueError("Gadget scanner misreported opaque outer prefix bytes")
 
     enum26 = [row for row in scan.rows if row.fields.get(0x6C) == 26]
@@ -56,7 +56,7 @@ def audit(raw: bytes) -> dict:
         raise ValueError("candidate Chest subset does not match exact 7.1 asset")
     expected_ids = list(range(70210001, 70210007))
     controls = enum26[:6]
-    if ([row.id_candidate for row in controls] != expected_ids
+    if ([row.gadget_id for row in controls] != expected_ids
             or any(row.fields.get(0x58) != "SceneObj_Chest_NormalChest"
                    for row in controls)):
         raise ValueError("native Gadget candidate ID/name controls failed")
@@ -80,8 +80,8 @@ def audit(raw: bytes) -> dict:
         }
 
     return {
-        "schemaVersion": 1,
-        "status": "EXACT_7_1_GADGET_INNER_ROWS_VERIFIED__OUTER_FRAMING_AND_PAYOUT_UNRESOLVED",
+        "schemaVersion": 2,
+        "status": "EXACT_7_1_GADGET_COMPLETE_NATIVE_TABLE_WIRE__SEMANTIC_REWARDS_UNRESOLVED",
         "source": {
             "sample": "7.1.0-global/windows-x64",
             "officialManifestBlock": "00/25539185.blk",
@@ -95,25 +95,35 @@ def audit(raw: bytes) -> dict:
             "nativeReaderMethod": "GMENPOPMKAA",
             "nativeReaderRva": "0x10278E50",
             "methodIndex": 483590,
+            "baseReaderTypeDefinitionIndex": 49659,
+            "baseReaderMethodIndex": 395933,
+            "baseReaderRva": "0xBD56F60",
+            "tableLoaderMethodIndex": 197827,
+            "tableLoaderRva": "0x968F690",
         },
         "observedFraming": {
-            "opaqueHeaderHex": summary["opaqueHeaderHex"],
-            "headerDecoded": False,
-            "rowCountObservedByMarker": ROW_COUNT,
-            "uniqueIdCandidates": summary["uniqueIdCandidates"],
-            "firstIdCandidate": scan.rows[0].id_candidate,
-            "lastIdCandidate": scan.rows[-1].id_candidate,
-            "fourByteIdCandidateCount": ROW_COUNT,
-            "idCandidateWireTransform": "add 0x4894CEA6 modulo 2^32; consumer UNVERIFIED",
+            "headerHex": scan.header_hex,
+            "headerDecoded": True,
+            "headerDecodedCount": scan.header_count,
+            "headerCountNativeAdd": "0x23F5AB5E",
+            "rowCount": ROW_COUNT,
+            "uniqueNativeIds": summary["uniqueIds"],
+            "firstNativeId": scan.rows[0].gadget_id,
+            "lastNativeId": scan.rows[-1].gadget_id,
+            "nativeIdMemoryOffset": "0x30",
+            "nativeIdDecodeAdd": "0x4894CEA6",
+            "baseMaskDecodeAdd": "0x5486",
+            "nativeBaseDecodedBytes": scan.base_decoded_bytes,
+            "nativeBaseOtherFieldBytes": opaque_prefix_bytes,
+            "nativeIdFieldBytes": id_bytes,
             "innerDecodedBytes": inner_bytes,
-            "outerPrefixOpaqueBytes": opaque_prefix_bytes,
-            "fourByteIdCandidateBytes": id_bytes,
-            "opaqueHeaderBytes": 4,
-            "prefixLengthHistogram": {
+            "headerBytes": 4,
+            "unparsedBytes": 0,
+            "baseOtherFieldLengthHistogram": {
                 str(length): prefix_length[length] for length in sorted(prefix_length)
             },
-            "lastDecodedInnerRecordEndsAtEof": scan.rows[-1].inner_end == len(payload),
-            "coveredBytesIncludingOpaqueRegions": PAYLOAD_SIZE,
+            "lastDecodedRecordEndsAtEof": scan.rows[-1].inner_end == len(payload),
+            "coveredBytes": PAYLOAD_SIZE,
         },
         "fieldPresenceCountByCandidateMemoryOffset": field_presence,
         "enum26CrossCheck": {
@@ -121,11 +131,11 @@ def audit(raw: bytes) -> dict:
             "nativeValueCandidate": 26,
             "rowCount": len(enum26),
             "nameCandidateMemoryOffset": "0x58",
-            "distinctNameStrings": summary["enum26DistinctNamesCandidate"],
+            "distinctNameStrings": summary["enum26DistinctNames"],
             "allHaveNameField": True,
             "normalChestControls": [
                 {
-                    "idCandidate": row.id_candidate,
+                    "gadgetId": row.gadget_id,
                     "nameString": row.fields[0x58],
                     "iconString": row.fields.get(0x50),
                 }
@@ -135,13 +145,12 @@ def audit(raw: bytes) -> dict:
             "candidateBooleanWireCoverage": boolean_coverage,
         },
         "limits": [
-            "Source hash authentication covers the exact raw export only; see the separately pinned Sophon manifest and AnimeStudio provenance.",
-            "Row count is recovered from exact-client markers, not an authenticated table-header count.",
-            "The four-byte per-row ID decoding is a consistent candidate and needs the exact native map/consumer to confirm its transform.",
-            "Outer per-row prefixes and four-byte header are accounted for but still opaque.",
-            "A match with historical chest category count cross-checks identity but cannot promote historical server reward data.",
-            "0x6C enum candidate 26 includes special/puzzle objects; no ordinary four-grade classification is established.",
-            "No placed instance, native drop_tag, server payout root, item quantity or drop probability is established.",
+            "SHA-256 validates the exact 7.1 Gadget Raw export; source block and extraction chain are pinned separately.",
+            "All 30,599 table rows, the native header count, inherited fields and inner fields consume all payload bytes.",
+            "Native enum-26 includes special/puzzle objects; no ordinary four-grade reward classification follows.",
+            "Opaque in-memory wrapper fields lack authenticated gameplay semantic labels.",
+            "A match with historical chest categories is a cross-check, never evidence for server rewards.",
+            "No placed instance, native drop_tag, server payout root, item quantity or probability is established.",
         ],
     }
 
@@ -163,7 +172,7 @@ def main() -> None:
                                encoding="utf-8")
         print(json.dumps({
             "status": report["status"],
-            "rows": report["observedFraming"]["rowCountObservedByMarker"],
+            "rows": report["observedFraming"]["rowCount"],
             "innerDecodedBytes": report["observedFraming"]["innerDecodedBytes"],
             "enum26Rows": report["enum26CrossCheck"]["rowCount"],
         }, indent=2))
