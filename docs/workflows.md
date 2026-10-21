@@ -48,7 +48,7 @@ Packet-specific Actions are not retained after their useful evidence has been co
 
 ## Temporary research orchestration
 
-There is currently no topic-specific workflow on the maintained branch. The temporary research-chest-native-71.yml workflow completed the exact Global 7.1 Gadget native inner-row audit, including all 30,599 rows and the 309-record boolean subset ([source-verified run 39484211743](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39484211743)). It was retired after `scripts/audit-7.1-gadget-native-rows.py`, synthetic tests, and the committed aggregate report became reproducible. The raw client asset is never stored in Git.
+Active one-shot research workflow: `research-gadget-reader-callers-71.yml` (issue #31). This hosted-only job fetches the exact SHA-256-pinned 7.1 Global Windows executable and runs the existing direct-call and pointer-xref scanners for Gadget inner-reader RVA `0x10278E50`. Output is a bounded two-day xref artifact without client bytes. The concrete owner is the #31 native Gadget outer-table loader investigation; no maintained sample file contains the full executable. **Retirement:** commit and verify the narrow caller evidence, then remove this workflow. It never edits generated data or AstaPS loot.
 
 The former QuestExcel table-assets probe reached its retirement condition after the exact asset, complete row framing and ordinary Quest ownership boundary became durable. Git history preserves the orchestration.
 
