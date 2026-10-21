@@ -31,6 +31,9 @@ class TestOriginalSceneManagerGenericEvidence71(unittest.TestCase):
                 self.assertEqual(generic["nativeTypeEntryHex"], entry_bytes)
                 self.assertEqual(generic["rawDataLow32"], raw_word)
                 self.assertFalse(generic["candidateIl2CppGenericClassVaFileBacked"])
+                self.assertEqual(int(generic["rawDataLow32"], 16),
+                                 int.from_bytes(bytes.fromhex(entry_bytes)[:4], "little"))
+                self.assertLess(int(generic["rawDataLow32"], 16), 0x140000000)
                 self.assertEqual(boolean["fieldTypeIndex"], 439094)
                 self.assertEqual(boolean["nativeTypeKind"], 2)
         self.assertEqual(e["interpretation"]["confirmedManagedGenericArgumentTypes"], [])
