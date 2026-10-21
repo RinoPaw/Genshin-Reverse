@@ -17,6 +17,7 @@ from pathlib import Path
 
 SCENE_CSV_SHA256 = "ba53152e17dbe019482920ad179ff90c62419d385390f9d0eb952dcb7895dcc1"
 CHEST_DROP_GIT_BLOB = "789e885d37535280dc923e5c69e1aa2fc23714dd"
+DROP_TABLE_GIT_BLOB = "ca9661f68b988c8b6cae0627dadab00fe9f2c860"
 SCENE_RESOURCE_COMMIT = "85b81a691fcf3d9e8e7db50a8febc8f9043bc084"
 ASTAPS_COMMIT = "dcf04369a356486a07be976b244b83d7208c3992"
 EXPECTED_SCENE_RECORDS = 14084
@@ -62,7 +63,58 @@ def family(tag: str) -> str:
     return matched[0]
 
 
-def analyze(scene_rows: list[dict], selectors: list[dict], *, enforce_original: bool = True) -> dict:
+def audit_selected_roots(selectors: list[dict], scene_tag_selectors: list[dict],
+                         drop_table: list[dict], *, enforce_original: bool) -> dict:
+    if enforce_original and len(drop_table) != 16895:
+        raise ValueError("pinned AstaPS DropTable root count changed")
+    root_map: dict[int, dict] = {}
+    for row in drop_table:
+        root = row.get("id")
+        if type(root) is not int or root in root_map:
+            raise ValueError("malformed/duplicate pinned DropTable root identifier")
+        root_map[root] = row
+
+    referenced = {row["dropId"] for row in selectors}
+    scoped = {row["dropId"] for row in scene_tag_selectors}
+    def root_state(ids: set[int]) -> dict:
+        missing = sorted(i for i in ids if i not in root_map)
+        no_positive = sorted(i for i in ids if i in root_map and not any(
+            type(entry.get("weight")) is int and entry["weight"] > 0
+            for entry in (root_map[i].get("dropVec") or [])
+        ))
+        return {
+            "referencedDistinctRoots": len(ids),
+            "missingRootIds": missing,
+            "rootsWithoutPositiveDirectEntry": no_positive,
+            "rootsWithPositiveDirectEntry": len(ids) - len(missing) - len(no_positive),
+        }
+
+    all_coverage, selected_coverage = root_state(referenced), root_state(scoped)
+    if enforce_original and (
+        len(root_map) != 16895 or len(referenced) != 1687
+        or all_coverage["missingRootIds"]
+        or all_coverage["rootsWithoutPositiveDirectEntry"]
+        or selected_coverage["referencedDistinctRoots"] != 158
+    ):
+        raise ValueError("pinned AstaPS ChestDrop-to-DropTable direct root coverage changed")
+    return {
+        "forkDropTableGitBlob": DROP_TABLE_GIT_BLOB if enforce_original else None,
+        "forkDropTableRows": len(root_map),
+        "allChestDropSelectors": {
+            "selectorRows": len(selectors),
+            **all_coverage,
+        },
+        "historicalSceneMatchedSelectors": {
+            "selectorRows": len(scene_tag_selectors),
+            **selected_coverage,
+        },
+        "directPositiveWeightOnly": True,
+        "rootGraphAndFinalPayableItemsValidated": False,
+    }
+
+
+def analyze(scene_rows: list[dict], selectors: list[dict], *, enforce_original: bool = True,
+            drop_table: list[dict] | None = None) -> dict:
     if enforce_original and len(scene_rows) != EXPECTED_SCENE_RECORDS:
         raise ValueError("historical scene candidate count changed")
     tagged = [r for r in scene_rows if r.get("source") == "drop_tag"]
@@ -145,6 +197,9 @@ def analyze(scene_rows: list[dict], selectors: list[dict], *, enforce_original: 
         "sceneTagNamesWithoutForkSelector": unmatched,
         "matchingForkSelectorRows": len(selected),
         "matchingDistinctForkRoots": len({r["dropId"] for r in selected}),
+        "forkRootDirectCoverage": (audit_selected_roots(selectors, selected, drop_table,
+                                                       enforce_original=enforce_original)
+                                   if drop_table is not None else None),
         "families": rows_by_family,
         "examples": {
             tag: [{"minLevel": r["minLevel"], "dropId": r["dropId"],
@@ -160,7 +215,7 @@ def analyze(scene_rows: list[dict], selectors: list[dict], *, enforce_original: 
             "The historical scene CSV omits per-instance Lua level; multiple minLevel entries for a tag prevent selecting a specific root for any scanned object.",
             "Some tagged scene gadgets are search points, mora containers, shrine/page/event objects; they are not automatically ordinary claimable chests.",
             "Neither historical scene Lua nor the fork ChestDrop JSON has authenticated Global 7.1 server reward-source ancestry.",
-            "Matched root IDs give no verified root existence, contents, drop weights, payable amounts or 7.1 server behavior.",
+            "Root direct-entry validation, when supplied, checks presence and positive direct weights only; it does not traverse root graphs, prove payable contents or official 7.1 behavior.",
         ],
     }
 
@@ -169,6 +224,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--scene-csv", type=Path, required=True)
     p.add_argument("--chest-drop", type=Path, required=True)
+    p.add_argument("--drop-table", type=Path, help="pinned fork data/Server/DropTableExcelConfigData.json")
     p.add_argument("--output", type=Path)
     a = p.parse_args()
     scene_raw = a.scene_csv.read_bytes()
@@ -176,7 +232,12 @@ def main() -> None:
     sha256_gate(scene_raw, SCENE_CSV_SHA256, "historical scene")
     blob_gate(drop_raw, CHEST_DROP_GIT_BLOB, "fork chest selectors")
     scene_rows = list(csv.DictReader(io.StringIO(scene_raw.decode("utf-8-sig"))))
-    result = analyze(scene_rows, json.loads(drop_raw))
+    drop_table = None
+    if a.drop_table is not None:
+        table_raw = a.drop_table.read_bytes()
+        blob_gate(table_raw, DROP_TABLE_GIT_BLOB, "fork DropTable")
+        drop_table = json.loads(table_raw)
+    result = analyze(scene_rows, json.loads(drop_raw), drop_table=drop_table)
     output = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True)
