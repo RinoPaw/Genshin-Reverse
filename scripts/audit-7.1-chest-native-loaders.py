@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+import importlib.util
 import json
 from pathlib import Path
 
@@ -111,7 +112,13 @@ def verify(disasm: dict[str, dict]) -> dict:
 
 
 def audit(exe: Path) -> dict:
-    from tools.disassemble_rva import disassemble_rva
+    script = Path(__file__).resolve().parents[1] / "tools/disassemble_rva.py"
+    spec = importlib.util.spec_from_file_location("exact_chest_disassemble_rva", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("original source disassembler is unavailable")
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    disassemble_rva = helper.disassemble_rva
 
     disasm = {
         key: disassemble_rva(
