@@ -34,9 +34,10 @@ def fake_table():
             }
             if level == 1:
                 fields[0x48] = ["item"]
-            rows.append(GadgetRow(id_, inner - 4, inner, len(payload),
-                                  start, 0, fields, {}))
-    return GadgetTableScan("48454144", tuple(rows), len(payload),
+            rows.append(GadgetRow(
+                id_, start, inner, inner, len(payload), 0x17, 0,
+                {0x30: id_}, fields, {0x30: (inner - 4, inner)}, {}))
+    return GadgetTableScan("48454144", 20, tuple(rows), len(payload),
                            22 * 20), bytes(payload)
 
 
