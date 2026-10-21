@@ -50,7 +50,12 @@ def classify_post_call(instructions: list[dict]) -> list[int]:
     return offsets
 
 
-def run(exe: Path, methods: Path) -> dict:
+def run(exe: Path, methods: Path, *, key_offsets: dict[str, int] | None = None) -> dict:
+    tracked_offsets = KEY_OFFSETS if key_offsets is None else key_offsets
+    if not tracked_offsets or len(set(tracked_offsets.values())) != len(tracked_offsets):
+        raise ValueError("tracked native key offsets must be nonempty and distinct")
+    if any(not 0 <= v <= 0x10000 for v in tracked_offsets.values()):
+        raise ValueError("tracked native key offsets outside bounded memory scope")
     require_sha256(exe, PROFILE_71.exe_sha256, label="exact Global 7.1 EXE")
     if git_blob(methods) != METHODS_BLOB:
         raise ValueError("exact original 7.1 method metadata Git blob mismatch")
@@ -101,11 +106,11 @@ def run(exe: Path, methods: Path) -> dict:
                 row["keyWriteOffsetsAfterWrapper"].extend(offsets)
     if origin_control < 1:
         raise ValueError("pinned native inherited Gadget writer positive control missing")
-    groups = {name: [] for name in KEY_OFFSETS}
+    groups = {name: [] for name in tracked_offsets}
     for row in possible.values():
         row["keyWriteOffsetsAfterWrapper"] = sorted(
             set(row["keyWriteOffsetsAfterWrapper"]))
-        for name, key in KEY_OFFSETS.items():
+        for name, key in tracked_offsets.items():
             if key in row["keyWriteOffsetsAfterWrapper"]:
                 groups[name].append(row)
     for rows in groups.values():
@@ -126,7 +131,7 @@ def run(exe: Path, methods: Path) -> dict:
             "memoryOffset": f"0x{offset:X}",
             "methods": groups[name],
             "methodCount": len(groups[name]),
-        } for name, offset in KEY_OFFSETS.items()},
+        } for name, offset in tracked_offsets.items()},
         "limitations": [
             "Only exact E8 rel32 calls to the original u32 writer are considered; indirect or inlined conversions remain outside this probe.",
             "The method name and argument type are common; a post-call field store is an alignment-checked native clue, not verified ownership of class TypeInfo.",
