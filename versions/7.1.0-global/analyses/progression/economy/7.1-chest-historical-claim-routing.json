@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "status": "HISTORICAL_SCENE_CHEST_CANDIDATES_AND_ASTAPS_ORDINARY_CLAIM_ROUTING__OFFICIAL_71_PAYOUT_UNVERIFIED",
+  "source": {
+    "sceneArtifact": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/38499376170",
+    "sceneCsvSha256": "ba53152e17dbe019482920ad179ff90c62419d385390f9d0eb952dcb7895dcc1",
+    "sceneSummarySha256": "c2e81ab79eb891f448421a6944017c0d1ccc3547079fa1364dae8bde0a117d58",
+    "sceneResourceCommit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "sceneScannerCommit": "e2541630f5ae4d4c95b81f7440293d3419a776d1",
+    "astapsImplementationCommit": "dcf04369a356486a07be976b244b83d7208c3992",
+    "astapsSourceGitBlobs": {
+      "GadgetChest.java": "72293aed5983092fe0e27d992ba3c1ba08c5f4b7",
+      "DropSystem.java": "e04918a478e75414435f89f8bfd002f39d804af3",
+      "WorldChestLootHelper.java": "395092db65f81407087f98275bb2b57bfc976517"
+    }
+  },
+  "historicalData": {
+    "luaFilesScanned": 41110,
+    "candidates": 14084,
+    "excludedBossChests": 43,
+    "categories": {
+      "drop_tag": {
+        "records": 9020,
+        "scene3": 7130,
+        "distinctTags": 109,
+        "oneoffTrue": 7133,
+        "oneoffFalse": 1887,
+        "exploreChestTrue": 5420
+      },
+      "explicit_id": {
+        "records": 1339,
+        "scene3": 980,
+        "distinctPositiveRoots": 413,
+        "oneoffTrue": 955,
+        "oneoffFalse": 384,
+        "exploreChestTrue": 309
+      },
+      "no_metadata": {
+        "records": 3725,
+        "scene3": 3636,
+        "oneoffTrue": 0,
+        "oneoffFalse": 3725,
+        "exploreChestTrue": 0
+      }
+    },
+    "scene3Candidates": 11746,
+    "currentNative7_1PlacementProven": false
+  },
+  "astapsClaimLogic": {
+    "ordinaryBranch": {
+      "tagLookupOverloadDefined": true,
+      "tagLookupOverloadInvokedByOrdinaryClaim": false,
+      "explicitRootClaimRequiresAnyOf": [
+        "dungeon-scene",
+        "group-id-zero",
+        "root-contains-quest-item"
+      ],
+      "fallbackOnNoEligibleOrSuccessfulRoot": "WorldChestLootHelper.grant",
+      "fallbackTierSources": [
+        "special-gadget-id",
+        "jsonName-Lv-pattern",
+        "historical-drop_tag-substrings"
+      ],
+      "hardcodedFallbackPrimogems": {
+        "common": 66,
+        "exquisite": 166,
+        "precious": 366,
+        "luxurious": 566
+      }
+    },
+    "officiallyAuthenticatedServerRewards": false
+  },
+  "evidenceLimitations": [
+    "Historical Lua resources may contain historical or unclaimable gadgets, including SearchPoint-like objects; candidate counts are not original 7.1 world chest placement counts.",
+    "The source, scanner and Java code are pinned at different revisions; distribution and program branch together demonstrate an authority gap, not a measured exact runtime execution count.",
+    "Ordinary claim path does not call tag-to-root mapping; historical drop_tag can still influence guessed tier or sigil, so it is not globally ignored.",
+    "The explicit ID condition requires root/dungeon/group/quest checks; the 1,339 ID records are not automatically payable.",
+    "Hardcoded server Primogem amounts are fork values with no authenticated original Global 7.1 evidence."
+  ]
+}
