@@ -1,0 +1,68 @@
+name: Temporary native SceneTag count-header probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/research-scene-count-header-71.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-scene-count-header-71
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install maintained reverse-engineering tooling
+        run: python -m pip install -e . zstandard capstone
+      - name: Fetch exact original 7.1 executable and metadata
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/client --python python
+      - name: Fetch exact original 7.1 design block
+        run: |
+          python scripts/fetch-7.1-design-blocks.py --output inputs/blocks \
+            --report work/source-block-identity.json
+      - name: Fetch hash-pinned exporter
+        run: |
+          mkdir -p inputs
+          curl --fail --location --retry 3 \
+            --output inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
+            https://github.com/EIHRTeam/AnimeStudio/releases/download/v1.0.0-CI/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz
+          echo "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1  inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz" | sha256sum --check
+      - name: Extract source-pinned original SceneExcel/SceneTag bytes
+        run: |
+          python scripts/collect-7.1-native-chest-assets.py \
+            --blocks inputs/blocks \
+            --cli-archive inputs/AnimeStudio.CLI-1.0.0-CI-linux-x64.tar.gz \
+            --work work/raw \
+            --report work/chest-source-control.json
+          python scripts/audit-7.1-native-scene-entrypoints.py \
+            --index-raw work/raw/export-31049741/MiHoYoBinData/0000006f.dat \
+            --block-export work/raw/export-25539185 --check
+      - name: Probe hypothetical historical-count native transforms
+        run: |
+          python scripts/probe-7.1-scene-header-immediates.py \
+            --exe inputs/client/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --scene-excel work/raw/export-25539185/MiHoYoBinData/fd805cfc.dat \
+            --scene-tag work/raw/export-25539185/MiHoYoBinData/b410089f.dat \
+            --output work/scene-header-immediates.json
+      - name: Preserve bounded source evidence only
+        uses: actions/upload-artifact@v7
+        with:
+          name: original-71-scene-native-count-leads
+          path: |
+            work/scene-header-immediates.json
+            work/source-block-identity.json
+          if-no-files-found: error
+          retention-days: 2
