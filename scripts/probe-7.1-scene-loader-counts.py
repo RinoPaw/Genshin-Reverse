@@ -51,7 +51,7 @@ def candidates_in_section(blob: bytes, start_rva: int) -> list[dict]:
             # x86-64: add/xor r32,[rax+rcx+0x20] with matching preceding
             # mov r32,imm32. Source-positive Gadget uses BF imm32 03 7C 08 20.
             modrm = blob[pos + 1]
-            if (modrm & 0xC7) != 0x44 or blob[pos+2:pos+4] != b"\\x08\\x20":
+            if (modrm & 0xC7) != 0x44 or blob[pos+2:pos+4] != b"\x08\x20":
                 continue
             reg = (modrm >> 3) & 7
             if blob[pos - 5] != 0xB8 + reg:
@@ -114,7 +114,9 @@ def audit(exe: Path, methods: Path, exports: Path) -> dict:
         ]
         constant = int(row["immediate"], 16)
         row["rowCountIfAppliedToSourceHeader"] = {
-            label: (((int(h["first4ByteLittleEndian"], 16) + constant) & U32)\n                    if row["operator"] == "add" else\n                    (int(h["first4ByteLittleEndian"], 16) ^ constant))
+            label: (((int(h["first4ByteLittleEndian"], 16) + constant) & U32)
+                    if row["operator"] == "add" else
+                    (int(h["first4ByteLittleEndian"], 16) ^ constant))
             for label, h in raw_headers.items()
         }
         row["plausibleSceneCountForEitherSource"] = any(
