@@ -127,12 +127,25 @@ def decode_original_usage_tables(metadata:bytes,header:bytes)->dict:
                     max_src=[0]*8
                     dest_index_min=None
                     dest_index_max=None
+                    source_limit_failures={str(k):0 for k in (1,3)}
+                    final_usage_records=[]
+                    suspicious_kind_zero_pairs=[]
                     for pair_index in range(starts[-1]):
                         kind,source,dest,_=usage.decode_usage_pair(metadata,pair_pos,pair_index)
                         counts[kind]+=1
                         max_src[kind]=max(max_src[kind],source)
                         dest_index_min=dest if dest_index_min is None else min(dest_index_min,dest)
                         dest_index_max=dest if dest_index_max is None else max(dest_index_max,dest)
+                        if kind==1 and source>=PROFILE_71.runtime_type_count:
+                            source_limit_failures["1"]+=1
+                        if kind==3 and source>=PROFILE_71.method_count:
+                            source_limit_failures["3"]+=1
+                        if pair_index>=starts[-1]-20:
+                            final_usage_records.append({
+                                "pairIndex":pair_index,"nativeKind":kind,
+                                "sourceIndex":source,"destinationIndex":dest})
+                        if kind==0 and len(suspicious_kind_zero_pairs)<20:
+                            suspicious_kind_zero_pairs.append(pair_index)
                         if len(examples[str(kind)])<4:
                             examples[str(kind)].append({"pairIndex":pair_index,"originalSourceIndex":source,
                                                      "originalUsageDestinationIndex":dest})
@@ -145,6 +158,12 @@ def decode_original_usage_tables(metadata:bytes,header:bytes)->dict:
                        "originalUsageDestinationIndexBounds":[dest_index_min,dest_index_max],
                        "originalUsageKindSourceSamples":examples,
                        "sourceNativeRecoveredUsageListStartsSample":starts[:8],
+                       "sourceValidIndexBoundaryViolationsForKinds1And3":source_limit_failures,
+                       "sourceOriginalUsageListStartsTail":starts[-16:],
+                       "sourceFinalTwentyDecodedPairs":final_usage_records,
+                       "originalKindZeroPairIndices":suspicious_kind_zero_pairs,
+                       "decodedKindZeroPairTailUnverified":True,
+                       "sourceKind1MaximumEqualsOriginalRuntimeTypeCountMinusOne":max_src[1]==PROFILE_71.runtime_type_count-1,
                        "originalUsagePairDestinationsAreClassSlotRVAsProven":False
                     })
             except (ValueError,IndexError,OverflowError,struct.error) as exc:
