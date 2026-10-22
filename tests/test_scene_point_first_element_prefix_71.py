@@ -52,5 +52,41 @@ class SourceScenePointElementPrefixGate(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"original source byte-2 helper input changed"):
             m.prefix_candidates(rows)
 
+
+    def test_original_native_length_aware_prefix_evidence(self):
+        file=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+              "7.1-original-scene-point-first-element-native-length-prefix.json")
+        j=json.loads(file.read_text(encoding="utf-8"))
+        self.assertEqual(j["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(j["originalMethodsGitBlob"],m.METHODS_BLOB)
+        self.assertEqual(j["sourceArtifactId"],12410568240)
+        reader=j["originalNativeArrayReader"]
+        self.assertEqual(reader["nativeSha256"],m.RVA_SHA)
+        self.assertEqual(reader["nativeInstructionCount"],392)
+        anchors=reader["sourceInstructionAnchors"]
+        self.assertEqual(anchors["0xAD23124"]["operands"],
+                         "r12d, word ptr [rax + rdx + 0x20]")
+        self.assertEqual(anchors["0xAD23132"]["operands"],"r12w, ax")
+        self.assertEqual(anchors["0xAD23320"]["operands"],"0x14fd53090")
+        self.assertEqual(anchors["0xAD23393"]["operands"],
+                         "eax, byte ptr [rax + rdx + 0x20]")
+        helper=j["independentlyAuthenticatedOriginalCursorAdvanceHelper"]
+        self.assertEqual(helper["originalCursorIncrementRva"],"0xFD53179")
+        self.assertEqual(helper["nativeCallInThisArrayReader"],"0xAD23320")
+        decoded=j["observed13OriginalScenePointPrefixCandidateDecode"]
+        self.assertEqual(decoded["dynamicLengthOneSampleCount"],12)
+        self.assertEqual(decoded["dynamicLengthTwoSampleCount"],1)
+        self.assertEqual([x["candidateFirstElementByteOffset"]
+                          for x in decoded["originalSamples"]],
+                         [10,10,10,10,11,10,10,10,10,10,10,10,10])
+        self.assertEqual([x["sourceOriginalFactoryNumericTypeCandidate"]
+                          for x in decoded["originalSamples"]],
+                         [14,1,1,1,1,1,1,1,1,1,1,1,1])
+        self.assertTrue(decoded["all13DynamicSubtypeCandidatesWithinFactoryCase0To30"])
+        self.assertTrue(decoded["immediateAfterArrayCountAtByte7All13InvalidFactory"])
+        self.assertFalse(j["unresolved"]["sourceScenePointResourceIsInputOfNamedOriginalNativeReader"])
+        self.assertFalse(j["unresolved"]["scenePointPositionsDecoded"])
+        self.assertFalse(j["unresolved"]["chestGadgetInstancePlacementDecoded"])
+
 if __name__=="__main__":
     unittest.main()
