@@ -35,7 +35,7 @@ class SourceNativeCB(unittest.TestCase):
             bad.write_text("type_definition_index,type_name,method_name,method_index,rva\n",
                            encoding="utf-8")
             with patch.object(m,"blob_sha",return_value="wrong"):
-                with self.assertRaisesRegex(ValueError,"Git blob"):
+                with self.assertRaisesRegex(ValueError,"blob drift"):
                     m.source_guards(bad,ROOT/m.PRIOR,ROOT/m.SCENES)
 
 if __name__=="__main__":
