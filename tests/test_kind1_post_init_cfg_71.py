@@ -23,6 +23,7 @@ class NativePostTypeResolutionCFGTests(unittest.TestCase):
         self.assertEqual(source["sourceNativeHelper"]["originalRuntimePostResolutionInitRva"],
                          f"0x{p.ROOT:X}")
 
+    @unittest.skipUnless(importlib.util.find_spec("capstone"), "Capstone is an optional native research dependency")
     def test_reachable_native_branches_do_not_execute_call_bodies(self):
         # 75 05: JNE +5 => address +7; E8 00..00: CALL +7; C3: RET
         # Both branches reach one RET. No call-body traversal or inline data.
@@ -35,6 +36,7 @@ class NativePostTypeResolutionCFGTests(unittest.TestCase):
         self.assertEqual(report["unresolvedNativeBranchOrDecodeCount"],0)
         self.assertTrue(report["verifiedCompleteWithinWindow"])
 
+    @unittest.skipUnless(importlib.util.find_spec("capstone"), "Capstone is an optional native research dependency")
     def test_unresolved_native_indirect_jump_kept(self):
         code=b"\xFF\xE0"+b"\xCC"*(p.PREFIX_BYTES-2) # jmp rax
         result=p.inspect_control_flow(code,0x140000000,start_rva=p.ROOT)
