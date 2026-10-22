@@ -49,5 +49,41 @@ class OriginalScenePointHeaderTransformTests(unittest.TestCase):
         for candidate in p.candidate_transforms(fake):
             self.assertFalse(candidate["nativeCountTransformProven"])
 
+
+    def test_exact_original_native_array_count_evidence(self):
+        path=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+                   "7.1-original-scene-point-native-xor-reader-evidence.json")
+        j=json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(j["originalExeSha256"],p.PROFILE_71.exe_sha256)
+        self.assertEqual(j["originalMethodsGitBlob"],p.METHOD_BLOB)
+        self.assertEqual(j["archivedRunArtifactId"],12406477477)
+        self.assertEqual(j["mathematicalCandidateCount"],44)
+        self.assertEqual(j["mathematicallyViableCandidateGroups"],
+                         {"3_xor":22,"6_add":22})
+        self.assertEqual(j["nativeOriginalExecutableMatchedKeys"],["0xC14B813C"])
+        self.assertEqual(j["nativeOriginalExecutableAlignedImmediateMatches"],1)
+        native=j["sourceNativeArrayCountReader"]
+        self.assertEqual(native["originalTypeName"],"NLDEPJEOJGC")
+        self.assertEqual(native["originalMethodIndex"],514423)
+        self.assertEqual(native["originalMethodRva"],"0xAD23000")
+        self.assertEqual(native["originalMethodWindowBytes"],1568)
+        self.assertEqual(native["originalMethodWindowSha256"],
+                         "6319613278adf382bf7ce513d1d875ef98b318d5f5f3bc9c423b72caebd7c0ad")
+        self.assertTrue(native["sourceMethodFullyDisassembled"])
+        self.assertEqual(native["decodedNativeInstructions"],392)
+        self.assertEqual(native["sourceAlignedImmediateInstruction"]["bytes"],"bb3c814bc1")
+        self.assertEqual([x["rva"] for x in native["verifiedReadAndLoopInstructions"]],
+                         ["0xAD23053","0xAD23060","0xAD23063","0xAD2306B",
+                          "0xAD2306F","0xAD23072","0xAD230BB","0xAD230CC"])
+        self.assertTrue(native["genericNativeU32XorCountReaderProven"])
+        self.assertEqual(native["crossSceneCandidateCountsForPrefixOffset3"],
+                         [1727,28,28,20,14,60,19,24,18,25,56,26,1])
+        for x in ("sourceOriginalScenePointStreamStartsAtHypothesizedOffsetProven",
+                  "originalScenePointLoaderCallsThisReaderProven",
+                  "originalPointRowDecoderProven","fullOriginalScenePointByteConsumptionProven"):
+            self.assertFalse(native[x])
+        self.assertFalse(j["originalChestGadgetInstancePlacementProven"])
+        self.assertFalse(j["originalServerChestPlacementOwnershipProven"])
+
 if __name__=="__main__":
     unittest.main()
