@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_71_CMD27685_OBJECT_PLUS_0X98_IS_NESTED_COLLECTION_ELEMENT__LEVEL_UNVERIFIED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalCmdId": 27685,
+  "originalNativeType": "KIIKIELOHOG",
+  "originalDerivedEvidence": {
+    "ownerNativeMethodArtifactSha256": "b5af80c132d5fe282a41f3270215887ac578e8d71b1942b34991a02febddee3a",
+    "consumerNativeMethodArtifactSha256": "7bec3f006b819bcc956cc3c85a38a71176945b232767ca6f48294c779f78bc11",
+    "ownerSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39702524539",
+    "consumerSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39703359133"
+  },
+  "originalInstructionWitness": {
+    "checkedInstructionCount": 20,
+    "constructorInitializesMessageCollectionPointerAtObjectOffset": "0x18",
+    "staticInitializerConstructedObjectLiteralAtOffset0x10": "0x42",
+    "staticInitializerLiteralInterpretedAsProtobufTag": false,
+    "staticInitializerTagShapedValueIfWireKey": {
+      "potentialFieldNumber": 8,
+      "potentialWireType": 2
+    },
+    "typedOnAcceptOwner": "JLDCJCKHJEM",
+    "onAcceptRva": "0xFCDF5D0",
+    "onAcceptReceivesThisPacketAsParameter": true,
+    "onAcceptReadsMessageCollectionOffset": "0x18",
+    "onAcceptReadsCollectionCountAtNestedOffset": "0x18",
+    "onAcceptReadsIndexedElementPointerAtRelativeOffset": "0x20 + index*8",
+    "onAcceptReads32bitScalarFromElementOffset": "0x98",
+    "element32bitScalarIsFieldOfRootPacket": false,
+    "concreteElementClassProven": false,
+    "scalarSemanticLevelProven": false,
+    "scalarSemanticEntityIdProven": false
+  },
+  "limits": [
+    "The +0x98 load is reached after an indexed pointer load from the packet's +0x18 collection, so it is an element object offset. Its type and semantic field name are not known.",
+    "The source .cctor creates a codec-shaped object containing 0x42. Protobuf field 8 / wire type 2 is only a numerical interpretation; the specific codec class is not independently resolved.",
+    "This is native original-client object memory layout, not native scene placement or any official server reward schema.",
+    "The 7.1 CmdId semantic name, protocol direction, original PropPair level handling, and chest loot grade/level/type remain unknown.",
+    "Original executable and derived large disassemblies are not vendored."
+  ]
+}
