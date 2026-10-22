@@ -76,5 +76,33 @@ class SourceScenePointAudit(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"source-authenticated"):
             m.analyze(b"random untrusted bytes",Path("."))
 
+
+    def test_source_authenticated_scene_point_census_is_opaque(self):
+        p=ROOT/"versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json"
+        j=json.loads(p.read_text(encoding="utf-8"))
+        self.assertEqual(j["exactOriginalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(j["exactOriginalDesignIndexRawSha256"],m.INDEX_SHA)
+        self.assertEqual(j["source"]["archiveArtifactId"],12404514512)
+        self.assertEqual(j["source"]["verifiedSourceBlockSha256"],
+                         j["expectedOriginalWorldAreaBlockSha256"])
+        self.assertEqual(j["scenesChecked"],13)
+        self.assertEqual(j["statusCounts"],{"SOURCE_RAW_AND_FRAMING_VERIFIED":13})
+        self.assertEqual(j["totalSourceRawExportBytes"],183172)
+        self.assertEqual(j["totalSourcePayloadBytes"],183097)
+        self.assertEqual(j["distinctSourcePayloadSha256s"],13)
+        self.assertEqual([v["sceneId"] for v in j["assetRows"]],list(m.SCENES))
+        self.assertEqual(j["assetRows"][0]["rawExportSha256"],
+                         "b27346051cb456c1018ee1726e99de7bd379b2bb910bb3adebcad0b15f540c73")
+        self.assertEqual(j["assetRows"][0]["payloadBytes"],152283)
+        self.assertEqual(j["assetRows"][0]["namePathHash"],m.SCENE_POINT3_HASH)
+        for row in j["assetRows"]:
+            self.assertTrue(row["originalBlockVerifiedAsWorldAreaBlock"])
+            self.assertEqual(row["status"],"SOURCE_RAW_AND_FRAMING_VERIFIED")
+            self.assertFalse(row["nativeScenePointRowSchemaDecoded"])
+            self.assertFalse(row["chestGadgetInstanceProven"])
+        self.assertFalse(j["originalScenePointCoordinateDecoded"])
+        self.assertFalse(j["originalChestInstancePlacementProven"])
+        self.assertFalse(j["originalServerInstanceOwnershipProven"])
+
 if __name__=="__main__":
     unittest.main()
