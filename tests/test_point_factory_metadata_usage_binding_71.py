@@ -41,5 +41,44 @@ class OriginalPointFactoryMetadataUsage(unittest.TestCase):
            "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0")
 
 
+
+    def test_source_verified_native_usage_table_and_tail_boundary(self):
+        report_file=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+                     "7.1-original-point-factory-metadata-usage-table-boundary.json")
+        j=json.loads(report_file.read_text(encoding="utf-8"))
+        self.assertEqual(j["originalExecutableSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(j["originalMetadataSha256"],m.PROFILE_71.metadata_sha256)
+        self.assertEqual(j["originalSourceArtifactId"],12415411049)
+        s=j["sourceOriginalUsageLayout"]
+        self.assertEqual(s["candidateListTableFileOffset"],"0x4DA2AAC")
+        self.assertEqual(s["candidatePairTableFileOffset"],"0x3DF52D8")
+        self.assertEqual(s["originalCandidateListCount"],311730)
+        self.assertEqual(s["originalCandidatePairCount"],788058)
+        self.assertEqual(s["originalDecodedNativeKindCounts"],
+                         {"0":10,"1":376243,"2":0,"3":84875,"4":1035,
+                          "5":137467,"6":185864,"7":2564})
+        self.assertTrue(s["originalKind1MaxEqualsOriginalRuntimeTypeCountMinusOne"])
+        self.assertEqual(s["sourceKind1AndKind3OutOfBoundSourceIndices"],
+                         {"1":0,"3":0})
+        self.assertEqual(s["allOriginalKindZeroCandidateIndices"],
+                         list(range(788048,788058)))
+        self.assertFalse(s["lastTenRecordsAreProvenValidUsageEntries"])
+        self.assertFalse(s["exactNativeUsageListCountProvenFromInitializer"])
+        self.assertFalse(j["rejectedAlternativeHeaderBodyCandidate"]["consistent"])
+        slots=j["staticFactoryClassSlotDataScan"]
+        self.assertTrue(slots["all31FactorySlotsChecked"])
+        self.assertEqual(slots["all31FactorySlotExactVaQwordHolders"],0)
+        self.assertEqual(slots["all31FactorySlotRawRvaDwordCandidates"],0)
+        self.assertEqual(slots["all31FactorySlotVaLow32DwordCandidates"],0)
+        for value in slots["focusedFactoryCaseAndControlSlots"].values():
+            self.assertEqual(value["exactImageVaQwordHolders"],0)
+            self.assertEqual(value["alignedRawRvaDwordCandidates"],0)
+        for k in ("metadataUsagePairDestinationToRuntimeClassSlotLinked",
+                  "originalFactoryCase1ConcreteIL2CPPTypeProven",
+                  "originalFactoryCase14ConcreteIL2CPPTypeProven",
+                  "originalScenePointResourceLoaderMappedToParser",
+                  "chestGadgetCoordinatesOrLevelDecoded"):
+            self.assertFalse(j["claims"][k])
+
 if __name__=="__main__":
     unittest.main()
