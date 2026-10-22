@@ -17,6 +17,8 @@ class NativeCallsite(unittest.TestCase):
         self.assertEqual(m.decode_direct_call(m.CALLSITE_RVA, m.ORIGINAL_OPCODE),
                          m.TARGET_RVA)
         self.assertEqual(m.TARGET_RVA, 0x184EE960)
+        self.assertEqual(m.decode_direct_call(m.HANDLER_CALLSITE_RVA,
+            m.HANDLER_ORIGINAL_OPCODE),0x184EE680)
         self.assertEqual(m.PRE_CALL_INSTRUCTIONS[0],
                          (0xFCDF6B2, "8b9098000000"))
 

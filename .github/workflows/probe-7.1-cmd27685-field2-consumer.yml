@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/probe-7.1-cmd27685-field2-consumer.yml'
+      - 'scripts/probe-7.1-cmd27685-field2-consumer.py'
       - 'scripts/probe-7.1-cmd27685-collector-owner.py'
 
 permissions:

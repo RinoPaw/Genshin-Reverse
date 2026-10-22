@@ -24,6 +24,12 @@ from genshinre.sampleidentity import require_sha256
 CALLSITE_RVA = 0xFCDF6BE
 ORIGINAL_OPCODE = bytes.fromhex("e89df28008")
 TARGET_RVA = 0x184EE960
+HANDLER_CALLSITE_RVA = 0xFCDF87D
+HANDLER_ORIGINAL_OPCODE = bytes.fromhex("e8feed8008")
+HANDLER_TARGET_RVA = 0x184EE680
+HANDLER_PRE_CALL = [(0xFCDF863, "488b5e28"),
+                    (0xFCDF870, "8b9798000000"),
+                    (0xFCDF87A, "4889d9")]
 PRE_CALL_INSTRUCTIONS = [
     (0xFCDF6B2, "8b9098000000"),
     (0xFCDF6B8, "4531c0"),
@@ -103,6 +109,19 @@ def inspect(exe: Path, methods: Path) -> dict:
         target_data = pe.read_rva(target, DISASM_SIZE)
         if len(target_data) != DISASM_SIZE:
             raise ValueError(f"original native target 0x{target:X} is not fully file-backed")
+        peer_original = pe.read_rva(HANDLER_CALLSITE_RVA, 5)
+        if peer_original != HANDLER_ORIGINAL_OPCODE:
+            raise ValueError("original Handle lookup call opcode changed")
+        for peer_addr, hexbytes in HANDLER_PRE_CALL:
+            expected = bytes.fromhex(hexbytes)
+            if pe.read_rva(peer_addr, len(expected)) != expected:
+                raise ValueError("original Handle input source operand changed")
+        peer_target = decode_direct_call(HANDLER_CALLSITE_RVA, peer_original)
+        if peer_target != HANDLER_TARGET_RVA:
+            raise ValueError("original Handle lookup call target mismatch")
+        peer_data = pe.read_rva(peer_target, 0x700)
+        if len(peer_data) != 0x700:
+            raise ValueError("original Handle lookup callee not source backed")
         image_base = pe.image_base
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
     md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -125,7 +144,18 @@ def inspect(exe: Path, methods: Path) -> dict:
             break
     if not instructions:
         raise ValueError("original target method native bytes could not disassemble")
+    peer_instructions = []
+    for ins in md.disasm(peer_data, image_base + peer_target):
+        peer_instructions.append({
+            "rva": f"0x{ins.address - image_base:X}",
+            "mnemonic": ins.mnemonic,
+            "operands": ins.op_str,
+            "hex": bytes(ins.bytes).hex(),
+        })
+        if len(peer_instructions) >= MAX_RETAINED_INSTRUCTIONS or ins.mnemonic == "ret":
+            break
     metadata = original_methods(methods, TARGET_RVA)
+    peer_metadata = original_methods(methods, peer_target)
     return {
         "schemaVersion": 1,
         "status": "EXACT_71_CMD27685_FIELD2_NATIVE_CALLEE_RECOVERED__SEMANTICS_UNVERIFIED",
@@ -159,6 +189,25 @@ def inspect(exe: Path, methods: Path) -> dict:
             "branchAndCallSamples": branches,
         },
         "methodMetadata": metadata,
+        "peerCallsite": {
+            "originalMethod": "JLDCJCKHJEM.Handle",
+            "callerMethodRva": "0xFCDF7F0",
+            "callRva": f"0x{HANDLER_CALLSITE_RVA:X}",
+            "originalOpcode": peer_original.hex(),
+            "nativeCalleeRva": f"0x{peer_target:X}",
+            "firstArgFromObjectOffset": "0x28",
+            "secondArgFromIndexedElementOffset": "0x98",
+            "nativeIndexArgumentFromHandleMethod": True,
+            "field2SemanticNameProven": False,
+        },
+        "peerCallee": {
+            "startRva": f"0x{peer_target:X}",
+            "sourceBytesSha256": hashlib.sha256(peer_data).hexdigest(),
+            "decodedInstructions": peer_instructions,
+            "boundedWindowBytes": len(peer_data),
+            "fullMethodVerified": False,
+        },
+        "peerMethodMetadata": peer_metadata,
         "limits": [
             "Instruction operands prove the caller passes a scalar sourced from element +0x98; function identity and semantics require callee proof.",
             "Method metadata nearest-lower RVA is not automatically the enclosing method.",
@@ -184,6 +233,9 @@ def main() -> None:
         "methodMetadata": report["methodMetadata"],
         "calleeInstructions": report["callee"]["disassembledInstructions"][:130],
         "calleeSourceBytesSha256": report["callee"]["sourceBytesSha256"],
+        "HandleCallsite": report["peerCallsite"],
+        "HandleNativeCalleeInstructions": report["peerCallee"]["decodedInstructions"][:125],
+        "HandleMethodMetadata": report["peerMethodMetadata"],
     }, indent=2))
 
 
