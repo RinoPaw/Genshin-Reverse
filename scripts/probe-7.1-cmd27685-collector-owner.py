@@ -91,7 +91,8 @@ def disasm_ctor(exe: Path, methods: list[dict]) -> dict:
             rva = int(m["nativeMethodRva"] or "0", 16)
             if rva <= 0:
                 continue
-            window = 0x180 if m["originalMethodName"] == "Handle" else 0x220\n            data = pe.read_rva(rva, window)
+            window = 0x180 if m["originalMethodName"] == "Handle" else 0x220
+            data = pe.read_rva(rva, window)
             if len(data) != window:
                 raise ValueError("cannot read original constructor method bytes")
             lines = []
