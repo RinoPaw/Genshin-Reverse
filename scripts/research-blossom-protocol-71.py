@@ -40,5 +40,25 @@ def scan():
             print("TYPE",ty["cmd_id"],ty["type_name"],p,"count",len(matches),flush=True)
             for m in matches[:48]:
                 print("  ROW",json.dumps(m,ensure_ascii=False),flush=True)
+
+    referenced = {
+        "HCDGGIDOEFA", "ELDHKOJPAIC", "MPDKBDDJAOE",
+        "MPCLIAJOEJB", "JBHJMLHMHAC", "MNCLLNEAMHG",
+    }
+    refs=[]
+    for row in records("metadata/fields.csv"):
+        if row["field_type"] in referenced:
+            refs.append(row)
+    print("FIELDTYPE_REFERENCES",len(refs),flush=True)
+    for name in sorted(referenced):
+        hits=[x for x in refs if x["field_type"]==name]
+        print("REFERENCED_TYPE",name,"count",len(hits),flush=True)
+        for h in hits[:70]:
+            print("  REF",json.dumps(h),flush=True)
+    wanted_types=[x for x in records("metadata/types.csv") if x["type_name"] in referenced]
+    print("REFERENCED_TYPE_DEFS",json.dumps(wanted_types,indent=2),flush=True)
+    # Types that look like protobuf messages with a single nested field of the
+    # exact same type as the imported response are potential marker notifications.
+    print("SAME_FIELD_112",json.dumps([x for x in refs if x["field_type"]=="HCDGGIDOEFA"][:100]),flush=True)
 if __name__ == "__main__":
     scan()
