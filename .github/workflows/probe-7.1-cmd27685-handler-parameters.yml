@@ -1,0 +1,59 @@
+name: Probe exact 7.1 CmdId 27685 native handler parameters
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-7.1-cmd27685-handler-parameters.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: original-71-cmd27685-handler-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . zstandard
+      - name: Acquire original exact source EXE and metadata
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Decode native parameter type at all original methods
+        run: |
+          mkdir -p work
+          printf 'cmd_id\n27685\n' > work/scene-entity-candidate.csv
+          python tools/decode_protocol_handler_parameters_71.py \
+            inputs/7.1.0-global/GenshinImpact.exe \
+            inputs/7.1.0-global/GenshinImpact_Data/Managed/Metadata/global-metadata.dat \
+            versions/7.1.0-global/windows-x64/registry/registry.csv \
+            versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
+            work/scene-entity-candidate.csv \
+            work/scene-entity-original-handler-parameters.json \
+            --control-cmd 22899 --control-cmd 3064 --control-cmd 20824
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("work/scene-entity-original-handler-parameters.json").read_text())
+          print("KNOWN_ORIGINAL_HANDLER_CONTROLS_PASSED",r["control_validation_passed"])
+          for row in r["rows"]:
+              print("CMD",row["cmd_id"],"ROLE",row["role"],"NATIVE_TYPE",row["type_name"],
+                    "METHOD_PARAMETER_REFERENCES",row["parameter_hit_count"],
+                    "KNOWN_HANDLER_OWNER",row["known_handler_owner_hit_count"])
+              if row["cmd_id"]==27685:
+                  for hit in row["all_hits"][:16]:
+                      print("NATIVE_PARAM_LEAD",hit["method_index"],hit["method_rva"],
+                            hit["owner_type"],hit["method_name"],hit["parameter_ordinal"])
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-cmd27685-handler-parameters
+          path: work/scene-entity-original-handler-parameters.json
+          if-no-files-found: error
+          retention-days: 7
