@@ -1,0 +1,36 @@
+name: One-shot original 7.1 factory 55A0B0 native audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-7.1-factory-55a0b0.yml'
+      - 'scripts/probe-7.1-factory-helper-55a0b0.py'
+
+permissions:
+  contents: read
+
+jobs:
+  original-helper-callee:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . capstone zstandard
+      - name: Fetch verified source original 7.1 exe
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Probe source original native 0x55A0B0
+        run: |
+          python scripts/probe-7.1-factory-helper-55a0b0.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --prior versions/7.1.0-global/analyses/progression/world/7.1-original-point-factory-helper-529a10-native.json \
+            --output work/7.1-original-factory-native-55a0b0.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-factory-native-55a0b0
+          path: work/7.1-original-factory-native-55a0b0.json
+          retention-days: 7
+          if-no-files-found: error
