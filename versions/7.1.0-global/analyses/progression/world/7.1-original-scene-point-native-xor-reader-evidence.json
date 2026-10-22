@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_GLOBAL_7_1_ORIGINAL_SCENE_POINT_PREFIX_CROSS_SAMPLE_XOR_NATIVE_ARRAY_READER_CONFIRMED__SCENE_POINT_LOADER_LINK_UNPROVEN",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "originalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "priorSourceReport": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json",
+  "originalSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39734845897",
+  "originalRunHeadSha": "22727f4fa411bbbb2fc02f002d66605d45a768ff",
+  "archivedRunArtifactId": 12406477477,
+  "archivedRunArtifactDigest": "sha256:a37ec61f62fae9b299a6a346b68bb879cdb1b5c2fce45f14f8324d215bfdcc91",
+  "modelsTested": [
+    "xor",
+    "add"
+  ],
+  "boundedCandidateWordOffsets": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "mathematicalCandidates": [
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8129"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8128"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B812F"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B812E"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B812D"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B812C"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8133"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8132"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8131"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8130"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8137"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8136"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8135"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8134"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813B"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813A"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8139"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B8138"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813F"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813E"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813D"
+    },
+    {
+      "offset": 3,
+      "op": "xor",
+      "key": "0xC14B813C"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418983F"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189840"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189841"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189842"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189843"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189844"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189845"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189846"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189847"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189848"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189849"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984A"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984B"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984C"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984D"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984E"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x5418984F"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189850"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189851"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189852"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189853"
+    },
+    {
+      "offset": 6,
+      "op": "add",
+      "key": "0x54189854"
+    }
+  ],
+  "mathematicalCandidateCount": 44,
+  "mathematicallyViableCandidateGroups": {
+    "3_xor": 22,
+    "6_add": 22
+  },
+  "nativeOriginalExecutableAlignedImmediateMatches": 1,
+  "nativeOriginalExecutableMatchedKeys": [
+    "0xC14B813C"
+  ],
+  "sourceNativeArrayCountReader": {
+    "originalTypeName": "NLDEPJEOJGC",
+    "originalMethodName": "GMENPOPMKAA",
+    "originalMethodIndex": 514423,
+    "originalMethodRva": "0xAD23000",
+    "originalMethodWindowBytes": 1568,
+    "originalMethodWindowSha256": "6319613278adf382bf7ce513d1d875ef98b318d5f5f3bc9c423b72caebd7c0ad",
+    "originalMethodSuccessorRva": "0xAD23620",
+    "sourceMethodFullyDisassembled": true,
+    "decodedNativeInstructions": 392,
+    "sourceAlignedImmediateInstruction": {
+      "rva": "0xAD23066",
+      "mnemonic": "mov",
+      "operands": "ebx, 0xc14b813c",
+      "bytes": "bb3c814bc1",
+      "immOffset": 1,
+      "immBytes": 4
+    },
+    "verifiedReadAndLoopInstructions": [
+      {
+        "rva": "0xAD23053",
+        "mnemonic": "mov",
+        "operands": "ecx, dword ptr [r15 + 0x28]",
+        "bytes": "418b4f28",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD23060",
+        "mnemonic": "movsxd",
+        "operands": "rdx, ecx",
+        "bytes": "4863d1",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD23063",
+        "mnemonic": "add",
+        "operands": "ecx, 4",
+        "bytes": "83c104",
+        "immOffset": 2,
+        "immBytes": 1
+      },
+      {
+        "rva": "0xAD2306B",
+        "mnemonic": "xor",
+        "operands": "ebx, dword ptr [rax + rdx + 0x20]",
+        "bytes": "335c1020",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD2306F",
+        "mnemonic": "mov",
+        "operands": "dword ptr [rbp + 0xc], ebx",
+        "bytes": "895d0c",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD23072",
+        "mnemonic": "mov",
+        "operands": "dword ptr [r15 + 0x28], ecx",
+        "bytes": "41894f28",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD230BB",
+        "mnemonic": "call",
+        "operands": "rbx",
+        "bytes": "ffd3",
+        "immOffset": 0,
+        "immBytes": 0
+      },
+      {
+        "rva": "0xAD230CC",
+        "mnemonic": "cmp",
+        "operands": "ebx, dword ptr [rbp + 0xc]",
+        "bytes": "3b5d0c",
+        "immOffset": 0,
+        "immBytes": 0
+      }
+    ],
+    "verifiedGenericArrayCountDecodeExpression": "count = sourceU32 XOR 0xC14B813C; input cursor advances by 4 bytes",
+    "genericNativeU32XorCountReaderProven": true,
+    "sourceRawPrefixByteOffsetHypothesis": 3,
+    "crossSceneCandidateCountsForPrefixOffset3": [
+      1727,
+      28,
+      28,
+      20,
+      14,
+      60,
+      19,
+      24,
+      18,
+      25,
+      56,
+      26,
+      1
+    ],
+    "sourceOriginalScenePointStreamStartsAtHypothesizedOffsetProven": false,
+    "originalScenePointLoaderCallsThisReaderProven": false,
+    "originalPointRowDecoderProven": false,
+    "fullOriginalScenePointByteConsumptionProven": false
+  },
+  "originalScenePointCoordinatesProven": false,
+  "originalChestGadgetInstancePlacementProven": false,
+  "originalServerChestPlacementOwnershipProven": false,
+  "limitations": [
+    "The exact original 7.1 native method is proven to read a u32 at the current cursor, XOR 0xC14B813C and run a loop on the result.",
+    "Across all 13 independent Scene Point source assets, the word at payload offset 3 is mathematically compatible with this count reader and its list lengths fit source sizes; those are inferred candidate counts.",
+    "Original scene Point file consumer identity and how its reader cursor reaches offset 3 are unverified. The same array helper may be reused by multiple unrelated original resource types.",
+    "The candidate integer values cannot be called official point totals, chest totals, Gadget placements or server-owned scene groups without full original row decode and EOF validation.",
+    "No private-server Lua names, 7.0 asset schema, reward contents, or loot tables were used."
+  ]
+}
