@@ -16,6 +16,24 @@ class NativeCollectorGenericinst(unittest.TestCase):
         self.assertEqual(m.TYPES["messageRepeatedGenericinst"],(65670,"KIIKIELOHOG","GEPFILACKKP",547328))
         self.assertEqual(m.PROFILE_71.exe_sha256,"08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d")
 
+    def test_published_native_genericinst_samples_have_no_unsupported_args(self):
+        import json
+        file=ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-cmd27685-native-collector-genericinst.json"
+        data=json.loads(file.read_text(encoding="utf-8"))
+        self.assertEqual(data["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(data["originalFieldsGitBlob"],m.FIELDS_BLOB)
+        field=data["fields"]["collectorGenericinst"]
+        self.assertEqual(field["originalNativeTypeEntryHex"],"72830000000000000100150000000000")
+        self.assertEqual(field["nativeTypeDataLowU32"],"0x8372")
+        self.assertFalse(field["rawDataPointerFileBacked"])
+        self.assertFalse(field["genericClassIndexVerified"])
+        self.assertFalse(field["genericKeyTypeVerified"])
+        self.assertFalse(field["genericValueTypeVerified"])
+        second=data["fields"]["messageRepeatedGenericinst"]
+        self.assertEqual(second["originalNativeTypeEntryHex"],"15570200000000002100150000000000")
+        self.assertEqual(second["nativeTypeDataLowU32"],"0x25715")
+        self.assertFalse(second["rawDataPointerFileBacked"])
+
     def test_git_blob_guard(self):
         with tempfile.TemporaryDirectory() as temp:
             p=Path(temp)/"metadata.csv"

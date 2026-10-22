@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_CMD27685_COLLECTOR_GENERICINST_TYPE_ARRAY_BYTES__GENERIC_ARGS_UNVERIFIED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalFieldsGitBlob": "ae01d117f4d884e891a95d529a15302a68715b04",
+  "originalIl2CppTypeArrayPointerSourceRva": "0x2870AD0",
+  "fields": {
+    "collectorGenericinst": {
+      "fieldName": "AFGKAIPDLOH",
+      "ownerType": "JLDCJCKHJEM",
+      "ownerTypeDefinitionIndex": 24767,
+      "originalRuntimeTypeIndex": 484299,
+      "actualNativeKind": "genericinst",
+      "originalNativeTypeEntryRva": "0x35826D0",
+      "originalNativeTypeEntryHex": "72830000000000000100150000000000",
+      "nativeTypeDataLowU32": "0x8372",
+      "rawDataU64": "0x8372",
+      "rawDataPointerFileBacked": false,
+      "rawDataCandidateBytesHex": null,
+      "genericClassIndexVerified": false,
+      "genericKeyTypeVerified": false,
+      "genericValueTypeVerified": false
+    },
+    "messageRepeatedGenericinst": {
+      "fieldName": "GEPFILACKKP",
+      "ownerType": "KIIKIELOHOG",
+      "ownerTypeDefinitionIndex": 65670,
+      "originalRuntimeTypeIndex": 547328,
+      "actualNativeKind": "genericinst",
+      "originalNativeTypeEntryRva": "0x3678A20",
+      "originalNativeTypeEntryHex": "15570200000000002100150000000000",
+      "nativeTypeDataLowU32": "0x25715",
+      "rawDataU64": "0x25715",
+      "rawDataPointerFileBacked": false,
+      "rawDataCandidateBytesHex": null,
+      "genericClassIndexVerified": false,
+      "genericKeyTypeVerified": false,
+      "genericValueTypeVerified": false
+    }
+  },
+  "nativeGenericFieldAtCollectorPlus0x28FromFactory": true,
+  "factoryBindingEvidence": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39703359133",
+  "limits": [
+    "Native type-array kind genericinst and raw data bits are exact original bytes. Their low32 value is not a verified GenericClass array index.",
+    "A file-backed raw Il2CppType.data pointer can be investigated structurally only after validating a known-positive native generic registration layout.",
+    "The factory binds its second genericinst parameter to object +0x28; generic key/value type names and any field2 entity-id/level meaning remain unresolved.",
+    "No reward amounts, chest grading semantics, scene Lua placement, drop tables, probabilities or contents are investigated."
+  ],
+  "originalSourceVerificationRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39711696844",
+  "originalSourceArtifactId": 12397442292
+}
