@@ -173,3 +173,7 @@ The exact-client original method reports from [run 39702524539](https://github.c
 ## Temporary original 7.1 CmdId 27685 element TypeInfo XREF probe (issue #31)
 
 The one-shot read-only `probe-7.1-cmd27685-element-class.yml` scans exact SHA-pinned native class pointer references for the four discriminating source-derived `KIIKIELOHOG` constructor and initializer slots, including the repeated-element +0x18 collection's original class candidate; the >200,000-reference shared static-field table pointer is intentionally excluded. It correlates obfuscated original metadata owners and field types. Retire immediately after bounded source-scoped positive/negative findings are committed. Runtime class identity, protobuf field meaning, scene level and loot semantics remain unproven unless the reference graph supplies an independent binding.
+
+## Temporary original 7.1 CmdId27685 element member-offset probe (issue #31)
+
+The one-shot `probe-7.1-cmd27685-element-field-offset.yml` disassembles exact original client methods for CEOGMKOJDBL's sole KFOLLNPEMHH-typed field and the native element candidate's serializer/parser/CopyFrom methods. It explicitly tests the object-memory offset +0x98 in the original OnAccept consumer and tracks source SHA-256/RVA identities. Retire after committing a source-bound positive or negative result. No inferred level or loot-class label is permitted.
