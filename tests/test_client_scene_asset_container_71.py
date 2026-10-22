@@ -33,6 +33,18 @@ class SceneAssetInventory(unittest.TestCase):
           {"index":1,"firstOriginalName":"TextAsset","secondOriginalName":"namespace"},
         ])
 
+    def test_published_original_inventory_controls(self):
+        import json
+        d=json.loads((ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-original-client-manifest-asset-container-inventory.json").read_text(encoding="utf-8"))
+        self.assertEqual(d["originalClient"],m.PROFILE_71.identity)
+        self.assertEqual(d["provenance"]["officialCompressedManifestSha256"],m.MANIFEST_ZSTD_SHA256)
+        self.assertEqual(d["manifest"]["fileCount"],2744)
+        self.assertEqual(d["manifest"]["unityBundleBlockFiles"],1987)
+        self.assertEqual(d["manifest"]["standaloneLuaFileCount"],0)
+        self.assertEqual(d["assetDesignIndex"]["pairedIndexTypeStringCount"],0)
+        self.assertEqual(d["assetDesignIndex"]["exactHashedAssetNames"],247073)
+        self.assertFalse(d["originalNativeInstanceLevelFieldVerified"])
+
     def test_hash_pins_are_fixed(self):
         self.assertEqual(m.MANIFEST_ZSTD_SHA256,"3383e77a832d0076e84b4bd441867c293ccb2eff13e4380a2ef0df5b4d087d66")
         with self.assertRaisesRegex(ValueError,"Sophon compressed manifest"):

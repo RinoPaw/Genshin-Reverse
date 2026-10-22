@@ -15,6 +15,19 @@ class NativeUnityObjects(unittest.TestCase):
         self.assertEqual(m.SCENE3_RAW_SHA,"e66d6ec832bed734e824714d345961715b01edbdce50f6115b07983ec205eda9")
         self.assertEqual(m.CLASS_TYPES,("MiHoYoBinData","TextAsset","MonoBehaviour"))
 
+    def test_source_scoped_original_world_area_class_counts(self):
+        import json
+        report=json.loads((ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-original-worldarea-unity-classes.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["source"]["officialCompressedManifestSha256"],m.MANIFEST_SHA)
+        self.assertEqual(report["source"]["originalSourceBlockSha256"],
+                         "71fbe2d10404655fa20e5d612daf5fa2f2336c1d6250ae209b722c894169aff7")
+        self.assertEqual(report["source"]["independentPositiveScene3RawAssetSha256"],m.SCENE3_RAW_SHA)
+        self.assertEqual(report["exportedTypes"]["MiHoYoBinData"]["count"],167673)
+        self.assertEqual(report["exportedTypes"]["TextAsset"]["count"],0)
+        self.assertEqual(report["exportedTypes"]["MonoBehaviour"]["count"],0)
+        self.assertTrue(report["explicitUnityClassFiltersTestedSeparately"])
+        self.assertFalse(report["originalSceneGadgetInstanceFieldIdentified"])
+
     def test_types_count_only_actual_exported_files(self):
         with TemporaryDirectory() as tmp:
             root=Path(tmp)

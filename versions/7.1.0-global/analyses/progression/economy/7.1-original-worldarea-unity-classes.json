@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_WORLD_AREA_BLOCK_UNITY_CLASS_COUNTS__ORIGINAL_INSTANCE_LEVEL_UNRESOLVED",
+  "source": {
+    "originalClient": "7.1.0-global/windows-x64",
+    "officialCompressedManifestSha256": "3383e77a832d0076e84b4bd441867c293ccb2eff13e4380a2ef0df5b4d087d66",
+    "blockManifestPath": "GenshinImpact_Data/StreamingAssets/AssetBundles/blocks/00/24230448.blk",
+    "blockBytes": 133699977,
+    "officialBlockMd5": "1ad9ee10633cf3154a27f87690b5008f",
+    "originalSourceBlockSha256": "71fbe2d10404655fa20e5d612daf5fa2f2336c1d6250ae209b722c894169aff7",
+    "officialSophonChunks": 113,
+    "sourceExporter": "EIHRTeam/AnimeStudio v1.0.0-CI linux-x64",
+    "sourceExporterArchiveSha256": "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1",
+    "independentPositiveScene3RawAssetName": "0c934d1c.dat",
+    "independentPositiveScene3RawAssetSha256": "e66d6ec832bed734e824714d345961715b01edbdce50f6115b07983ec205eda9",
+    "originalArtifactJsonSha256": "679903ac1e16cd0e5dcd43adb9a906edc8fdd309da92995081edbfef0ae48764",
+    "originalSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39718574430",
+    "originalActionArtifactId": 12400490755
+  },
+  "exportedTypes": {
+    "MiHoYoBinData": {
+      "count": 167673,
+      "rawExportBytes": 415672040
+    },
+    "TextAsset": {
+      "count": 0,
+      "rawExportBytes": 0
+    },
+    "MonoBehaviour": {
+      "count": 0,
+      "rawExportBytes": 0
+    }
+  },
+  "explicitUnityClassFiltersTestedSeparately": true,
+  "sourceBlockProvenContains13WorldAreaBinDataObjects": true,
+  "rawExportFileNamesAreHashed": true,
+  "originalSceneGadgetInstanceFieldIdentified": false,
+  "limits": [
+    "The observed 167,673 MiHoYoBinData objects are exports only from the one 134MB client WorldArea-containing Unity block; their original data schemas and class owners are not thereby recovered.",
+    "No TextAsset and no MonoBehaviour were exported using separately invoked exact pinned CLI type filters on this block; this does not exclude other Unity blocks or an asset type unknown to this test.",
+    "Do not conflate raw file count in one AssetBundle with design-index name count across blocks.",
+    "The original scene3 WorldArea binary object is an independently verified positive control for this block; it is area geometry, not chest placement or a scene gadget level.",
+    "Historical 14,084 source-script chest instances cannot authenticate official client scene-instance levels, chest rarity or server payouts."
+  ]
+}

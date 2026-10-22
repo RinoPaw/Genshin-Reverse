@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_OFFICIAL_CLIENT_MANIFEST_AND_DESIGN_INDEX__SCENE_INSTANCE_SOURCE_UNVERIFIED",
+  "originalClient": "7.1.0-global/windows-x64",
+  "provenance": {
+    "originalExecutableSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "officialCompressedManifestSha256": "3383e77a832d0076e84b4bd441867c293ccb2eff13e4380a2ef0df5b4d087d66",
+    "originalDesignIndexRawSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+    "originalArtifactJsonSha256": "4c0e82a1e8409521868731f70e25538ca3b464438a1b8397b954a89f0c58ae36",
+    "originalActionRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39717968684",
+    "originalActionArtifactId": 12398889745,
+    "exporterSha256": "12e2dfb2ab35880eda4274fcd393091d47e204d4b6e4b5838421fa3b4d1720a1"
+  },
+  "manifest": {
+    "fileCount": 2744,
+    "unityBundleBlockFiles": 1987,
+    "unityBlockDataFolderEntries": 1985,
+    "rawSceneSubstringFileNames": 0,
+    "standaloneLuaFileCount": 0,
+    "extensionFileCounts": {
+      ".blk": 1987,
+      ".usm": 275,
+      ".chroma": 174,
+      ".pck": 134,
+      ".pak": 60,
+      ".dll": 38,
+      "(none)": 21,
+      ".dat": 13,
+      ".assets": 8,
+      ".txt": 7,
+      ".exe": 5,
+      ".json": 4,
+      ".mp3": 4,
+      ".config": 3,
+      ".ress": 3,
+      ".bin": 2,
+      ".ttf": 2,
+      ".manifest": 2,
+      ".info": 1,
+      ".sys": 1
+    }
+  },
+  "assetDesignIndex": {
+    "exactHashedAssetNames": 247073,
+    "referencedBlockCount": 536,
+    "blockReferencesHave16Groups": true,
+    "pairedOriginalIndexTypeStrings": [],
+    "pairedIndexTypeStringCount": 0
+  },
+  "sceneSourceBoundary": "Official manifest and standalone paths do not expose server-style scene3_group*.lua names; assets must be examined inside authenticated Unity containers, and other bundle families have not been exhaustively examined.",
+  "knownOriginalScenePositiveControl": "Data/_BinOutput/Scene/WorldArea/scene3_worldArea in block 00/24230448.blk",
+  "originalNativeInstanceLevelFieldVerified": false,
+  "officialServerScenePlacementVerified": false,
+  "limitations": [
+    "Original Sophon manifest path names cover files, not the internal named assets or Unity object types in bundles.",
+    "No literal scene or .lua filenames in the manifest cannot rule out embedded scripts, server-only scene configs or other original scene assets.",
+    "Design-index type-name table has zero rows in this source sample; that fact alone does not enumerate Unity class IDs.",
+    "Hash-index path tests are limited to MiHoYoBinData suffix and the earlier finite guessed names; do not claim all Unity type namespaces exhausted.",
+    "Proprietary game assets, historical Lua, community JSON fields, reward amounts and probabilities were not imported."
+  ]
+}
