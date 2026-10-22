@@ -51,5 +51,38 @@ class FloatParentNativeTests(unittest.TestCase):
         self.assertEqual(out[0]["rva"],"0xB43A328")
         self.assertEqual(out[0]["opcode"],"83f810")
 
+
+    def test_source_authenticated_parent_and_child_native_chain_report(self):
+        path=EVIDENCE/"7.1-original-scene-entity-float-parent-native-chain.json"
+        report=json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(report["originalMetadataSha256"],m.PROFILE_71.metadata_sha256)
+        self.assertEqual(report["artifactId"],12404195207)
+        self.assertEqual(report["typedOriginalChildField"],m.verify_priors(self.el,self.nested))
+        parent=report["parentReader"]
+        self.assertEqual(parent["methodRva"],f"0x{m.PARENT_RVA:X}")
+        self.assertEqual(parent["sourceSha256"],m.PARENT_SHA256)
+        self.assertEqual(parent["decodedInstructionCount"],708)
+        self.assertEqual(parent["directCallCount"],88)
+        self.assertEqual(parent["rawParentFieldAccessCount"],54)
+        self.assertFalse(parent["directCallToChildReaderFound"])
+        self.assertFalse(parent["directCallToChildCtorFound"])
+        self.assertEqual(parent["witness"]["field2Store"]["rva"],
+                         f"0x{m.KNOWN_WIRE2_STORE:X}")
+        self.assertEqual(report["additionalNativeMethods"]["elementCopyFrom"]["methodRva"],
+                         "0xB43D570")
+        self.assertEqual(report["additionalNativeMethods"]["elementCopyFrom"]["decodedInstructions"],505)
+        self.assertEqual(report["additionalNativeMethods"]["elementCopyFrom"]["directCallCount"],61)
+        self.assertEqual(report["additionalNativeMethods"]["elementCopyFrom"]["directChildCopyFromCallCount"],0)
+        child=report["verifiedOriginalChildReader"]
+        self.assertEqual(child["sourceSha256"],m.CHILD_SHA256)
+        self.assertEqual([x["originalRva"] for x in child["verifiedFloatStoreInstructions"]],
+                         [f"0x{v:X}" for v in m.FLOAT_STORES])
+        self.assertTrue(report["claims"]["childTypeFromOriginalMetadata"])
+        self.assertFalse(report["claims"]["nativeParentObjectOffsetForNamedChildKnown"])
+        self.assertFalse(report["claims"]["originalFloatMeaningPositionProven"])
+        self.assertFalse(report["claims"]["packetDirectionProven"])
+        self.assertFalse(report["claims"]["originalServerPlacementOwnershipProven"])
+
 if __name__=="__main__":
     unittest.main()
