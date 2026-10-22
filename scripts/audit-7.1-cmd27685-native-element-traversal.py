@@ -184,7 +184,7 @@ def build(original_owner_json: bytes, original_consumers_json: bytes) -> dict:
     if not any(m["methodIndex"] == 530821 and m["name"] == ".ctor"
                for m in owner["ownerMethods"]):
         raise ValueError("constructor metadata method unverified")
-    if not any(m["methodIndex"] == 190174 and m["methodName"] == "OnAccept"
+    if not any(int(m["method_index"]) == 190174 and m["method_name"] == "OnAccept"
                for m in consumers["originalParameterReferences"]):
         raise ValueError("original OnAccept typed parameter unverified")
 
