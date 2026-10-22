@@ -205,3 +205,7 @@ The second original [WorldArea Unity-class source run](https://github.com/RinoPa
 ## Temporary original 7.1 WorldArea Gadget u32 contact scan (issue #31)
 
 The one-shot read-only `probe-7.1-worldarea-native-gadget-contacts.yml` scans only source-verified original Global 7.1 `00/24230448.blk` objects already proven to contain 13 WorldArea records. Inputs include SHA-256-bound GadgetExcel 20 original chest literal names and u32 ID values, and separately labelled synthetic diagnostic patterns. The output is a bounded byte-occurrence report and never claims an official scene gadget level, placement, reward grade, or proto field. This large original Unity block scan runs off ordinary CI. Retire the hosted workflow immediately after documenting original byte witnesses and the bounded negative/positive conclusion.
+
+## Temporary original 7.1 raw Gadget-ID positive decoder control (issue #31)
+
+The one-shot `control-7.1-gadget-raw-id-byte-scan.yml` checks the original-source 30,599 GadgetExcel decoded rows against the same 20 native chest prefab IDs used in the earlier WorldArea direct little-endian u32 scan. It independently measures whether the **known positive serialized Gadget table** exposes those integers verbatim, to calibrate the scope of an all-negative raw byte scan. Original source blocks, Raw export SHA-256, decoder, and exporter archive are pinned. The report will explicitly retain that raw byte pattern search cannot prove original scene placements or `level`. Retire after result is committed.
