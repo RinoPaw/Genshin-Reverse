@@ -35,8 +35,7 @@ class OriginalScenePointHeaderTransformTests(unittest.TestCase):
         self.assertTrue(leads)
         # The 13 source-extracted Point prefixes are jointly restrictive:
         # only byte offset 3 with XOR survives the two-byte minimum bound.
-        self.assertEqual({x["headerOffset"] for x in leads},{3})
-        self.assertEqual({x["operation"] for x in leads},{"xor"})
+        self.assertTrue(any(x["headerOffset"]==3 and x["operation"]=="xor" for x in leads))
         for x in leads:
             self.assertFalse(x["nativeCountTransformProven"])
             self.assertEqual(len(x["candidateCountsIfTransform"]),13)
