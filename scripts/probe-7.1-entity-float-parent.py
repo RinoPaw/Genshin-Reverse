@@ -109,6 +109,7 @@ def probe(exe:Path,element_path:Path,nested_path:Path)->dict:
     return {
        "schemaVersion":1,
        "status":"ORIGINAL_GLOBAL_7_1_ENTITY_ELEMENT_FLOAT_CHILD_PARENT_NATIVE_BRANCHES__CHILD_FIELD_OFFSET_UNPROVEN",
+       "additionalNativeMethods":probe_additional_methods(exe,element,nested),
        "originalExeSha256":PROFILE_71.exe_sha256,
        "originalMetadataSha256":PROFILE_71.metadata_sha256,
        "parent":{"obfuscatedType":PARENT_TYPE,"readerRva":f"0x{PARENT_RVA:X}",
@@ -131,6 +132,59 @@ def probe(exe:Path,element_path:Path,nested_path:Path)->dict:
          "The original three-float reader is not an authenticated position, rotation, scene chest or Gadget semantic source.",
        ],
     }
+
+
+# The original type method indexes/RVAs are independently catalogued in the
+# earlier exact-metadata element/child reports. These windows are additional
+# native call-edge candidates, not complete method-body CFGs.
+EXTRA_WINDOWS={
+ "elementCopyFrom":(0xB43D570,0x7F0,"KFOLLNPEMHH","CopyFrom"),
+ "elementStaticInitializer":(0xB439EF0,0x3B0,"KFOLLNPEMHH",".cctor"),
+ "childCopyFrom":(0x11B252C0,0xE0,"ABOOLMJBDKE","CopyFrom"),
+}
+
+def probe_additional_methods(exe:Path,element:dict,nested:dict)->dict:
+    method_sources={
+      "KFOLLNPEMHH":element["metadata"]["elementMethods"],
+      "ABOOLMJBDKE":nested["typeCensus"]["sourceNativeTypes"]["ABOOLMJBDKE"]["methods"],
+    }
+    for label,(rva,size,owner,name) in EXTRA_WINDOWS.items():
+        ms=method_sources[owner]
+        if owner=="KFOLLNPEMHH":
+            found=[x for x in ms if x["originalName"]==name and int(x["originalRva"],16)==rva]
+        else:
+            found=[x for x in ms if x["name"]==name and int(x["rva"],16)==rva]
+        if len(found)!=1: raise ValueError(f"source native {label} owner/method RVA mismatch")
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+    with PEImage(exe) as pe:
+        md=Cs(CS_ARCH_X86,CS_MODE_64)
+        out={}
+        for label,(rva,size,owner,name) in EXTRA_WINDOWS.items():
+            blob=pe.read_rva(rva,size)
+            if len(blob)!=size: raise ValueError(f"source native method window {label} not file-backed")
+            rows=decode(md,blob,pe.image_base,rva)
+            if not rows:raise ValueError("empty original native method")
+            calls=[]
+            pointer_references=[]
+            for i,entry in enumerate(rows):
+                if entry["mnemonic"]=="call" and re.fullmatch(r"0x[0-9a-f]+",entry["operands"]):
+                    target=int(entry["operands"],16)-pe.image_base
+                    calls.append({"site":entry["rva"],"targetRva":f"0x{target:X}",
+                                  "isChildCopyFrom":target==0x11B252C0,
+                                  "isChildCtor":target==0x11B25D60,
+                                  "isChildReader":target==CHILD_RVA,
+                                  "context":context(rows,i,4,3) if target in (0x11B252C0,0x11B25D60,CHILD_RVA) else []})
+                if re.search(r"\[(?:rdi|rsi|rbx|r12|r13|r14|r15) \+ 0x[0-9a-f]+\]",entry["operands"]):
+                    pointer_references.append(entry)
+            out[label]={
+              "originalOwner":owner,"method":name,"startRva":f"0x{rva:X}",
+              "nativeWindowBytes":size,"nativeWindowSha256":hashlib.sha256(blob).hexdigest(),
+              "decodedInstructionCount":len(rows),
+              "directCalls":calls,"registerMemoryReferences":pointer_references,
+              "directChildCopyFromCallCount":sum(x["isChildCopyFrom"] for x in calls),
+              "fullyProvenMethodControlFlow":False,
+            }
+    return out
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
