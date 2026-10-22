@@ -12,7 +12,6 @@ import csv
 import hashlib
 import json
 from pathlib import Path
-from capstone import Cs,CS_ARCH_X86,CS_MODE_64
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 from genshinre.sampleidentity import require_sha256
@@ -97,6 +96,7 @@ def owner_members(methods:Path,fields:Path)->dict:
 
 def inspect_native(exe:Path, methods:list[dict])->dict:
     require_sha256(exe,PROFILE_71.exe_sha256,label="Global 7.1 original client")
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
     with PEImage(exe) as pe:
         md=Cs(CS_ARCH_X86,CS_MODE_64)
         out={}
