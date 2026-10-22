@@ -18,6 +18,9 @@ from genshinre.sampleidentity import require_sha256
 PRIOR="versions/7.1.0-global/analyses/progression/world/7.1-original-point-factory-helper-529a10-native.json"
 RVA=0x55A0B0
 WINDOW=0x800
+FUNCTION_PADDING_RVA=0x55A1E8
+SOURCE_FALLBACK_CALLEE_RVA=0x55A1F0
+SOURCE_ORIGINAL_RET_RVA=0x55A19E
 OLD_SOURCE_SHA="efaaef4a2f37f1aa56278c1f8981aa4b05b788ae0cbf42956e5f678a17080868"
 
 
@@ -50,6 +53,38 @@ def inspect(exe:Path,prior:Path)->dict:
         instructions=list(md.disasm(data,pe.image_base+RVA))
         if not instructions or instructions[0].address-pe.image_base!=RVA:
             raise ValueError("original native 0x55A0B0 entry undecodable")
+        all_by_rva={x.address-pe.image_base:x for x in instructions}
+        if (FUNCTION_PADDING_RVA not in all_by_rva or
+            all_by_rva[FUNCTION_PADDING_RVA].mnemonic!="int3" or
+            SOURCE_FALLBACK_CALLEE_RVA not in all_by_rva or
+            all_by_rva[SOURCE_FALLBACK_CALLEE_RVA].mnemonic!="push"):
+            raise ValueError("original 0x55A0B0 source function boundary drift")
+        instructions=[x for x in instructions if x.address-pe.image_base<FUNCTION_PADDING_RVA]
+        by_rva={x.address-pe.image_base:x for x in instructions}
+        if [x.address-pe.image_base for x in instructions if x.mnemonic=="ret"]!=[SOURCE_ORIGINAL_RET_RVA]:
+            raise ValueError("original 0x55A0B0 return boundary drift")
+        original_witnesses={
+            0x55A0B5:("mov","r9, rdx"),
+            0x55A0B8:("mov","r10, rcx"),
+            0x55A0BB:("cmp","rdx, 0x8000"),
+            0x55A114:("mov","rcx, qword ptr [r10 + rcx + 0x28]"),
+            0x55A119:("mov","rsi, qword ptr [rcx + 0x20]"),
+            0x55A11D:("test","rsi, rsi"),
+            0x55A120:("je",f"0x{pe.image_base+0x55A1C7:x}"),
+            0x55A126:("lock inc","word ptr [rcx + 0x10]"),
+            0x55A12B:("mov","rax, qword ptr [rsi]"),
+            0x55A12E:("mov","qword ptr [rcx + 0x20], rax"),
+            0x55A139:("mov","qword ptr [rsi], rax"),
+            0x55A196:("mov","rax, rsi"),
+            0x55A19E:("ret",""),
+            0x55A1B9:("mov","rcx, r10"),
+            0x55A1BC:("mov","rdx, r8"),
+            0x55A1D5:("jmp",f"0x{pe.image_base+SOURCE_FALLBACK_CALLEE_RVA:x}"),
+        }
+        for addr,(mnemonic,operands) in original_witnesses.items():
+            x=by_rva.get(addr)
+            if x is None or (x.mnemonic,x.op_str)!=(mnemonic,operands):
+                raise ValueError(f"exact original 55A0B0 register-chain witness drift at 0x{addr:X}")
         def row(x):
             return {"rva":f"0x{x.address-pe.image_base:X}",
                     "mnemonic":x.mnemonic,"operands":x.op_str,
@@ -90,6 +125,11 @@ def inspect(exe:Path,prior:Path)->dict:
         "originalSampleWindowBytes":WINDOW,
         "sourceOriginalSampleSha256":hashlib.sha256(data).hexdigest(),
         "sourceNativeDecodedLinearInstructions":len(instructions),
+        "originalFunctionPaddingBoundaryRva":f"0x{FUNCTION_PADDING_RVA:X}",
+        "originalFallbackNativeEntryRva":f"0x{SOURCE_FALLBACK_CALLEE_RVA:X}",
+        "originalNativeReturnRva":f"0x{SOURCE_ORIGINAL_RET_RVA:X}",
+        "sourceVerifiedListHeadPopAndReturnedPointerFlow":True,
+        "sourceOriginalListPointerChain":[row(by_rva[addr]) for addr in original_witnesses],
         "sourceNativeFirstInstructions":ins[:155],
         "sourceNativeTransfers":transfers[:100],
         "sourceNativeReturnCandidates":[r for r in ins if r["mnemonic"]=="ret"][:30],
