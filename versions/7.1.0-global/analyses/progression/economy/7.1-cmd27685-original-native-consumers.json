@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_GLOBAL_71_CMD27685_ORIGINAL_MESSAGE_OWNER_AND_FOUR_NATIVE_CONSUMERS__LEVEL_UNRESOLVED",
+  "originalSample": "7.1.0-global/windows-x64",
+  "source": {
+    "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+    "methodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+    "fieldsGitBlob": "ae01d117f4d884e891a95d529a15302a68715b04",
+    "originalOwnerMethodsRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39702524539",
+    "originalParameterControlRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39702953229",
+    "originalNativeConsumerDisassemblyRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39703359133",
+    "nativeConsumerArtifactId": 12394092567
+  },
+  "originalMessageIdentity": {
+    "cmdId": 27685,
+    "typeName": "KIIKIELOHOG",
+    "typeDefinitionIndex": 65670,
+    "registryIndex": 4272,
+    "typeSlotRva": "0x57D4248",
+    "getCmdIdMethodIndex": 530829,
+    "getCmdIdRva": "0xC16BDD0",
+    "nativeGetCmdIdInstructions": [
+      {
+        "rva": "0xC16BDD0",
+        "opcode": "66b8256c",
+        "instruction": "mov ax, 0x6c25"
+      },
+      {
+        "rva": "0xC16BDD4",
+        "opcode": "c3",
+        "instruction": "ret"
+      }
+    ],
+    "originalFieldCount": 4,
+    "originalMethodCount": 14,
+    "originalNativeRegistryDirection": "UNRESOLVED",
+    "originalNativeRegistrySemanticName": null,
+    "originalFieldRecords": [
+      {
+        "fieldIndex": 326637,
+        "token": "JAEBKJILOPB",
+        "runtimeTypeIndex": 476748,
+        "typeLabel": "HCDGGIDOEFA"
+      },
+      {
+        "fieldIndex": 326638,
+        "token": "GEPFILACKKP",
+        "runtimeTypeIndex": 547328,
+        "typeLabel": "kind_0x15"
+      },
+      {
+        "fieldIndex": 326639,
+        "token": "DNKHNFBIDHJ",
+        "runtimeTypeIndex": 528886,
+        "typeLabel": "HEOLIIGOCNH"
+      },
+      {
+        "fieldIndex": 326640,
+        "token": "JCNANNABFLE",
+        "runtimeTypeIndex": 439246,
+        "typeLabel": "uint32"
+      }
+    ],
+    "originalRuntimeTypeIndices": [
+      162760,
+      621865
+    ]
+  },
+  "originalWholeMethodParameterScan": {
+    "decodedParameterRecords": 548400,
+    "knownOriginalHandlerControlsPassed": true,
+    "knownHandlerControls": [
+      {
+        "cmdId": 22899,
+        "handlerOwner": "LLCGIEDMIIG",
+        "rva": "0xC227790"
+      },
+      {
+        "cmdId": 3064,
+        "handlerOwner": "LLCGIEDMIIG",
+        "rva": "0xC23BA20"
+      },
+      {
+        "cmdId": 20824,
+        "handlerOwner": "LLCGIEDMIIG",
+        "rva": "0xC2513A0"
+      }
+    ],
+    "exactMessageTypeMethodParameterReferences": 5,
+    "knownHandlerOwnerParameterReferences": 0,
+    "otherCandidateHandlerStillPossible": true
+  },
+  "originalExternalNativeMethods": [
+    {
+      "methodIndex": 190070,
+      "owner": "LCMBPJMEHMF",
+      "methodName": "NKBEBHNPJAN",
+      "rva": "0xE478770",
+      "parameterOrdinal": 0,
+      "sourcePrefixSha256": "d1100f8f6853965525199c5695f088f3165adba14cb1d4e99a266d6bbb5eafbf",
+      "boundedNativeInstructions": 105,
+      "observedControlEdges": 14
+    },
+    {
+      "methodIndex": 190137,
+      "owner": "LCMBPJMEHMF",
+      "methodName": "GOENLHBBGDO",
+      "rva": "0xE479220",
+      "parameterOrdinal": 0,
+      "sourcePrefixSha256": "eab19d5df6f4ef5ee7f2a2c3990289c36355cd8bd33ebd9dcfe199d2656eda17",
+      "boundedNativeInstructions": 110,
+      "observedControlEdges": 8
+    },
+    {
+      "methodIndex": 190172,
+      "owner": "JLDCJCKHJEM",
+      "methodName": "FDABDLGEGOI",
+      "rva": "0xFCDF4B0",
+      "parameterOrdinal": 0,
+      "sourcePrefixSha256": "a3844a7bae2ef23a4368eb41d05d4f5f44c5e0386bc7e920143134ea84123d25",
+      "boundedNativeInstructions": 47,
+      "observedControlEdges": 4
+    },
+    {
+      "methodIndex": 190174,
+      "owner": "JLDCJCKHJEM",
+      "methodName": "OnAccept",
+      "rva": "0xFCDF5D0",
+      "parameterOrdinal": 0,
+      "sourcePrefixSha256": "e90922861f51730efa87f20066af530d9a9adbba64a517c43b14f02347516ac9",
+      "boundedNativeInstructions": 105,
+      "observedControlEdges": 8
+    }
+  ],
+  "verifiedOriginalNativeEdgesAndOps": [
+    {
+      "methodIndex": 190172,
+      "instructionRva": "0xFCDF500",
+      "opcode": "ff90f0000000",
+      "instruction": "call qword ptr [rax + 0xf0]",
+      "role": "indirect virtual invocation; concrete owner unresolved"
+    },
+    {
+      "methodIndex": 190172,
+      "instructionRva": "0xFCDF556",
+      "opcode": "e875000000",
+      "instruction": "call 0x14fcdf5d0",
+      "role": "direct call into original JLDCJCKHJEM.OnAccept"
+    },
+    {
+      "methodIndex": 190174,
+      "instructionRva": "0xFCDF5EC",
+      "opcode": "4c897710",
+      "instruction": "mov qword ptr [rdi + 0x10], r14",
+      "role": "stores original message input pointer in OnAccept object"
+    },
+    {
+      "methodIndex": 190174,
+      "instructionRva": "0xFCDF5F0",
+      "opcode": "c7471c00000000",
+      "instruction": "mov dword ptr [rdi + 0x1c], 0",
+      "role": "clears object scalar"
+    },
+    {
+      "methodIndex": 190174,
+      "instructionRva": "0xFCDF61A",
+      "opcode": "8b4018",
+      "instruction": "mov eax, dword ptr [rax + 0x18]",
+      "role": "reads nested count-like scalar; no original field semantics assigned"
+    },
+    {
+      "methodIndex": 190174,
+      "instructionRva": "0xFCDF697",
+      "opcode": "488b44f020",
+      "instruction": "mov rax, qword ptr [rax + rsi*8 + 0x20]",
+      "role": "loads indexed element pointer"
+    },
+    {
+      "methodIndex": 190174,
+      "instructionRva": "0xFCDF6B2",
+      "opcode": "8b9098000000",
+      "instruction": "mov edx, dword ptr [rax + 0x98]",
+      "role": "reads nested object scalar; no level meaning proven"
+    }
+  ],
+  "externalForkHypothesis": {
+    "repo": "RinoPaw/AstaPS",
+    "semanticName": "SceneEntityAppearNotify",
+    "forkOpcode27685": true,
+    "provenNativeSemanticMapping": false
+  },
+  "originalNativeSceneInstanceLevelFieldProven": false,
+  "originalNativePropLevel4001ConsumerProven": false,
+  "originalOfficialChestLootLevelProven": false,
+  "limitations": [
+    "Direct 7.1 GetCmdId native return proves numeric packet identity; original registry still has unresolved semantic name and direction.",
+    "Four external original native parameter references include OnAccept, but neither the S2C message label nor caller/dispatcher semantics are established.",
+    "Observed OnAccept indexed traversal is an original code fact, but none of its unknown object scalars has a verified gameplay-level meaning.",
+    "Original native protocol packet level cannot be equated with fork Lua SceneGadget.level or experimental LootCSS level.",
+    "All four method snapshots are bounded instruction prefixes. Their existence cannot prove missing downstream field reads.",
+    "Original encoded packet payload and scene instance placements remain unverified. No reward probabilities or contents were investigated."
+  ]
+}
