@@ -61,12 +61,21 @@ def main():
     # methods are C#-style handlers for the three co-list instances and
     # associated scene/owner blossom notifications. Preserve exact bytes.
     receiver_sites={
+        "shared-list-handler":(0xC78CA80,0x570),
         "handler-6743":(0xC78C930,0x150),
         "handler-20484":(0xC790C00,0x260),
         "handler-23101":(0xC78D030,0x300),
         "handler-6993":(0xC78FA10,0x120),
         "handler-24698":(0xC792020,0x260),
     }
+    rva_targets={0xC78CA80,0x196411F0,0xC236080,0xFAA2010,0xC78C930,0xC790C00}
+    matched_methods=[]
+    with (ROOT/"metadata/methods.csv").open(encoding="utf-8-sig",newline="") as f:
+        for row in csv.DictReader(f):
+            value=row.get("rva","")
+            if value and int(value,0) in rva_targets:
+                matched_methods.append(row)
+    print("NATIVE_METHOD_TARGETS",json.dumps(matched_methods),flush=True)
     receiver=[]
     with PEImage(args.exe) as pe:
         for label,(rva,size) in receiver_sites.items():
