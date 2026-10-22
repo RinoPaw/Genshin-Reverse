@@ -1,0 +1,459 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_71_CMD27685_NATIVE_VARIANT_TAGS_AND_EXACT_CALLEE_OWNER_METADATA__SCENE_POSITION_UNPROVEN",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMethodMetadataGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "originalSource": {
+    "workflowRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39728673910",
+    "commit": "58a9607afec403a52467c68329d51560dafb09a0",
+    "artifactId": 12403764170,
+    "archiveSha256": "sha256:cd08319e9b4e1608792435fc00871b43652763f82ef5e5af2899ac0371ec51e7"
+  },
+  "verification": {
+    "parentReaderRva": "0xB43A2A0",
+    "parentReaderSha256": "b9daf495a99150725dcadff1d6ba717e9a6edf1461b764ebd13b7f3905eb0c9e",
+    "parentCopyFromRva": "0xB43D570",
+    "parentCopyFromSha256": "58d93293b78b1614f00effd7d0b4a4a175100ce0c0c4fe6f192b058ac6e11855",
+    "parentStaticInitializerRva": "0xB439EF0",
+    "parentStaticInitializerSha256": "c644e8e01e603d2b90e4c7bbf8a7b688d9814030ae6463220e47280bf9b390a9"
+  },
+  "windows": {
+    "parentReader": {
+      "decodedInstructionCount": 708,
+      "directCallOrJumpCount": 134,
+      "exactRvaOwnerMatchedTransfers": 41,
+      "distinctTargetsWithExactMetadata": [
+        {
+          "targetRva": "0x999D0F0",
+          "owners": [
+            {
+              "originalTypeName": "IFEDIKGINNK",
+              "originalTypeDefinitionIndex": 14829,
+              "originalMethodIndex": 108303,
+              "originalMethodName": "PANKLEKCNHM",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x999D3F0",
+          "owners": [
+            {
+              "originalTypeName": "IFEDIKGINNK",
+              "originalTypeDefinitionIndex": 14829,
+              "originalMethodIndex": 108295,
+              "originalMethodName": "NKBCKEJHMBH",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x99A1C40",
+          "owners": [
+            {
+              "originalTypeName": "IFEDIKGINNK",
+              "originalTypeDefinitionIndex": 14829,
+              "originalMethodIndex": 108269,
+              "originalMethodName": "CMGMHKBNAIP",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x99A23F0",
+          "owners": [
+            {
+              "originalTypeName": "IFEDIKGINNK",
+              "originalTypeDefinitionIndex": 14829,
+              "originalMethodIndex": 108275,
+              "originalMethodName": "CKIGDPBGOEP",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x99A2C60",
+          "owners": [
+            {
+              "originalTypeName": "IFEDIKGINNK",
+              "originalTypeDefinitionIndex": 14829,
+              "originalMethodIndex": 108285,
+              "originalMethodName": "IMJKOJBNHPL",
+              "originalParameterTypes": "[\"NODLFOLHNCM\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB45B480",
+          "owners": [
+            {
+              "originalTypeName": "KLCICGEAJGM",
+              "originalTypeDefinitionIndex": 56929,
+              "originalMethodIndex": 458375,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"KLCICGEAJGM\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB84CA60",
+          "owners": [
+            {
+              "originalTypeName": "OFPGGBDNEAP",
+              "originalTypeDefinitionIndex": 33822,
+              "originalMethodIndex": 267362,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"OFPGGBDNEAP\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xC44F8B0",
+          "owners": [
+            {
+              "originalTypeName": "BNFBGMPDACJ",
+              "originalTypeDefinitionIndex": 82823,
+              "originalMethodIndex": 685452,
+              "originalMethodName": "JNNLHCKKDIA",
+              "originalParameterTypes": "[\"BFGEIFDEOKH\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xE03CD80",
+          "owners": [
+            {
+              "originalTypeName": "ILFixDynamicMethodWrapper",
+              "originalTypeDefinitionIndex": 72602,
+              "originalMethodIndex": 598252,
+              "originalMethodName": "__Gen_Wrap_17",
+              "originalParameterTypes": "[\"object\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xE209040",
+          "owners": [
+            {
+              "originalTypeName": "ILFixDynamicMethodWrapper",
+              "originalTypeDefinitionIndex": 72602,
+              "originalMethodIndex": 601043,
+              "originalMethodName": "__Gen_Wrap_29",
+              "originalParameterTypes": "[\"object\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xF4C4350",
+          "owners": [
+            {
+              "originalTypeName": "PIGADKBHAME",
+              "originalTypeDefinitionIndex": 15778,
+              "originalMethodIndex": 115956,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"PIGADKBHAME\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x1184DFE0",
+          "owners": [
+            {
+              "originalTypeName": "PFKFIFOEHNA",
+              "originalTypeDefinitionIndex": 14493,
+              "originalMethodIndex": 105576,
+              "originalMethodName": "JGIBJCAEEBB",
+              "originalParameterTypes": "[\"Il2CppRuntimeClassHandle\"]",
+              "originalReturnType": ""
+            }
+          ]
+        }
+      ]
+    },
+    "parentCopyFrom": {
+      "decodedInstructionCount": 505,
+      "directCallOrJumpCount": 78,
+      "exactRvaOwnerMatchedTransfers": 22,
+      "distinctTargetsWithExactMetadata": [
+        {
+          "targetRva": "0x7175E70",
+          "owners": [
+            {
+              "originalTypeName": "AGAONCLAEAA",
+              "originalTypeDefinitionIndex": 22916,
+              "originalMethodIndex": 175525,
+              "originalMethodName": "NKFCABIOGLE",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x890A320",
+          "owners": [
+            {
+              "originalTypeName": "EBIEHMDCNHC",
+              "originalTypeDefinitionIndex": 24171,
+              "originalMethodIndex": 185288,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"EBIEHMDCNHC\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB43AF70",
+          "owners": [
+            {
+              "originalTypeName": "KFOLLNPEMHH",
+              "originalTypeDefinitionIndex": 85506,
+              "originalMethodIndex": 705940,
+              "originalMethodName": "HKFIBILBMDF",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB45B3D0",
+          "owners": [
+            {
+              "originalTypeName": "KLCICGEAJGM",
+              "originalTypeDefinitionIndex": 56929,
+              "originalMethodIndex": 458366,
+              "originalMethodName": "NKFCABIOGLE",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB51A6A0",
+          "owners": [
+            {
+              "originalTypeName": "BCJBOKPPPNF",
+              "originalTypeDefinitionIndex": 79090,
+              "originalMethodIndex": 653907,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"BCJBOKPPPNF\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xB852A00",
+          "owners": [
+            {
+              "originalTypeName": "OFPGGBDNEAP",
+              "originalTypeDefinitionIndex": 33822,
+              "originalMethodIndex": 267365,
+              "originalMethodName": "NKFCABIOGLE",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xC44F8B0",
+          "owners": [
+            {
+              "originalTypeName": "BNFBGMPDACJ",
+              "originalTypeDefinitionIndex": 82823,
+              "originalMethodIndex": 685452,
+              "originalMethodName": "JNNLHCKKDIA",
+              "originalParameterTypes": "[\"BFGEIFDEOKH\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xF4C48B0",
+          "owners": [
+            {
+              "originalTypeName": "PIGADKBHAME",
+              "originalTypeDefinitionIndex": 15778,
+              "originalMethodIndex": 115959,
+              "originalMethodName": "NKFCABIOGLE",
+              "originalParameterTypes": "[]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x100E65E0",
+          "owners": [
+            {
+              "originalTypeName": "OLKGPHDNDJN",
+              "originalTypeDefinitionIndex": 51126,
+              "originalMethodIndex": 407749,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"OLKGPHDNDJN\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x1184DFE0",
+          "owners": [
+            {
+              "originalTypeName": "PFKFIFOEHNA",
+              "originalTypeDefinitionIndex": 14493,
+              "originalMethodIndex": 105576,
+              "originalMethodName": "JGIBJCAEEBB",
+              "originalParameterTypes": "[\"Il2CppRuntimeClassHandle\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0x13600240",
+          "owners": [
+            {
+              "originalTypeName": "GNAGFIAGDCJ",
+              "originalTypeDefinitionIndex": 73611,
+              "originalMethodIndex": 609517,
+              "originalMethodName": "CopyFrom",
+              "originalParameterTypes": "[\"GNAGFIAGDCJ\"]",
+              "originalReturnType": ""
+            }
+          ]
+        }
+      ]
+    },
+    "parentStaticInit": {
+      "decodedInstructionCount": 179,
+      "directCallOrJumpCount": 36,
+      "exactRvaOwnerMatchedTransfers": 11,
+      "distinctTargetsWithExactMetadata": [
+        {
+          "targetRva": "0xAAD10A0",
+          "owners": [
+            {
+              "originalTypeName": "MJKCIJEILLP",
+              "originalTypeDefinitionIndex": 84808,
+              "originalMethodIndex": 700567,
+              "originalMethodName": "OECBDGIENCE",
+              "originalParameterTypes": "[\"uint32\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xDA6DB60",
+          "owners": [
+            {
+              "originalTypeName": "ILFixDynamicMethodWrapper",
+              "originalTypeDefinitionIndex": 72602,
+              "originalMethodIndex": 589774,
+              "originalMethodName": "__Gen_Wrap_79",
+              "originalParameterTypes": "[\"int32\",\"Il2CppRuntimeClassHandle\"]",
+              "originalReturnType": ""
+            }
+          ]
+        },
+        {
+          "targetRva": "0xDB40C30",
+          "owners": [
+            {
+              "originalTypeName": "ILFixDynamicMethodWrapper",
+              "originalTypeDefinitionIndex": 72602,
+              "originalMethodIndex": 591062,
+              "originalMethodName": "__Gen_Wrap_33",
+              "originalParameterTypes": "[\"int32\"]",
+              "originalReturnType": ""
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "originalNativeCandidateProtobufTagComparisons": [
+    {
+      "key": "0x52",
+      "at": "0xB43A522"
+    },
+    {
+      "key": "0x5A",
+      "at": "0xB43A52B"
+    },
+    {
+      "key": "0x62",
+      "at": "0xB43A534"
+    },
+    {
+      "key": "0x6A",
+      "at": "0xB43A366"
+    }
+  ],
+  "originalNativeDiscriminatorComparisons": [
+    {
+      "rva": "0xB43A55C",
+      "v": 12
+    },
+    {
+      "rva": "0xB43A69D",
+      "v": 13
+    },
+    {
+      "rva": "0xB43A8EC",
+      "v": 10
+    },
+    {
+      "rva": "0xB43A96B",
+      "v": 11
+    }
+  ],
+  "exactSourceChildMethodOwners": {
+    "0x11B252C0": [
+      {
+        "originalTypeName": "ABOOLMJBDKE",
+        "originalTypeDefinitionIndex": 47833,
+        "originalMethodIndex": 381412,
+        "originalMethodName": "CopyFrom",
+        "originalParameterTypes": "[\"ABOOLMJBDKE\"]",
+        "originalReturnType": ""
+      }
+    ],
+    "0x11B25D70": [
+      {
+        "originalTypeName": "ABOOLMJBDKE",
+        "originalTypeDefinitionIndex": 47833,
+        "originalMethodIndex": 381413,
+        "originalMethodName": "NLGBJEEJDLG",
+        "originalParameterTypes": "[\"IFEDIKGINNK\"]",
+        "originalReturnType": ""
+      }
+    ]
+  },
+  "originalNativeScalarCaseMemoryOffset": "0x94",
+  "originalNativeVariantPayloadCandidateMemoryOffset": "0x28",
+  "evidenceBoundary": {
+    "numericTagAndVariantSwitchObservationsSourceVerified": true,
+    "someDirectCallTargetOriginalMethodOwnersSourceVerified": true,
+    "originalTypedFieldDLOEKFLGJCGRuntimeOffsetVerified": false,
+    "originalABOOLMJBDKEIndirectRuntimeDispatchTargetVerified": false,
+    "originalABOOLMJBDKEFloatMeaningVerified": false,
+    "originalSceneChestPlacementOriginVerified": false,
+    "originalServerPacketDirectionVerified": false
+  },
+  "limitations": [
+    "Call-or-jump count includes both direct CALL and unconditional or conditional immediate-target JMP opcodes and must not be presented as a pure CALL count.",
+    "Exact RVA owner matching means the call/jump target exactly equals a generated original method-pointer RVA; unmatched targets remain unlabeled.",
+    "0x52,0x5A,0x62,0x6A are only numerically plausible protobuf keys for fields 10,11,12,13. Their game semantics and typed metadata binding are not yet source-proven.",
+    "Offset +0x94 is compared against 0xA,0xB,0xC,0xD. Tagged-variant structure is a structural interpretation only.",
+    "The authoritative original chest instance placement owner, all coordinates and level semantics remain unknown.",
+    "No privately authored scene Lua, emulator proto names, LootCSS, or community JSON was treated as original-client evidence."
+  ]
+}
