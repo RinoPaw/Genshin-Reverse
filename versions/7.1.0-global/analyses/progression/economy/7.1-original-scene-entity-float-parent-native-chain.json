@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_GLOBAL_71_ENTITY_FLOAT_CHILD_TYPED_METADATA_AND_PARENT_NATIVE_CALL_CENSUS__FIELD_OFFSET_AND_POSITION_UNPROVEN",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39727463920",
+  "sourceHeadCommit": "d4e8c91e77179cd7f24a5a7b344e74095942ff50",
+  "artifactId": 12404195207,
+  "artifactArchiveDigest": "sha256:1a27f3c7019829c5cba9f1ce61f6d45cd3a977cb5bbbc321e6d61e24fdfb4ce5",
+  "typedOriginalChildField": {
+    "originalFieldIndex": 423371,
+    "originalObfuscatedToken": "DLOEKFLGJCG",
+    "originalType": "ABOOLMJBDKE",
+    "originalRuntimeTypeIndex": 540168
+  },
+  "verifiedParserOwner": "KFOLLNPEMHH",
+  "parentReader": {
+    "methodRva": "0xB43A2A0",
+    "sourceSha256": "b9daf495a99150725dcadff1d6ba717e9a6edf1461b764ebd13b7f3905eb0c9e",
+    "decodedInstructionCount": 708,
+    "directCallCount": 88,
+    "directCallToChildReaderFound": false,
+    "directCallToChildCtorFound": false,
+    "rawParentFieldAccessCount": 54,
+    "objectPointerMemberOffsetAccesses": {
+      "0x98": 2,
+      "0x90": 2,
+      "0x48": 1,
+      "0x30": 3,
+      "0x40": 1,
+      "0x50": 3,
+      "0x94": 5,
+      "0x28": 8,
+      "0x68": 3,
+      "0x9c": 2,
+      "0x88": 2,
+      "0x20": 1,
+      "0x8c": 2,
+      "0x38": 1,
+      "0x80": 1,
+      "0x58": 1,
+      "0x70": 2,
+      "0x78": 3,
+      "0x60": 1,
+      "0x18": 3,
+      "0xa0": 2
+    },
+    "witness": {
+      "field2Store": {
+        "rva": "0xB43A342",
+        "mnemonic": "mov",
+        "operands": "dword ptr [r12 + 0x98], eax",
+        "opcode": "4189842498000000"
+      },
+      "taggedVariantComparisons": [
+        {
+          "rva": "0xB43A55C",
+          "mnemonic": "cmp",
+          "operands": "dword ptr [r12 + 0x94], 0xc",
+          "opcode": "4183bc24940000000c"
+        },
+        {
+          "rva": "0xB43A69D",
+          "mnemonic": "cmp",
+          "operands": "dword ptr [r12 + 0x94], 0xd",
+          "opcode": "4183bc24940000000d"
+        },
+        {
+          "rva": "0xB43A8EC",
+          "mnemonic": "cmp",
+          "operands": "dword ptr [r12 + 0x94], 0xa",
+          "opcode": "4183bc24940000000a"
+        },
+        {
+          "rva": "0xB43A96B",
+          "mnemonic": "cmp",
+          "operands": "dword ptr [r12 + 0x94], 0xb",
+          "opcode": "4183bc24940000000b"
+        },
+        {
+          "rva": "0xB43A9CC",
+          "mnemonic": "mov",
+          "operands": "dword ptr [r12 + 0x94], eax",
+          "opcode": "4189842494000000"
+        }
+      ]
+    }
+  },
+  "additionalNativeMethods": {
+    "elementCopyFrom": {
+      "originalOwner": "KFOLLNPEMHH",
+      "method": "CopyFrom",
+      "methodRva": "0xB43D570",
+      "originalWindowSha256": "58d93293b78b1614f00effd7d0b4a4a175100ce0c0c4fe6f192b058ac6e11855",
+      "windowBytes": 2032,
+      "decodedInstructions": 505,
+      "directCallCount": 61,
+      "uniqueDirectTargetRvas": [
+        "0x100E65E0",
+        "0x1184DFE0",
+        "0x13600240",
+        "0x14770810",
+        "0x14C75EB0",
+        "0x4B8E20",
+        "0x4B8FB0",
+        "0x510BE0",
+        "0x51A390",
+        "0x523400",
+        "0x529A10",
+        "0x7175E70",
+        "0x890A320",
+        "0xB43AF70",
+        "0xB45B3D0",
+        "0xB51A6A0",
+        "0xB852A00",
+        "0xC44F8B0",
+        "0xF4C48B0"
+      ],
+      "directChildCopyFromCallCount": 0,
+      "registerMemoryAccessCount": 87
+    },
+    "elementStaticInitializer": {
+      "originalOwner": "KFOLLNPEMHH",
+      "method": ".cctor",
+      "methodRva": "0xB439EF0",
+      "originalWindowSha256": "c644e8e01e603d2b90e4c7bbf8a7b688d9814030ae6463220e47280bf9b390a9",
+      "windowBytes": 944,
+      "decodedInstructions": 179,
+      "directCallCount": 26,
+      "uniqueDirectTargetRvas": [
+        "0x4B8E20",
+        "0x529A10",
+        "0xAAD10A0",
+        "0xDA6DB60",
+        "0xDB40C30"
+      ],
+      "directChildCopyFromCallCount": 0,
+      "registerMemoryAccessCount": 5
+    },
+    "childCopyFrom": {
+      "originalOwner": "ABOOLMJBDKE",
+      "method": "CopyFrom",
+      "methodRva": "0x11B252C0",
+      "originalWindowSha256": "6757dbef3708165a580704c6c9b9890aaaf2447bc4126b22d784cc5afba5cdb0",
+      "windowBytes": 224,
+      "decodedInstructions": 70,
+      "directCallCount": 2,
+      "uniqueDirectTargetRvas": [
+        "0xC44F8B0"
+      ],
+      "directChildCopyFromCallCount": 0,
+      "registerMemoryAccessCount": 23
+    }
+  },
+  "verifiedOriginalChildReader": {
+    "typeName": "ABOOLMJBDKE",
+    "typeDefinitionIndex": 47833,
+    "methodRva": "0x11B25D70",
+    "sourceSha256": "f9b555f094537c2660d50eddb71cf38629df5ba47fbd310071a0d0da941ddb32",
+    "verifiedFloatStoreInstructions": [
+      {
+        "originalRva": "0x11B25DD4",
+        "instruction": {
+          "rva": "0x11B25DD4",
+          "mnemonic": "movss",
+          "operands": "dword ptr [rdi + 0x20], xmm0",
+          "opcode": "f30f114720"
+        }
+      },
+      {
+        "originalRva": "0x11B25E26",
+        "instruction": {
+          "rva": "0x11B25E26",
+          "mnemonic": "movss",
+          "operands": "dword ptr [rdi + 0x1c], xmm0",
+          "opcode": "f30f11471c"
+        }
+      },
+      {
+        "originalRva": "0x11B25EA8",
+        "instruction": {
+          "rva": "0x11B25EA8",
+          "mnemonic": "movss",
+          "operands": "dword ptr [rdi + 0x18], xmm0",
+          "opcode": "f30f114718"
+        }
+      }
+    ]
+  },
+  "claims": {
+    "childTypeFromOriginalMetadata": true,
+    "nativeParentObjectOffsetForNamedChildKnown": false,
+    "originalFloatMeaningPositionProven": false,
+    "originalChestPlacementCoordinateProven": false,
+    "packetDirectionProven": false,
+    "originalServerPlacementOwnershipProven": false
+  },
+  "limitations": [
+    "Typed DLOEKFLGJCG -> ABOOLMJBDKE metadata edge is proven, but its runtime field offset and native reader dispatch are unresolved.",
+    "No direct call to child ctor/reader was present in the verified bounded parent reader; indirect/virtual calls are present and not resolved. No direct call to child CopyFrom was observed in the bounded parent CopyFrom.",
+    "Object offsets are native-class memory offsets, not original protobuf field identifiers.",
+    "The candidate 0x94 tag comparisons and 0x28 storage are native values; no discriminator semantic name is established.",
+    "The source-verified float stores do not prove position, rotation, scene instances, chest placement or server origin.",
+    "Original client code and metadata were source-pinned. Historical private-server Lua, community JSON, public packet labels, and AstaPS custom reward data were excluded."
+  ]
+}
