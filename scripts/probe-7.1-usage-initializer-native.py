@@ -45,8 +45,8 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
     starts,owners=_load_method_starts(methods)
     pos=bisect_right(starts,INITIALIZER_RVA)
     pre=bisect_right(starts,INITIALIZER_RVA)-1
-    if pre<0 or pos>=len(starts):raise ValueError("missing bounded metadata initializer native context")
-    predecessor=starts[pre]
+    if pos>=len(starts):raise ValueError("no next original metadata method RVA")
+    predecessor=starts[pre] if pre>=0 else None
     successor=starts[pos]
     end=min(INITIALIZER_RVA+MAX_WINDOW,successor)
     if end<=INITIALIZER_RVA+0x30:raise ValueError("original native initializer too short")
@@ -90,7 +90,7 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
         "originalExecutableSha256":PROFILE_71.exe_sha256,
         "originalMethodsGitBlob":METHODS_BLOB,
         "originalInitializerRva":f"0x{INITIALIZER_RVA:X}",
-        "nearestOriginalMethodAtOrBeforeRva":f"0x{predecessor:X}",
+        "nearestOriginalMethodAtOrBeforeRva":None if predecessor is None else f"0x{predecessor:X}",
         "nextOriginalMethodStartRva":f"0x{successor:X}",
         "nativeWindowTruncatedByLimit":end<successor,
         "nativeWindowBytes":len(data),
@@ -114,7 +114,7 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
         "chestPositionsAndLevelProven":False,
         "limits":[
          "Original instructions are decoded in a file-backed RVA window capped by the next original generated method pointer and MAX_WINDOW.",
-         "The function may be an internal native helper and is not assigned a metadata method without an exact entry match.",
+         "This RVA precedes the earliest generated IL2CPP method pointer when predecessor is null; native IL2CPP runtime helpers are not generated-method entries.",
          "A source pointer slot RVA does not imply a usable static runtime class object or a direct metadata usage destination mapping.",
          "Original gadget, chest, coordinates, levels and original client/server placement authority remain unresolved."
         ]
