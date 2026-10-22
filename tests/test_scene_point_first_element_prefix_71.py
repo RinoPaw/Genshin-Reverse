@@ -31,6 +31,11 @@ class SourceScenePointElementPrefixGate(unittest.TestCase):
         self.assertEqual([x["nativeTransformedNumericSubtypeCandidate"] for x in r["sourceSubtypeAtOffset10Candidate"]],
                          [14,1,1,1,17,1,1,1,1,1,1,1,1])
         self.assertEqual(len(r["all32SourceOffsetsDiscriminatorCensus"]),32)
+        self.assertEqual(r["sourceCandidatePreludeLengths"],[1,1,1,1,2,1,1,1,1,1,1,1,1])
+        self.assertEqual(r["sourceCandidateFirstElementByteOffsets"],[10,10,10,10,11,10,10,10,10,10,10,10,10])
+        self.assertEqual([x["candidateOriginalFactoryTypeId"] for x in r["sourceDynamicFirstElementSubtypeCandidates"]],
+                         [14,1,1,1,1,1,1,1,1,1,1,1,1])
+        self.assertTrue(r["all13NativeLengthAdjustedSubtypeCandidatesValid"])
         self.assertFalse(r["nativeCursorConsumptionForExtraThreeBytesProven"])
         self.assertFalse(r["sourceAssetLoaderToOriginalNativeArrayReaderProven"])
         self.assertFalse(r["actualFirstElementDiscriminatorOffsetProven"])
