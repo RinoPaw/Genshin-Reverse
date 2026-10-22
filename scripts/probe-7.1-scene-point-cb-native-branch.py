@@ -57,6 +57,85 @@ def source_guards(methods:Path,prior:Path,scenes:Path):
     return starts
 
 
+
+CB_BASIC_BLOCKS=(
+  (0x12499031,0x1249904B,0x12499144),
+  (0x12499144,0x1249915F,0x12499278),
+  (0x12499278,0x12499286,0x124993A7),
+  (0x124993A7,0x124993B6,0x124994D1),
+  (0x124994D1,0x124994E0,0x124995E4),
+  (0x124995E4,0x124995FF,None),
+)
+CB_SOURCE_BRANCHES={
+  0x1249904B:("je",0x12499144),
+  0x1249915F:("je",0x12499278),
+  0x12499286:("js",0x124993A7),
+  0x124993B6:("je",0x124994D1),
+  0x124994E0:("je",0x124995E4),
+}
+CB_SOURCE_INSTRUCTIONS={
+  0x12499031:"movzx r15d, byte ptr [rax + rcx + 0x20]",
+  0x12499037:"inc ecx",
+  0x12499039:"mov dword ptr [r12], ecx",
+  0x1249903D:"test r15b, 0x10",
+  0x1249914B:"mov r13d, r15d",
+  0x1249914E:"xor r13b, 0xcb",
+  0x12499156:"test r13b, 8",
+  0x12499283:"test r15b, r15b",
+  0x124993B2:"test r15b, 0x20",
+  0x124994DC:"test r13b, 1",
+  0x124995FF:"ret",
+}
+
+
+def prove_single_byte_cb_route(instructions:list[dict],image_base:int)->dict:
+    """Verify source basic-block path for 0xCB through one read and native RET."""
+    by={int(x["rva"],16):x for x in instructions}
+    indices={int(x["rva"],16):i for i,x in enumerate(instructions)}
+    for addr,op in CB_SOURCE_INSTRUCTIONS.items():
+        if by.get(addr,{}).get("op")!=op:
+            raise ValueError(f"original 0xCB source native witness mismatch at {addr:X}")
+    for addr,(branch,target) in CB_SOURCE_BRANCHES.items():
+        if by.get(addr,{}).get("op")!=f"{branch} 0x{image_base+target:x}":
+            raise ValueError(f"original 0xCB source branch target mismatch at {addr:X}")
+    if (0xCB&0x10) or ((0xCB^0xCB)&8) or not(0xCB&0x80) or (0xCB&0x20):
+        raise ValueError("original 0xCB conditional predicate drift")
+    executed=[]
+    evidence=[]
+    for first,last,target in CB_BASIC_BLOCKS:
+        if first not in indices or last not in indices or indices[first]>indices[last]:
+            raise ValueError("invalid 0xCB source native basic-block boundaries")
+        block=instructions[indices[first]:indices[last]+1]
+        if target is None and block[-1]["op"]!="ret":
+            raise ValueError("0xCB path has no native return")
+        evidence.append({"firstRva":f"0x{first:X}","lastRva":f"0x{last:X}",
+                         "nextRva":None if target is None else f"0x{target:X}",
+                         "sourceNativeInstructions":block})
+        executed.extend(block)
+    source_reads=[x for x in executed if
+        "byte ptr [rax + rcx + 0x20]" in x["op"] or
+        "word ptr [rax + rcx + 0x20]" in x["op"] or
+        "dword ptr [rax + rcx + 0x20]" in x["op"]]
+    cursor_writes=[x for x in executed if x["op"].startswith((
+        "mov dword ptr [r12]","add dword ptr [r12]","inc dword ptr [r12]"))]
+    hidden_calls=[x for x in executed if x["op"].startswith(("call ","jmp "))]
+    if ([x["rva"] for x in source_reads]!=["0x12499031"]
+        or [x["rva"] for x in cursor_writes]!=["0x12499039"] or hidden_calls):
+        raise ValueError("source original 0xCB path has unexpected input effect")
+    return {
+        "candidateInputByte":"0xCB",
+        "xoredFlagByte":"0x00",
+        "sourceBlocks":evidence,
+        "nativeConditionalBranchesVerified":len(CB_SOURCE_BRANCHES),
+        "nativeStreamByteReadsAlongPath":1,
+        "nativeStreamCursorWritesAlongPath":1,
+        "nativeHelperCallsAlongPath":0,
+        "sourceReturnRva":"0x124995FF",
+        "sourceNativeHelperConsumesExactlyOneByteFor0xCB":True,
+        "originalScenePointAssetLoaderAndStartingCursorVerified":False,
+    }
+
+
 def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
     starts=source_guards(methods,prior,scenes)
     require_sha256(exe,PROFILE_71.exe_sha256,label="original Global 7.1 executable")
@@ -97,6 +176,7 @@ def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
         if addr not in byaddr or byaddr[addr]["op"]!=op:
             raise ValueError(f"native 0xCB follow-on branch mismatch at {addr}")
     at=next(i for i,x in enumerate(ins) if x["rva"]=="0x12499144")
+    cb_path=prove_single_byte_cb_route(ins,pe.image_base)
     context=ins[max(0,at-8):at+155]
     accesses=[x for x in ins if
               "dword ptr [r12]" in x["op"] or
@@ -105,7 +185,7 @@ def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
               "dword ptr [rax + rcx + 0x20]" in x["op"]]
     flags=[x for x in ins if x["op"].startswith(("test r15","test r12","and r15","cmp r15","test bl","test ebx"))]
     return {
-       "schemaVersion":1,"status":"EXACT_ORIGINAL_7_1_CB_BRANCH_CONFIRMED__FULL_CURSOR_CONSUMPTION_UNPROVEN",
+       "schemaVersion":1,"status":"EXACT_ORIGINAL_7_1_CB_SINGLE_BYTE_HELPER_RETURN_CONFIRMED__SCENE_LOADER_UNVERIFIED",
        "originalExeSha256":PROFILE_71.exe_sha256,"methodsGitBlob":METHODS_SHA,
        "originalOwner":OWNER,"originalMethod":METHOD,"methodIndex":INDEX,
        "nativeRva":f"0x{RVA:X}","nextOriginalMethodRva":f"0x{starts[i]:X}",
@@ -125,8 +205,10 @@ def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
        "directCalls":[x for x in ins if x["op"].startswith("call ")][:200],
        "all13OriginalScenePointThirdBytesMatchCB":True,
        "clientPointAssetLoaderLinkedToThisMethod":False,
-       "sourceSubreaderConsumesExactlyOneByteForCB":False,
+       "sourceSubreaderConsumesExactlyOneByteForCB":True,
+       "exactOneByteCBSourcePath":cb_path,
        "originalScenePointArrayOffsetThreeConfirmed":False,
+       "originalArrayOffsetThreeConditionalOnSourcePayloadAtCursorZero":True,
        "chestInstanceOrLevelProven":False,
        "limits":[
         "The 0xCB first-byte and its one conditional branch are verified against original EXE, with 13 source-authenticated sample prefixes.",
