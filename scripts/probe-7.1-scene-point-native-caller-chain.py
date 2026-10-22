@@ -226,7 +226,82 @@ def original_parent_fields(path: Path) -> list[dict]:
     return rows
 
 
-def investigate(exe: Path, methods: Path, prior: Path, fields: Path) -> dict:
+
+SCENE_POINT_SOURCE_REPORT = "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json"
+NATIVE_CHILD_PRECURSOR_RVA=0x12498FE0
+NATIVE_CHILD_PRECURSOR_CALL_RVA=0xEE66BD6
+
+
+def scene_point_mask_prefix_census(source: Path)->dict:
+    """Source-observed prefixes aligned against verified native outer mask arithmetic."""
+    import struct
+    j=json.loads(source.read_text(encoding="utf-8"))
+    if (j["exactOriginalExeSha256"] != PROFILE_71.exe_sha256
+        or j["exactOriginalDesignIndexRawSha256"] !=
+          "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712"
+        or j["source"]["exactBranchCommit"] !=
+          "63980a635f7202ab7dd4b964047c0788108db893"
+        or j["scenesChecked"]!=13
+        or j["statusCounts"]!={"SOURCE_RAW_AND_FRAMING_VERIFIED":13}):
+        raise ValueError("original 7.1 Scene Point source-prefix census identity drift")
+    out=[]
+    for row in j["assetRows"]:
+        b=bytes.fromhex(row["unwrappedPayloadFirst32Hex"])
+        word=struct.unpack_from("<H",b)[0]
+        mask=(word+0xF077)&0xFFFF
+        out.append({
+            "sceneId":row["sceneId"],
+            "originalFirstThreeBytesHex":b[:3].hex(),
+            "originalSourceU16":f"0x{word:04X}",
+            "candidateOuterNativeMask":f"0x{mask:04X}",
+            "sourceFlag8000IfReaderStartsAtZero":bool(mask&0x8000),
+            "sourceFlag4000IfReaderStartsAtZero":bool(mask&0x4000),
+            "candidateByteAtOffset2":f"0x{b[2]:02X}",
+            "originalRootParserUsesTheseFirstBytesProven":False,
+        })
+    if len(out)!=13:
+        raise ValueError("source scene point asset row count drift")
+    return {
+        "rows":out,
+        "all13HaveNativeOuterFlag8000":all(x["sourceFlag8000IfReaderStartsAtZero"] for x in out),
+        "all13HaveNativeOuterFlag4000":all(x["sourceFlag4000IfReaderStartsAtZero"] for x in out),
+        "all13HaveSameByteAtOffset2":len({x["candidateByteAtOffset2"] for x in out})==1,
+        "originalRootParserActuallyConsumedTheseBytes":False,
+        "nativeSingleBytePrecursorConsumerVerified":False,
+    }
+
+
+def inspect_precursor_native(pe:PEImage,starts:list[int],metadata:dict)->dict:
+    """Inspect only the source file-backed helper called before nested array reader."""
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+    idx=bisect_right(starts,NATIVE_CHILD_PRECURSOR_RVA)
+    next_start=starts[idx] if idx<len(starts) else None
+    window=min((next_start-NATIVE_CHILD_PRECURSOR_RVA) if next_start is not None else 0x220, 0x220)
+    if window<16:
+        raise ValueError("original preceding native helper cannot be inspected")
+    buf=pe.read_rva(NATIVE_CHILD_PRECURSOR_RVA,window)
+    if len(buf)!=window:
+        raise ValueError("original preceding native helper bytes not file backed")
+    md=Cs(CS_ARCH_X86,CS_MODE_64)
+    ops=[{"rva":f"0x{ins.address-pe.image_base:X}",
+           "op":f"{ins.mnemonic} {ins.op_str}".strip(),
+           "bytes":bytes(ins.bytes).hex()} for ins in md.disasm(buf,pe.image_base+NATIVE_CHILD_PRECURSOR_RVA)]
+    return {
+       "nativeHelperRva":f"0x{NATIVE_CHILD_PRECURSOR_RVA:X}",
+       "nativeHelperWindowBytes":window,
+       "nativeHelperSha256":hashlib.sha256(buf).hexdigest(),
+       "sourceExactMethodStartOwners":[{
+          "typeName":x["type_name"],"methodName":x["method_name"],
+          "methodIndex":int(x["method_index"])
+       } for x in metadata.get(NATIVE_CHILD_PRECURSOR_RVA,[])],
+       "firstNativeInstructions":ops[:75],
+       "sourceCallSiteRva":f"0x{NATIVE_CHILD_PRECURSOR_CALL_RVA:X}",
+       "sourceHelperConsumesExactOneByteProven":False,
+       "sourceScenePointInputProven":False,
+    }
+
+
+def investigate(exe: Path, methods: Path, prior: Path, fields: Path, scene_assets:Path) -> dict:
     starts, metadata = validate_source(methods, prior)
     require_sha256(exe, PROFILE_71.exe_sha256, label="original Global 7.1 executable")
     with PEImage(exe) as pe:
@@ -241,6 +316,7 @@ def investigate(exe: Path, methods: Path, prior: Path, fields: Path) -> dict:
         witnesses = [verify_direct_call_alignment(pe, starts, metadata, r) for r in raw_calls]
         parent_callers = [verify_direct_call_alignment(pe, starts, metadata, r) for r in parents]
         outer = inspect_parent_native_method(pe, starts, metadata)
+        precursor = inspect_precursor_native(pe, starts, metadata)
 
     ptrs = scan_pointer_xrefs(exe, TARGET, TARGET + 1, window=16)
     if ptrs["holder_count"] > MAX_HOLDERS:
@@ -263,6 +339,8 @@ def investigate(exe: Path, methods: Path, prior: Path, fields: Path) -> dict:
         "alignedOriginalDirectCallCount":sum(x["alignedNativeCall"] for x in witnesses),
         "directCallCandidates":witnesses,
         "nativeParentReader":outer,
+        "nativeParentPrecursorReader":precursor,
+        "originalScenePointHeaderMaskCrossSample":scene_point_mask_prefix_census(scene_assets),
         "nativeParentOriginalFieldDeclarations":original_parent_fields(fields),
         "originalParentDirectCallByteMatches":len(parents),
         "alignedOriginalParentDirectCallCount":sum(x["alignedNativeCall"] for x in parent_callers),
@@ -285,10 +363,10 @@ def investigate(exe: Path, methods: Path, prior: Path, fields: Path) -> dict:
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ("exe","methods","prior","fields","output"):
+    for name in ("exe","methods","prior","fields","scene-assets","output"):
         p.add_argument("--"+name,type=Path,required=True)
     a=p.parse_args()
-    report=investigate(a.exe,a.methods,a.prior,a.fields)
+    report=investigate(a.exe,a.methods,a.prior,a.fields,a.scene_assets)
     a.output.parent.mkdir(parents=True,exist_ok=True)
     a.output.write_text(json.dumps(report,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("ORIGINAL_POINT_READER_CALLERS_BEGIN")
@@ -298,6 +376,8 @@ def main():
        "alignedOriginalDirectCallCount":report["alignedOriginalDirectCallCount"],
        "directCallCandidates":report["directCallCandidates"],
        "nativeParentReader":report["nativeParentReader"],
+       "nativeParentPrecursorReader":report["nativeParentPrecursorReader"],
+       "originalScenePointHeaderMaskCrossSample":report["originalScenePointHeaderMaskCrossSample"],
        "originalParentDirectCallByteMatches":report["originalParentDirectCallByteMatches"],
        "originalParentCallerCandidates":report["originalParentCallerCandidates"],
        "nativeParentOriginalFieldDeclarations":report["nativeParentOriginalFieldDeclarations"],
