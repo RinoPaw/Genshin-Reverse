@@ -44,5 +44,34 @@ class NativePostTypeResolutionCFGTests(unittest.TestCase):
         self.assertEqual(result["unresolvedNativeBranchOrDecodeCount"],1)
         self.assertFalse(result["verifiedCompleteWithinWindow"])
 
+
+    def test_retained_exact_native_cfg_run_evidence(self):
+        pth=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+              "7.1-original-kind1-post-resolution-init-reachable-cfg.json")
+        r=json.loads(pth.read_text(encoding="utf-8"))
+        self.assertEqual(r["originalExeSha256"],p.PROFILE_71.exe_sha256)
+        self.assertEqual(r["originalMetadataSha256"],p.PROFILE_71.metadata_sha256)
+        self.assertEqual(r["originalArtifactId"],12422281142)
+        self.assertEqual(r["originalSourceFirst0x380BytesSha256"],p.ORIGINAL_PREFIX_SHA)
+        self.assertEqual(r["originalVerifiedSourceWindowByteCount"],p.MAX_WINDOW)
+        self.assertEqual(r["originalVerifiedSourceWindowSha256"],
+                         "a57557282472d178ec609a7772efe5f448eee23348be89a26c803382fca03af1")
+        self.assertEqual(r["sourceReachableDecodedInstructions"],1279)
+        self.assertEqual(len(r["originalReachableReturnSites"]),1)
+        self.assertEqual(r["originalReachableReturnSites"][0]["rva"],"0x513DE0")
+        self.assertEqual(r["originalNativeDirectCallCount"],57)
+        self.assertEqual(r["originalNativeIndirectCallCount"],8)
+        self.assertEqual(r["originalSourceUnresolvedJumpOrDecodeCount"],0)
+        self.assertEqual(r["sourceNativeTargetsOfInterest"]["sourceDirectRecursiveSelfCalls"],4)
+        self.assertEqual(r["sourceNativeTargetsOfInterest"]["sourceDirectRuntimeTypeResolverCalls"],2)
+        self.assertTrue(r["claims"]["sourcePostResolutionNativeEntryReachableReturnLocated"])
+        self.assertTrue(r["claims"]["sourceNativeForwardAndConditionalJumpEdgesWithinWindowResolved"])
+        for x in ("sourceOriginalConcreteFactoryCase1TypeResolved",
+                  "sourceOriginalConcreteFactoryCase14TypeResolved",
+                  "scenePointResourcePathToReaderLinkResolved",
+                  "originalChestGadgetPlacementCoordinatesAndLevelProven",
+                  "serverClientPlacementAuthorityProven"):
+            self.assertFalse(r["claims"][x])
+
 if __name__=="__main__":
     unittest.main()
