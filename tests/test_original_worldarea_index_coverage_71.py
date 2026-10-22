@@ -55,5 +55,28 @@ class OriginalWorldAreaIndexCoverage(unittest.TestCase):
         self.assertEqual(report["median"], 70)
 
 
+    def test_source_pinned_original_run_evidence(self):
+        import json
+        report_path = ROOT / "versions/7.1.0-global/analyses/progression/economy/7.1-original-worldarea-design-index-export-coverage.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["client"], "7.1.0-global/windows-x64")
+        self.assertEqual(report["indexRawSha256"], m.INDEX_SHA)
+        self.assertEqual(report["scene3RawSha256"], m.SCENE3_SHA)
+        self.assertEqual(report["exportedFiles"], 167673)
+        self.assertEqual(report["exportedRawBytes"], 415672040)
+        self.assertEqual(len(report["worldAreaIndexControls"]), 13)
+        counts = report["coverage"]["indexHashCounts"]
+        self.assertEqual(counts["targetBlockHashRows40"], 167673)
+        self.assertEqual(counts["targetBlockExportStems32"], 167673)
+        self.assertEqual(counts["ambiguousStems32"], 6)
+        groups = report["coverage"]["exportGroups"]
+        self.assertEqual(groups["uniqueStemMappedToTargetBlockFiles"], 167667)
+        self.assertEqual(groups["ambiguousStemIncludingTargetBlockFiles"], 6)
+        self.assertEqual(sum(v for k,v in groups.items() if k.endswith("Files")),167673)
+        self.assertEqual(sum(v for k,v in groups.items() if k.endswith("RawBytes")),415672040)
+        self.assertEqual(report["evidence"]["artifactId"], 12402225678)
+        self.assertTrue(any("No original scene-instance level" in s for s in report["limits"]))
+
+
 if __name__ == "__main__":
     unittest.main()
