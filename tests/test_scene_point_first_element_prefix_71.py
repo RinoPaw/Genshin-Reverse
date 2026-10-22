@@ -44,7 +44,7 @@ class SourceScenePointElementPrefixGate(unittest.TestCase):
     def test_drift_rejected(self):
         rows=[dict(x) for x in self.rows]
         rows[0]["unwrappedPayloadFirst32Hex"]="00"*32
-        with self.assertRaisesRegex(ValueError,"mask compatibility"):
+        with self.assertRaisesRegex(ValueError,"original source byte-2 helper input changed"):
             m.prefix_candidates(rows)
 
 if __name__=="__main__":
