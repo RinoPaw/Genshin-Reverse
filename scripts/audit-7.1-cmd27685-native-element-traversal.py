@@ -64,12 +64,14 @@ NATIVE_INSTRUCTIONS = {
       "4889b0408d0200"
     ]
   },
-  "collector": {
+  "factory": {
     "0xFCDF556": [
       "call",
       "0x14fcdf5d0",
       "e875000000"
-    ],
+    ]
+  },
+  "collector": {
     "0xFCDF5EC": [
       "mov",
       "qword ptr [rdi + 0x10], r14",
@@ -174,7 +176,7 @@ def build(original_owner_json: bytes, original_consumers_json: bytes) -> dict:
     verify_opcode_rows(accept["firstInstructionSnapshots"], NATIVE_INSTRUCTIONS["collector"],
                        instruction_address_field="rva", instruction_operand_field="operands")
     verify_opcode_rows(factory["firstInstructionSnapshots"],
-                       {"0xFCDF556": NATIVE_INSTRUCTIONS["collector"]["0xFCDF556"]},
+                       NATIVE_INSTRUCTIONS["factory"],
                        instruction_address_field="rva", instruction_operand_field="operands")
     if not any(m["methodIndex"] == 530822 and m["name"] == ".cctor"
                for m in owner["ownerMethods"]):
