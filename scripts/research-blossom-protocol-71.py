@@ -105,6 +105,20 @@ def scan():
                   "count",len(match),flush=True)
             for x in match[:20]:
                 print("  XREF",json.dumps(x),flush=True)
+    # Generic-instantiation type indexes can identify the same RepeatedField<T>
+    # across otherwise obfuscated packet classes, unlike the shared open
+    # generic HCDGGIDOEFA that appears on thousands of classes.
+    native_by_typedef={x["type_definition_index"]:x for x in records("registry/registry.csv")}
+    original_generic_indices={"505695","526432","653206","476942","476943"}
+    shared=[x for x in records("metadata/fields.csv")
+            if x["field_type_index"] in original_generic_indices]
+    for type_index in sorted(original_generic_indices):
+        rows_here=[x for x in shared if x["field_type_index"]==type_index]
+        print("GENERIC_INSTANCE_INDEX",type_index,"fields",len(rows_here),flush=True)
+        for x in rows_here[:80]:
+            print("  GENERIC_USE",json.dumps({"field":x,
+                "registered_packet":native_by_typedef.get(x["type_definition_index"])},
+                ensure_ascii=False),flush=True)
     print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
 
     for name in sorted(candidate_names):
