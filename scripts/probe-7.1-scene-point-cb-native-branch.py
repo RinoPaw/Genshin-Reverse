@@ -85,6 +85,17 @@ def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
             if addr not in byaddr or byaddr[addr]["op"]!=op:
                 raise ValueError(f"original 0xCB conditional native evidence drift {addr}")
     if 0xCB&0x10:raise ValueError("0xCB bit branch condition unexpected")
+    tail_checks={
+       "0x1249914B":"mov r13d, r15d",
+       "0x1249914E":"xor r13b, 0xcb",
+       "0x12499156":"test r13b, 8",
+       "0x1249915F":f"je 0x{pe.image_base+0x12499278:x}",
+       "0x12499283":"test r15b, r15b",
+       "0x12499286":f"js 0x{pe.image_base+0x124993A7:x}",
+    }
+    for addr,op in tail_checks.items():
+        if addr not in byaddr or byaddr[addr]["op"]!=op:
+            raise ValueError(f"native 0xCB follow-on branch mismatch at {addr}")
     at=next(i for i,x in enumerate(ins) if x["rva"]=="0x12499144")
     context=ins[max(0,at-8):at+155]
     accesses=[x for x in ins if
@@ -106,6 +117,11 @@ def inspect(exe:Path,methods:Path,prior:Path,scenes:Path):
        "nativeTargetContext":context,
        "sourceCursorReadWriteOperations":accesses[:160],
        "sourceFlagOperations":flags[:160],
+       "sourceXoredCBValue":0,
+       "sourceNativeCBSecondJumpTarget":"0x12499278",
+       "sourceNativeCBSignedThirdJumpTarget":"0x124993A7",
+       "sourceCBFollowUpConditionalInstructions":[byaddr[x] for x in tail_checks],
+       "completeOriginalNativeInstructions":ins,
        "directCalls":[x for x in ins if x["op"].startswith("call ")][:200],
        "all13OriginalScenePointThirdBytesMatchCB":True,
        "clientPointAssetLoaderLinkedToThisMethod":False,
