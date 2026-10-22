@@ -62,7 +62,7 @@ class OriginalOneofNativeTests(unittest.TestCase):
         self.assertEqual(report["verification"]["parentReaderSha256"],m.PARENT_HASH)
         self.assertEqual(report["verification"]["parentCopyFromSha256"],m.COPY_HASH)
         self.assertEqual(report["verification"]["parentStaticInitializerSha256"],m.STATIC_HASH)
-        self.assertEqual({x["wireKeyCandidateHex"] for x in
+        self.assertEqual({x["key"] for x in
                           report["originalNativeCandidateProtobufTagComparisons"]},
                          {"0x52","0x5A","0x62","0x6A"})
         self.assertEqual({x["v"] for x in
