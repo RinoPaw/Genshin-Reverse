@@ -32,5 +32,40 @@ class Original71NativeTypes17And18(unittest.TestCase):
                 m.source_prior(fake)
 
 
+
+    def test_exact_source_native_record_to_type_def_and_protected_thunk(self):
+        report=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+                "7.1-original-type-record-17-18-native-typedef-thunk.json")
+        j=json.loads(report.read_text(encoding="utf-8"))
+        self.assertEqual(j["exactOriginalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(j["exactOriginalMetadataSha256"],m.PROFILE_71.metadata_sha256)
+        self.assertEqual(j["sourceArchiveArtifactId"],12423519930)
+        source=j["originalTypeRecordKindDispatch"]
+        self.assertEqual(source["rawNumericTypeKinds"],[17,18])
+        self.assertEqual(source["sharedOriginalBranchRva"],"0x50D9EA")
+        self.assertEqual(source["sourceDirectRawRecordFieldReadRva"],"0x50D9EA")
+        self.assertEqual(source["originalDwordAtOffsetZero"],"dword ptr [rdi]")
+        code={x["rva"]:x["operands"] for x in source["originalVerifiedNativeInstructions"]}
+        self.assertEqual(code["0x50D9EA"],"ecx, dword ptr [rdi]")
+        self.assertEqual(code["0x50D9F2"],"0x14051cd50")
+        thunk=j["redirectedOriginalTypeIndexResolver"]
+        self.assertEqual(thunk["originalStubRva"],"0x51CD50")
+        self.assertEqual(thunk["sourceOriginalJumpOpcodeHex"],"e927159919")
+        self.assertEqual(thunk["nativeActualTargetRva"],"0x19EAE27C")
+        self.assertEqual(thunk["originalTargetSourceSha256"],
+                         "bd346be23bfad674366f0fd6fb33b383286e191fc9ded9c5e52d5ece1ae88211")
+        self.assertEqual(thunk["originalJumpTargetNativePrefix"][0]["mnemonic"],"push")
+        self.assertFalse(thunk["sourceConcreteClassTypeDefinitionIndexFromProtectedTargetProven"])
+        origin=j["originalRuntimeTypeArray"]
+        self.assertEqual(origin["sourceRuntimeTypeCount"],683574)
+        self.assertEqual(origin["mandatoryOriginalAnchorTypeIndex"],405772)
+        self.assertEqual(origin["anchorNativeRawKind"],"0x12")
+        self.assertEqual(origin["anchorOriginalTypeDefinitionIndex"],84249)
+        self.assertEqual(origin["anchorOriginalObfuscatedName"],"DMMJNICDOHM")
+        self.assertEqual(origin["originalIl2CppType16ByteRecords"][2]["sourceOriginalNative16ByteRecordHex"],
+                         "19490100000000000000120000000000")
+        for val in j["unresolved"].values():
+            self.assertFalse(val)
+
 if __name__=="__main__":
     unittest.main()
