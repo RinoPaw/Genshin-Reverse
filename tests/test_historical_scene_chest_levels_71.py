@@ -48,6 +48,23 @@ class HistoricalChestLevel(unittest.TestCase):
         self.assertFalse(report["originalGlobal71ClientInstanceLevelVerified"])
         self.assertFalse(report["originalOfficialServerSceneOwnershipVerified"])
 
+    def test_current_upstream_still_has_exact_same_chest_instance_levels(self):
+        import json
+        current=json.loads((ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-current-upstream-scene-chest-level-coverage.json").read_text(encoding="utf-8"))
+        historic=json.loads((ROOT/"versions/7.1.0-global/analyses/progression/economy/7.1-historical-scene-chest-level-coverage.json").read_text(encoding="utf-8"))
+        data=current["comparisons"]
+        self.assertEqual(data["chestCandidatesBoth"],historic["totals"]["chestCandidates"])
+        self.assertEqual(data["omittedLevelBoth"],historic["totals"]["defaultJavaZero"])
+        self.assertEqual(data["explicitNonzeroLevelBoth"],historic["totals"]["explicitNonzero"])
+        self.assertEqual(data["historicalRewardSourceCandidateCountsBoth"],{"drop_tag":9020,"explicit_id":1339,"no_metadata":3725})
+        self.assertTrue(data["allLevelValueCountsEqual"])
+        self.assertTrue(data["allRewardSourceLevelCountsEqual"])
+        self.assertTrue(data["allSceneLevelCountsEqual"])
+        self.assertEqual(data["historicalLuaFiles"]+data["newNetLuaFiles"],data["currentLuaFiles"])
+        self.assertEqual(data["missingLevelWithinNoMetadataBoth"],2683)
+        self.assertFalse(current["originalGlobal71InstanceSourceAuthenticated"])
+        self.assertFalse(current["clientNativeLevelSelectorFieldProven"])
+
     def test_no_original_authority_from_historical_source(self):
         self.assertEqual(mod.RESOURCE_COMMIT,"85b81a691fcf3d9e8e7db50a8febc8f9043bc084")
         self.assertEqual(mod.EXPECTED_HISTORICAL_CHESTS,14084)

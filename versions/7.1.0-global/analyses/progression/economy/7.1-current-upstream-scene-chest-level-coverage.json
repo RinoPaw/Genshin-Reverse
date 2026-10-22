@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "status": "CURRENT_UPSTREAM_ASTAPS_SCENE_LEVELS_MATCH_PINNED_HISTORICAL_CHEST_SET__NOT_ORIGINAL_7_1",
+  "evidenceKind": "PINNED_FORK_SERVER_RESOURCE_SCENE_SCRIPTS",
+  "source": {
+    "repository": "MeChen618/AstaPS-Resource",
+    "currentMainCommitAtAudit": "c0213668889ed05cbeb86660f424c3daf18bfacd",
+    "historicalCommit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "scannerRepository": "RinoPaw/AstaPS",
+    "scannerCommit": "e2541630f5ae4d4c95b81f7440293d3419a776d1",
+    "scannerGitBlob": "6ed19ab829c31cac762f5da6132fd44b8900350a",
+    "sourceGadgetExcelBlobBothRevisions": "9b32db003dcc37468a3824c8de41d14b7d69cd93",
+    "sceneTreeShaBefore": "82f16e4f7120f75bc64970876477f10d5635cd4f",
+    "sceneTreeShaAfter": "2017db1e3a2b41b9b6a7f690e2221b6ca6b9af90"
+  },
+  "runs": {
+    "historical": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39716548372",
+    "current": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39717247980"
+  },
+  "artifacts": {
+    "historical": {
+      "id": 12398937644,
+      "contentSha256": "8f30255c066a99a7858a83bbfb2fd34d8d95d4ba9d14fa7bbeffe66a2d61b2ba"
+    },
+    "current": {
+      "id": 12399497470,
+      "contentSha256": "8532a91a64da52f0524657773e73744a885967191f822a7242ea9cbb8e71b752"
+    }
+  },
+  "comparisons": {
+    "historicalLuaFiles": 41110,
+    "currentLuaFiles": 41113,
+    "newNetLuaFiles": 3,
+    "chestCandidatesBoth": 14084,
+    "bossExcludedBoth": 43,
+    "explicitNonzeroLevelBoth": 11401,
+    "omittedLevelBoth": 2683,
+    "explicitZeroLevelBoth": 0,
+    "allLevelValueCountsEqual": true,
+    "allRewardSourceLevelCountsEqual": true,
+    "allSceneLevelCountsEqual": true,
+    "allExampleInstancesEqual": true,
+    "missingLevelBySceneBoth": {
+      "3": 2600,
+      "101": 83
+    },
+    "levelDistributionBoth": {
+      "1": 1922,
+      "4": 2,
+      "6": 261,
+      "8": 2,
+      "11": 258,
+      "13": 2,
+      "16": 1816,
+      "21": 685,
+      "26": 6433,
+      "75": 3,
+      "88": 15,
+      "92": 2
+    },
+    "historicalRewardSourceCandidateCountsBoth": {
+      "drop_tag": 9020,
+      "explicit_id": 1339,
+      "no_metadata": 3725
+    },
+    "missingLevelWithinNoMetadataBoth": 2683,
+    "missingLevelWithinDropTagBoth": 0,
+    "missingLevelWithinExplicitIdBoth": 0
+  },
+  "originalGlobal71InstanceSourceAuthenticated": false,
+  "clientNativeLevelSelectorFieldProven": false,
+  "recommendations": [
+    "Preserve source-level distinction between scene-script level (including Java default 0) and Gadget entity network PROP_LEVEL constant 1.",
+    "Do not derive common/exquisite/precious/luxurious grade or reward payout from large scene level values (1, 6, 11, 16, 21, 26, ...).",
+    "Investigate original game scene-instance content outside MiHoYoBinData-only hash guesses, or a source-verified original scene-instance runtime consumer.",
+    "The 2,683 without level all lack known chest-drop metadata in the historical server snapshot; do not automatically create rewards or match them to missing level selectors."
+  ],
+  "limitations": [
+    "Comparisons cover one pinned historical server-source snapshot and the main commit checked on 2026-10-22, not the official Global 7.1 client or server.",
+    "Historical Chest population is selected using the pinned public-copy GadgetExcel category; native gadget category meaning is independent.",
+    "Original client design-index scan previously checked 805 guessed scene names, including 672 historical group names absent, only within MiHoYoBinData assets. It is not proof of absence of official scene placements.",
+    "Current script counts static direct Lua level integers and does not prove runtime scripts or reward eligibility.",
+    "No AstaPS reward code or LootCSS semantics were changed."
+  ]
+}
