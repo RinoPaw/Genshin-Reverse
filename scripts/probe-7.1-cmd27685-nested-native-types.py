@@ -128,13 +128,14 @@ def member_census(types: Path, fields: Path, methods: Path, source_report: dict)
                 for f in originals if f["originalType"] == REPEATED_TYPE]}
 
 
-def inspect_repeated_reader(exe:Path, census:dict) -> dict:
+def inspect_nested_reader(exe:Path, census:dict, name:str) -> dict:
     require_sha256(exe, PROFILE_71.exe_sha256, label="original Global 7.1 EXE")
-    proto = census["sourceNativeTypes"][REPEATED_TYPE]
+    proto = census["sourceNativeTypes"][name]
     target = [m for m in proto["methods"] if m["name"] == READER_TOKEN and m["rva"]]
     if len(target) != 1:
         return {"originalReaderMethodUniquelyIdentified":False,
-                "candidateReaderMethods":target,"runtimeSchemaProven":False}
+                "candidateReaderMethods":target,
+                "availableMemberMethods":proto["methods"],"runtimeSchemaProven":False}
     rva = int(target[0]["rva"], 0)
     if rva <= 0: raise ValueError("invalid original nested reader RVA")
     with PEImage(exe) as pe:
@@ -171,7 +172,11 @@ def inspect_repeated_reader(exe:Path, census:dict) -> dict:
 def investigate(types:Path,fields:Path,methods:Path,prior:Path,exe:Path) -> dict:
     previous = json.loads(prior.read_text(encoding="utf-8"))
     census = member_census(types,fields,methods,previous)
-    reader = inspect_repeated_reader(exe,census)
+    reader = inspect_nested_reader(exe,census,REPEATED_TYPE)
+    floats = {name:inspect_nested_reader(exe,census,name)
+              for name,item in census["sourceNativeTypes"].items()
+              if name != REPEATED_TYPE and name != ELEMENT
+              and item.get("declaredFloat32FieldCount",0)}
     return {
         "schemaVersion":1,
         "status":"ORIGINAL_GLOBAL_7_1_SCENE_ELEMENT_NESTED_TYPE_PROBE__POSITION_AND_SERVER_AUTHORITY_UNPROVEN",
@@ -182,6 +187,7 @@ def investigate(types:Path,fields:Path,methods:Path,prior:Path,exe:Path) -> dict
         "previousSourceArtifactId":previous["evidence"]["artifactId"],
         "typeCensus":census,
         "repeatedNestedTypeReader":reader,
+        "floatNestedTypeReaders":floats,
         "conclusions":{
             "directNestedFieldTypeProven":True,
             "coordinateSemanticProven":False,
@@ -216,7 +222,7 @@ def main():
         "repeatedNativeReader":report["repeatedNestedTypeReader"],
     }
     print("ORIGINAL_NESTED_OWNER_BEGIN")
-    print(json.dumps(summary,indent=2,ensure_ascii=False))
+    print(json.dumps(report,indent=2,ensure_ascii=False))
     print("ORIGINAL_NESTED_OWNER_END")
 
 
