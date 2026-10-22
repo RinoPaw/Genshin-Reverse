@@ -118,6 +118,7 @@ def native_immediate_witnesses(exe:Path,methods:Path,leads:list[dict])->dict:
     raw_candidates=0
     from capstone import Cs,CS_ARCH_X86,CS_MODE_64
     md=Cs(CS_ARCH_X86,CS_MODE_64)
+    md.detail=True
     with PEImage(exe) as pe:
         for sec in pe.sections:
             if not (sec.characteristics & EXECUTABLE_SECTION_BIT):
