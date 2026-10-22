@@ -92,6 +92,15 @@ def prefix_candidates(rows:list[dict])->dict:
         raise ValueError("original direct-after-count candidate now plausible")
     if not candidate["all13OriginalSourceSamplesFitNativeFactory"]:
         raise ValueError("source sample byte+10 type-discriminator gate failed")
+    lengths=[(int.from_bytes(x[7:9],"little")+0x189A)&0xFFFF for x in values]
+    positions=[9+length for length in lengths]
+    if lengths!=[1,1,1,1,2,1,1,1,1,1,1,1,1]:
+        raise ValueError("original all-scene native 16-bit prelude length changed")
+    if any(pos>=PREFIX_SIZE for pos in positions):
+        raise ValueError("source inferred first element exceeds saved prefix")
+    dynamic_types=[decode_native_kind(value[pos]) for value,pos in zip(values,positions,strict=True)]
+    if dynamic_types!=[14,1,1,1,1,1,1,1,1,1,1,1,1]:
+        raise ValueError("original source dynamic first-element subtype gate changed")
     matching=[row["offset"] for row in full if row["all13OriginalSourceSamplesFitNativeFactory"]]
     if matching!=[10]:
         raise ValueError(f"original all-scene aligned byte gate changed: {matching}")
@@ -108,6 +117,17 @@ def prefix_candidates(rows:list[dict])->dict:
           "nativeTransformedNumericSubtypeCandidate":candidate["decodedOriginalNativeFactoryIdsIfUsedAtThisOffset"][i]}
          for i,r in enumerate(rows)
       ],
+      "sourceNativeLengthPreludeExpression":"(littleEndianU16(payload[7:9]) + 0x189A) mod 65536",
+      "sourceCandidatePreludeLengths":lengths,
+      "sourceCandidateFirstElementByteOffsets":positions,
+      "sourceDynamicFirstElementSubtypeCandidates":[
+        {"sceneId":row["sceneId"],"candidateDecodedPreludeLength":lengths[i],
+         "candidateByteOffset":positions[i],
+         "candidateOriginalByteHex":f"0x{values[i][positions[i]]:02X}",
+         "candidateOriginalFactoryTypeId":dynamic_types[i]}
+        for i,row in enumerate(rows)
+      ],
+      "all13NativeLengthAdjustedSubtypeCandidatesValid":True,
       "all32SourceOffsetsDiscriminatorCensus":full,
       "threeByteDisplacementAfterCountIsObserved":True,
       "nativeCursorConsumptionForExtraThreeBytesProven":False,
@@ -144,6 +164,20 @@ def source_reader_trace(exe:Path,methods:Path)->dict:
       "0xAD23066":("mov","ebx, 0xc14b813c"),
       "0xAD2306B":("xor","ebx, dword ptr [rax + rdx + 0x20]"),
       "0xAD23072":("mov","dword ptr [r15 + 0x28], ecx"),
+      "0xAD23121":("add","ecx, 2"),
+      "0xAD23124":("movzx","r12d, word ptr [rax + rdx + 0x20]"),
+      "0xAD2312A":("mov","dword ptr [r15 + 0x28], ecx"),
+      "0xAD2312E":("mov","ax, 0x189a"),
+      "0xAD23132":("add","r12w, ax"),
+      "0xAD2313C":("movzx","edi, r12w"),
+      "0xAD23151":("lea","r13d, [rdi + 7]"),
+      "0xAD2315E":("jb","0x14ad231d0"),
+      "0xAD232FA":("test","r12w, r12w"),
+      "0xAD23300":("movzx","r8d, r12w"),
+      "0xAD23308":("call","0x141fc6e10"),
+      "0xAD2331B":("mov","rcx, r15"),
+      "0xAD2331E":("mov","edx, edi"),
+      "0xAD23320":("call","0x14fd53090"),
       "0xAD23393":("movzx","eax, byte ptr [rax + rdx + 0x20]"),
       "0xAD23398":("inc","ecx"),
       "0xAD2339A":("mov","dword ptr [r15 + 0x28], ecx"),
