@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_GLOBAL_7_1_NATIVE_0xCB_HELPER_CONSUMES_ONE_BYTE__SCENE_POINT_ASSET_ENTRY_UNPROVEN",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39740640976",
+  "sourceHeadCommit": "207bbe7e2a788a4c2f5e3cc878e185856c8c6b10",
+  "sourceArtifactId": 12408788938,
+  "sourceArtifactArchiveDigest": "sha256:3e7473e51322806d99652af8bf36b4104eb6b381d5d8209490fa3f5fd2a73754",
+  "nativeOriginalClass": "CCPCOHEPGHC",
+  "originalMethod": "GMENPOPMKAA",
+  "methodIndex": 173227,
+  "nativeMethodRva": "0x12498FE0",
+  "nativeMethodNextRva": "0x124997A0",
+  "nativeMethodBytes": 1984,
+  "sourceMethodSha256": "5460efab0d1bd47142105a15f34b7513a1e65944c71f5f3d7d290bddceb536b3",
+  "originalDisassembledInstructions": 467,
+  "originalPrefixReaderSha256": "4dc0d197c153cb88a8f54e65cc7300c8fa9cefa96b1054bd3c9277feaa4cf0c2",
+  "inputByte": "0xCB",
+  "originalNativeConditionalReadProof": {
+    "candidateInputByte": "0xCB",
+    "xoredFlagByte": "0x00",
+    "sourceBlocks": [
+      {
+        "firstRva": "0x12499031",
+        "lastRva": "0x1249904B",
+        "nextRva": "0x12499144",
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x12499031",
+            "op": "movzx r15d, byte ptr [rax + rcx + 0x20]",
+            "bytes": "440fb67c0820"
+          },
+          {
+            "rva": "0x12499037",
+            "op": "inc ecx",
+            "bytes": "ffc1"
+          },
+          {
+            "rva": "0x12499039",
+            "op": "mov dword ptr [r12], ecx",
+            "bytes": "41890c24"
+          },
+          {
+            "rva": "0x1249903D",
+            "op": "test r15b, 0x10",
+            "bytes": "41f6c710"
+          },
+          {
+            "rva": "0x12499041",
+            "op": "mov qword ptr [rsp + 0x30], r14",
+            "bytes": "4c89742430"
+          },
+          {
+            "rva": "0x12499046",
+            "op": "mov byte ptr [rsp + 0x27], r15b",
+            "bytes": "44887c2427"
+          },
+          {
+            "rva": "0x1249904B",
+            "op": "je 0x152499144",
+            "bytes": "0f84f3000000"
+          }
+        ]
+      },
+      {
+        "firstRva": "0x12499144",
+        "lastRva": "0x1249915F",
+        "nextRva": "0x12499278",
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x12499144",
+            "op": "mov rbx, qword ptr [rip - 0xca17bb3]",
+            "bytes": "488b1d4d845ef3"
+          },
+          {
+            "rva": "0x1249914B",
+            "op": "mov r13d, r15d",
+            "bytes": "4589fd"
+          },
+          {
+            "rva": "0x1249914E",
+            "op": "xor r13b, 0xcb",
+            "bytes": "4180f5cb"
+          },
+          {
+            "rva": "0x12499152",
+            "op": "mov qword ptr [r14 + 0x10], rbx",
+            "bytes": "49895e10"
+          },
+          {
+            "rva": "0x12499156",
+            "op": "test r13b, 8",
+            "bytes": "41f6c508"
+          },
+          {
+            "rva": "0x1249915A",
+            "op": "mov byte ptr [rsp + 0x26], r13b",
+            "bytes": "44886c2426"
+          },
+          {
+            "rva": "0x1249915F",
+            "op": "je 0x152499278",
+            "bytes": "0f8413010000"
+          }
+        ]
+      },
+      {
+        "firstRva": "0x12499278",
+        "lastRva": "0x12499286",
+        "nextRva": "0x124993A7",
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x12499278",
+            "op": "mov rdi, qword ptr [rip - 0xca17ce7]",
+            "bytes": "488b3d19835ef3"
+          },
+          {
+            "rva": "0x1249927F",
+            "op": "mov qword ptr [r14 + 0x28], rdi",
+            "bytes": "49897e28"
+          },
+          {
+            "rva": "0x12499283",
+            "op": "test r15b, r15b",
+            "bytes": "4584ff"
+          },
+          {
+            "rva": "0x12499286",
+            "op": "js 0x1524993a7",
+            "bytes": "0f881b010000"
+          }
+        ]
+      },
+      {
+        "firstRva": "0x124993A7",
+        "lastRva": "0x124993B6",
+        "nextRva": "0x124994D1",
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x124993A7",
+            "op": "mov rbx, qword ptr [rip - 0xca17e16]",
+            "bytes": "488b1dea815ef3"
+          },
+          {
+            "rva": "0x124993AE",
+            "op": "mov qword ptr [r14 + 0x18], rbx",
+            "bytes": "49895e18"
+          },
+          {
+            "rva": "0x124993B2",
+            "op": "test r15b, 0x20",
+            "bytes": "41f6c720"
+          },
+          {
+            "rva": "0x124993B6",
+            "op": "je 0x1524994d1",
+            "bytes": "0f8415010000"
+          }
+        ]
+      },
+      {
+        "firstRva": "0x124994D1",
+        "lastRva": "0x124994E0",
+        "nextRva": "0x124995E4",
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x124994D1",
+            "op": "mov rbx, qword ptr [rip - 0xca17f40]",
+            "bytes": "488b1dc0805ef3"
+          },
+          {
+            "rva": "0x124994D8",
+            "op": "mov qword ptr [r14 + 0x20], rbx",
+            "bytes": "49895e20"
+          },
+          {
+            "rva": "0x124994DC",
+            "op": "test r13b, 1",
+            "bytes": "41f6c501"
+          },
+          {
+            "rva": "0x124994E0",
+            "op": "je 0x1524995e4",
+            "bytes": "0f84fe000000"
+          }
+        ]
+      },
+      {
+        "firstRva": "0x124995E4",
+        "lastRva": "0x124995FF",
+        "nextRva": null,
+        "sourceNativeInstructions": [
+          {
+            "rva": "0x124995E4",
+            "op": "mov rdi, qword ptr [rip - 0xca18053]",
+            "bytes": "488b3dad7f5ef3"
+          },
+          {
+            "rva": "0x124995EB",
+            "op": "mov qword ptr [r14 + 0x30], rdi",
+            "bytes": "49897e30"
+          },
+          {
+            "rva": "0x124995EF",
+            "op": "add rsp, 0x38",
+            "bytes": "4883c438"
+          },
+          {
+            "rva": "0x124995F3",
+            "op": "pop rbx",
+            "bytes": "5b"
+          },
+          {
+            "rva": "0x124995F4",
+            "op": "pop rbp",
+            "bytes": "5d"
+          },
+          {
+            "rva": "0x124995F5",
+            "op": "pop rdi",
+            "bytes": "5f"
+          },
+          {
+            "rva": "0x124995F6",
+            "op": "pop rsi",
+            "bytes": "5e"
+          },
+          {
+            "rva": "0x124995F7",
+            "op": "pop r12",
+            "bytes": "415c"
+          },
+          {
+            "rva": "0x124995F9",
+            "op": "pop r13",
+            "bytes": "415d"
+          },
+          {
+            "rva": "0x124995FB",
+            "op": "pop r14",
+            "bytes": "415e"
+          },
+          {
+            "rva": "0x124995FD",
+            "op": "pop r15",
+            "bytes": "415f"
+          },
+          {
+            "rva": "0x124995FF",
+            "op": "ret",
+            "bytes": "c3"
+          }
+        ]
+      }
+    ],
+    "nativeConditionalBranchesVerified": 5,
+    "nativeStreamByteReadsAlongPath": 1,
+    "nativeStreamCursorWritesAlongPath": 1,
+    "nativeHelperCallsAlongPath": 0,
+    "sourceReturnRva": "0x124995FF",
+    "sourceNativeHelperConsumesExactlyOneByteFor0xCB": true,
+    "originalScenePointAssetLoaderAndStartingCursorVerified": false
+  },
+  "clientScenePoint13ResourcePrefixesHaveByte0xCB": true,
+  "verifiedOriginalCallHierarchy": [
+    {
+      "caller": "IJNOFJEOMBD.GMENPOPMKAA",
+      "rva": "0xEE66B20",
+      "subreader": "CCPCOHEPGHC.GMENPOPMKAA",
+      "callRva": "0xEE66BD6",
+      "conditionalOuterMask": "0x8000"
+    },
+    {
+      "caller": "IJNOFJEOMBD.GMENPOPMKAA",
+      "rva": "0xEE66B20",
+      "subreader": "NLDEPJEOJGC.GMENPOPMKAA",
+      "callRva": "0xEE66BF1",
+      "conditionalOuterMask": "0x4000"
+    }
+  ],
+  "initialSourceScenePointBytesIfParentStartsAtZero": "2-byte u16 mask + 1-byte CCPCOHEPGHC helper + NLDEPJEOJGC array reader at byte 3",
+  "originalParentReceivesSourceScenePointBytesAtOffsetZeroProven": false,
+  "originalArrayReaderStartsAtPayloadOffsetThreeWithoutAssumptionsProven": false,
+  "originalScenePointRowsDecoded": false,
+  "originalChestGadgetInstancePositionsDecoded": false,
+  "officialServerChestOwnershipProven": false,
+  "limitations": [
+    "Six contiguous instruction blocks and five taken source-native branches verify the 0xCB path's one input byte read, one cursor increment/writeback, no call and native return.",
+    "This is a conditional proof for bytes presented to the helper. The original asset path loader-to-parent invocation and buffer-origin identity are separate unresolved questions.",
+    "The original 13 Scene/Point source third bytes are 0xCB, but candidate counts and any gameplay semantic names remain hypotheses until original loader and full file consumption are authenticated.",
+    "No private-server Lua, AstaPS reward semantics, community JSON or historical schema were used."
+  ]
+}
