@@ -199,3 +199,7 @@ This is source-authenticated **private-server Lua**, strictly separate from sour
 ## Temporary exact 7.1 original-client scene asset container inventory (issue #31)
 
 The read-only one-shot `probe-7.1-client-scene-asset-container.yml` hashes the entire original Global 7.1 official compressed Sophon manifest (SHA-256 `3383e77a...`), checks independently pinned block and exported design index identities, then reports manifest path distribution and original index-native type table strings. This intentionally expands beyond the former MiHoYoBinData-only per-path guesses; no asset content, Lua, or chest level gets promoted without source-native consumption proof. Retire this workflow after original source-backed findings are committed.
+
+## Temporary original 7.1 WorldArea Unity object type inventory (issue #31)
+
+One-shot read-only `probe-7.1-world-area-bundle-objects.yml` reconstructs original Sophon `00/24230448.blk` (the original client source block for 13 WorldArea scenes), checks independent MD5/size/manifest + pinned original scene3 WorldArea raw export SHA-256, and inventories exact Unity `MiHoYoBinData`, `TextAsset`, `MonoBehaviour` class exports. This intentionally tests genuine Unity object types rather than guessing MiHoYoBinData path strings. Absence is limited to this one block; scene instance `level` would require separate native source and field consumption. Retire the one-shot after source-bound findings are committed.
