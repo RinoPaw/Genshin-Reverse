@@ -11,6 +11,7 @@ from bisect import bisect_right
 import csv
 import hashlib
 import json
+import struct
 from pathlib import Path
 from genshinre.callxref import _load_method_starts
 from genshinre.nativeprofile import PROFILE_71
@@ -27,6 +28,9 @@ FACTORY_RVA=0xC591C60
 FACTORY_OWNER="NLLGJBBHHAN"
 FACTORY_METHOD="JIEAILFJKNA"
 FACTORY_METHOD_INDEX=408945
+FACTORY_SOURCE_SHA="78a9930eef271eae79f9b4fdcc60a49e86ae95a8cc01d87181691c88fd365f06"
+FACTORY_TABLE_RVA=0xC592094
+FACTORY_MAX_ID=30
 METHODS_BLOB="a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a"
 FIELDS_BLOB="ae01d117f4d884e891a95d529a15302a68715b04"
 OWNER="NLDEPJEOJGC"
@@ -112,7 +116,38 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
         factory_bytes=pe.read_rva(FACTORY_RVA,factory_length)
         if len(factory_bytes)!=factory_length:
             raise ValueError("original native factory body not file-backed")
-        factory_ins=[{"rva":f"0x{x.address-pe.image_base:X}","mnemonic":x.mnemonic,"operands":x.op_str,"bytes":bytes(x.bytes).hex()} for x in md.disasm(factory_bytes,pe.image_base+FACTORY_RVA)]
+        if hashlib.sha256(factory_bytes).hexdigest()!=FACTORY_SOURCE_SHA:
+            raise ValueError("original native factory source byte SHA drift")
+        factory_code_end=FACTORY_TABLE_RVA-FACTORY_RVA
+        if factory_code_end<=0 or factory_code_end+(FACTORY_MAX_ID+1)*4!=factory_length:
+            raise ValueError("original native factory jump table source boundary drift")
+        factory_ins=[{"rva":f"0x{x.address-pe.image_base:X}","mnemonic":x.mnemonic,"operands":x.op_str,"bytes":bytes(x.bytes).hex()} for x in md.disasm(factory_bytes[:factory_code_end],pe.image_base+FACTORY_RVA)]
+        by_factory_rva={int(x["rva"],16):i for i,x in enumerate(factory_ins)}
+        expected_start={
+           "0xC591C65":"cmp ecx, 0x1e",
+           "0xC591C6C":"lea rcx, [rip + 0x421]",
+           "0xC591C73":"movsxd rax, dword ptr [rcx + rax*4]",
+           "0xC591C77":"add rax, rcx",
+           "0xC591C7A":"jmp rax",
+        }
+        for loc,op in expected_start.items():
+            got=factory_ins[by_factory_rva[int(loc,16)]]
+            if f'{got["mnemonic"]} {got["operands"]}'!=op:
+                raise ValueError(f"original 7.1 31-way factory jump dispatch drift: {loc}")
+        cases=[]
+        for n in range(FACTORY_MAX_ID+1):
+            signed_offset=struct.unpack_from("<i",factory_bytes,factory_code_end+n*4)[0]
+            rva=FACTORY_TABLE_RVA+signed_offset
+            if rva not in by_factory_rva:
+                raise ValueError("original factory jump table target missing aligned code")
+            i=by_factory_rva[rva]
+            cases.append({
+                "sourceNumericCaseId":n,
+                "sourceRelativeI32":signed_offset,
+                "sourceTargetRva":f"0x{rva:X}",
+                "originalBranchFirstInstructions":factory_ins[i:i+5],
+                "concreteOriginalClassTokenProven":False,
+            })
         direct=[]
         indirect=[]
         for i,x in enumerate(ins):
@@ -146,7 +181,9 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
        "sourceElementFactoryAndVirtualDispatchInstructions":[verified[k] for k in required],
        "sourceFactoryMethod":{"originalType":FACTORY_OWNER,"method":FACTORY_METHOD,"originalMethodIndex":FACTORY_METHOD_INDEX,
          "rva":f"0x{FACTORY_RVA:X}","sourceWindowBytes":factory_length,"sourceSha256":hashlib.sha256(factory_bytes).hexdigest(),
-         "decodedInstructionCount":len(factory_ins),"firstNativeInstructions":factory_ins[:100]},
+         "linearCodeInstructionsBeforeTrailingJumpTable":len(factory_ins),"firstNativeInstructions":factory_ins[:20],
+         "originalFactoryJumpTableRva":f"0x{FACTORY_TABLE_RVA:X}",
+         "verifiedCaseCount":len(cases),"sourceJumpCases":cases},
        "nativeArraySetupCallContext":ins[max(0,at-42):at+16],
        "nativeElementDecodeAndDispatchContext":ins[[k["rva"] for k in ins].index(f"0x{ELEMENT_FACTORY_CALL_RVA:X}")-17:[k["rva"] for k in ins].index(f"0x{ELEMENT_READER_VCALL_RVA:X}")+9],
        "allSourceNativeDirectCalls":direct,
@@ -154,6 +191,8 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
        "exactOriginalMethodClasses":m,
        "exactOriginalFieldClasses":f,
        "originalConcreteElementReaderLinked":False,
+       "sourceByteDiscriminatorTransform":"((sourceByte XOR 0xF5) + 0x34) mod 256",
+       "sourceFactoryHas31NativeCases":True,
        "originalScenePointAssetLoaderLinked":False,
        "originalScenePointRowsDecoded":False,
        "originalChestPlacementOrLevelProven":False,
