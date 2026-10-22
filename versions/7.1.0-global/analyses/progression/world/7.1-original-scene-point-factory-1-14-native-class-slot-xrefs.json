@@ -1,0 +1,1183 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_FACTORY_CASES_1_14_RIP_CLASS_SLOT_NATIVE_XREFS__TYPE_IDENTITY_UNPROVEN",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMethodMetadataGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "originalNativeFactoryMethodRva": "0xC591C60",
+  "originalNativeFactorySourceSha256": "78a9930eef271eae79f9b4fdcc60a49e86ae95a8cc01d87181691c88fd365f06",
+  "originalFull31CaseSourceReport": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-array-element-factory-native-evidence.json",
+  "originalXrefSourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39746971148",
+  "originalXrefRunSourceCommit": "97c81a85c951c0a22fc9c9ccdefe1a8e025f0c34",
+  "originalArchivedAll31CaseResultsArtifactId": 12412125780,
+  "originalArchivedAll31CaseResultsDigest": "sha256:4129de84c801f70de32aaf5faace28c8bda65bb3ca1c10b664cace10085322a5",
+  "nativeClassSlotReferencesByFactoryCase": {
+    "1": {
+      "originalNumericFactoryCaseId": 1,
+      "nativeClassSlotRva": "0x57C37B0",
+      "originalAlignedNativeReferenceCount": 21,
+      "originalRIPByteMatchCount": 23,
+      "originalMisalignedOrUnverifiedCandidateCount": 2,
+      "originalNativeReferencedMethodOwnerCounts": {
+        "KLLNGCPBLMM": 12,
+        "HHDNOGHMIOC": 3,
+        "OAGPJFNDNNG": 2,
+        "NNGLCGBHEDB": 2,
+        "NLLGJBBHHAN": 1,
+        "BFLGIHGLPBF": 1
+      },
+      "exactOriginalCodeReferences": [
+        {
+          "instructionRva": "0xF06AD50",
+          "originalMachineBytes": "488b05598a75f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06AAB0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x98a75a7]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "KHDMMCFLOLL",
+              "originalMethodIndex": 616041,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CAFEF7",
+          "originalMachineBytes": "488b05b238b1f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CAFDC0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xc4ec74e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "GMCFODMKJBC",
+              "originalMethodIndex": 515090,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CD8AB3",
+          "originalMachineBytes": "488b05f6acaef3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CD8A40",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xc51530a]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "AKIJFHIOGNJ",
+              "originalMethodIndex": 515118,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB431635",
+          "originalMachineBytes": "488b0d742139fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB4315B0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x5c6de8c]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OAGPJFNDNNG",
+              "originalMethodName": "JOBDNGNICNC",
+              "originalMethodIndex": 118483,
+              "originalTypeDefinitionIndex": 16105
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB431692",
+          "originalMachineBytes": "488b0d172139fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB4315B0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x5c6dee9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OAGPJFNDNNG",
+              "originalMethodName": "JOBDNGNICNC",
+              "originalMethodIndex": 118483,
+              "originalTypeDefinitionIndex": 16105
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xC591C94",
+          "originalMachineBytes": "488b0d151b23f9",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xC591C60",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x6dce4eb]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NLLGJBBHHAN",
+              "originalMethodName": "JIEAILFJKNA",
+              "originalMethodIndex": 408945,
+              "originalTypeDefinitionIndex": 51260
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF061862",
+          "originalMachineBytes": "488b0d471f76f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0617C0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x989e0b9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "HJBKBEFKILG",
+              "originalMethodIndex": 615941,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF070942",
+          "originalMachineBytes": "488b0d672e75f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0708A0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x98ad199]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "GELONICLFCO",
+              "originalMethodIndex": 616042,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x1132959D",
+          "originalMachineBytes": "488b0d0ca249f4",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11329530",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xbb65df4]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "BFLGIHGLPBF",
+              "originalMethodName": "JOBDNGNICNC",
+              "originalMethodIndex": 118533,
+              "originalTypeDefinitionIndex": 16112
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CA25A2",
+          "originalMachineBytes": "488b0d0712b2f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CA1460",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc4dedf9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "OGJFGJGNFIC",
+              "originalMethodIndex": 515052,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF045A72",
+          "originalMachineBytes": "488b1537dd77f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF045800",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98822c9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "GJHPOFKNMEB",
+              "originalMethodIndex": 615759,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF054C4E",
+          "originalMachineBytes": "488b155beb76f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF054800",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98914a5]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "BNMLOHPBILD",
+              "originalMethodIndex": 615862,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF0550DE",
+          "originalMachineBytes": "488b15cbe676f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF054F60",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x9891935]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "EIBNALGMGEC",
+              "originalMethodIndex": 616082,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF058570",
+          "originalMachineBytes": "488b1539b276f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0582D0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x9894dc7]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "PDEMAPPABKO",
+              "originalMethodIndex": 616008,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF05F677",
+          "originalMachineBytes": "488b15324176f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF05F0F0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x989bece]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "IPADDHFIGMF",
+              "originalMethodIndex": 615937,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF069421",
+          "originalMachineBytes": "488b1588a375f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF069330",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98a5c78]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "INEOEIPHODI",
+              "originalMethodIndex": 615980,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF06B2BA",
+          "originalMachineBytes": "488b15ef8475f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06B1A0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98a7b11]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "CHBAJAKPCIJ",
+              "originalMethodIndex": 616011,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF06CD4E",
+          "originalMachineBytes": "488b155b6a75f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06C8D0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98a95a5]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "MBFJLEKGIDD",
+              "originalMethodIndex": 616002,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13CFEC2E",
+          "originalMachineBytes": "488b357b4bacf1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13CFE920",
+          "exactNativeInstruction": "mov rsi, qword ptr [rip - 0xe53b485]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NNGLCGBHEDB",
+              "originalMethodName": "EOFBBBCNOFJ",
+              "originalMethodIndex": 627180,
+              "originalTypeDefinitionIndex": 75836
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13CFEFBC",
+          "originalMachineBytes": "488b35ed47acf1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13CFE920",
+          "exactNativeInstruction": "mov rsi, qword ptr [rip - 0xe53b813]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NNGLCGBHEDB",
+              "originalMethodName": "EOFBBBCNOFJ",
+              "originalMethodIndex": 627180,
+              "originalTypeDefinitionIndex": 75836
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF047A66",
+          "originalMachineBytes": "4c8b0543bd77f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0479B0",
+          "exactNativeInstruction": "mov r8, qword ptr [rip - 0x98842bd]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "NFNKKAAAPAN",
+              "originalMethodIndex": 615774,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        }
+      ],
+      "originalConcreteIL2CPPClassNameIdentified": false,
+      "originalConcreteElementDeserializerIdentified": false
+    },
+    "14": {
+      "originalNumericFactoryCaseId": 14,
+      "nativeClassSlotRva": "0x57C1970",
+      "originalAlignedNativeReferenceCount": 48,
+      "originalRIPByteMatchCount": 50,
+      "originalMisalignedOrUnverifiedCandidateCount": 2,
+      "originalNativeReferencedMethodOwnerCounts": {
+        "KLLNGCPBLMM": 14,
+        "GFIOKOCNMFF": 8,
+        "HHDNOGHMIOC": 7,
+        "BJLLHHFDAEM": 4,
+        "OMIMEMFNFLP": 4,
+        "HGPJJCNAHLB": 3,
+        "JPJEEDCOMDE": 2,
+        "GMLHDDGOAAG": 1,
+        "NDPMDLJEOLG": 1,
+        "CPOJKMAEDIA": 1,
+        "MonoMapMark": 1,
+        "NLLGJBBHHAN": 1,
+        "NNGLCGBHEDB": 1
+      },
+      "exactOriginalCodeReferences": [
+        {
+          "instructionRva": "0x74494ED",
+          "originalMachineBytes": "488b057c8437fe",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x7448D30",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x1c87b84]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GMLHDDGOAAG",
+              "originalMethodName": "IPLHOOAKMFA",
+              "originalMethodIndex": 129402,
+              "originalTypeDefinitionIndex": 17349
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x7ADCA84",
+          "originalMachineBytes": "488b05e54ecefd",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x7ADC880",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x231b11b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NDPMDLJEOLG",
+              "originalMethodName": "JOBDNGNICNC",
+              "originalMethodIndex": 445793,
+              "originalTypeDefinitionIndex": 55512
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1AE769",
+          "originalMachineBytes": "488b05003261fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1AE6A0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x59ece00]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "CPIHLDGHHFH",
+              "originalMethodIndex": 568470,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1AF626",
+          "originalMachineBytes": "488b05432361fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1AF5E0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x59edcbd]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "AJKLDPIPDKD",
+              "originalMethodIndex": 568485,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1B0E0F",
+          "originalMachineBytes": "488b055a0b61fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1B0DF0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x59ef4a6]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "AJJPOFPMMJH",
+              "originalMethodIndex": 568471,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1B1314",
+          "originalMachineBytes": "488b05550661fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1B12D0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x59ef9ab]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "BJJBMJBDMII",
+              "originalMethodIndex": 568474,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xD331E4C",
+          "originalMachineBytes": "488b051dfb48f8",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xD331DC0",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x7b704e3]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "CPOJKMAEDIA",
+              "originalMethodName": "SetupView",
+              "originalMethodIndex": 307721,
+              "originalTypeDefinitionIndex": 38971
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xE448823",
+          "originalMachineBytes": "488b05469137f7",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xE448060",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x8c86eba]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "BJLLHHFDAEM",
+              "originalMethodName": "JENJPMFJAKB",
+              "originalMethodIndex": 405976,
+              "originalTypeDefinitionIndex": 50855
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF04E101",
+          "originalMachineBytes": "488b05683877f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF04DD40",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x988c798]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "LLIOMLANLHC",
+              "originalMethodIndex": 615813,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF0568C2",
+          "originalMachineBytes": "488b05a7b076f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF056730",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x9894f59]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "IHBKKOIPPAB",
+              "originalMethodIndex": 615873,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF06C2D6",
+          "originalMachineBytes": "488b05935675f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06C060",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0x98aa96d]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "KOPEGABFGHD",
+              "originalMethodIndex": 616096,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CF4E85",
+          "originalMachineBytes": "488b05e4caacf3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CF4990",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xc53351c]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "PCMJMAJEKEP",
+              "originalMethodIndex": 515310,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CF54AE",
+          "originalMachineBytes": "488b05bbc4acf3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CF4990",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xc533b45]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "PCMJMAJEKEP",
+              "originalMethodIndex": 515310,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x12EEB7B5",
+          "originalMachineBytes": "488b05b4618df2",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x12EEB630",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xd729e4c]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "MonoMapMark",
+              "originalMethodName": "SetDungeonTips",
+              "originalMethodIndex": 110686,
+              "originalTypeDefinitionIndex": 15096
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13D85897",
+          "originalMachineBytes": "488b05d2c0a3f1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13D85240",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xe5c3f2e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OMIMEMFNFLP",
+              "originalMethodName": "MEJFEPDBKMH",
+              "originalMethodIndex": 558074,
+              "originalTypeDefinitionIndex": 69289
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13D85922",
+          "originalMachineBytes": "488b0547c0a3f1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13D85240",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xe5c3fb9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OMIMEMFNFLP",
+              "originalMethodName": "MEJFEPDBKMH",
+              "originalMethodIndex": 558074,
+              "originalTypeDefinitionIndex": 69289
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13D85B08",
+          "originalMachineBytes": "488b0561bea3f1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13D85240",
+          "exactNativeInstruction": "mov rax, qword ptr [rip - 0xe5c419f]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OMIMEMFNFLP",
+              "originalMethodName": "MEJFEPDBKMH",
+              "originalMethodIndex": 558074,
+              "originalTypeDefinitionIndex": 69289
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x7702192",
+          "originalMachineBytes": "488b0dd7f70bfe",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x7701520",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x1f40829]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "JPJEEDCOMDE",
+              "originalMethodName": "BFIPCAKJBJJ",
+              "originalMethodIndex": 304550,
+              "originalTypeDefinitionIndex": 38591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x77028A6",
+          "originalMachineBytes": "488b0dc3f00bfe",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x7701520",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x1f40f3d]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "JPJEEDCOMDE",
+              "originalMethodName": "BFIPCAKJBJJ",
+              "originalMethodIndex": 304550,
+              "originalTypeDefinitionIndex": 38591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xA63B22B",
+          "originalMachineBytes": "488b0d3e6718fb",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xA63B1B0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x4e798c2]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HGPJJCNAHLB",
+              "originalMethodName": "IJLGOMAKFJK",
+              "originalMethodIndex": 421802,
+              "originalTypeDefinitionIndex": 52655
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xA645B97",
+          "originalMachineBytes": "488b0dd2bd17fb",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xA645A60",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x4e8422e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HGPJJCNAHLB",
+              "originalMethodName": "DCLMDINLFCP",
+              "originalMethodIndex": 421896,
+              "originalTypeDefinitionIndex": 52655
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xA65D4A2",
+          "originalMachineBytes": "488b0dc74416fb",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xA65C6D0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x4e9bb39]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HGPJJCNAHLB",
+              "originalMethodName": "JCCODPFBOGG",
+              "originalMethodIndex": 421997,
+              "originalTypeDefinitionIndex": 52655
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1AD52A",
+          "originalMachineBytes": "488b0d3f4461fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1AD4E0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x59ebbc1]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "OBDKOKKCNLF",
+              "originalMethodIndex": 568454,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1B095F",
+          "originalMachineBytes": "488b0d0a1061fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1B0860",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x59eeff6]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "IBINFNDAAHD",
+              "originalMethodIndex": 568469,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1B1117",
+          "originalMachineBytes": "488b0d520861fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1B1010",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x59ef7ae]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "DIEKHBJBHHE",
+              "originalMethodIndex": 568473,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xC591DF4",
+          "originalMachineBytes": "488b0d75fb22f9",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xC591C60",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x6dd048b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NLLGJBBHHAN",
+              "originalMethodName": "JIEAILFJKNA",
+              "originalMethodIndex": 408945,
+              "originalTypeDefinitionIndex": 51260
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xE419067",
+          "originalMachineBytes": "488b0d02893af7",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xE418F70",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x8c576fe]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "BJLLHHFDAEM",
+              "originalMethodName": "ANKODFKPPFI",
+              "originalMethodIndex": 405609,
+              "originalTypeDefinitionIndex": 50855
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xE443532",
+          "originalMachineBytes": "488b0d37e437f7",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xE443440",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x8c81bc9]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "BJLLHHFDAEM",
+              "originalMethodName": "IPLHOOAKMFA",
+              "originalMethodIndex": 405768,
+              "originalTypeDefinitionIndex": 50855
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF057BB5",
+          "originalMachineBytes": "488b0db49d76f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF057B60",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x989624c]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "KHJBKJPLBEO",
+              "originalMethodIndex": 615915,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF0746B4",
+          "originalMachineBytes": "488b0db5d274f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF074680",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0x98b2d4b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "JOBMGNMJEDE",
+              "originalMethodIndex": 616119,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11CB3D67",
+          "originalMachineBytes": "488b0d02dcb0f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11CB3CE0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc4f23fe]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "JBJFOOFKGJH",
+              "originalMethodIndex": 515353,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11D35187",
+          "originalMachineBytes": "488b0de2c7a8f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11D35100",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc57381e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "HEOLHHAFNOI",
+              "originalMethodIndex": 515559,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11D64D67",
+          "originalMachineBytes": "488b0d02cca5f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11D64CE0",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc5a33fe]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "HALFAKNGKMM",
+              "originalMethodIndex": 515765,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11D765E4",
+          "originalMachineBytes": "488b0d85b3a4f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11D76370",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc5b4c7b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "KBMDANIIJLE",
+              "originalMethodIndex": 515863,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x11D7BA07",
+          "originalMachineBytes": "488b0d625fa4f3",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x11D7B820",
+          "exactNativeInstruction": "mov rcx, qword ptr [rip - 0xc5ba09e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "HHDNOGHMIOC",
+              "originalMethodName": "GINJKHLJHLA",
+              "originalMethodIndex": 515884,
+              "originalTypeDefinitionIndex": 63841
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xE428530",
+          "originalMachineBytes": "488b15399439f7",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xE428460",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x8c66bc7]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "BJLLHHFDAEM",
+              "originalMethodName": "PEPPPEFENCM",
+              "originalMethodIndex": 405650,
+              "originalTypeDefinitionIndex": 50855
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF0459F2",
+          "originalMachineBytes": "488b1577bf77f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF045800",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x9884089]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "GJHPOFKNMEB",
+              "originalMethodIndex": 615759,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF045B60",
+          "originalMachineBytes": "488b1509be77f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF045800",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98841f7]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "GJHPOFKNMEB",
+              "originalMethodIndex": 615759,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF054C04",
+          "originalMachineBytes": "488b1565cd76f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF054800",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x989329b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "BNMLOHPBILD",
+              "originalMethodIndex": 615862,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF055094",
+          "originalMachineBytes": "488b15d5c876f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF054F60",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x989372b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "EIBNALGMGEC",
+              "originalMethodIndex": 616082,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF058597",
+          "originalMachineBytes": "488b15d29376f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0582D0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x9896c2e]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "PDEMAPPABKO",
+              "originalMethodIndex": 616008,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF0693BC",
+          "originalMachineBytes": "488b15ad8575f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF069330",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98a7a53]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "INEOEIPHODI",
+              "originalMethodIndex": 615980,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF06B276",
+          "originalMachineBytes": "488b15f36675f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06B1A0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98a990d]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "CHBAJAKPCIJ",
+              "originalMethodIndex": 616011,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF06CD04",
+          "originalMachineBytes": "488b15654c75f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF06C8D0",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0x98ab39b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "MBFJLEKGIDD",
+              "originalMethodIndex": 616002,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13D852F4",
+          "originalMachineBytes": "488b1575c6a3f1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13D85240",
+          "exactNativeInstruction": "mov rdx, qword ptr [rip - 0xe5c398b]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "OMIMEMFNFLP",
+              "originalMethodName": "MEJFEPDBKMH",
+              "originalMethodIndex": 558074,
+              "originalTypeDefinitionIndex": 69289
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xB1AE5BD",
+          "originalMachineBytes": "4c8b05ac3361fa",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xB1AE580",
+          "exactNativeInstruction": "mov r8, qword ptr [rip - 0x59ecc54]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "GFIOKOCNMFF",
+              "originalMethodName": "OHKHGBICHCH",
+              "originalMethodIndex": 568468,
+              "originalTypeDefinitionIndex": 70591
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0x13CFED47",
+          "originalMachineBytes": "4c8b15222cacf1",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0x13CFE920",
+          "exactNativeInstruction": "mov r10, qword ptr [rip - 0xe53d3de]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "NNGLCGBHEDB",
+              "originalMethodName": "EOFBBBCNOFJ",
+              "originalMethodIndex": 627180,
+              "originalTypeDefinitionIndex": 75836
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        },
+        {
+          "instructionRva": "0xF070127",
+          "originalMachineBytes": "4c8b1d421875f6",
+          "sourcePESection": "il2cpp",
+          "originalMethodEntryRva": "0xF0700F0",
+          "exactNativeInstruction": "mov r11, qword ptr [rip - 0x98ae7be]",
+          "exactOriginalMetadataMethodOwners": [
+            {
+              "originalTypeName": "KLLNGCPBLMM",
+              "originalMethodName": "GGFLBGAFHCD",
+              "originalMethodIndex": 616034,
+              "originalTypeDefinitionIndex": 74397
+            }
+          ],
+          "originalClassIdentityFromThisReferenceProven": false
+        }
+      ],
+      "originalConcreteIL2CPPClassNameIdentified": false,
+      "originalConcreteElementDeserializerIdentified": false
+    }
+  },
+  "claims": {
+    "originalSourceFactoryCaseSlotsProven": true,
+    "nativeAlignedXrefsToCase1And14Proven": true,
+    "sourceOriginalMetadataMethodOwnersOfXrefsProven": true,
+    "originalConcreteTypeDefinitionForCase1Proven": false,
+    "originalConcreteTypeDefinitionForCase14Proven": false,
+    "originalConcreteElementVirtualReaderVtableSlotTargetProven": false,
+    "originalScenePointAssetLoaderToReaderProven": false,
+    "originalScenePointRecordFieldsOrCoordinatesDecoded": false,
+    "originalChestGadgetPlacementOrLevelProven": false
+  },
+  "limits": [
+    "An exact aligned RIP-relative native reference and owning original metadata method do not establish the referenced Il2CppClass concrete TypeDefinitionIndex.",
+    "The factory source itself references both slots. Other owners include generic methods and unrelated game features, so simple majority attribution would be unsafe.",
+    "This preserves 21 and 48 native exact aligned instruction witnesses and separately records 2 unsupported byte candidates for each case.",
+    "The original job archive also contains 31-case native xref data. This committed compact report pins and quotes only the cases implicated by the first Scene Point bytes.",
+    "Scene Point source authenticity and dynamic first-byte candidate 1/14 do not prove original loader identity, coordinates, Gadget configId or server authority.",
+    "No third-party semantic names, private server Lua, reward configuration, AstaPS code, or community JSON used."
+  ]
+}
