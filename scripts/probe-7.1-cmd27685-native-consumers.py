@@ -12,7 +12,6 @@ from collections import Counter
 import hashlib
 import json
 from pathlib import Path
-from capstone import Cs,CS_ARCH_X86,CS_MODE_64
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
 from genshinre.sampleidentity import require_sha256
@@ -51,6 +50,7 @@ def verify_hits(source:dict)->list[dict]:
 def code_at(pe:PEImage, rva:int)->dict:
     raw=pe.read_rva(rva,SIZE)
     if len(raw)!=SIZE:raise ValueError("unreadable original executable method region")
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
     md=Cs(CS_ARCH_X86,CS_MODE_64)
     decoded=[]
     for inst in md.disasm(raw,pe.image_base+rva):
