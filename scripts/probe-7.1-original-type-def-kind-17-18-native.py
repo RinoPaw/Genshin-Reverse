@@ -29,6 +29,8 @@ COMMON_BRANCH=0x50D9EA
 TAIL_JUMP=0x50D9F2
 TYPEDEF_NATIVE_RVA=0x51CD50
 TYPEDEF_WINDOW=0x680
+RESOLVER_THUNK_TARGET_RVA=0x19EAE27C
+RESOLVER_TARGET_SAMPLE_BYTES=0x480
 EXPECTED_TYPE_ARRAY_RVA=0x2E1EA20
 SOURCE_RUNTIME_INDEXES=(0,1,405772,683573)
 TYPE_NAMES_BLOB=None  # types.csv is original generated, guard count and known anchor
@@ -103,6 +105,23 @@ def inspect(exe:Path,types:Path,prior:Path)->dict:
              for x in full]
         helper_calls=[{"instruction":row,"nativeTargetRva":f"0x{int(row['operands'],16)-pe.image_base:X}"}
              for row in helper_rows if row["mnemonic"]=="call" and row["operands"].startswith("0x")]
+        source_jmp=pe.read_rva(TYPEDEF_NATIVE_RVA,5)
+        if len(source_jmp)!=5 or source_jmp[0]!=0xE9:
+            raise ValueError("original 0x51CD50 is no longer a direct relative jump")
+        source_target=TYPEDEF_NATIVE_RVA+5+int.from_bytes(source_jmp[1:],"little",signed=True)
+        if source_target!=RESOLVER_THUNK_TARGET_RVA:
+            raise ValueError(f"original native 0x51CD50 jump target drift: 0x{source_target:X}")
+        redirected=pe.read_rva(source_target,RESOLVER_TARGET_SAMPLE_BYTES)
+        if len(redirected)!=RESOLVER_TARGET_SAMPLE_BYTES:
+            raise ValueError("original 0x51CD50 target is not file-backed x64 source")
+        redirected_ins=list(md.disasm(redirected,pe.image_base+source_target))
+        redirected_rows=[{"rva":f"0x{x.address-pe.image_base:X}",
+                          "mnemonic":x.mnemonic,"operands":x.op_str,
+                          "bytes":bytes(x.bytes).hex()} for x in redirected_ins]
+        redirected_direct_calls=[
+            {"instruction":x,"targetRva":f"0x{int(x['operands'],16)-pe.image_base:X}"}
+            for x in redirected_rows if x["mnemonic"]=="call" and x["operands"].startswith("0x")
+        ]
         type_array_blob=pe.read_rva(PROFILE_71.type_array_pointer_rva,8)
         if len(type_array_blob)!=8:raise ValueError("original IL2CPP runtime type array pointer missing")
         type_array_va=int.from_bytes(type_array_blob,"little")
@@ -148,6 +167,15 @@ def inspect(exe:Path,types:Path,prior:Path)->dict:
             "sourceFirstNativeInstructions":helper_rows[:135],
             "sourceDirectCalls":helper_calls[:120],
             "sourceWindowNotProvenExactMethod":True,
+            "originalTargetCodeIsJmpThunk":True,
+            "originalThunkOpcodeHex":source_jmp.hex(),
+            "originalThunkSourceRva":f"0x{TYPEDEF_NATIVE_RVA:X}",
+            "originalSourceJumpTargetRva":f"0x{source_target:X}",
+            "sourceJumpTargetFileBacked":True,
+            "sourceJumpTargetSampleBytes":RESOLVER_TARGET_SAMPLE_BYTES,
+            "sourceJumpTargetSampleSha256":hashlib.sha256(redirected).hexdigest(),
+            "sourceJumpTargetPrefixInstructions":redirected_rows[:110],
+            "sourceJumpTargetDirectCalls":redirected_direct_calls[:70],
             "numericRecordFieldMeaningProvenFromDirectCall":False
         },
         "originalRuntimeTypeArrayPointerRva":f"0x{PROFILE_71.type_array_pointer_rva:X}",
