@@ -20,6 +20,12 @@ SOURCE_SHA="6319613278adf382bf7ce513d1d875ef98b318d5f5f3bc9c423b72caebd7c0ad"
 RVA=0xAD23000
 SIZE=0x620
 INDIRECT_RVA=0xAD230BB
+ELEMENT_READER_VCALL_RVA=0xAD233BE
+ELEMENT_FACTORY_CALL_RVA=0xAD233A5
+FACTORY_RVA=0xC591C60
+FACTORY_OWNER="NLLGJBBHHAN"
+FACTORY_METHOD="JIEAILFJKNA"
+FACTORY_METHOD_INDEX=408945
 METHODS_BLOB="a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a"
 FIELDS_BLOB="ae01d117f4d884e891a95d529a15302a68715b04"
 OWNER="NLDEPJEOJGC"
@@ -38,7 +44,7 @@ def git_blob(p:Path)->str:
 def metadata_members(p:Path,kind:str)->dict:
     if git_blob(p)!=(METHODS_BLOB if kind=="method" else FIELDS_BLOB):
         raise ValueError("source original client metadata Git blob drift")
-    out={OWNER:[],PARENT:[]}
+    out={OWNER:[],PARENT:[],FACTORY_OWNER:[]}
     with p.open(encoding="utf-8-sig",newline="") as f:
         for r in csv.DictReader(f):
             if r.get("type_name") not in out:continue
@@ -67,6 +73,9 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
         raise ValueError("source original array reader owner identity drift")
     m=metadata_members(methods,"method")
     f=metadata_members(fields,"field")
+    factory_rows=index.get(FACTORY_RVA,[])
+    if len(factory_rows)!=1 or (factory_rows[0]["type_name"],factory_rows[0]["method_name"],int(factory_rows[0]["method_index"]))!=(FACTORY_OWNER,FACTORY_METHOD,FACTORY_METHOD_INDEX):
+        raise ValueError("original per-element factory method owner changed")
     require_sha256(exe,PROFILE_71.exe_sha256,label="original 7.1 client EXE")
     from capstone import Cs,CS_ARCH_X86,CS_MODE_64
     with PEImage(exe) as pe:
@@ -82,6 +91,27 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
             raise ValueError("original element indirect call anchor moved")
         if not any(x["rva"]=="0xAD23066" and x["operands"]=="ebx, 0xc14b813c" for x in ins):
             raise ValueError("original count XOR source positive control missing")
+        verified={x["rva"]:x for x in ins}
+        required={
+            "0xAD2339E":("xor","al, 0xf5"),
+            "0xAD233A0":("add","al, 0x34"),
+            f"0x{ELEMENT_FACTORY_CALL_RVA:X}":("call",f"0x{pe.image_base+FACTORY_RVA:x}"),
+            f"0x{ELEMENT_READER_VCALL_RVA:X}":("call","qword ptr [rax + 0xf8]"),
+        }
+        for rva,(mnemonic,operands) in required.items():
+            op=verified.get(rva)
+            if op is None or (op["mnemonic"],op["operands"])!=(mnemonic,operands):
+                raise ValueError(f"original source polymorphic element decoder drift at {rva}")
+        factory_start=bisect_right(starts,FACTORY_RVA)
+        if factory_start>=len(starts):
+            raise ValueError("source original factory method successor missing")
+        factory_length=starts[factory_start]-FACTORY_RVA
+        if factory_length<8 or factory_length>0x2000:
+            raise ValueError("unexpected original factory source method size")
+        factory_bytes=pe.read_rva(FACTORY_RVA,factory_length)
+        if len(factory_bytes)!=factory_length:
+            raise ValueError("original native factory body not file-backed")
+        factory_ins=[{"rva":f"0x{x.address-pe.image_base:X}","mnemonic":x.mnemonic,"operands":x.op_str,"bytes":bytes(x.bytes).hex()} for x in md.disasm(factory_bytes,pe.image_base+FACTORY_RVA)]
         direct=[]
         indirect=[]
         for i,x in enumerate(ins):
@@ -108,8 +138,16 @@ def inspect(exe:Path,methods:Path,fields:Path,prior:Path)->dict:
        "nativeSourceSha256":SOURCE_SHA,
        "nativeMethodBytes":SIZE,
        "nativeDecodedInstructionCount":len(ins),
-       "nativeElementCallRva":f"0x{INDIRECT_RVA:X}",
-       "nativeElementCallContext":ins[max(0,at-42):at+16],
+       "nativeArrayAllocationCallbackCallRva":f"0x{INDIRECT_RVA:X}",
+       "nativeElementPolymorphicFactoryCallRva":f"0x{ELEMENT_FACTORY_CALL_RVA:X}",
+       "nativeElementReaderVirtualCallRva":f"0x{ELEMENT_READER_VCALL_RVA:X}",
+       "nativeElementReaderVirtualTableOffset":"0xF8",
+       "sourceElementFactoryAndVirtualDispatchInstructions":[verified[k] for k in required],
+       "sourceFactoryMethod":{"originalType":FACTORY_OWNER,"method":FACTORY_METHOD,"originalMethodIndex":FACTORY_METHOD_INDEX,
+         "rva":f"0x{FACTORY_RVA:X}","sourceWindowBytes":factory_length,"sourceSha256":hashlib.sha256(factory_bytes).hexdigest(),
+         "decodedInstructionCount":len(factory_ins),"firstNativeInstructions":factory_ins[:100]},
+       "nativeArraySetupCallContext":ins[max(0,at-42):at+16],
+       "nativeElementDecodeAndDispatchContext":ins[[k["rva"] for k in ins].index(f"0x{ELEMENT_FACTORY_CALL_RVA:X}")-17:[k["rva"] for k in ins].index(f"0x{ELEMENT_READER_VCALL_RVA:X}")+9],
        "allSourceNativeDirectCalls":direct,
        "allSourceNativeIndirectCalls":indirect,
        "exactOriginalMethodClasses":m,
@@ -138,7 +176,10 @@ def main():
       "status":r["status"],"methodRva":r["nativeMethodRva"],
       "methodSha":r["nativeSourceSha256"],
       "decodedInstructionCount":r["nativeDecodedInstructionCount"],
-      "elementCallContext":r["nativeElementCallContext"],
+      "arraySetupCallContext":r["nativeArraySetupCallContext"],
+      "elementDecodeAndDispatchContext":r["nativeElementDecodeAndDispatchContext"],
+      "sourceFactoryMethod":r["sourceFactoryMethod"],
+      "elementDispatchAnchors":r["sourceElementFactoryAndVirtualDispatchInstructions"],
       "directCalls":r["allSourceNativeDirectCalls"],
       "indirectCalls":r["allSourceNativeIndirectCalls"],
       "methods":r["exactOriginalMethodClasses"],
