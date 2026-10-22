@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_GLOBAL_7_1_OBFUSCATED_METADATA_USAGE_LISTS_DECODED__FACTORY_CLASS_TYPE_MAPPING_UNRESOLVED",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExecutableSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "originalNativeSourceVerificationRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39754660492",
+  "originalSourceCommit": "7bd2688e03dcf60d7490dc0584d8eb9acdd971db",
+  "originalSourceArtifactId": 12415411049,
+  "originalSourceArtifactDigest": "sha256:c618ea93380bd219257d40391c3b66fda99ef8466ef96b0b46a4c4979dd0fb73",
+  "sourceOriginalMetadataUsageNativeInitializer": "scripts/research_trace_7_1_literal_usage.py",
+  "nativeSourceEmbeddedHeaderRva": "0x27D4BD0",
+  "originalMetadataBodyOffset": "0x210",
+  "originalNativeMetadataUsageListTableRelativeOffset": "0x4DA289C",
+  "originalNativeMetadataUsagePairTableRelativeOffset": "0x3DF50C8",
+  "sourceOriginalUsageLayout": {
+    "candidateListTableFileOffset": "0x4DA2AAC",
+    "candidatePairTableFileOffset": "0x3DF52D8",
+    "originalCandidateListCount": 311730,
+    "originalCandidatePairCount": 788058,
+    "originalDecodedNativeKindCounts": {
+      "0": 10,
+      "1": 376243,
+      "2": 0,
+      "3": 84875,
+      "4": 1035,
+      "5": 137467,
+      "6": 185864,
+      "7": 2564
+    },
+    "originalKindSourceMaxIndices": {
+      "0": 1827810,
+      "1": 683573,
+      "2": 0,
+      "3": 733387,
+      "4": 932,
+      "5": 86108,
+      "6": 553091,
+      "7": 683571
+    },
+    "originalKind1MaxEqualsOriginalRuntimeTypeCountMinusOne": true,
+    "sourceKind1AndKind3OutOfBoundSourceIndices": {
+      "1": 0,
+      "3": 0
+    },
+    "originalCandidateUsageListStartsFirst8": [
+      0,
+      1,
+      3,
+      6,
+      7,
+      9,
+      11,
+      13
+    ],
+    "sourceCandidateUsageListStartsLast16": [
+      701469,
+      701470,
+      701471,
+      701472,
+      701473,
+      701474,
+      701475,
+      701476,
+      701477,
+      701478,
+      701479,
+      701480,
+      701481,
+      701482,
+      701483,
+      788058
+    ],
+    "originalLast20UsageRecordCandidates": [
+      {
+        "pairIndex": 788038,
+        "nativeKind": 7,
+        "sourceIndex": 682816,
+        "destinationIndex": 2554
+      },
+      {
+        "pairIndex": 788039,
+        "nativeKind": 7,
+        "sourceIndex": 680601,
+        "destinationIndex": 2555
+      },
+      {
+        "pairIndex": 788040,
+        "nativeKind": 7,
+        "sourceIndex": 537073,
+        "destinationIndex": 2556
+      },
+      {
+        "pairIndex": 788041,
+        "nativeKind": 7,
+        "sourceIndex": 683571,
+        "destinationIndex": 2557
+      },
+      {
+        "pairIndex": 788042,
+        "nativeKind": 7,
+        "sourceIndex": 681916,
+        "destinationIndex": 2558
+      },
+      {
+        "pairIndex": 788043,
+        "nativeKind": 7,
+        "sourceIndex": 448315,
+        "destinationIndex": 2559
+      },
+      {
+        "pairIndex": 788044,
+        "nativeKind": 7,
+        "sourceIndex": 430752,
+        "destinationIndex": 2560
+      },
+      {
+        "pairIndex": 788045,
+        "nativeKind": 7,
+        "sourceIndex": 680670,
+        "destinationIndex": 2561
+      },
+      {
+        "pairIndex": 788046,
+        "nativeKind": 7,
+        "sourceIndex": 683261,
+        "destinationIndex": 2562
+      },
+      {
+        "pairIndex": 788047,
+        "nativeKind": 7,
+        "sourceIndex": 682688,
+        "destinationIndex": 2563
+      },
+      {
+        "pairIndex": 788048,
+        "nativeKind": 0,
+        "sourceIndex": 1648829,
+        "destinationIndex": 184549376
+      },
+      {
+        "pairIndex": 788049,
+        "nativeKind": 0,
+        "sourceIndex": 1623537,
+        "destinationIndex": 117440513
+      },
+      {
+        "pairIndex": 788050,
+        "nativeKind": 0,
+        "sourceIndex": 881117,
+        "destinationIndex": 67108866
+      },
+      {
+        "pairIndex": 788051,
+        "nativeKind": 0,
+        "sourceIndex": 1417984,
+        "destinationIndex": 134217731
+      },
+      {
+        "pairIndex": 788052,
+        "nativeKind": 0,
+        "sourceIndex": 1331435,
+        "destinationIndex": 167772164
+      },
+      {
+        "pairIndex": 788053,
+        "nativeKind": 0,
+        "sourceIndex": 1775039,
+        "destinationIndex": 234881029
+      },
+      {
+        "pairIndex": 788054,
+        "nativeKind": 0,
+        "sourceIndex": 1623962,
+        "destinationIndex": 184549382
+      },
+      {
+        "pairIndex": 788055,
+        "nativeKind": 0,
+        "sourceIndex": 1624094,
+        "destinationIndex": 184549383
+      },
+      {
+        "pairIndex": 788056,
+        "nativeKind": 0,
+        "sourceIndex": 1648796,
+        "destinationIndex": 184549384
+      },
+      {
+        "pairIndex": 788057,
+        "nativeKind": 0,
+        "sourceIndex": 1827810,
+        "destinationIndex": 285212681
+      }
+    ],
+    "allOriginalKindZeroCandidateIndices": [
+      788048,
+      788049,
+      788050,
+      788051,
+      788052,
+      788053,
+      788054,
+      788055,
+      788056,
+      788057
+    ],
+    "anomalousTailKindZeroCandidateCount": 10,
+    "lastTenRecordsAreProvenValidUsageEntries": false,
+    "exactNativeUsageListCountProvenFromInitializer": false,
+    "usageDestinationsDirectlyEqualClassSlotRVAsProven": false
+  },
+  "rejectedAlternativeHeaderBodyCandidate": {
+    "base": "0x0",
+    "listOffset": "0x4DA289C",
+    "pairOffset": "0x3DF50C8",
+    "consistent": false,
+    "rejectionReason": "failed to discover a plausible metadata usage-list prefix"
+  },
+  "staticFactoryClassSlotDataScan": {
+    "all31FactorySlotsChecked": true,
+    "all31FactorySlotExactVaQwordHolders": 0,
+    "all31FactorySlotRawRvaDwordCandidates": 0,
+    "all31FactorySlotVaLow32DwordCandidates": 0,
+    "focusedFactoryCaseAndControlSlots": {
+      "factory_case_1": {
+        "nativeSlotRva": "0x57C37B0",
+        "slotOriginalFileBacked": false,
+        "exactImageVaQwordHolders": 0,
+        "alignedRawRvaDwordCandidates": 0,
+        "alignedImageVaLow32DwordCandidates": 0
+      },
+      "factory_case_14": {
+        "nativeSlotRva": "0x57C1970",
+        "slotOriginalFileBacked": false,
+        "exactImageVaQwordHolders": 0,
+        "alignedRawRvaDwordCandidates": 0,
+        "alignedImageVaLow32DwordCandidates": 0
+      },
+      "ConfirmedRegistrySlotUnlockTransPointReq": {
+        "nativeSlotRva": "0x57E6498",
+        "slotOriginalFileBacked": false,
+        "exactImageVaQwordHolders": 0,
+        "alignedRawRvaDwordCandidates": 0,
+        "alignedImageVaLow32DwordCandidates": 0
+      },
+      "OriginalSceneTagClassSlot": {
+        "nativeSlotRva": "0x57EA618",
+        "slotOriginalFileBacked": false,
+        "exactImageVaQwordHolders": 0,
+        "alignedRawRvaDwordCandidates": 0,
+        "alignedImageVaLow32DwordCandidates": 0
+      },
+      "MetadataRegistrationGlobal": {
+        "nativeSlotRva": "0x5AD52A8",
+        "slotOriginalFileBacked": false,
+        "exactImageVaQwordHolders": 0,
+        "alignedRawRvaDwordCandidates": 0,
+        "alignedImageVaLow32DwordCandidates": 0
+      }
+    },
+    "sourceFileBackedHolderProvesRuntimeTypeMapping": false
+  },
+  "claims": {
+    "exactOriginalClientExeAndMetadataSourceHashesVerified": true,
+    "sourceRecoveredMetadataUsageListAndPairTableLocationsStructurallyPlausible": true,
+    "sourceNativeTypeIndexKind1MaxBoundVerified": true,
+    "metadataUsagePairDestinationToRuntimeClassSlotLinked": false,
+    "originalFactoryCase1ConcreteIL2CPPTypeProven": false,
+    "originalFactoryCase14ConcreteIL2CPPTypeProven": false,
+    "originalNativeElementVtableReaderAtF8Proven": false,
+    "originalScenePointResourceLoaderMappedToParser": false,
+    "chestGadgetCoordinatesOrLevelDecoded": false,
+    "serverChestInstancePlacementOwnershipProven": false
+  },
+  "limitations": [
+    "311,730 usage lists and 788,058 usage records are a structurally plausible candidate decoded from exact original native obfuscation formulas and metadata body offset 0x210. These counts are not promoted to an independently proven exact runtime registration count.",
+    "Kind 1 max source index 683,573 matches original 683,574 runtime types and no decoded kinds 1/3 exceed their respective original type/method count; these are independent sanity controls for a substantial prefix.",
+    "All ten kind-0 candidates occur in the final ten decoded records with abnormally large destination values, indicating a suspect tail. They are retained verbatim for investigation and not treated as proven metadata-usage entries.",
+    "No 31 original factory class slots have file-backed complete VA pointer holders, dword RVA holders or low32 image-VA holders in original non-executable sections. Two unrelated slot controls and original registration global are also negative.",
+    "No semantic label is assigned to original usage kind numeric values, and an original pair destination index cannot be equated to a PE RVA without proving the array registration.",
+    "Original Scene/Point loader linkage, chest positions/levels, server instance ownership and AstaPS semantics remain unknown."
+  ]
+}
