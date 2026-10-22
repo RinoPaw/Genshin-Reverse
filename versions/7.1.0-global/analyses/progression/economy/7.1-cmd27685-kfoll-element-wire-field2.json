@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_7_1_CMD27685_KFOLL_NATIVE_ELEMENT_SCHEMA_FIELD2_VARINT__GAMEPLAY_SEMANTICS_UNPROVEN",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "evidence": {
+    "originalRvaXrefArtifactSha256": "81f3f942f34e11d069502d8dc20e2d6331d13c7a004e903979b171943cd55301",
+    "originalFieldOffsetArtifactSha256": "ced2db435cb9b5c8885df6a4d30821f339c722866fe1eed68025c05c1eaa1f4b",
+    "originalRvaXrefRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39707120407",
+    "originalFieldOffsetRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39707594991"
+  },
+  "nativePacket": {
+    "cmdId": 27685,
+    "obfuscatedClass": "KIIKIELOHOG",
+    "visionEnumNativeClass": "HEOLIIGOCNH",
+    "verifiedOriginalVisionEnumValues": [
+      "VisionNone",
+      "VisionMeet",
+      "VisionReborn",
+      "VisionReplace",
+      "VisionWaypointReborn",
+      "VisionMiss",
+      "VisionDie",
+      "VisionGatherEscape",
+      "VisionRefresh",
+      "VisionTransport",
+      "VisionReplaceDie",
+      "VisionReplaceNoNotify",
+      "VisionBorn",
+      "VisionPickup",
+      "VisionRemove",
+      "VisionChangeCostume",
+      "VisionFishRefresh",
+      "VisionFishBigShock",
+      "VisionFishQteSucc",
+      "VisionCaptureDisappear"
+    ],
+    "originalDirectionVerified": false
+  },
+  "elementType": {
+    "obfuscatedClass": "KFOLLNPEMHH",
+    "nativeTypeDefinitionIndex": 85506,
+    "originalFieldCount": 27,
+    "originalMethodCount": 17,
+    "sourceClassStaticSlotRva": "0x57D1928",
+    "slotAlignedNativeXrefCount": 26,
+    "classSlotDirectUsersIncludeOtherMessageCode": true,
+    "crossTypeEdge": {
+      "containerObfuscatedType": "CEOGMKOJDBL",
+      "soleOriginalNativeFieldType": "KFOLLNPEMHH",
+      "nativeClassSlotLoadRva": "0x79DE160",
+      "nativeCopyFromDirectTailJumpRva": "0x79DE19A",
+      "nativeCopyFromTargetRva": "0xB43D570"
+    },
+    "runtimeGenericArgumentRegistrationIndependentlyResolved": false
+  },
+  "field": {
+    "objectMemoryOffset": "0x98",
+    "writerOriginalMethodRva": "0xB43A2A0",
+    "writerNativeInstructions": [
+      "0xB43A342",
+      "0xB43AD6F"
+    ],
+    "nativeWireKeyBranchCompare": "0x10",
+    "interpretedProtocolWireFieldNumber": 2,
+    "interpretedProtocolWireType": 0,
+    "originalReadValueCall": "0x1499A23F0",
+    "copyFromSourceRva": "0xB43D5C0",
+    "copyFromTargetRva": "0xB43D5CA",
+    "externalConsumerMethodRva": "0xFCDF5D0",
+    "externalConsumerReadRva": "0xFCDF6B2",
+    "externalConsumerReadsIndexedElement": true,
+    "confirmedNativeFieldSemanticName": null,
+    "provenOriginalSceneLevel": false,
+    "provenOriginalGadgetId": false
+  },
+  "limitations": [
+    "The native field writer compares protobuf-shaped key 0x10, equivalent to field 2 and varint wire 0, then stores a 32-bit integer at object offset +0x98.",
+    "The CEOG sole native field KFOLL and direct tailjump to KFOLL CopyFrom tie the shared TypeInfo slot to KFOLL code; the generic runtime registration itself is unresolved.",
+    "OnAccept reads the same +0x98 scalar on a repeated indexed element; field2 semantic name/entityId/level and official server reward authority are not proven.",
+    "Native HEOLIIGOCNH enum Vision* names support a scene visibility protocol role, but original registry semantic name and packet direction remain unresolved.",
+    "No source binary, full native disassembly, private-server field names or loot reward values were committed."
+  ]
+}
