@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "status": "HISTORICAL_ASTAPS_SCENE_LEVEL_COVERAGE__NOT_ORIGINAL_7_1_INSTANCES",
+  "source": {
+    "repository": "MeChen618/AstaPS-Resource",
+    "commit": "85b81a691fcf3d9e8e7db50a8febc8f9043bc084",
+    "scannerRepository": "RinoPaw/AstaPS",
+    "scannerCommit": "e2541630f5ae4d4c95b81f7440293d3419a776d1",
+    "scannerGitBlob": "6ed19ab829c31cac762f5da6132fd44b8900350a",
+    "classifier": "community GadgetExcel Chest type; historical resource only"
+  },
+  "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39716548372",
+  "sourceArtifactId": 12398937644,
+  "completeUnmodifiedSourceReportSha256": "8f30255c066a99a7858a83bbfb2fd34d8d95d4ba9d14fa7bbeffe66a2d61b2ba",
+  "totals": {
+    "chestCandidates": 14084,
+    "defaultJavaZero": 2683,
+    "excludedBoss": 43,
+    "explicitNonzero": 11401,
+    "luaFiles": 41110
+  },
+  "levelValueDistribution": {
+    "explicit:1": 1922,
+    "explicit:11": 258,
+    "explicit:13": 2,
+    "explicit:16": 1816,
+    "explicit:21": 685,
+    "explicit:26": 6433,
+    "explicit:4": 2,
+    "explicit:6": 261,
+    "explicit:75": 3,
+    "explicit:8": 2,
+    "explicit:88": 15,
+    "explicit:92": 2,
+    "missing": 2683
+  },
+  "bySource": {
+    "drop_tag": {
+      "explicit:1": 643,
+      "explicit:11": 229,
+      "explicit:16": 1610,
+      "explicit:21": 658,
+      "explicit:26": 5671,
+      "explicit:6": 209
+    },
+    "explicit_id": {
+      "explicit:1": 257,
+      "explicit:11": 29,
+      "explicit:13": 2,
+      "explicit:16": 206,
+      "explicit:21": 27,
+      "explicit:26": 762,
+      "explicit:4": 2,
+      "explicit:6": 52,
+      "explicit:8": 2
+    },
+    "no_metadata": {
+      "explicit:1": 1022,
+      "explicit:75": 3,
+      "explicit:88": 15,
+      "explicit:92": 2,
+      "missing": 2683
+    }
+  },
+  "missingByScene": {
+    "3": 2600,
+    "101": 83
+  },
+  "examples": {
+    "explicitPositive": [
+      {
+        "scene": "1",
+        "file": "Scripts/Scene/1/scene1_group111101014.lua",
+        "configId": 14001,
+        "gadgetId": 70211111,
+        "sourceGroup": "drop_tag",
+        "explicitLevel": 26
+      }
+    ],
+    "missing": [
+      {
+        "scene": "101",
+        "file": "Scripts/Scene/101/scene101_group610101010.lua",
+        "configId": 10037,
+        "gadgetId": 70211121,
+        "sourceGroup": "no_metadata",
+        "explicitLevel": null
+      }
+    ],
+    "explicitZero": []
+  },
+  "javaScriptLevelAbsentDefaultsToZero": true,
+  "originalGlobal71ClientInstanceLevelVerified": false,
+  "originalOfficialServerSceneOwnershipVerified": false,
+  "limits": [
+    "This is a static historical AstaPS server resource snapshot; source pinning does not authenticate official Global 7.1 scene placements.",
+    "Chest-type filtering derives from public-copy GadgetExcel for exact comparability with the previous historical 14,084-instance census; it does not use native original Gadget semantics.",
+    "Only directly assigned numeric gadget.level is counted; nested fields, strings and comments do not alter it.",
+    "All 2,683 missing direct level assignments fall within the no-metadata group (no chest_drop_id and no drop_tag). This does not establish whether these objects should receive rewards.",
+    "Scene script integer levels are predominantly 1, 6, 11, 16, 21, 26 and can reach 92. No observed value is proven to equal chest common/exquisite/precious/luxurious grade.",
+    "Java source gives an unset int level default of zero; any downstream reward matching effect still depends on the actual server selection and reward path.",
+    "No original official server reward amount, probability, chest grade, client scene instance or original level owner is proven."
+  ]
+}
