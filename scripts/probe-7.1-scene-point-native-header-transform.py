@@ -185,10 +185,84 @@ def native_immediate_witnesses(exe:Path,methods:Path,leads:list[dict])->dict:
     }
 
 
+
+VERIFIED_CANDIDATE_METHOD_RVA=0xAD23000
+VERIFIED_CANDIDATE_IMM_RVA=0xAD23067
+VERIFIED_CANDIDATE_KEY=0xC14B813C
+VERIFIED_CANDIDATE_METHOD_INDEX=514423
+
+
+def inspect_native_candidate_reader(exe:Path,methods:Path,rows:list[dict])->dict:
+    """Disassemble exact original IL2CPP binary-reader method at the key witness.
+
+    The single source-aligned immediate is an independent positive control.
+    Native read-loop or complete loader linkage is reported independently.
+    """
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+    starts,index=original_methods(methods)
+    orig=index.get(VERIFIED_CANDIDATE_METHOD_RVA,[])
+    if len(orig)!=1 or (orig[0]["typeName"],orig[0]["methodName"],orig[0]["methodIndex"])!=(
+        "NLDEPJEOJGC","GMENPOPMKAA",VERIFIED_CANDIDATE_METHOD_INDEX):
+        raise ValueError("original native reader method owner changed")
+    pos=bisect_right(starts,VERIFIED_CANDIDATE_METHOD_RVA)
+    if pos>=len(starts):raise ValueError("original method has no successor")
+    next_start=starts[pos]
+    length=min(next_start-VERIFIED_CANDIDATE_METHOD_RVA,MAX_METHOD_DISASSEMBLY_BYTES)
+    if length<VERIFIED_CANDIDATE_IMM_RVA-VERIFIED_CANDIDATE_METHOD_RVA+4:
+        raise ValueError("original source method window shorter than native immediate")
+    with PEImage(exe) as pe:
+        buf=pe.read_rva(VERIFIED_CANDIDATE_METHOD_RVA,length)
+        if len(buf)!=length:raise ValueError("original source method window not backed")
+        md=Cs(CS_ARCH_X86,CS_MODE_64)
+        md.detail=True
+        insns=[{
+            "rva":f"0x{ins.address-pe.image_base:X}",
+            "mnemonic":ins.mnemonic,"operands":ins.op_str,
+            "bytes":bytes(ins.bytes).hex(),
+            "immOffset":ins.imm_offset,"immBytes":ins.imm_size,
+          } for ins in md.disasm(buf,pe.image_base+VERIFIED_CANDIDATE_METHOD_RVA)]
+    at=next((i for i,x in enumerate(insns) if x["rva"]=="0xAD23066"),None)
+    if at is None or not(insns[at]["mnemonic"]=="mov" and
+                          insns[at]["operands"]=="ebx, 0xc14b813c" and
+                          insns[at]["immOffset"]==1 and
+                          insns[at]["immBytes"]==4 and
+                          insns[at]["bytes"]=="bb3c814bc1"):
+        raise ValueError("original native count constant aligned instruction drift")
+    nearby=insns[max(0,at-22):at+55]
+    read_arithmetic=[x for x in insns[at:at+40]
+                     if x["mnemonic"] in ("xor","add","sub","cmp","test")
+                        and ("ebx" in x["operands"] or "rbx" in x["operands"])]
+    counts=[struct.unpack_from("<I",bytes.fromhex(r["unwrappedPayloadFirst32Hex"]),3)[0]
+                ^ VERIFIED_CANDIDATE_KEY for r in rows]
+    bounds=[r["payloadBytes"]//MIN_BYTES_PER_RECORD for r in rows]
+    if any(x>cap for x,cap in zip(counts,bounds,strict=True)):
+        raise ValueError("original 13 scene point prefixes no longer match source constant")
+    return {
+      "exactOriginalNativeType":"NLDEPJEOJGC",
+      "methodName":"GMENPOPMKAA",
+      "methodIndex":VERIFIED_CANDIDATE_METHOD_INDEX,
+      "originalMethodRva":f"0x{VERIFIED_CANDIDATE_METHOD_RVA:X}",
+      "methodWindowBytes":len(buf),
+      "methodWindowSha256":hashlib.sha256(buf).hexdigest(),
+      "nextOriginalMethodRva":f"0x{next_start:X}",
+      "entireMethodProven":length==next_start-VERIFIED_CANDIDATE_METHOD_RVA,
+      "decodedInstructions":len(insns),
+      "sourceAlignedInstruction":insns[at],
+      "sourceInstructionContext":nearby,
+      "nearbyReadArithmetic":read_arithmetic,
+      "crossSceneCandidateCounts":counts,
+      "allCountsFitSourceOriginalByteBounds":True,
+      "originalScenePointLoaderReachedThisMethodProven":False,
+      "originalScenePointFullBytesConsumedProven":False,
+      "originalScenePointCountEncodingProven":False,
+    }
+
 def investigate(prior:Path,exe:Path,methods:Path)->dict:
     rows=validate_prior(json.loads(prior.read_text(encoding="utf-8")))
     leads=candidate_transforms(rows)
     scan=native_immediate_witnesses(exe,methods,leads)
+    candidate_reader=(inspect_native_candidate_reader(exe,methods,rows)
+                      if f"0x{VERIFIED_CANDIDATE_KEY:08X}" in scan["matchedAlignedKeys"] else None)
     return {
         "schemaVersion":1,
         "status":"ORIGINAL_GLOBAL_71_SCENE_POINT_CROSS_SCENE_HEADER_TRANSFORM_CANDIDATES__READER_UNVERIFIED",
@@ -202,6 +276,7 @@ def investigate(prior:Path,exe:Path,methods:Path)->dict:
         "candidateCount":len(leads),
         "candidates":leads,
         "nativeExecutableImmediateScan":scan,
+        "sourceNativeCandidateReader":candidate_reader,
         "clientScenePointNativeReaderLocated":False,
         "scenePointCoordinatesDecoded":False,
         "originalChestPlacementProven":False,
@@ -232,6 +307,7 @@ def main()->None:
        "candidates":[{"offset":x["headerOffset"],"op":x["operation"],"key":x["candidateImmediateHex"]}
                      for x in report["candidates"]],
        "nativeExecutableImmediateScan":report["nativeExecutableImmediateScan"],
+       "sourceNativeCandidateReader":report["sourceNativeCandidateReader"],
     },ensure_ascii=False,indent=2))
     print("ORIGINAL_SCENE_POINT_NATIVE_HEADER_SCAN_END")
 
