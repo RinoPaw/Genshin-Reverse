@@ -1,0 +1,38 @@
+name: One-shot original 7.1 Scene Point factory class slots
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-7.1-point-factory-class-slots.yml'
+      - 'scripts/probe-7.1-point-factory-class-slot-xrefs.py'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-slot-xrefs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install original native tools
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch SHA-256 pinned original Global 7.1 client
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Find original class-slot instruction-aligned xrefs
+        run: |
+          python scripts/probe-7.1-point-factory-class-slot-xrefs.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --factory versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-array-element-factory-native-evidence.json \
+            --output work/original-71-point-factory-class-slot-xrefs.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-point-factory-class-slot-xrefs
+          path: work/original-71-point-factory-class-slot-xrefs.json
+          retention-days: 7
+          if-no-files-found: error
