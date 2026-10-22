@@ -67,5 +67,60 @@ class ScenePointNativeCallerTests(unittest.TestCase):
         self.assertFalse(r["originalRootParserActuallyConsumedTheseBytes"])
         self.assertFalse(r["nativeSingleBytePrecursorConsumerVerified"])
 
+
+    def test_source_authenticated_parent_call_and_scene_point_mask_evidence(self):
+        p=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+            "7.1-original-scene-point-parent-mask-native-callchain.json")
+        report=json.loads(p.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(report["originalMethodsGitBlob"],m.METHODS_GIT_BLOB)
+        self.assertEqual(report["originalFieldsGitBlob"],m.FIELDS_GIT_BLOB)
+        self.assertEqual(report["originalClientSource"]["archiveArtifactId"],12407956009)
+        parent=report["nativeParentReader"]
+        self.assertEqual(parent["owner"],m.PARENT_TYPE)
+        self.assertEqual(parent["methodIndex"],m.PARENT_METHOD_INDEX)
+        self.assertEqual(parent["nativeRva"],f"0x{m.PARENT_RVA:X}")
+        self.assertEqual(parent["nativeSourceBytes"],864)
+        self.assertEqual(parent["decodedInstructions"],203)
+        self.assertEqual(parent["nativeSourceSha256"],
+             "e27dc0d3a924a74963b34e8d8ff64d17ab3fe472b77dcc42b4cbe3c704a6e61a")
+        self.assertEqual(len(parent["originalParentFields"]),9)
+        w=parent["verifiedOriginalInstructionControls"]
+        self.assertEqual(w["outerMaskTransform"]["rva"],"0xEE66B71")
+        self.assertEqual(w["nestedObjectFieldPointer"]["operands"],"rax, [r14 + 0x30]")
+        self.assertEqual(w["nestedObjectPresence"]["operands"],"ebx, 0x4000")
+        self.assertEqual(w["nestedReaderCall"]["rva"],f"0x{m.PARENT_CALL_RVA:X}")
+        helper=report["nativeIntermediateReader"]
+        self.assertEqual(helper["originalOwner"],"CCPCOHEPGHC")
+        self.assertEqual(helper["methodIndex"],173227)
+        self.assertEqual(helper["nativeRva"],"0x12498FE0")
+        self.assertEqual(helper["nativeWindowSha256"],
+          "4dc0d197c153cb88a8f54e65cc7300c8fa9cefa96b1054bd3c9277feaa4cf0c2")
+        byte_path=helper["verifiedInitialByteReadCursorAdvance"]
+        self.assertEqual(byte_path["oneByteRead"]["rva"],"0x12499031")
+        self.assertEqual(byte_path["persistAdvance"]["rva"],"0x12499039")
+        self.assertFalse(helper["verifiedConsumesOnlyOneByteForOriginalByteCB"])
+        mask=report["sourceOriginal13ScenePointPrefixMaskCrossCheck"]
+        self.assertEqual(len(mask["perSceneRows"]),13)
+        self.assertTrue(mask["all13MatchOriginalNativeFlag8000"])
+        self.assertTrue(mask["all13MatchOriginalNativeFlag4000"])
+        self.assertTrue(mask["all13ShareThirdByteCB"])
+        direct=report["originalDirectCallCensus"]
+        self.assertEqual(direct["toNestedArrayE8Candidates"],1)
+        self.assertEqual(direct["toNestedArrayVerifiedAlignedCalls"],1)
+        self.assertEqual(direct["fileBackedNestedReaderPointerHolderCount"],1)
+        self.assertEqual(direct["toParentE8ShapedByteCandidates"],2)
+        self.assertEqual(direct["toParentVerifiedAlignedCalls"],0)
+        self.assertTrue(report["claims"]["originalNestedArrayReaderDirectCallerProven"])
+        self.assertTrue(report["claims"]["originalParentMaskAndNestedConditionalCallProven"])
+        for key in ("originalHelperConsumesExactlyOneByteForCBProven",
+                    "originalScenePointAssetLoaderToParentLinkProven",
+                    "originalScenePointArrayStartsAtOffset3Proven",
+                    "originalScenePointRecordsDecoded",
+                    "originalChestGadgetInstanceLocationsProven",
+                    "originalChestLevelProven",
+                    "originalServerChestInstanceAuthorityProven"):
+            self.assertFalse(report["claims"][key])
+
 if __name__=="__main__":
     unittest.main()
