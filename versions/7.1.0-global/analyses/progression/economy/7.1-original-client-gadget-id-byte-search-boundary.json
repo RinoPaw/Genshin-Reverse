@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_RAW_GADGET_ID_BYTE_MATCHING_FALSIFIED_AS_ABSENCE_PROOF",
+  "source": {
+    "client": "7.1.0-global/windows-x64",
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "worldAreaBlock": "00/24230448.blk",
+    "worldAreaBlockSha256": "71fbe2d10404655fa20e5d612daf5fa2f2336c1d6250ae209b722c894169aff7",
+    "originalScene3WorldAreaRawSha256": "e66d6ec832bed734e824714d345961715b01edbdce50f6115b07983ec205eda9",
+    "gadgetExcelSourceBlock": "00/25539185.blk",
+    "gadgetExcelRawExport": "d65ab32f.dat",
+    "gadgetExcelRawSha256": "a35e3f3ed04f950cb6302099d12aa71e23ece21d8fe578950347d9318f769e35"
+  },
+  "artifacts": {
+    "worldArea": {
+      "run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39720593590",
+      "artifactId": 12400088806,
+      "jsonSha256": "9816985923f63a40e3679fdc897e07d2974b8e1fb011b40c2889ff6deec42c6b"
+    },
+    "knownOriginalGadgetExcel": {
+      "run": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39720913286",
+      "artifactId": 12401415129,
+      "jsonSha256": "bdfd8ca453460150740d42570abf33e0b24c97f52cde4b1bca2d90585bb3ef82"
+    }
+  },
+  "originalDecodedPositiveControls": {
+    "totalGadgetExcelRowsDecoded": 30599,
+    "authenticatedNativeChestGadgetRows": 20,
+    "rows": [
+      {
+        "id": 70210011,
+        "literal": "SceneObj_Chest_Default_Lv1"
+      },
+      {
+        "id": 70210012,
+        "literal": "SceneObj_Chest_Locked_Lv1"
+      },
+      {
+        "id": 70210013,
+        "literal": "SceneObj_Chest_Bramble_Lv1"
+      },
+      {
+        "id": 70210014,
+        "literal": "SceneObj_Chest_Frozen_Lv1"
+      },
+      {
+        "id": 70210021,
+        "literal": "SceneObj_Chest_Default_Lv2"
+      },
+      {
+        "id": 70210022,
+        "literal": "SceneObj_Chest_Locked_Lv2"
+      },
+      {
+        "id": 70210023,
+        "literal": "SceneObj_Chest_Bramble_Lv2"
+      },
+      {
+        "id": 70210024,
+        "literal": "SceneObj_Chest_Frozen_Lv2"
+      },
+      {
+        "id": 70210031,
+        "literal": "SceneObj_Chest_Default_Lv3"
+      },
+      {
+        "id": 70210032,
+        "literal": "SceneObj_Chest_Locked_Lv3"
+      },
+      {
+        "id": 70210033,
+        "literal": "SceneObj_Chest_Bramble_Lv3"
+      },
+      {
+        "id": 70210034,
+        "literal": "SceneObj_Chest_Frozen_Lv3"
+      },
+      {
+        "id": 70210041,
+        "literal": "SceneObj_Chest_Default_Lv4"
+      },
+      {
+        "id": 70210042,
+        "literal": "SceneObj_Chest_Locked_Lv4"
+      },
+      {
+        "id": 70210043,
+        "literal": "SceneObj_Chest_Bramble_Lv4"
+      },
+      {
+        "id": 70210044,
+        "literal": "SceneObj_Chest_Frozen_Lv4"
+      },
+      {
+        "id": 70210051,
+        "literal": "SceneObj_Chest_Default_Lv5"
+      },
+      {
+        "id": 70210052,
+        "literal": "SceneObj_Chest_Locked_Lv5"
+      },
+      {
+        "id": 70210053,
+        "literal": "SceneObj_Chest_Bramble_Lv5"
+      },
+      {
+        "id": 70210054,
+        "literal": "SceneObj_Chest_Frozen_Lv5"
+      }
+    ],
+    "nativeDecoder": "genshinre/gadgetbin.py",
+    "nativeGadgetIdentitiesPresenceProven": true
+  },
+  "worldAreaByteScan": {
+    "individualMiHoYoBinDataExports": 167673,
+    "rawExportBytes": 415672040,
+    "individualNativeIdsTested": 20,
+    "nativeIdDirectLe32Matches": 0,
+    "syntheticDiagnosticPatternsTested": 8,
+    "syntheticDiagnosticMatches": 0,
+    "filesContainingNativeIdLe32": 0
+  },
+  "originalGadgetExcelPositiveDecodeByteScan": {
+    "rawTableBytes": 2854888,
+    "originalDecodedMatchingDefinitions": 20,
+    "nativeIdDirectLe32Matches": 0,
+    "individualNativeIdsWithDirectMatches": 0,
+    "syntheticDiagnosticMatches": 0
+  },
+  "evidenceConclusion": {
+    "bytePatternAbsenceCannotExcludeOriginalAssetPresence": true,
+    "nativeGadgetDefinitionsExistYetNoDirectRawLe32Bytes": true,
+    "originalWorldAreaBlockHasSceneGadgetInstancesProven": false,
+    "originalSceneInstanceLevelProven": false,
+    "provenOriginalChestGrade": false,
+    "nextInvestigationMustUseNativeDeserializerOrFieldDecoder": true
+  },
+  "limitations": [
+    "All native Gadget IDs and exact original literal names are authenticated from decoded original Global 7.1 client binary, not private-server resource labels.",
+    "The known-positive original GadgetExcel raw asset contains all 20 decoded definitions but none of the little-endian u32 byte patterns. The direct byte search therefore has demonstrated false negatives on this original source format.",
+    "The WorldArea zero-byte-contact scan covers only one original source-authenticated MiHoYoBinData block. It cannot establish any placement absence, nor whether Gadget IDs are used in that block.",
+    "Unknown native field wrappers or byte encodings are not characterized by this comparison; no specific encoding algorithm is inferred.",
+    "No original client or server scene instance level, reward grade, reward amount or chance was authenticated. AstaPS and LootCSS remain unchanged."
+  ]
+}
