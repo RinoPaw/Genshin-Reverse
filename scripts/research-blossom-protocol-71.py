@@ -143,10 +143,17 @@ def scan():
     for label,row in matched:
         print("  NATIVE_CALLEE",label,json.dumps(row),flush=True)
     owner_fields=[x for x in records("metadata/fields.csv")
-                  if x.get("type_name") in {"CJEDOIPINHC","ABJOMOIIDHH","GIIGDONJFPJ","JBHJMLHMHAC"}]
+                  if x.get("type_name") in {"CJEDOIPINHC","ABJOMOIIDHH","GIIGDONJFPJ","JBHJMLHMHAC","MFOACFDAOID","NNJMIOJIKEG","MPPBDADDNPD"}]
     print("ORIGINAL_RECEIVER_AND_PACKET_FIELDS",len(owner_fields),flush=True)
     for row in owner_fields:
         print("  ORIGINAL_FIELD",json.dumps(row),flush=True)
+    element_types={"MFOACFDAOID","NNJMIOJIKEG","MPPBDADDNPD"}
+    info=[x for x in records("metadata/types.csv") if x.get("type_name") in element_types]
+    print("ORIGINAL_ELEMENT_TYPE_ROWS",len(info),flush=True)
+    for x in info:print("  ORIGINAL_ELEMENT_TYPE",json.dumps(x),flush=True)
+    em=[x for x in records("metadata/methods.csv") if x.get("type_name") in element_types]
+    print("ORIGINAL_ELEMENT_METHOD_ROWS",len(em),flush=True)
+    for x in em[:110]:print("  ORIGINAL_ELEMENT_METHOD",json.dumps(x),flush=True)
     print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
 
     for name in sorted(candidate_names):
