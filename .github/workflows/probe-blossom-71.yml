@@ -1,0 +1,17 @@
+name: Probe Global 7.1 blossom protocol metadata
+on:
+  push:
+    branches: [research/blossom-marker-71]
+    paths:
+      - 'scripts/research-blossom-protocol-71.py'
+      - '.github/workflows/probe-blossom-71.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect current-client protocol candidates
+        run: python3 scripts/research-blossom-protocol-71.py
