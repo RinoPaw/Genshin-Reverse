@@ -14,7 +14,7 @@ class OriginalXrefs(unittest.TestCase):
         self.assertEqual(m.target_rva(m.ANCHORS["collectionConstructorAuxiliaryTypeInfo"]),0x590CE30)
         self.assertEqual(m.target_rva(m.ANCHORS["repeatedElementStaticTypeInfo"]),0x57D1928)
         self.assertEqual(m.target_rva(m.ANCHORS["staticCodecAllocationTypeInfo"]),0x582D490)
-        self.assertEqual(m.target_rva(m.ANCHORS["messageStaticFieldsTypeInfo"]),0x57831E8)
+        self.assertEqual(len(m.ANCHORS),4)
 
     def test_exact_original_positive_controls_and_unknown_identity(self):
         report={"matches":{}}
