@@ -119,6 +119,34 @@ def scan():
             print("  GENERIC_USE",json.dumps({"field":x,
                 "registered_packet":native_by_typedef.get(x["type_definition_index"])},
                 ensure_ascii=False),flush=True)
+    # Exact first-party code targets taken from receiver 0xC78CA80. Their native
+    # declaring types and method signatures can identify the list *element*.
+    method_targets={
+       0x109AA8F0:"shared-item-factory",
+       0x172F5790:"client-record-lookup",
+       0xC791C50:"owner-register-element",
+       0x17A4BB30:"collection-object-lookup",
+       0xC791A20:"owner-state-reset",
+       0xC790540:"owner-state-prepare",
+       0xC78C110:"owner-marker-callback",
+       0xFAA2010:"client-guard",
+    }
+    matched=[]
+    for row in records("metadata/methods.csv"):
+        rva=row.get("rva","")
+        if not rva:continue
+        try: addr=int(rva,0)
+        except ValueError:continue
+        if addr in method_targets:
+            matched.append((method_targets[addr],row))
+    print("NATIVE_CALL_CALLEE_SIGNATURES",len(matched),flush=True)
+    for label,row in matched:
+        print("  NATIVE_CALLEE",label,json.dumps(row),flush=True)
+    owner_fields=[x for x in records("metadata/fields.csv")
+                  if x.get("type_name") in {"CJEDOIPINHC","ABJOMOIIDHH","GIIGDONJFPJ","JBHJMLHMHAC"}]
+    print("ORIGINAL_RECEIVER_AND_PACKET_FIELDS",len(owner_fields),flush=True)
+    for row in owner_fields:
+        print("  ORIGINAL_FIELD",json.dumps(row),flush=True)
     print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
 
     for name in sorted(candidate_names):
