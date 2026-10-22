@@ -178,8 +178,7 @@ def main():
     a.output.write_text(json.dumps(d,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("ORIGINAL_TYPEDEF_NATIVE_BEGIN")
     print(json.dumps({k:v for k,v in d.items() if k!="sourceOriginalTypeDefinitionNativeLookup"}|
-       {"sourceOriginalTypeDefinitionNativeLookup":{k:v for k,v in d["sourceOriginalTypeDefinitionNativeLookup"].items()
-             if k!="sourceFirstNativeInstructions"}},indent=2,ensure_ascii=False))
+       {"sourceOriginalTypeDefinitionNativeLookup":d["sourceOriginalTypeDefinitionNativeLookup"]},indent=2,ensure_ascii=False))
     print("ORIGINAL_TYPEDEF_NATIVE_END")
 
 if __name__=="__main__":main()
