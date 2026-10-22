@@ -62,5 +62,37 @@ class NestedOriginalTypes(unittest.TestCase):
             self.assertEqual(len(result["sourceNativeTypes"][m.ELEMENT]["fields"]),27)
 
 
+    def test_published_original_source_evidence(self):
+        report_path=(ROOT/"versions/7.1.0-global/analyses/progression/economy/"
+                     "7.1-original-scene-entity-nested-native-type-evidence.json")
+        report=json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(report["metadataFieldGitBlob"],m.FIELDS_BLOB)
+        self.assertEqual(report["metadataMethodGitBlob"],m.METHODS_BLOB)
+        self.assertEqual(report["source"]["artifactId"],12402624359)
+        self.assertEqual(report["typeCensus"]["repeatedNestedType"],m.REPEATED_TYPE)
+        self.assertEqual(len(report["typeCensus"]["repeatedNestedFieldTokens"]),5)
+        self.assertEqual(len(report["typeCensus"]["distinctDirectNestedTypes"]),9)
+        hcd=report["typeCensus"]["sourceNativeTypes"][m.REPEATED_TYPE]
+        self.assertEqual(hcd["fieldTypeHistogram"],
+            {"Il2CppRuntimeClassHandle":1,"int32":1,"uint32":1})
+        self.assertEqual(hcd["declaredFloat32FieldCount"],0)
+        self.assertFalse(report["repeatedNestedTypeReader"]
+                         ["originalReaderMethodUniquelyIdentified"])
+        ab=report["typeCensus"]["sourceNativeTypes"]["ABOOLMJBDKE"]
+        self.assertEqual(ab["declaredFloat32FieldCount"],3)
+        native=report["floatNestedTypeReaders"]["ABOOLMJBDKE"]
+        self.assertEqual(native["readerMethodRva"],"0x11B25D70")
+        self.assertEqual(native["readWindowSha256"],
+            "f9b555f094537c2660d50eddb71cf38629df5ba47fbd310071a0d0da941ddb32")
+        self.assertEqual([x["operands"] for x in report["nativeScalarFloatStores"]],
+            ["dword ptr [rdi + 0x20], xmm0",
+             "dword ptr [rdi + 0x1c], xmm0",
+             "dword ptr [rdi + 0x18], xmm0"])
+        self.assertFalse(report["conclusions"]["coordinateSemanticProven"])
+        self.assertFalse(report["conclusions"]["clientStaticChestPlacementProven"])
+        self.assertFalse(report["conclusions"]["originalServerPacketDirectionProven"])
+
+
 if __name__=="__main__":
     unittest.main()
