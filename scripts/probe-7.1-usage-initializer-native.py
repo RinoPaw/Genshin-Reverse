@@ -13,6 +13,7 @@ import argparse
 from bisect import bisect_right
 import hashlib
 import json
+import struct
 from pathlib import Path
 from genshinre.callxref import _load_method_starts
 from genshinre.nativeprofile import PROFILE_71
@@ -83,6 +84,43 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
                     target=rva+x.size+operand.mem.disp
                     if target==ROOT_RVA:
                         root_references.append({**row,"nativeTargetRva":f"0x{target:X}"})
+        by_rva={int(x["rva"],16):i for i,x in enumerate(instructions)}
+        native_controls={
+          0x523424:("movsxd","rax, dword ptr [rdx + 0x15c]"),
+          0x52342B:("xor","rax, 0x7afbcc1d"),
+          0x52351F:("add","rcx, r15"),
+          0x523525:("mov","eax, dword ptr [rcx + rdi*8]"),
+          0x523536:("cmp","ebx, 7"),
+          0x523547:("and","ecx, 0x1fffffff"),
+          0x52354D:("lea","rdi, [rip + 0x350]"),
+          0x523554:("movsxd","rbx, dword ptr [rdi + rbx*4]"),
+          0x523558:("add","rbx, rdi"),
+          0x52355B:("jmp","rbx"),
+          0x5234B5:("mov","rcx, qword ptr [rip + 0x55b1dec]"),
+          0x5234BC:("mov","rcx, qword ptr [rcx + 0x10]"),
+          0x5234C0:("mov","qword ptr [rcx + rsi*8], rax"),
+        }
+        for addr,(mnemonic,ops) in native_controls.items():
+            if addr not in by_rva:
+                raise ValueError(f"source-original initializer instruction boundary missing: 0x{addr:X}")
+            insn=instructions[by_rva[addr]]
+            if (insn["mnemonic"],insn["operands"])!=(mnemonic,ops):
+                raise ValueError(f"source-original initializer control drift at 0x{addr:X}")
+        jump_table_rva=0x5238A4
+        jump_data=pe.read_rva(jump_table_rva,8*4)
+        if len(jump_data)!=32:raise ValueError("source-original initializer jump table not file-backed")
+        cases=[]
+        for kind in range(8):
+            relative=struct.unpack_from("<i",jump_data,kind*4)[0]
+            target=jump_table_rva+relative
+            if not INITIALIZER_RVA<=target<jump_table_rva or target not in by_rva:
+                raise ValueError(f"source-original native usage kind {kind} target not on instruction")
+            i=by_rva[target]
+            # The original switch is an obfuscated native numeric kind
+            # selector. Never label the underlying IL2CPP type semantics.
+            cases.append({"originalNumericKind":kind,"sourceRelativeI32":relative,
+                          "sourceTargetRva":f"0x{target:X}",
+                          "sourceTargetNativeFirstInstructions":instructions[i:i+26]})
         root_init_raw=pe.read_rva(ROOT_RVA,8)
     return {
         "schemaVersion":1,
@@ -101,6 +139,23 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
             "methodIndex":int(o["method_index"])}
             for o in owners.get(INITIALIZER_RVA,[])],
         "originalRegisterGlobalRva":f"0x{ROOT_RVA:X}",
+        "sourceVerifiedMetadataUsageWriteDestination":{
+          "originalSourceGlobalPointerSlotRva":f"0x{ROOT_RVA:X}",
+          "sourceNativeGlobalStructArrayOffset":"0x10",
+          "sourceNativeArrayEntryStrideBytes":8,
+          "sourceVerifiedNativeInstructions":[instructions[by_rva[i]] for i in
+               (0x5234B5,0x5234BC,0x5234C0)],
+          "sourceMetadataUsageDestinationIndexRegister":"rsi",
+          "originalMetadataUsagePairDestinationMappingToStaticClassSlotsProven":False,
+        },
+        "nativeUsageKindDispatch":{
+          "originalSwitchBounds":[0,7],
+          "originalSourceSwitchTableRva":f"0x{jump_table_rva:X}",
+          "originalSourceSwitchTableBytesHex":jump_data.hex(),
+          "originalSourceKindCases":cases,
+          "originalSourceControlInstructions":[instructions[by_rva[i]] for i in native_controls],
+          "sourceNativeClassIdentityForUsageKindProven":False,
+        },
         "sourceRegistrationGlobalFileBackedBytes":root_init_raw.hex() if len(root_init_raw)==8 else None,
         "nativeRIPReferencesToRegistrationGlobal":root_references,
         "nativeDirectCallCount":len(direct_calls),
@@ -134,7 +189,7 @@ def main():
         "nextOriginalMethodStartRva","nativeWindowTruncatedByLimit","nativeWindowBytes",
         "originalNativeWindowSha256","sourceNativeInstructionsDecoded",
         "originalMetadataMethodOwnersAtStart","sourceRegistrationGlobalFileBackedBytes",
-        "nativeRIPReferencesToRegistrationGlobal","nativeDirectCalls","nativeIndirectCalls",
+        "nativeRIPReferencesToRegistrationGlobal","sourceVerifiedMetadataUsageWriteDestination","nativeUsageKindDispatch","nativeDirectCalls","nativeIndirectCalls",
         "nativeBranchInstructions")
     } | {"firstNativeInstructions":r["originalInstructionRows"][:200]},indent=2,ensure_ascii=False))
     print("ORIGINAL_USAGE_INIT_END")
