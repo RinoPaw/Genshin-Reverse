@@ -15,7 +15,6 @@ from pathlib import Path
 WORLD_JSON_SHA="9816985923f63a40e3679fdc897e07d2974b8e1fb011b40c2889ff6deec42c6b"
 GADGET_JSON_SHA="bdfd8ca453460150740d42570abf33e0b24c97f52cde4b1bca2d90585bb3ef82"
 REPORT=Path("versions/7.1.0-global/analyses/progression/economy/7.1-original-client-gadget-id-byte-search-boundary.json")
-EXE_SHA="08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
 
 
 def verify(world_bytes:bytes,gadget_bytes:bytes)->dict:
