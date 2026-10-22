@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/one-shot-7.1-entity-float-parent.yml'
+      - 'scripts/probe-7.1-entity-float-parent.py'
 
 permissions:
   contents: read
