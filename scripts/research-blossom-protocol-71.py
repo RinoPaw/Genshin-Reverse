@@ -59,6 +59,20 @@ def scan():
     print("REFERENCED_TYPE_DEFS",json.dumps(wanted_types,indent=2),flush=True)
     # Types that look like protobuf messages with a single nested field of the
     # exact same type as the imported response are potential marker notifications.
-    print("SAME_FIELD_112",json.dumps([x for x in refs if x["field_type"]=="HCDGGIDOEFA"][:100]),flush=True)
+    # Original metadata method parameter types form a direct native relationship
+    # between candidate packet identities and consumer/producer methods.
+    candidate_names={r["type_name"] for r in focus}
+    inbound=[]
+    for row in records("metadata/methods.csv"):
+        args=row.get("parameter_types","")
+        if any('"' + name + '"' in args for name in candidate_names):
+            inbound.append(row)
+    print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
+    for name in sorted(candidate_names):
+        hits=[x for x in inbound if '"' + name + '"' in x.get("parameter_types","")]
+        print("INBOUND_SIGNATURE_TYPE",name,"count",len(hits),flush=True)
+        for item in hits[:60]:
+            print("  INBOUND",json.dumps(item),flush=True)
+
 if __name__ == "__main__":
     scan()
