@@ -228,6 +228,26 @@ def inspect_native_candidate_reader(exe:Path,methods:Path,rows:list[dict])->dict
                           insns[at]["immBytes"]==4 and
                           insns[at]["bytes"]=="bb3c814bc1"):
         raise ValueError("original native count constant aligned instruction drift")
+    # Exact original instruction chain: read a U32 from the input cursor,
+    # advance that cursor four bytes, XOR the word with the native constant,
+    # and loop over the decoded count. This proves the *native function's*
+    # count transform, not its linkage to the scene Point asset.
+    required={
+       "0xAD23053":("mov","ecx, dword ptr [r15 + 0x28]"),
+       "0xAD23060":("movsxd","rdx, ecx"),
+       "0xAD23063":("add","ecx, 4"),
+       "0xAD2306B":("xor","ebx, dword ptr [rax + rdx + 0x20]"),
+       "0xAD2306F":("mov","dword ptr [rbp + 0xc], ebx"),
+       "0xAD23072":("mov","dword ptr [r15 + 0x28], ecx"),
+       "0xAD230BB":("call","rbx"),
+       "0xAD230CC":("cmp","ebx, dword ptr [rbp + 0xc]"),
+    }
+    observed={x["rva"]:x for x in insns}
+    for rva,(mnemonic,operands) in required.items():
+        x=observed.get(rva)
+        if x is None or (x["mnemonic"],x["operands"])!=(mnemonic,operands):
+            raise ValueError(f"original array-count read/loop instruction drift at {rva}")
+    reader_evidence=[observed[x] for x in required]
     nearby=insns[max(0,at-22):at+55]
     read_arithmetic=[x for x in insns[at:at+40]
                      if x["mnemonic"] in ("xor","add","sub","cmp","test")
@@ -249,6 +269,8 @@ def inspect_native_candidate_reader(exe:Path,methods:Path,rows:list[dict])->dict
       "decodedInstructions":len(insns),
       "sourceAlignedInstruction":insns[at],
       "sourceInstructionContext":nearby,
+      "verifiedNativeArrayCountReadAndLoopInstructions":reader_evidence,
+      "genericNativeU32XorCountReaderConfirmed":True,
       "nearbyReadArithmetic":read_arithmetic,
       "crossSceneCandidateCounts":counts,
       "allCountsFitSourceOriginalByteBounds":True,
