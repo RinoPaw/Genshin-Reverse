@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/one-shot-7.1-entity-oneof-native-owners.yml'
+      - 'scripts/probe-7.1-entity-oneof-call-owners.py'
 permissions:
   contents: read
 jobs:
