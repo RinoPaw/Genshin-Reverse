@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_POST_RESOLUTION_CLASS_INIT_REACHABLE_NATIVE_CFG_NO_UNKNOWN_JUMPS__FACTORY_TYPE_UNRESOLVED",
+  "originalSample": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "priorSourceReport": "versions/7.1.0-global/analyses/progression/world/7.1-original-metadata-kind1-type-resolver-30-case-native.json",
+  "verifiedOriginalRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39770271022",
+  "originalRunCommit": "86c68d47f6a58a17248de025856ccce03fa07a4c",
+  "originalArtifactId": 12422281142,
+  "originalArtifactDigest": "sha256:13e16f7320bb6426b47d75e6fdd052d4c7d2de8256ae432f07c0eaa695d1f62c",
+  "targetOriginalNativeRva": "0x512DB0",
+  "originalSourceFirst0x380BytesSha256": "ed5bd32a72c08bfd40f2627bbfe49d22a9104bd77941ec4980107f514cd43cc1",
+  "originalVerifiedSourceWindowByteCount": 24576,
+  "originalVerifiedSourceWindowSha256": "a57557282472d178ec609a7772efe5f448eee23348be89a26c803382fca03af1",
+  "sourceReachableDecodedInstructions": 1279,
+  "originalReachableReturnSites": [
+    {
+      "rva": "0x513DE0",
+      "mnemonic": "ret",
+      "operands": "",
+      "bytes": "c3"
+    }
+  ],
+  "originalNativeDirectCallCount": 57,
+  "sourceNativeDirectCallTargets": {
+    "0x51CD50": 3,
+    "0x511630": 2,
+    "0x5156B0": 1,
+    "0x512DB0": 4,
+    "0x557720": 2,
+    "0x514630": 1,
+    "0x5155C0": 1,
+    "0x512870": 2,
+    "0x4E4620": 2,
+    "0x5251F0": 1,
+    "0x5256F0": 3,
+    "0x4DEF80": 1,
+    "0x4FF510": 3,
+    "0x1FC74C0": 4,
+    "0x525170": 1,
+    "0x4BA960": 1,
+    "0x4BA810": 1,
+    "0x51E980": 1,
+    "0x547170": 1,
+    "0x1FC6E10": 2,
+    "0x1CA2D18": 1,
+    "0x51D330": 3,
+    "0x4E4DA0": 3,
+    "0x557260": 1,
+    "0x4E46A0": 1,
+    "0x50D9C0": 2,
+    "0x5238F0": 2,
+    "0x4E3CC0": 1,
+    "0x5282B0": 1,
+    "0x525050": 2,
+    "0x528560": 1,
+    "0x4E6A90": 1,
+    "0x4E6B70": 1
+  },
+  "originalNativeIndirectCallCount": 8,
+  "originalIndirectCallWitnesses": [
+    {
+      "rva": "0x513751",
+      "mnemonic": "call",
+      "operands": "qword ptr [rip + 0x3636af1]",
+      "bytes": "ff15f16a6303"
+    },
+    {
+      "rva": "0x51376A",
+      "mnemonic": "call",
+      "operands": "qword ptr [rip + 0x3636ee0]",
+      "bytes": "ff15e06e6303"
+    },
+    {
+      "rva": "0x513ABF",
+      "mnemonic": "call",
+      "operands": "qword ptr [rip + 0x509f4eb]",
+      "bytes": "ff15ebf40905"
+    },
+    {
+      "rva": "0x513AA7",
+      "mnemonic": "call",
+      "operands": "qword ptr [rip + 0x509f52b]",
+      "bytes": "ff152bf50905"
+    },
+    {
+      "rva": "0x5132C4",
+      "mnemonic": "call",
+      "operands": "rax",
+      "bytes": "ffd0"
+    },
+    {
+      "rva": "0x513404",
+      "mnemonic": "call",
+      "operands": "r8",
+      "bytes": "41ffd0"
+    },
+    {
+      "rva": "0x5133C4",
+      "mnemonic": "call",
+      "operands": "r9",
+      "bytes": "41ffd1"
+    },
+    {
+      "rva": "0x513637",
+      "mnemonic": "call",
+      "operands": "qword ptr [rip + 0x509f983]",
+      "bytes": "ff1583f90905"
+    }
+  ],
+  "originalSourceUnresolvedJumpOrDecodeCount": 0,
+  "sourceUnresolvedInstructions": [],
+  "originalSourceTerminatingJumpCount": 0,
+  "sourceStartInstructionAnchors": [
+    {
+      "rva": "0x512DB0",
+      "mnemonic": "push",
+      "operands": "rbp",
+      "bytes": "55"
+    },
+    {
+      "rva": "0x512DB1",
+      "mnemonic": "push",
+      "operands": "r15",
+      "bytes": "4157"
+    },
+    {
+      "rva": "0x512DB3",
+      "mnemonic": "push",
+      "operands": "r14",
+      "bytes": "4156"
+    },
+    {
+      "rva": "0x512DB5",
+      "mnemonic": "push",
+      "operands": "r13",
+      "bytes": "4155"
+    },
+    {
+      "rva": "0x512DB7",
+      "mnemonic": "push",
+      "operands": "r12",
+      "bytes": "4154"
+    },
+    {
+      "rva": "0x512DB9",
+      "mnemonic": "push",
+      "operands": "rsi",
+      "bytes": "56"
+    },
+    {
+      "rva": "0x512DBA",
+      "mnemonic": "push",
+      "operands": "rdi",
+      "bytes": "57"
+    },
+    {
+      "rva": "0x512DBB",
+      "mnemonic": "push",
+      "operands": "rbx",
+      "bytes": "53"
+    },
+    {
+      "rva": "0x512DBC",
+      "mnemonic": "sub",
+      "operands": "rsp, 0xa8",
+      "bytes": "4881eca8000000"
+    },
+    {
+      "rva": "0x512DC3",
+      "mnemonic": "lea",
+      "operands": "rbp, [rsp + 0x80]",
+      "bytes": "488dac2480000000"
+    },
+    {
+      "rva": "0x512DCB",
+      "mnemonic": "mov",
+      "operands": "qword ptr [rbp + 0x20], 0xfffffffffffffffe",
+      "bytes": "48c74520feffffff"
+    },
+    {
+      "rva": "0x512DD3",
+      "mnemonic": "movzx",
+      "operands": "eax, byte ptr [rcx + 0xc9]",
+      "bytes": "0fb681c9000000"
+    },
+    {
+      "rva": "0x512DDA",
+      "mnemonic": "test",
+      "operands": "al, 0x10",
+      "bytes": "a810"
+    },
+    {
+      "rva": "0x512DDC",
+      "mnemonic": "jne",
+      "operands": "0x140513dcd",
+      "bytes": "0f85eb0f0000"
+    },
+    {
+      "rva": "0x512DE2",
+      "mnemonic": "mov",
+      "operands": "r15, rdx",
+      "bytes": "4989d7"
+    },
+    {
+      "rva": "0x512DE5",
+      "mnemonic": "mov",
+      "operands": "r13, rcx",
+      "bytes": "4989cd"
+    },
+    {
+      "rva": "0x512DE8",
+      "mnemonic": "mov",
+      "operands": "rcx, qword ptr [rcx + 0x38]",
+      "bytes": "488b4938"
+    },
+    {
+      "rva": "0x512DEC",
+      "mnemonic": "test",
+      "operands": "rcx, rcx",
+      "bytes": "4885c9"
+    },
+    {
+      "rva": "0x512DEF",
+      "mnemonic": "je",
+      "operands": "0x140512e29",
+      "bytes": "7438"
+    },
+    {
+      "rva": "0x512DF1",
+      "mnemonic": "test",
+      "operands": "byte ptr [r13 + 0xa0], 0x10",
+      "bytes": "41f685a000000010"
+    },
+    {
+      "rva": "0x512DF9",
+      "mnemonic": "jne",
+      "operands": "0x14051434f",
+      "bytes": "0f8550150000"
+    },
+    {
+      "rva": "0x512DFF",
+      "mnemonic": "or",
+      "operands": "al, 0x20",
+      "bytes": "0c20"
+    },
+    {
+      "rva": "0x512E01",
+      "mnemonic": "mov",
+      "operands": "byte ptr [r13 + 0xc9], al",
+      "bytes": "418885c9000000"
+    },
+    {
+      "rva": "0x512E08",
+      "mnemonic": "mov",
+      "operands": "ecx, dword ptr [rcx]",
+      "bytes": "8b09"
+    },
+    {
+      "rva": "0x512E0A",
+      "mnemonic": "call",
+      "operands": "0x14051cd50",
+      "bytes": "e8419f0000"
+    },
+    {
+      "rva": "0x512E0F",
+      "mnemonic": "mov",
+      "operands": "rcx, rax",
+      "bytes": "4889c1"
+    },
+    {
+      "rva": "0x512E12",
+      "mnemonic": "mov",
+      "operands": "rdx, r15",
+      "bytes": "4c89fa"
+    },
+    {
+      "rva": "0x512E15",
+      "mnemonic": "call",
+      "operands": "0x140512db0",
+      "bytes": "e896ffffff"
+    }
+  ],
+  "sourceNativeTargetsOfInterest": {
+    "originalRecursiveClassInitTargetRva": "0x512DB0",
+    "sourceDirectRecursiveSelfCalls": 4,
+    "originalRuntimeTypeRecordResolverRva": "0x50D9C0",
+    "sourceDirectRuntimeTypeResolverCalls": 2
+  },
+  "claims": {
+    "sourcePostResolutionNativeEntryReachableReturnLocated": true,
+    "sourceNativeForwardAndConditionalJumpEdgesWithinWindowResolved": true,
+    "sourceNativeHasEightUnresolvedIndirectCalleeIdentities": true,
+    "sourceOriginalConcreteFactoryCase1TypeResolved": false,
+    "sourceOriginalConcreteFactoryCase14TypeResolved": false,
+    "scenePointResourcePathToReaderLinkResolved": false,
+    "originalChestGadgetPlacementCoordinatesAndLevelProven": false,
+    "serverClientPlacementAuthorityProven": false
+  },
+  "limits": [
+    "The original 0x512DB0 native routine has 1,279 reachable instruction starts, with a source-confirmed return at RVA 0x513DE0, when exploring both conditional x64 branch outcomes.",
+    "The bounded exploration terminates with zero unresolved branch target/instruction failures. Direct and indirect callees are not traversed. This proves source instruction connectivity, not actual runtime branch executions.",
+    "57 source direct call instructions include self-recursion and two calls to the native 0x50D9C0 type-record resolver. Eight indirect call target identities remain unknown.",
+    "Source class-init reachability and generic type-resolution are structurally distinct from the Scene Point element factory case 1/14 type binding.",
+    "The client Scene Point loader, chest coordinates, Gadget instance records, native level and server ownership remain unknown."
+  ]
+}
