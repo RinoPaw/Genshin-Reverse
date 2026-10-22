@@ -23,6 +23,7 @@ INIT_CALL_RVA=0x523647
 WINDOW=BOUND_RVA-HELPER_RVA
 HELPER_FLOW_END_RVA=0x524F30
 HELPER_FLOW_BYTES=HELPER_FLOW_END_RVA-HELPER_RVA
+NESTED_CALLEES=((0x50D9C0,0x480),(0x512DB0,0x380))
 ORIGINAL_INIT_WINDOW_SHA="d0157c1fab8626c3b28e880e600913841b57d898bef7c5033a7ecff74f30813e"
 
 
@@ -107,6 +108,26 @@ def inspect(exe:Path,prior:Path)->dict:
         if len(helper_flow)!=HELPER_FLOW_BYTES:
             raise ValueError("source original kind1 native core flow inaccessible")
         original_flow=[x for x in instructions if int(x["rva"],16)<HELPER_FLOW_END_RVA]
+        nested=[]
+        for target,win_size in NESTED_CALLEES:
+            window=pe.read_rva(target,win_size)
+            if len(window)!=win_size:raise ValueError("source original type resolution callee not file-backed")
+            ops=list(md.disasm(window,pe.image_base+target))
+            rows=[{"rva":f"0x{x.address-pe.image_base:X}","mnemonic":x.mnemonic,
+                   "operands":x.op_str,"sourceBytes":bytes(x.bytes).hex()} for x in ops]
+            native_direct=[{**row,"sourceNativeTargetRva":f"0x{int(row['operands'],16)-pe.image_base:X}"}
+                for row in rows if row["mnemonic"]=="call" and row["operands"].startswith("0x")]
+            nested.append({
+              "sourceOriginalCalleeRva":f"0x{target:X}",
+              "boundedWindowBytes":win_size,
+              "windowSha256":hashlib.sha256(window).hexdigest(),
+              "nativeDecodedInstructions":len(rows),
+              "nativeFirstReturnRva":next((x["rva"] for x in rows if x["mnemonic"]=="ret"),None),
+              "nativeDirectCalls":native_direct[:100],
+              "nativeIndirectCalls":[x for x in rows if x["mnemonic"]=="call" and not x["operands"].startswith("0x")][:100],
+              "nativePrefixInstructions":rows[:160],
+              "boundedWindowIsExactMethodSizeProven":False,
+            })
         first=[r for r in instructions if int(r["rva"],16)<HELPER_RVA+0x250]
         return {
             "schemaVersion":1,
@@ -143,6 +164,7 @@ def inspect(exe:Path,prior:Path)->dict:
                 "sourceColdBlockTailJumpRva":"0x524F2A",
                 "sourceOriginalIl2CppTypeDefinitionIndexProven":False,
             },
+            "originalDirectNativeTypeResolverSubcalls":nested,
             "nativeReturnInstructions":returns,
             "nativeDirectCalls":direct_calls,
             "nativeIndirectCalls":indirect_calls,
@@ -178,6 +200,7 @@ def main():
          "nativeDirectCalls":j["nativeDirectCalls"],
          "nativeIndirectCalls":j["nativeIndirectCalls"],
          "sourceOriginalKind1CoreFlow":{k:v for k,v in j["sourceOriginalKind1CoreFlow"].items() if k not in ("sourceOriginalCoreInstructions","sourceVerifiedControlInstructionWitnesses")},
+         "originalDirectNativeTypeResolverSubcalls":j["originalDirectNativeTypeResolverSubcalls"],
          "sourceControlWitnesses":j["sourceOriginalKind1CoreFlow"]["sourceVerifiedControlInstructionWitnesses"],
          "nativeRipRelativeReferences":j["nativeRipRelativeReferences"][:100],
          "nativeJumpInstructions":j["nativeJumpInstructions"][:120]},
