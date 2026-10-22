@@ -30,7 +30,7 @@ jobs:
           printf 'cmd_id\n27685\n' > work/scene-entity-candidate.csv
           python tools/decode_protocol_handler_parameters_71.py \
             inputs/7.1.0-global/GenshinImpact.exe \
-            inputs/7.1.0-global/GenshinImpact_Data/Managed/Metadata/global-metadata.dat \
+            inputs/7.1.0-global/global-metadata.dat \
             versions/7.1.0-global/windows-x64/registry/registry.csv \
             versions/7.1.0-global/windows-x64/metadata/methods.csv \
             versions/7.1.0-global/windows-x64/metadata/runtime-types.csv \
