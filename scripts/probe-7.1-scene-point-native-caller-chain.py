@@ -10,6 +10,8 @@ compatibility of the array length alone.
 from __future__ import annotations
 
 import argparse
+from bisect import bisect_right
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -30,6 +32,12 @@ PRIOR_SCENE_POINT = "versions/7.1.0-global/analyses/progression/world/7.1-origin
 MAX_CALLER_WINDOW = 0x4000
 MAX_MATCHES = 200
 MAX_HOLDERS = 200
+PARENT_RVA = 0xEE66B20
+PARENT_TYPE = "IJNOFJEOMBD"
+PARENT_METHOD_INDEX = 171707
+PARENT_CALL_RVA = 0xEE66BF1
+PARENT_CALL_PREFIX_SHA = "f13a9f477ddb05c65f5bf70e81e3fdde6fbb59ff70299cc3be479a839ab1a31f"
+FIELDS_GIT_BLOB = "ae01d117f4d884e891a95d529a15302a68715b04"
 
 
 def git_blob(path: Path) -> str:
@@ -58,6 +66,10 @@ def validate_source(methods: Path, prior: Path) -> tuple[list[int], dict]:
     if len(rows) != 1 or (rows[0]["type_name"], rows[0]["method_name"],
                            int(rows[0]["method_index"])) != (OWNER, METHOD, METHOD_INDEX):
         raise ValueError("exact original count reader callee identity mismatch")
+    p = metadata.get(PARENT_RVA, [])
+    if len(p) != 1 or (p[0]["type_name"], p[0]["method_name"],
+                       int(p[0]["method_index"])) != (PARENT_TYPE, METHOD, PARENT_METHOD_INDEX):
+        raise ValueError("original 7.1 outer array owner metadata changed")
     return starts, metadata
 
 
@@ -121,18 +133,114 @@ def verify_direct_call_alignment(pe: PEImage, starts: list[int],
     }
 
 
-def investigate(exe: Path, methods: Path, prior: Path) -> dict:
+
+def inspect_parent_native_method(pe: PEImage, starts: list[int],
+                                 metadata: dict) -> dict:
+    """Record exact 7.1 parent reader and its *local* source instruction chain."""
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+
+    ix = bisect_right(starts, PARENT_RVA)
+    if ix >= len(starts):
+        raise ValueError("no source method successor for original parent parser")
+    next_start = starts[ix]
+    size = next_start - PARENT_RVA
+    if not 0 < size <= MAX_CALLER_WINDOW:
+        raise ValueError("source parent method native window exceeds bound")
+    code = pe.read_rva(PARENT_RVA, size)
+    if len(code) != size:
+        raise ValueError("truncated original outer parser")
+    if hashlib.sha256(code[:PARENT_CALL_RVA + 5 - PARENT_RVA]).hexdigest() != PARENT_CALL_PREFIX_SHA:
+        raise ValueError("outer source native prefix differs from original first verified caller run")
+    md = Cs(CS_ARCH_X86, CS_MODE_64)
+    original = list(md.disasm(code, pe.image_base + PARENT_RVA))
+    instructions = [{
+       "rva": f"0x{x.address - pe.image_base:X}",
+       "mnemonic": x.mnemonic, "operands": x.op_str,
+       "opcode": bytes(x.bytes).hex(),
+    } for x in original]
+    known = {x["rva"]:x for x in instructions}
+    required = {
+        "0xEE66BDB":("lea","rax, [r14 + 0x30]"),
+        "0xEE66BDF":("test","ebx, 0x4000"),
+        "0xEE66BE5":("je",None),
+        "0xEE66BEB":("mov","rcx, rdi"),
+        "0xEE66BEE":("mov","rdx, rax"),
+        "0xEE66BF1":("call",f"0x{pe.image_base + TARGET:X}".lower()),
+    }
+    for rva,(mnemonic,operands) in required.items():
+        obj = known.get(rva)
+        if obj is None or obj["mnemonic"] != mnemonic or (
+            operands is not None and obj["operands"].lower() != operands.lower()
+        ):
+            raise ValueError(f"exact original parent pointer/flag/call witness drift: {rva}")
+    first = instructions[:60]
+    ix_call = next(i for i,x in enumerate(instructions) if x["rva"]=="0xEE66BF1")
+    local=instructions[max(0,ix_call-24):ix_call+14]
+    transfer=[]
+    for row in instructions:
+        if row["mnemonic"]!="call":continue
+        if not row["operands"].startswith("0x"):continue
+        dest=int(row["operands"],16)
+        if dest>=pe.image_base:
+            transfer.append({"siteRva":row["rva"],
+                             "targetRva":f"0x{dest-pe.image_base:X}"})
+    return {
+       "originalOwner":PARENT_TYPE,
+       "originalMethod":METHOD,
+       "originalMethodIndex":PARENT_METHOD_INDEX,
+       "readerRva":f"0x{PARENT_RVA:X}",
+       "nativeSourceBytes":size,
+       "nativeSourceSha256":hashlib.sha256(code).hexdigest(),
+       "entireMetadataWindowDisassembled":True,
+       "nativeInstructions":len(instructions),
+       "firstNativeInstructions":first,
+       "sourceVerifiedSubobjectAddressCalculation":known["0xEE66BDB"],
+       "sourceVerifiedFlagCheck":known["0xEE66BDF"],
+       "sourceVerifiedCall":known["0xEE66BF1"],
+       "nativeCallContext":local,
+       "directCalleeTargets":transfer,
+       "linkedNestedBinaryReaderRva":f"0x{TARGET:X}",
+       "subobjectOwnerFieldTokenProven":False,
+       "sourceScenePointResourcePathProven":False
+    }
+
+
+def original_parent_fields(path: Path) -> list[dict]:
+    if git_blob(path)!=FIELDS_GIT_BLOB:
+        raise ValueError("exact original Global 7.1 fields.csv Git-blob mismatch")
+    rows=[]
+    with path.open("r",encoding="utf-8-sig",newline="") as stream:
+        for row in csv.DictReader(stream):
+            if int(row["type_definition_index"])!=22426:continue
+            if row["type_name"]!=PARENT_TYPE:
+                raise ValueError("original outer binary class field owner changed")
+            rows.append({
+                "originalFieldIndex":int(row["field_index"]),
+                "originalObfuscatedToken":row["field_name"],
+                "originalType":row["field_type"],
+                "originalRuntimeTypeIndex":int(row["field_type_index"]),
+                "originalMetadataOffset":row.get("offset") or None,
+            })
+    if not rows:
+        raise ValueError("original outer binary class fields missing")
+    return rows
+
+
+def investigate(exe: Path, methods: Path, prior: Path, fields: Path) -> dict:
     starts, metadata = validate_source(methods, prior)
     require_sha256(exe, PROFILE_71.exe_sha256, label="original Global 7.1 executable")
     with PEImage(exe) as pe:
         raw = pe.read_rva(TARGET, 0x620)
         if len(raw) != 0x620 or hashlib.sha256(raw).hexdigest() != SOURCE_WINDOW_SHA:
             raise ValueError("original 7.1 reader native method byte hash mismatch")
-        raw_calls = scan_direct_call_xrefs(exe, [TARGET], methods_csv=None, window=12)["matches"][f"0x{TARGET:X}"]
-        if len(raw_calls) > MAX_MATCHES:
+        matches = scan_direct_call_xrefs(exe, [TARGET,PARENT_RVA], methods_csv=None, window=12)["matches"]
+        raw_calls = matches[f"0x{TARGET:X}"]
+        parents = matches[f"0x{PARENT_RVA:X}"]
+        if len(raw_calls)>MAX_MATCHES or len(parents)>MAX_MATCHES:
             raise ValueError("too many original native direct-call candidates")
-        witnesses = [verify_direct_call_alignment(pe, starts, metadata, r)
-                     for r in raw_calls]
+        witnesses = [verify_direct_call_alignment(pe, starts, metadata, r) for r in raw_calls]
+        parent_callers = [verify_direct_call_alignment(pe, starts, metadata, r) for r in parents]
+        outer = inspect_parent_native_method(pe, starts, metadata)
 
     ptrs = scan_pointer_xrefs(exe, TARGET, TARGET + 1, window=16)
     if ptrs["holder_count"] > MAX_HOLDERS:
@@ -154,6 +262,11 @@ def investigate(exe: Path, methods: Path, prior: Path) -> dict:
         "originalDirectCallByteMatches":len(raw_calls),
         "alignedOriginalDirectCallCount":sum(x["alignedNativeCall"] for x in witnesses),
         "directCallCandidates":witnesses,
+        "nativeParentReader":outer,
+        "nativeParentOriginalFieldDeclarations":original_parent_fields(fields),
+        "originalParentDirectCallByteMatches":len(parents),
+        "alignedOriginalParentDirectCallCount":sum(x["alignedNativeCall"] for x in parent_callers),
+        "originalParentCallerCandidates":parent_callers,
         "nativeMethodPointerHolderCount":ptrs["holder_count"],
         "nativeMethodPointerHoldersWithCodeXrefs":ptrs["holders_with_code_xrefs"],
         "nativeMethodPointerHolders":ptrs["holders"],
@@ -172,10 +285,10 @@ def investigate(exe: Path, methods: Path, prior: Path) -> dict:
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ("exe","methods","prior","output"):
+    for name in ("exe","methods","prior","fields","output"):
         p.add_argument("--"+name,type=Path,required=True)
     a=p.parse_args()
-    report=investigate(a.exe,a.methods,a.prior)
+    report=investigate(a.exe,a.methods,a.prior,a.fields)
     a.output.parent.mkdir(parents=True,exist_ok=True)
     a.output.write_text(json.dumps(report,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("ORIGINAL_POINT_READER_CALLERS_BEGIN")
@@ -184,6 +297,10 @@ def main():
        "nativeDirectCallByteMatches":report["originalDirectCallByteMatches"],
        "alignedOriginalDirectCallCount":report["alignedOriginalDirectCallCount"],
        "directCallCandidates":report["directCallCandidates"],
+       "nativeParentReader":report["nativeParentReader"],
+       "originalParentDirectCallByteMatches":report["originalParentDirectCallByteMatches"],
+       "originalParentCallerCandidates":report["originalParentCallerCandidates"],
+       "nativeParentOriginalFieldDeclarations":report["nativeParentOriginalFieldDeclarations"],
        "nativeMethodPointerHolderCount":report["nativeMethodPointerHolderCount"],
        "nativeMethodPointerHoldersWithCodeXrefs":report["nativeMethodPointerHoldersWithCodeXrefs"],
        "nativeMethodPointerHolders":report["nativeMethodPointerHolders"][:50],
