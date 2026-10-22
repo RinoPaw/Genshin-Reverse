@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_71_CMD27685_FIELD2_USED_AS_KEY_IN_NATIVE_INDEXED_CONTAINER__GAMEPLAY_LABEL_UNVERIFIED",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "evidence": {
+    "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39710073036",
+    "sourceArtifactId": 12396821619,
+    "originalNativeCalleeJsonSha256": "c284a06813e8addd777706b16c0f10987d194dbe2e4af143619772e070e327de",
+    "originalCollectorOwnerJsonSha256": "747577559de57bb0fa637964b1b5c83c49ed4f5221cadf08682b970c522a8b44",
+    "nativeInstructionAnchorsByRole": {
+      "initialization": 6,
+      "lookup": 11,
+      "handle": 5
+    },
+    "previousElementProof": "versions/7.1.0-global/analyses/progression/economy/7.1-cmd27685-kfoll-element-wire-field2.json"
+  },
+  "packet": {
+    "cmdId": 27685,
+    "nativeType": "KIIKIELOHOG",
+    "repeatedElementNativeType": "KFOLLNPEMHH",
+    "elementProtoFieldNumber": 2,
+    "elementProtoWireType": 0,
+    "elementScalarObjectMemoryOffset": "0x98"
+  },
+  "collector": {
+    "ownerNativeType": "JLDCJCKHJEM",
+    "ownerTypeDefinitionIndex": 24767,
+    "originalDeclaredFields": [
+      {
+        "token": "KJAKKGAEMAP",
+        "kind": "Action",
+        "runtimeTypeIndex": 452455
+      },
+      {
+        "token": "AFGKAIPDLOH",
+        "kind": "genericinst",
+        "runtimeTypeIndex": 484299
+      }
+    ],
+    "originalMethods": [
+      {
+        "index": 190174,
+        "name": "OnAccept",
+        "rva": "0xFCDF5D0",
+        "parameter": "KIIKIELOHOG"
+      },
+      {
+        "index": 190173,
+        "name": "Handle",
+        "rva": "0xFCDF7F0",
+        "parameter": "int32"
+      }
+    ],
+    "nativeHandleReadsIndexedMessageElement": true,
+    "nativeField2UsedAsKeyAcrossBothMethods": true,
+    "fieldAtCollectorPlus0x28ConcreteGenericTypeProven": false,
+    "originalNativeInsertionCall": {
+      "from": "0xFCDF6BE",
+      "to": "0x184EE960",
+      "opcode": "e89df28008",
+      "collectorRegister": "rcx",
+      "keyRegister": "edx",
+      "keySource": "KFOLLNPEMHH +0x98",
+      "r8Value": 0,
+      "r9Value": 1
+    },
+    "originalNativeLookupCall": {
+      "from": "0xFCDF87D",
+      "to": "0x184EE680",
+      "opcode": "e8feed8008",
+      "collectorRegister": "rcx",
+      "keyRegister": "edx",
+      "keySource": "indexed KFOLLNPEMHH +0x98"
+    }
+  },
+  "nativeHelperProof": {
+    "insertionHelperRva": "0x184EE960",
+    "insertionSourceWindowSha256": "4637364e72901d3633c3054c1f28df94ba6e5897026d66e565d2b28f7ebc2a16",
+    "insertionWindowBytes": 2048,
+    "lookupHelperRva": "0x184EE680",
+    "lookupSourceWindowSha256": "9c1958d233a71dae693b41dfc6a0b652938f31778ae3770b07235e5589fe2af1",
+    "lookupWindowBytes": 1792,
+    "lookupTraversesBucketChain": true,
+    "lookupComparesScalarKeys": true,
+    "lookupUsesNegativeOneIndexSentinel": true,
+    "lookupReturnsIndexInEax": true,
+    "exactConcreteGenericMethodMetadataPresent": false,
+    "methodOwnershipInferredFromNearestMetadata": false
+  },
+  "originalInstructionWitness": {
+    "initialization": {
+      "0x184EE979": [
+        "mov",
+        "r13d, edx",
+        "4189d5"
+      ],
+      "0x184EE97C": [
+        "mov",
+        "r15, rcx",
+        "4989cf"
+      ],
+      "0x184EE983": [
+        "inc",
+        "dword ptr [rcx + 0x44]",
+        "ff4144"
+      ],
+      "0x184EE98C": [
+        "cmp",
+        "qword ptr [rcx + 0x10], 0",
+        "4883791000"
+      ],
+      "0x184EEBB7": [
+        "cmp",
+        "dword ptr [r12 + r15], ebp",
+        "43392c3c"
+      ],
+      "0x184EEBC1": [
+        "mov",
+        "r14d, dword ptr [r12 + r15 + 8]",
+        "478b743c08"
+      ]
+    },
+    "lookup": {
+      "0x184EE690": [
+        "mov",
+        "dword ptr [rsp + 0x24], edx",
+        "89542424"
+      ],
+      "0x184EE694": [
+        "mov",
+        "rsi, qword ptr [rcx + 0x10]",
+        "488b7110"
+      ],
+      "0x184EE69D": [
+        "mov",
+        "r12, qword ptr [rcx + 0x18]",
+        "4c8b6118"
+      ],
+      "0x184EE71E": [
+        "mov",
+        "ebp, dword ptr [rsi + 0x18]",
+        "8b6e18"
+      ],
+      "0x184EE73A": [
+        "mov",
+        "ebx, dword ptr [rsi + rax*4 + 0x20]",
+        "8b5c8620"
+      ],
+      "0x184EE767": [
+        "cmp",
+        "dword ptr [r12 + rbp], ecx",
+        "41390c2c"
+      ],
+      "0x184EE76D": [
+        "cmp",
+        "dword ptr [r12 + rbp + 8], edi",
+        "41397c2c08"
+      ],
+      "0x184EE780": [
+        "mov",
+        "ebx, dword ptr [r12 + rbp + 4]",
+        "418b5c2c04"
+      ],
+      "0x184EE70A": [
+        "mov",
+        "ebx, 0xffffffff",
+        "bbffffffff"
+      ],
+      "0x184EE8DF": [
+        "mov",
+        "eax, ebx",
+        "89d8"
+      ],
+      "0x184EE8F1": [
+        "ret",
+        "",
+        "c3"
+      ]
+    },
+    "handle": {
+      "0xFCDF855": [
+        "mov",
+        "rdi, qword ptr [rax + rcx*8 + 0x20]",
+        "488b7cc820"
+      ],
+      "0xFCDF863": [
+        "mov",
+        "rbx, qword ptr [rsi + 0x28]",
+        "488b5e28"
+      ],
+      "0xFCDF870": [
+        "mov",
+        "edx, dword ptr [rdi + 0x98]",
+        "8b9798000000"
+      ],
+      "0xFCDF87A": [
+        "mov",
+        "rcx, rbx",
+        "4889d9"
+      ],
+      "0xFCDF87D": [
+        "call",
+        "0x1584ee680",
+        "e8feed8008"
+      ]
+    }
+  },
+  "limits": [
+    "The same original 32-bit element field 2 is supplied as a hash-indexed key in OnAccept and Handle; source-instruction data, not external proto naming, supports this.",
+    "The key's semantic meaning (entity ID, request ID, scene object level or other identifier) has not been proven, and a valid key use alone does not establish an official property name.",
+    "The original code uses an indexed bucket/entry chain and sentinel -1 in lookup, and an insertion-like helper in OnAccept; generic dictionary registration and exact helper method identities are unverified.",
+    "The original JLDCJCKHJEM metadata contains Action and genericinst fields; the declared genericinst field has not been independently bound to object offset +0x28.",
+    "No original scene Lua object source, chest level/grade/type selector, or user-defined reward contents/probabilities is involved."
+  ]
+}
