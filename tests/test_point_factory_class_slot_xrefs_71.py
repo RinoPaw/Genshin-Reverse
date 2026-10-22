@@ -41,5 +41,40 @@ class OriginalFactorySlotReferences(unittest.TestCase):
                 p.source_factory_slots(file)
 
 
+
+    def test_source_verified_original_slot_xref_report(self):
+        source=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+                "7.1-original-scene-point-factory-1-14-native-class-slot-xrefs.json")
+        import json
+        j=json.loads(source.read_text(encoding="utf-8"))
+        self.assertEqual(j["originalExeSha256"],p.PROFILE_71.exe_sha256)
+        self.assertEqual(j["originalMethodMetadataGitBlob"],p.EXPECTED_METHODS_GIT_BLOB)
+        self.assertEqual(j["originalNativeFactorySourceSha256"],p.EXPECTED_FACTORY_SHA)
+        self.assertEqual(j["originalArchivedAll31CaseResultsArtifactId"],12412125780)
+        records=j["nativeClassSlotReferencesByFactoryCase"]
+        self.assertEqual(set(records),{"1","14"})
+        for key,slot,candidates,aligned in (
+            ("1","0x57C37B0",23,21),
+            ("14","0x57C1970",50,48)
+        ):
+            row=records[key]
+            self.assertEqual(row["nativeClassSlotRva"],slot)
+            self.assertEqual(row["originalRIPByteMatchCount"],candidates)
+            self.assertEqual(row["originalAlignedNativeReferenceCount"],aligned)
+            self.assertEqual(row["originalMisalignedOrUnverifiedCandidateCount"],2)
+            self.assertEqual(len(row["exactOriginalCodeReferences"]),aligned)
+            self.assertFalse(row["originalConcreteIL2CPPClassNameIdentified"])
+            for x in row["exactOriginalCodeReferences"]:
+                self.assertTrue(x["exactOriginalMetadataMethodOwners"])
+                self.assertFalse(x["originalClassIdentityFromThisReferenceProven"])
+        self.assertEqual(records["1"]["originalNativeReferencedMethodOwnerCounts"]["OAGPJFNDNNG"],2)
+        self.assertEqual(records["14"]["originalNativeReferencedMethodOwnerCounts"]["GFIOKOCNMFF"],8)
+        self.assertTrue(j["claims"]["nativeAlignedXrefsToCase1And14Proven"])
+        for key in ("originalConcreteTypeDefinitionForCase1Proven",
+                    "originalConcreteTypeDefinitionForCase14Proven",
+                    "originalScenePointAssetLoaderToReaderProven",
+                    "originalChestGadgetPlacementOrLevelProven"):
+            self.assertFalse(j["claims"][key])
+
 if __name__=="__main__":
     unittest.main()
