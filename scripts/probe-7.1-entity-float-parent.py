@@ -35,12 +35,12 @@ FLOAT_STORES={
 }
 MAX_CONTEXT_ROWS=1000
 
-def decode(md, raw, base):
-    return [{"rva":f"0x{ins.address-base:X}",
+def decode(md, raw, image_base, rva):
+    return [{"rva":f"0x{ins.address-image_base:X}",
              "mnemonic":ins.mnemonic,
              "operands":ins.op_str,
              "opcode":bytes(ins.bytes).hex()}
-            for ins in md.disasm(raw,base)]
+            for ins in md.disasm(raw,image_base+rva)]
 
 def verify_priors(element:dict,nested:dict)->dict:
     if element["originalExeSha256"]!=PROFILE_71.exe_sha256 or nested["originalExeSha256"]!=PROFILE_71.exe_sha256:
@@ -73,8 +73,8 @@ def probe(exe:Path,element_path:Path,nested_path:Path)->dict:
             raise ValueError("original 7.1 native function source is not file-backed")
         if hashlib.sha256(raw_parent).hexdigest()!=PARENT_SHA256 or hashlib.sha256(raw_child).hexdigest()!=CHILD_SHA256:
             raise ValueError("original 7.1 native parent/child source hash changed")
-        parent=decode(md,raw_parent,pe.image_base+PARENT_RVA)
-        child=decode(md,raw_child,pe.image_base+CHILD_RVA)
+        parent=decode(md,raw_parent,pe.image_base,PARENT_RVA)
+        child=decode(md,raw_child,pe.image_base,CHILD_RVA)
     parent_by={int(x["rva"],16):x for x in parent}
     child_by={int(x["rva"],16):x for x in child}
     if parent_by[KNOWN_WIRE2_COMPARE]["operands"]!="eax, 0x10" or parent_by[KNOWN_WIRE2_STORE]["operands"]!="dword ptr [r12 + 0x98], eax":
