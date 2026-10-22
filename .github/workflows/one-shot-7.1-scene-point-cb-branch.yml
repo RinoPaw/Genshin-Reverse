@@ -1,0 +1,39 @@
+name: One-shot original Global 7.1 Scene Point CB branch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-7.1-scene-point-cb-branch.yml'
+      - 'scripts/probe-7.1-scene-point-cb-native-branch.py'
+
+permissions:
+  contents: read
+
+jobs:
+  original-cb-path:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install native disassembly tools
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact Global 7.1 original EXE
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Inspect complete original byte CB branch
+        run: |
+          python scripts/probe-7.1-scene-point-cb-native-branch.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --prior versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-mask-native-callchain.json \
+            --scenes versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json \
+            --output work/original-global71-scene-point-cb-path.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-global71-scene-point-cb-path
+          path: work/original-global71-scene-point-cb-path.json
+          retention-days: 7
+          if-no-files-found: error
