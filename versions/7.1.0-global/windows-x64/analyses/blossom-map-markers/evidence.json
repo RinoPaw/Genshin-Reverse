@@ -1,7 +1,12 @@
 {
   "schemaVersion": 1,
   "status": "ORIGINAL_GLOBAL_7_1_BLOSSOM_SHARED_PACKET_LIST_AND_RECEIVER_VERIFIED__MAP_ICON_SEMANTICS_UNRESOLVED",
-  "sample": "7.1.0-global/windows-x64",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json"
+  },
   "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
   "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
   "runs": [
@@ -84,5 +89,91 @@
     "listFieldNumber": 13,
     "nativeSemanticSource": false
   },
-  "semanticMappingVerified": false
+  "semanticMappingVerified": false,
+  "topic": "blossom-map-markers",
+  "state": "ACTIVE",
+  "questions": [
+    "Which packet messages share an original-client repeated generic field with the imported blossom list-response lead?",
+    "Which original receiver handles those messages, and does it use the same list-processing routine?",
+    "Which map-icon packet semantic names and nested field layouts remain unresolved?"
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json"
+  ],
+  "next_steps": [
+    "Resolve original genericinst element identity for runtime index 505695 and validate its complete protobuf fields.",
+    "Trace the shared native consumer into world-map UI drawing and distinguish the 6743/20484 update semantics.",
+    "Only then implement the source-proven payload/opcode in AstaPS and verify in a 7.1 client."
+  ],
+  "claims": [
+    {
+      "id": "three-identical-original-generic-fields",
+      "status": "CONFIRMED",
+      "statement": "Original types for CmdIds 112, 6743 and 20484 have identical genericinst runtime index 505695 in one list-like field; this is the complete set of such metadata-field occurrences.",
+      "evidence": [
+        {
+          "kind": "original-native-metadata",
+          "source": "../../metadata/fields.csv: fields 132555, 407637, 105871; https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730075346"
+        },
+        {
+          "kind": "original-executable-static",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39731366291: raw type-array entry RVA 0x35D6010"
+        }
+      ]
+    },
+    {
+      "id": "native-wire-tags",
+      "status": "CONFIRMED",
+      "statement": "The original protobuf readers for 6743, 20484 and 112 recognize wire tags 0x52, 0x72 and 0x7A, respectively, for their shared generic list field.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730444937: parse RVAs 0x103DAC90, 0x740F090, 0x112401E0"
+        }
+      ]
+    },
+    {
+      "id": "original-shared-client-receiver",
+      "status": "CONFIRMED",
+      "statement": "Original-client class CJEDOIPINHC methods with parameters 6743 and 20484 both invoke FOEKNCLMGDP at 0xC78CA80, which reads collection elements.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730866735: typed handler RVAs 0xC78C930 and 0xC790C00 and shared method 0xC78CA80"
+        },
+        {
+          "kind": "original-native-metadata",
+          "source": "../../metadata/methods.csv: method indices 266577, 266594, 266612"
+        }
+      ]
+    },
+    {
+      "id": "native-semantic-identity",
+      "status": "UNRESOLVED",
+      "statement": "Neither CmdId 6743 nor CmdId 20484 has a verified original-client semantic packet name, confirmed inner element layout, or end-to-end map-icon rendering result.",
+      "evidence": [
+        {
+          "kind": "evidence-boundary",
+          "source": "README.md and original generic-instantiation pointer probe; no original runtime packet/UI observation"
+        }
+      ]
+    }
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Reuse AstaPS field-13 BlossomBriefInfoNotify payload with guessed CmdId",
+      "reason": "Original related client parser fields are 10, 14, and 15; field 13 is imported server descriptor metadata and is insufficient to establish a valid original protocol packet.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730444937"
+        },
+        {
+          "kind": "external-server-comparison",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39731131802"
+        }
+      ]
+    }
+  ]
 }
