@@ -87,6 +87,24 @@ def scan():
                                "imported_hint":control_by_id.get(native_item["cmd_id"],"")})
         print("  OWNER",json.dumps({"index":idx,"method":row["method_name"],
               "rva":row["rva"],"params":row.get("parameter_types"),"ids":mapped}),flush=True)
+    # Canonical xrefs connect registry type-slot identities to current-client
+    # code sites. No historical semantic label is used as identity evidence.
+    for target in ("registry/registry-slot-xrefs.csv",
+                   "registry/registry-type-slots.csv"):
+        data=list(records(target))
+        print("XREF_SCHEMA",target,list(data[0]) if data else [],flush=True)
+        for candidate in focus:
+            slot=candidate.get("type_slot_rva","").lower()
+            index=candidate.get("index","")
+            match=[x for x in data if
+                   x.get("type_slot_rva","").lower()==slot
+                   or x.get("cmd_id","")==candidate["cmd_id"]
+                   or (target.endswith("registry-type-slots.csv")
+                       and x.get("index","")==index)]
+            print("SLOT_XREF",target,candidate["cmd_id"],
+                  "count",len(match),flush=True)
+            for x in match[:20]:
+                print("  XREF",json.dumps(x),flush=True)
     print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
 
     for name in sorted(candidate_names):
