@@ -65,6 +65,76 @@ def validate_sources(methods:Path,prior:Path):
     return starts,by_rva
 
 
+
+def scan_original_direct_slot_writes(pe:PEImage,starts:list[int],owners:dict,md)->dict:
+    """Validate exact RIP-relative 64-bit native MOV stores to original class slots."""
+    from capstone.x86 import X86_OP_MEM,X86_REG_RIP
+    target_by_rva={slot:kind for kind,slot in SLOTS.items()}
+    prefixes=[bytes((rex,0x89,modrm))
+              for rex in (0x48,0x4C)
+              for modrm in (0x05,0x0D,0x15,0x1D,0x25,0x2D,0x35,0x3D)]
+    candidates={kind:[] for kind in SLOTS}
+    seen=set()
+    for section in pe.sections:
+        if not(section.characteristics&0x20000000):continue
+        data=pe.read_rva(section.virtual_address,section.raw_size)
+        for prefix in prefixes:
+            pos=0
+            while (hit:=data.find(prefix,pos))>=0:
+                pos=hit+1
+                if hit+7>len(data):continue
+                site=section.virtual_address+hit
+                disp=int.from_bytes(data[hit+3:hit+7],"little",signed=True)
+                dest=site+7+disp
+                if dest not in target_by_rva or site in seen:continue
+                seen.add(site)
+                idx=bisect_right(starts,site)-1
+                raw={"instructionRva":f"0x{site:X}",
+                     "originalInstructionBytes":data[hit:hit+7].hex(),
+                     "nativeDestinationSlotRva":f"0x{dest:X}",
+                     "nativeInstructionAligned":False,
+                     "originalMethodOwners":[]}
+                if idx>=0:
+                    start=starts[idx]
+                    size=site+7-start
+                    if 7<=size<=MAX_BODY:
+                        body=pe.read_rva(start,size)
+                        for x in md.disasm(body,pe.image_base+start):
+                            if x.address-pe.image_base!=site:continue
+                            if bytes(x.bytes)!=data[hit:hit+7] or x.mnemonic!="mov":
+                                break
+                            first=x.operands[0]
+                            if first.type!=X86_OP_MEM or first.mem.base!=X86_REG_RIP:
+                                break
+                            if site+x.size+first.mem.disp!=dest:break
+                            raw["nativeInstructionAligned"]=True
+                            raw["nativeInstruction"]=f"{x.mnemonic} {x.op_str}"
+                            raw["originalMethodOwners"]=[
+                                {"typeName":o["type_name"],"methodName":o["method_name"],
+                                 "methodIndex":int(o["method_index"])}
+                                for o in owners.get(start,[])]
+                            break
+                candidates[target_by_rva[dest]].append(raw)
+    out={}
+    for kind,slot in SLOTS.items():
+        section=next((s for s in pe.sections if
+          s.virtual_address<=slot<s.virtual_address+max(s.virtual_size,s.raw_size)),None)
+        binary=pe.read_rva(slot,8)
+        rows=candidates[kind]
+        out[str(kind)]={
+            "originalStaticClassSlotRva":f"0x{slot:X}",
+            "sourcePESection":section.name if section else None,
+            "sourceSlotFileBackedQword":len(binary)==8,
+            "sourceStaticSlotBytes":binary.hex() if len(binary)==8 else None,
+            "originalNativeRipStoreByteCandidates":len(rows),
+            "originalVerifiedAlignedNativeRipStores":sum(x["nativeInstructionAligned"] for x in rows),
+            "originalNativeRipSlotStoreCandidates":rows,
+            "runtimeClassRegistrationWriteOwnerProven":False,
+            "originalConcreteTypeDefinitionIndexProven":False
+        }
+    return out
+
+
 def inspect(exe:Path,methods:Path,prior:Path)->dict:
     starts,owners=validate_sources(methods,prior)
     require_sha256(exe,PROFILE_71.exe_sha256,label="original Global 7.1 executable")
@@ -125,6 +195,7 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
                 "concreteClassIdentityResolved":False,
                 "sourceVirtualElementReaderResolved":False,
             })
+        slot_writes=scan_original_direct_slot_writes(pe,starts,owners,md)
     return {
         "schemaVersion":1,
         "status":"EXACT_7_1_SOURCE_FACTORY_1_14_SLOT_REFERENCE_OWNER_NATIVE_METHOD_CONTEXT__CLASS_IDENTITY_PENDING",
@@ -132,6 +203,7 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
         "originalMethodsGitBlob":METHODS_BLOB,
         "originalSourceFactorySlotReferencesReport":SOURCE_REPORT,
         "originalMethodWindows":decoded,
+        "sourceOriginalDirectNativeClassSlotWrites":slot_writes,
         "verifiedExactNativeLoadCount":sum(len(r["sourceSlotLoadWitnesses"]) for r in decoded),
         "originalConcreteClassIdentityProven":False,
         "originalElementDeserializerSlotF8Resolved":False,
