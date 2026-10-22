@@ -7,6 +7,7 @@ requires a concrete vtable target before any semantic field assignment.
 """
 from __future__ import annotations
 import argparse
+from bisect import bisect_right
 import csv
 import hashlib
 import json
