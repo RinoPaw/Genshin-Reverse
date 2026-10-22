@@ -54,5 +54,18 @@ class ScenePointNativeCallerTests(unittest.TestCase):
         self.assertEqual(m.PARENT_METHOD_INDEX,171707)
         self.assertEqual(m.FIELDS_GIT_BLOB,"ae01d117f4d884e891a95d529a15302a68715b04")
 
+
+    def test_all_source_original_scene_point_prefix_masks(self):
+        evidence=ROOT/m.SCENE_POINT_SOURCE_REPORT
+        r=m.scene_point_mask_prefix_census(evidence)
+        self.assertEqual(len(r["rows"]),13)
+        self.assertTrue(r["all13HaveNativeOuterFlag8000"])
+        self.assertTrue(r["all13HaveNativeOuterFlag4000"])
+        self.assertTrue(r["all13HaveSameByteAtOffset2"])
+        self.assertEqual({x["candidateByteAtOffset2"] for x in r["rows"]},{"0xCB"})
+        self.assertEqual(r["rows"][0]["candidateOuterNativeMask"],"0xC028")
+        self.assertFalse(r["originalRootParserActuallyConsumedTheseBytes"])
+        self.assertFalse(r["nativeSingleBytePrecursorConsumerVerified"])
+
 if __name__=="__main__":
     unittest.main()
