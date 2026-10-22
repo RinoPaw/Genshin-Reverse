@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/one-shot-7.1-scene-point-native-header.yml'
+      - 'scripts/probe-7.1-scene-point-native-header-transform.py'
 
 permissions:
   contents: read
