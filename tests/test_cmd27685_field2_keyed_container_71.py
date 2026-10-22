@@ -14,6 +14,11 @@ class Field2Keyed(unittest.TestCase):
         self.assertEqual(obj["originalExeSha256"],m.PROFILE_71.exe_sha256)
         self.assertEqual(obj["evidence"]["originalNativeCalleeJsonSha256"],m.CALLEE_SHA)
         self.assertEqual(obj["evidence"]["originalCollectorOwnerJsonSha256"],m.OWNER_SHA)
+        self.assertEqual(obj["evidence"]["originalFactoryMethodArtifactSha256"],m.FACTORY_SOURCE_SHA)
+        self.assertTrue(obj["collector"]["factoryGenericParameterAssignmentProven"])
+        self.assertEqual(obj["collector"]["factoryGenericParameterWrittenObjectOffset"],"0x28")
+        self.assertEqual(obj["collector"]["factoryGenericParameterWriteRva"],"0xFCDF512")
+        self.assertEqual(obj["collector"]["factoryActionParameterWrittenObjectOffset"],"0x20")
         self.assertEqual(obj["originalInstructionWitness"],m.ANCHORS)
         self.assertEqual(obj["collector"]["originalNativeLookupCall"]["to"],"0x184EE680")
         self.assertEqual(obj["collector"]["originalNativeInsertionCall"]["to"],"0x184EE960")
@@ -31,7 +36,7 @@ class Field2Keyed(unittest.TestCase):
 
     def test_unknown_original_artifacts_rejected(self):
         with self.assertRaisesRegex(ValueError,"artifact hash mismatch"):
-            m.audit(b"missing",b"missing")
+            m.audit(b"missing",b"missing",b"missing")
 
 if __name__=="__main__":
     unittest.main()

@@ -12,9 +12,13 @@
     "nativeInstructionAnchorsByRole": {
       "initialization": 6,
       "lookup": 11,
-      "handle": 5
+      "handle": 5,
+      "factory": 9
     },
-    "previousElementProof": "versions/7.1.0-global/analyses/progression/economy/7.1-cmd27685-kfoll-element-wire-field2.json"
+    "previousElementProof": "versions/7.1.0-global/analyses/progression/economy/7.1-cmd27685-kfoll-element-wire-field2.json",
+    "originalFactoryMethodArtifactSha256": "7bec3f006b819bcc956cc3c85a38a71176945b232767ca6f48294c779f78bc11",
+    "originalFactoryMethodRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39703359133",
+    "originalFactoryMethodArtifactId": 12394092567
   },
   "packet": {
     "cmdId": 27685,
@@ -73,7 +77,16 @@
       "collectorRegister": "rcx",
       "keyRegister": "edx",
       "keySource": "indexed KFOLLNPEMHH +0x98"
-    }
+    },
+    "factoryGenericParameterAssignmentProven": true,
+    "factoryGenericParameterKind": "kind_0x15",
+    "factoryGenericParameterRuntimeTypeIndex": 484299,
+    "factoryGenericParameterWriteRva": "0xFCDF512",
+    "factoryGenericParameterWrittenObjectOffset": "0x28",
+    "factoryActionParameterWriteRva": "0xFCDF516",
+    "factoryActionParameterWrittenObjectOffset": "0x20",
+    "factoryCallsOnAcceptWithInitializedReceiver": true,
+    "factoryOnAcceptCallRva": "0xFCDF556"
   },
   "nativeHelperProof": {
     "insertionHelperRva": "0x184EE960",
@@ -205,6 +218,53 @@
         "0x1584ee680",
         "e8feed8008"
       ]
+    },
+    "factory": {
+      "0xFCDF4B9": [
+        "mov",
+        "r14, r8",
+        "4d89c6"
+      ],
+      "0xFCDF4BC": [
+        "mov",
+        "rbx, rdx",
+        "4889d3"
+      ],
+      "0xFCDF4BF": [
+        "mov",
+        "rsi, rcx",
+        "4889ce"
+      ],
+      "0xFCDF50F": [
+        "mov",
+        "rdi, rax",
+        "4889c7"
+      ],
+      "0xFCDF512": [
+        "mov",
+        "qword ptr [rax + 0x28], rbx",
+        "48895828"
+      ],
+      "0xFCDF516": [
+        "mov",
+        "qword ptr [rax + 0x20], r14",
+        "4c897020"
+      ],
+      "0xFCDF550": [
+        "mov",
+        "rcx, rdi",
+        "4889f9"
+      ],
+      "0xFCDF553": [
+        "mov",
+        "rdx, rsi",
+        "4889f2"
+      ],
+      "0xFCDF556": [
+        "call",
+        "0x14fcdf5d0",
+        "e875000000"
+      ]
     }
   },
   "limits": [
@@ -212,6 +272,7 @@
     "The key's semantic meaning (entity ID, request ID, scene object level or other identifier) has not been proven, and a valid key use alone does not establish an official property name.",
     "The original code uses an indexed bucket/entry chain and sentinel -1 in lookup, and an insertion-like helper in OnAccept; generic dictionary registration and exact helper method identities are unverified.",
     "The original JLDCJCKHJEM metadata contains Action and genericinst fields; the declared genericinst field has not been independently bound to object offset +0x28.",
-    "No original scene Lua object source, chest level/grade/type selector, or user-defined reward contents/probabilities is involved."
+    "No original scene Lua object source, chest level/grade/type selector, or user-defined reward contents/probabilities is involved.",
+    "Native factory stores its second kind_0x15 parameter at the freshly obtained object's +0x28 and its third Action parameter at +0x20, then calls OnAccept with that receiver. The closed genericinst type and key/value generic arguments are not established."
   ]
 }
