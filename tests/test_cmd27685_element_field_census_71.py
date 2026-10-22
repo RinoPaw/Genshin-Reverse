@@ -68,5 +68,32 @@ class ElementSourceCensusTests(TestCase):
                     module.recover_members(methods, fields)
 
 
+    def test_source_authenticated_native_metadata_report(self):
+        import json
+        report_path = ROOT / "versions/7.1.0-global/analyses/progression/economy/7.1-original-cmd27685-element-metadata-reader-census.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"], module.PROFILE_71.exe_sha256)
+        self.assertEqual(report["canonicalMethodsGitBlob"], module.METHODS_GIT_BLOB)
+        self.assertEqual(report["canonicalFieldsGitBlob"], module.FIELDS_GIT_BLOB)
+        self.assertEqual(report["elementTypeDefinitionIndex"], 85506)
+        self.assertEqual(len(report["metadata"]["elementFields"]), 27)
+        self.assertEqual(len(report["metadata"]["elementMethods"]), 17)
+        self.assertEqual(len(report["metadata"]["messageFields"]), 4)
+        self.assertEqual(len(report["metadata"]["containerFields"]), 1)
+        self.assertEqual(report["originalNativeReader"]["readerWindowSha256"],
+                         "b9daf495a99150725dcadff1d6ba717e9a6edf1461b764ebd13b7f3905eb0c9e")
+        self.assertEqual(report["originalNativeReader"]["readerWindowBytes"], module.NATIVE_READER_SIZE)
+        self.assertEqual(report["originalNativeReader"]["verifiedNativeField2"]["fieldNumber"], 2)
+        self.assertEqual(report["originalNativeReader"]["verifiedNativeField2"]["wireType"], 0)
+        self.assertEqual(len(report["originalNativeReader"]["scalarComparisonCandidates"]), 30)
+        self.assertEqual(len(report["originalNativeReader"]["distinctPotentialTagNumbers"]), 23)
+        self.assertEqual(report["originalNativeReader"]["confirmedWireFieldNumbers"], [2])
+        self.assertTrue(report["originalNativeReader"]["otherPotentialTagNumbersRemainUnverified"])
+        self.assertFalse(report["originalPacketDirectionProven"])
+        self.assertFalse(report["originalSceneChestPlacementSourceProven"])
+        self.assertFalse(report["originalSceneLevelProven"])
+        self.assertEqual(report["evidence"]["artifactId"], 12402756811)
+
+
 if __name__ == "__main__":
     main()
