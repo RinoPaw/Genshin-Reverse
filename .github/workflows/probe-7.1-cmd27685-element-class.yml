@@ -26,6 +26,8 @@ jobs:
       - run: python -m pip install -e . zstandard
       - name: Fetch exact original Global 7.1 sample
         run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Validate exact source-slot constraints
+        run: python -m unittest discover -s tests -p 'test_cmd27685_element_class_xrefs_71.py' -v
       - name: Trace exact native packet collection class slots and metadata
         run: |
           python scripts/probe-7.1-cmd27685-element-class-xrefs.py \
