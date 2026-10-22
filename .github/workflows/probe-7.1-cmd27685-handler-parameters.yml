@@ -51,9 +51,17 @@ jobs:
                       print("NATIVE_PARAM_LEAD",hit["method_index"],hit["method_rva"],
                             hit["owner_type"],hit["method_name"],hit["parameter_ordinal"])
           PY
+      - name: Independently disassemble four native consumers
+        run: |
+          python scripts/probe-7.1-cmd27685-native-consumers.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --handler-audit work/scene-entity-original-handler-parameters.json \
+            --output work/scene-entity-native-consumers.json
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-cmd27685-handler-parameters
-          path: work/scene-entity-original-handler-parameters.json
+          path: |
+            work/scene-entity-original-handler-parameters.json
+            work/scene-entity-native-consumers.json
           if-no-files-found: error
           retention-days: 7
