@@ -1,0 +1,2479 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_7_1_SCENE_POINT_COMPATIBLE_POLYMORPHIC_ARRAY_ELEMENT_FACTORY_31_CASES__CHEST_PLACEMENT_UNVERIFIED",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "originalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "originalFieldsGitBlob": "ae01d117f4d884e891a95d529a15302a68715b04",
+  "verifiedOriginalRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39742839841",
+  "originalRunHeadSha": "5eb9f4e27d17eb7db01f60884537c6ca912fafb4",
+  "runArtifactId": 12409798011,
+  "runArtifactArchiveDigest": "sha256:03a1d5133ede335ca8613ee19f66a7b9fe97004d221a1b18f2f2cd1e6cc6ddc8",
+  "originalArrayNativeReader": {
+    "obfuscatedType": "NLDEPJEOJGC",
+    "typeDefinitionIndex": 63768,
+    "methodName": "GMENPOPMKAA",
+    "methodIndex": 514423,
+    "nativeMethodRva": "0xAD23000",
+    "nativeSourceWindowSha256": "6319613278adf382bf7ce513d1d875ef98b318d5f5f3bc9c423b72caebd7c0ad",
+    "sourceDecodedInstructions": 392,
+    "countReadXorConstant": "0xC14B813C",
+    "initialArraySetupIndirectCallRva": "0xAD230BB",
+    "elementDiscriminatorSourceByteReadRva": "0xAD23393",
+    "elementDiscriminatorNativeByteXorRva": "0xAD2339E",
+    "elementDiscriminatorNativeByteXor": "0xF5",
+    "elementDiscriminatorNativeByteAddRva": "0xAD233A0",
+    "elementDiscriminatorNativeByteAdd": "0x34",
+    "elementFactoryDirectCallRva": "0xAD233A5",
+    "elementVirtualReaderCallRva": "0xAD233BE",
+    "elementVirtualReaderSlotOffset": "0xF8",
+    "sourceInstructionAnchors": [
+      {
+        "rva": "0xAD2339E",
+        "mnemonic": "xor",
+        "operands": "al, 0xf5",
+        "bytes": "34f5"
+      },
+      {
+        "rva": "0xAD233A0",
+        "mnemonic": "add",
+        "operands": "al, 0x34",
+        "bytes": "0434"
+      },
+      {
+        "rva": "0xAD233A5",
+        "mnemonic": "call",
+        "operands": "0x14c591c60",
+        "bytes": "e8b6e88601"
+      },
+      {
+        "rva": "0xAD233BE",
+        "mnemonic": "call",
+        "operands": "qword ptr [rax + 0xf8]",
+        "bytes": "ff90f8000000"
+      }
+    ],
+    "sourceElementReaderDispatchContext": [
+      {
+        "rva": "0xAD23367",
+        "mnemonic": "mov",
+        "operands": "rcx, r15",
+        "bytes": "4c89f9"
+      },
+      {
+        "rva": "0xAD2336A",
+        "mnemonic": "mov",
+        "operands": "edx, 1",
+        "bytes": "ba01000000"
+      },
+      {
+        "rva": "0xAD2336F",
+        "mnemonic": "call",
+        "operands": "0x15269bfc0",
+        "bytes": "e84c8c9707"
+      },
+      {
+        "rva": "0xAD23374",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [r15 + 0x10]",
+        "bytes": "498b4710"
+      },
+      {
+        "rva": "0xAD23378",
+        "mnemonic": "test",
+        "operands": "rax, rax",
+        "bytes": "4885c0"
+      },
+      {
+        "rva": "0xAD2337B",
+        "mnemonic": "je",
+        "operands": "0x14ad23544",
+        "bytes": "0f84c3010000"
+      },
+      {
+        "rva": "0xAD23381",
+        "mnemonic": "mov",
+        "operands": "ecx, dword ptr [r15 + 0x28]",
+        "bytes": "418b4f28"
+      },
+      {
+        "rva": "0xAD23385",
+        "mnemonic": "cmp",
+        "operands": "ecx, dword ptr [rax + 0x18]",
+        "bytes": "3b4818"
+      },
+      {
+        "rva": "0xAD23388",
+        "mnemonic": "jae",
+        "operands": "0x14ad23535",
+        "bytes": "0f83a7010000"
+      },
+      {
+        "rva": "0xAD2338E",
+        "mnemonic": "mov",
+        "operands": "edi, ebx",
+        "bytes": "89df"
+      },
+      {
+        "rva": "0xAD23390",
+        "mnemonic": "movsxd",
+        "operands": "rdx, ecx",
+        "bytes": "4863d1"
+      },
+      {
+        "rva": "0xAD23393",
+        "mnemonic": "movzx",
+        "operands": "eax, byte ptr [rax + rdx + 0x20]",
+        "bytes": "0fb6441020"
+      },
+      {
+        "rva": "0xAD23398",
+        "mnemonic": "inc",
+        "operands": "ecx",
+        "bytes": "ffc1"
+      },
+      {
+        "rva": "0xAD2339A",
+        "mnemonic": "mov",
+        "operands": "dword ptr [r15 + 0x28], ecx",
+        "bytes": "41894f28"
+      },
+      {
+        "rva": "0xAD2339E",
+        "mnemonic": "xor",
+        "operands": "al, 0xf5",
+        "bytes": "34f5"
+      },
+      {
+        "rva": "0xAD233A0",
+        "mnemonic": "add",
+        "operands": "al, 0x34",
+        "bytes": "0434"
+      },
+      {
+        "rva": "0xAD233A2",
+        "mnemonic": "movzx",
+        "operands": "ecx, al",
+        "bytes": "0fb6c8"
+      },
+      {
+        "rva": "0xAD233A5",
+        "mnemonic": "call",
+        "operands": "0x14c591c60",
+        "bytes": "e8b6e88601"
+      },
+      {
+        "rva": "0xAD233AA",
+        "mnemonic": "mov",
+        "operands": "rbx, rax",
+        "bytes": "4889c3"
+      },
+      {
+        "rva": "0xAD233AD",
+        "mnemonic": "test",
+        "operands": "rax, rax",
+        "bytes": "4885c0"
+      },
+      {
+        "rva": "0xAD233B0",
+        "mnemonic": "je",
+        "operands": "0x14ad233c4",
+        "bytes": "7412"
+      },
+      {
+        "rva": "0xAD233B2",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rbx]",
+        "bytes": "488b03"
+      },
+      {
+        "rva": "0xAD233B5",
+        "mnemonic": "mov",
+        "operands": "rcx, rbx",
+        "bytes": "4889d9"
+      },
+      {
+        "rva": "0xAD233B8",
+        "mnemonic": "mov",
+        "operands": "rdx, r15",
+        "bytes": "4c89fa"
+      },
+      {
+        "rva": "0xAD233BB",
+        "mnemonic": "xor",
+        "operands": "r8d, r8d",
+        "bytes": "4531c0"
+      },
+      {
+        "rva": "0xAD233BE",
+        "mnemonic": "call",
+        "operands": "qword ptr [rax + 0xf8]",
+        "bytes": "ff90f8000000"
+      },
+      {
+        "rva": "0xAD233C4",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rbp]",
+        "bytes": "488b4500"
+      },
+      {
+        "rva": "0xAD233C8",
+        "mnemonic": "mov",
+        "operands": "rsi, qword ptr [rax]",
+        "bytes": "488b30"
+      },
+      {
+        "rva": "0xAD233CB",
+        "mnemonic": "test",
+        "operands": "rsi, rsi",
+        "bytes": "4885f6"
+      },
+      {
+        "rva": "0xAD233CE",
+        "mnemonic": "je",
+        "operands": "0x14ad23549",
+        "bytes": "0f8475010000"
+      },
+      {
+        "rva": "0xAD233D4",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rip - 0x539fa63]",
+        "bytes": "488b059d05c6fa"
+      },
+      {
+        "rva": "0xAD233DB",
+        "mnemonic": "mov",
+        "operands": "rcx, qword ptr [rax + 8]",
+        "bytes": "488b4808"
+      },
+      {
+        "rva": "0xAD233DF",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rcx + 0x40]",
+        "bytes": "488b4140"
+      },
+      {
+        "rva": "0xAD233E3",
+        "mnemonic": "mov",
+        "operands": "rax, qword ptr [rax + 0x88]",
+        "bytes": "488b8088000000"
+      }
+    ],
+    "originalClassFields": [
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316325,
+        "name": "NPGEJAGIMDM",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 617121
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316326,
+        "name": "GKIHPDJOALF",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 617121
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316327,
+        "name": "CHCKBOBODHC",
+        "memberType": "string",
+        "runtimeTypeIndex": 439041
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316328,
+        "name": "JICOFLMHAHF",
+        "memberType": "OPEHHDGOJOF",
+        "runtimeTypeIndex": 617122
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316329,
+        "name": "IOAKKHJPFEI",
+        "memberType": "EEOPHKIFFPL",
+        "runtimeTypeIndex": 477033
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316330,
+        "name": "IBNHDEINMIG",
+        "memberType": "NFFDDFHHDHG",
+        "runtimeTypeIndex": 476832
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316331,
+        "name": "EMKANBOPAGO",
+        "memberType": "NFFDDFHHDHG",
+        "runtimeTypeIndex": 476832
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316332,
+        "name": "HBEJEPKOCFM",
+        "memberType": "EEOPHKIFFPL",
+        "runtimeTypeIndex": 477033
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316333,
+        "name": "LMDBKOPAONL",
+        "memberType": "bool",
+        "runtimeTypeIndex": 439043
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316334,
+        "name": "HPPONAJJLFA",
+        "memberType": "bool",
+        "runtimeTypeIndex": 439043
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316335,
+        "name": "HEENPDGJJFI",
+        "memberType": "BEPJBHBIKFG",
+        "runtimeTypeIndex": 483114
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316336,
+        "name": "ALBEEACGODK",
+        "memberType": "BFJFOEDCGJJ",
+        "runtimeTypeIndex": 617123
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316337,
+        "name": "APIPGEKLLIO",
+        "memberType": "NFFDDFHHDHG",
+        "runtimeTypeIndex": 476832
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316338,
+        "name": "GBIHELJOHIB",
+        "memberType": "NFFDDFHHDHG",
+        "runtimeTypeIndex": 476832
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316339,
+        "name": "PDBICJNOCJD",
+        "memberType": "bool",
+        "runtimeTypeIndex": 439043
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316340,
+        "name": "KNJICCLDJDF",
+        "memberType": "bool",
+        "runtimeTypeIndex": 439043
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 316341,
+        "name": "EABBCMGNLEL",
+        "memberType": "EEOPHKIFFPL",
+        "runtimeTypeIndex": 477033
+      }
+    ],
+    "originalClassMethods": [
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514420,
+        "name": ".ctor",
+        "rva": "0xAD236A0",
+        "parameterTypes": "[]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514421,
+        "name": ".ctor",
+        "rva": "0xAD236C0",
+        "parameterTypes": "[\"NFFDDFHHDHG\",\"NFFDDFHHDHG\",\"uint32\"]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514422,
+        "name": "GMENPOPMKAA",
+        "rva": "0xAD22310",
+        "parameterTypes": "[\"FNIAHJGHFAK\"]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514423,
+        "name": "GMENPOPMKAA",
+        "rva": "0xAD23000",
+        "parameterTypes": "[\"FNIAHJGHFAK\",\"kind_0x15\"]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514424,
+        "name": "FCAHDPFOFCP",
+        "rva": "0xAD23620",
+        "parameterTypes": "[\"FNIAHJGHFAK\"]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514425,
+        "name": "APHDDCMEBAD",
+        "rva": "0xAD236B0",
+        "parameterTypes": "[]",
+        "returnType": ""
+      },
+      {
+        "originalTypeName": "NLDEPJEOJGC",
+        "typeDefinitionIndex": 63768,
+        "index": 514426,
+        "name": "InitEmpty",
+        "rva": "0xAD23710",
+        "parameterTypes": "[]",
+        "returnType": ""
+      }
+    ]
+  },
+  "originalFactory": {
+    "obfuscatedType": "NLLGJBBHHAN",
+    "originalTypeDefinitionIndex": 51260,
+    "methodName": "JIEAILFJKNA",
+    "originalMethodIndex": 408945,
+    "nativeMethodRva": "0xC591C60",
+    "originalSourceBytes": 1200,
+    "originalSourceWindowSha256": "78a9930eef271eae79f9b4fdcc60a49e86ae95a8cc01d87181691c88fd365f06",
+    "nativeSourceCodeLinearDecodedInstructions": 235,
+    "originalCaseRangeInclusive": [
+      0,
+      30
+    ],
+    "originalJumpTableRva": "0xC592094",
+    "exactAlignedNativeJumpCaseCount": 31,
+    "sourceCases": [
+      {
+        "originalNumericCaseId": 0,
+        "jumpTableRelativeI32": -1048,
+        "nativeBranchRva": "0xC591C7C",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591C7C",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd1a5b]",
+          "bytes": "488b0da5e522f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C0228",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 1,
+        "jumpTableRelativeI32": -1024,
+        "nativeBranchRva": "0xC591C94",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591C94",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dce4eb]",
+          "bytes": "488b0d151b23f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C37B0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 2,
+        "jumpTableRelativeI32": -1012,
+        "nativeBranchRva": "0xC591CA0",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CA0",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd032f]",
+          "bytes": "488b0dd1fc22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C1978",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 3,
+        "jumpTableRelativeI32": -995,
+        "nativeBranchRva": "0xC591CB1",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CB1",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd0308]",
+          "bytes": "488b0df8fc22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C19B0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 4,
+        "jumpTableRelativeI32": -978,
+        "nativeBranchRva": "0xC591CC2",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CC2",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd0321]",
+          "bytes": "488b0ddffc22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C19A8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 5,
+        "jumpTableRelativeI32": -961,
+        "nativeBranchRva": "0xC591CD3",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CD3",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd0342]",
+          "bytes": "488b0dbefc22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C1998",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 6,
+        "jumpTableRelativeI32": -944,
+        "nativeBranchRva": "0xC591CE4",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CE4",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd034b]",
+          "bytes": "488b0db5fc22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C19A0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 7,
+        "jumpTableRelativeI32": -927,
+        "nativeBranchRva": "0xC591CF5",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591CF5",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dced0c]",
+          "bytes": "488b0df41223f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C2FF0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 8,
+        "jumpTableRelativeI32": -910,
+        "nativeBranchRva": "0xC591D06",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591D06",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dce575]",
+          "bytes": "488b0d8b1a23f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C3798",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 9,
+        "jumpTableRelativeI32": -808,
+        "nativeBranchRva": "0xC591D6C",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591D6C",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dce5bb]",
+          "bytes": "488b0d451a23f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C37B8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 10,
+        "jumpTableRelativeI32": -777,
+        "nativeBranchRva": "0xC591D8B",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591D8B",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd4792]",
+          "bytes": "488b0d6eb822f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BD600",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 11,
+        "jumpTableRelativeI32": -760,
+        "nativeBranchRva": "0xC591D9C",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591D9C",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd2e43]",
+          "bytes": "488b0dbdd122f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BEF60",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 12,
+        "jumpTableRelativeI32": -717,
+        "nativeBranchRva": "0xC591DC7",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591DC7",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd2e76]",
+          "bytes": "488b0d8ad122f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BEF58",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 13,
+        "jumpTableRelativeI32": -700,
+        "nativeBranchRva": "0xC591DD8",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591DD8",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dcd407]",
+          "bytes": "488b0df92b23f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C49D8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 14,
+        "jumpTableRelativeI32": -672,
+        "nativeBranchRva": "0xC591DF4",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591DF4",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd048b]",
+          "bytes": "488b0d75fb22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C1970",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 15,
+        "jumpTableRelativeI32": -644,
+        "nativeBranchRva": "0xC591E10",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E10",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd1be7]",
+          "bytes": "488b0d19e422f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C0230",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 16,
+        "jumpTableRelativeI32": -595,
+        "nativeBranchRva": "0xC591E41",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E41",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd5790]",
+          "bytes": "488b0d70a822f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BC6B8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 17,
+        "jumpTableRelativeI32": -578,
+        "nativeBranchRva": "0xC591E52",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E52",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd1db1]",
+          "bytes": "488b0d4fe222f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C00A8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 18,
+        "jumpTableRelativeI32": -561,
+        "nativeBranchRva": "0xC591E63",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E63",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd770a]",
+          "bytes": "488b0df68822f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BA760",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 19,
+        "jumpTableRelativeI32": -541,
+        "nativeBranchRva": "0xC591E77",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E77",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd18a6]",
+          "bytes": "488b0d5ae722f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C05D8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 20,
+        "jumpTableRelativeI32": -529,
+        "nativeBranchRva": "0xC591E83",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E83",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd500a]",
+          "bytes": "488b0df6af22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BCE80",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 21,
+        "jumpTableRelativeI32": -512,
+        "nativeBranchRva": "0xC591E94",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591E94",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd12c3]",
+          "bytes": "488b0d3ded22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C0BD8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 22,
+        "jumpTableRelativeI32": -495,
+        "nativeBranchRva": "0xC591EA5",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591EA5",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd12fc]",
+          "bytes": "488b0d04ed22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C0BB0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 23,
+        "jumpTableRelativeI32": -350,
+        "nativeBranchRva": "0xC591F36",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591F36",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd6795]",
+          "bytes": "488b0d6b9822f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BB7A8",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 24,
+        "jumpTableRelativeI32": -333,
+        "nativeBranchRva": "0xC591F47",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591F47",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd3026]",
+          "bytes": "488b0ddacf22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BEF28",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 25,
+        "jumpTableRelativeI32": -316,
+        "nativeBranchRva": "0xC591F58",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591F58",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd4b5f]",
+          "bytes": "488b0da1b422f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BD400",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 26,
+        "jumpTableRelativeI32": -281,
+        "nativeBranchRva": "0xC591F7B",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591F7B",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd5c02]",
+          "bytes": "488b0dfea322f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BC380",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 27,
+        "jumpTableRelativeI32": -253,
+        "nativeBranchRva": "0xC591F97",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591F97",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd0dfe]",
+          "bytes": "488b0d02f222f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57C11A0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 28,
+        "jumpTableRelativeI32": -214,
+        "nativeBranchRva": "0xC591FBE",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591FBE",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd2ff5]",
+          "bytes": "488b0d0bd022f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BEFD0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 29,
+        "jumpTableRelativeI32": -175,
+        "nativeBranchRva": "0xC591FE5",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591FE5",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd300c]",
+          "bytes": "488b0df4cf22f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BEFE0",
+        "originalConcreteTypeUnproven": true
+      },
+      {
+        "originalNumericCaseId": 30,
+        "jumpTableRelativeI32": -150,
+        "nativeBranchRva": "0xC591FFE",
+        "originalFirstNativeInstruction": {
+          "rva": "0xC591FFE",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd4a85]",
+          "bytes": "488b0d7bb522f9"
+        },
+        "nativeRuntimeClassSlotRva": "0x57BD580",
+        "originalConcreteTypeUnproven": true
+      }
+    ],
+    "originalClassMethods": [
+      {
+        "name": "AJPDPHKILPL",
+        "index": 408893,
+        "rva": "0xC58E6A0"
+      },
+      {
+        "name": "JLFKNFFFPFA",
+        "index": 408894,
+        "rva": "0xC58E8A0"
+      },
+      {
+        "name": "HHIDGBPGLJA",
+        "index": 408895,
+        "rva": "0xC58E990"
+      },
+      {
+        "name": "EAKMKFEPIGL",
+        "index": 408896,
+        "rva": "0xC58E9B0"
+      },
+      {
+        "name": "OPPCFDDFFBP",
+        "index": 408897,
+        "rva": "0xC58E9E0"
+      },
+      {
+        "name": "OKECJEHJHAK",
+        "index": 408898,
+        "rva": "0xC58EA30"
+      },
+      {
+        "name": "NPNAEODNPKM",
+        "index": 408899,
+        "rva": "0xC58EAC0"
+      },
+      {
+        "name": "IKGJONBHJEC",
+        "index": 408900,
+        "rva": "0xC58EAE0"
+      },
+      {
+        "name": "NIBELHBBLCO",
+        "index": 408901,
+        "rva": "0xC58EB00"
+      },
+      {
+        "name": "HNLJLPLIFHF",
+        "index": 408902,
+        "rva": "0xC58EC60"
+      },
+      {
+        "name": "MLONDPGOOEP",
+        "index": 408903,
+        "rva": "0xC58EC80"
+      },
+      {
+        "name": "NLCOGLNDENL",
+        "index": 408904,
+        "rva": "0xC58ECB0"
+      },
+      {
+        "name": "ICNFCEHLDDN",
+        "index": 408905,
+        "rva": "0xC58ECD0"
+      },
+      {
+        "name": "FJIANIPJNAH",
+        "index": 408906,
+        "rva": "0xC58EE40"
+      },
+      {
+        "name": "DGAKPNIOLEI",
+        "index": 408907,
+        "rva": "0xC58EEE0"
+      },
+      {
+        "name": "CHHGCEODDDD",
+        "index": 408908,
+        "rva": "0xC58EF90"
+      },
+      {
+        "name": "JGJGENCIOAF",
+        "index": 408909,
+        "rva": "0xC58EFE0"
+      },
+      {
+        "name": "MKKNGLIBHEK",
+        "index": 408910,
+        "rva": "0xC58F000"
+      },
+      {
+        "name": "OGHJDOIBGAL",
+        "index": 408911,
+        "rva": "0xC58F560"
+      },
+      {
+        "name": "DMKEBBNKMPD",
+        "index": 408912,
+        "rva": "0xC58F670"
+      },
+      {
+        "name": "CGLDJIFMICA",
+        "index": 408913,
+        "rva": "0xC58F790"
+      },
+      {
+        "name": "BIGAGOOIHOC",
+        "index": 408914,
+        "rva": "0xC58F7E0"
+      },
+      {
+        "name": "MNMMOKPMHMB",
+        "index": 408915,
+        "rva": "0xC58F810"
+      },
+      {
+        "name": "HCELDHIPNAA",
+        "index": 408916,
+        "rva": "0xC58F840"
+      },
+      {
+        "name": "FKICHKKIFKH",
+        "index": 408917,
+        "rva": "0xC58F870"
+      },
+      {
+        "name": "OCODKMHNBCO",
+        "index": 408918,
+        "rva": "0xC58F930"
+      },
+      {
+        "name": "FJKEPHJCDAI",
+        "index": 408919,
+        "rva": "0xC58F9D0"
+      },
+      {
+        "name": "AJIJDOJLACF",
+        "index": 408920,
+        "rva": "0xC58F9F0"
+      },
+      {
+        "name": "FBJICMLMNLL",
+        "index": 408921,
+        "rva": "0xC590180"
+      },
+      {
+        "name": "PFCPDIHNCMD",
+        "index": 408922,
+        "rva": "0xC5901C0"
+      },
+      {
+        "name": "LDFHGFLNJKF",
+        "index": 408923,
+        "rva": "0xC5901E0"
+      },
+      {
+        "name": "PABGBGDAONI",
+        "index": 408924,
+        "rva": "0xC590A30"
+      },
+      {
+        "name": "LJKIFOANFGC",
+        "index": 408925,
+        "rva": "0xC590A60"
+      },
+      {
+        "name": "DBKLDKLGCLI",
+        "index": 408926,
+        "rva": "0xC590AD0"
+      },
+      {
+        "name": "DOINLKCLABL",
+        "index": 408927,
+        "rva": "0xC590C00"
+      },
+      {
+        "name": "LMJBEEDMCGO",
+        "index": 408928,
+        "rva": "0xC590D50"
+      },
+      {
+        "name": "HCHCFDBMEJA",
+        "index": 408929,
+        "rva": "0xC590D70"
+      },
+      {
+        "name": "NLAJPGEDAGD",
+        "index": 408930,
+        "rva": "0xC590D90"
+      },
+      {
+        "name": "KIPGJPBLDLO",
+        "index": 408931,
+        "rva": "0xC590E30"
+      },
+      {
+        "name": "GFHGKHMLGIH",
+        "index": 408932,
+        "rva": "0xC590E50"
+      },
+      {
+        "name": "AAIKHJNGCHA",
+        "index": 408933,
+        "rva": "0xC591070"
+      },
+      {
+        "name": "OEKMGCPIJMJ",
+        "index": 408934,
+        "rva": "0xC5910C0"
+      },
+      {
+        "name": "GOHDDJCEPID",
+        "index": 408935,
+        "rva": "0xC5910E0"
+      },
+      {
+        "name": "LKEANMCPIEJ",
+        "index": 408936,
+        "rva": "0xC591100"
+      },
+      {
+        "name": "GDCLBDNALJB",
+        "index": 408937,
+        "rva": "0xC591150"
+      },
+      {
+        "name": "AIFCAGAGOMF",
+        "index": 408938,
+        "rva": "0xC591170"
+      },
+      {
+        "name": "NBEKJKAKAOG",
+        "index": 408939,
+        "rva": "0xC591790"
+      },
+      {
+        "name": "MMLOAGHJADH",
+        "index": 408940,
+        "rva": "0xC5918C0"
+      },
+      {
+        "name": "OEEHKFPFOJG",
+        "index": 408941,
+        "rva": "0xC591990"
+      },
+      {
+        "name": "HGMBNDNIFCD",
+        "index": 408942,
+        "rva": "0xC5919B0"
+      },
+      {
+        "name": "KDOFOIOHLPF",
+        "index": 408943,
+        "rva": "0xC5919E0"
+      },
+      {
+        "name": "PFOKCHDNNID",
+        "index": 408944,
+        "rva": "0xC591A80"
+      },
+      {
+        "name": "JIEAILFJKNA",
+        "index": 408945,
+        "rva": "0xC591C60"
+      },
+      {
+        "name": "PBLHBPNMMEN",
+        "index": 408946,
+        "rva": "0xC592110"
+      },
+      {
+        "name": "HAAMOBFDKDM",
+        "index": 408947,
+        "rva": "0xC592410"
+      },
+      {
+        "name": "MDBLODFIHNP",
+        "index": 408948,
+        "rva": "0xC592430"
+      },
+      {
+        "name": "CHKGHCEODFJ",
+        "index": 408949,
+        "rva": "0xC592480"
+      },
+      {
+        "name": "PAEABLLHMMI",
+        "index": 408950,
+        "rva": "0xC5924A0"
+      },
+      {
+        "name": "JAOOLFMFNPM",
+        "index": 408951,
+        "rva": "0xC5924C0"
+      },
+      {
+        "name": "LINJKDLKFGP",
+        "index": 408952,
+        "rva": "0xC592560"
+      },
+      {
+        "name": "EGMHOPABELL",
+        "index": 408953,
+        "rva": "0xC592590"
+      },
+      {
+        "name": "NFPIPICDNGD",
+        "index": 408954,
+        "rva": "0xC5925F0"
+      },
+      {
+        "name": "ABMLFJLNFKC",
+        "index": 408955,
+        "rva": "0xC592610"
+      },
+      {
+        "name": "AFDHMPDGDJM",
+        "index": 408956,
+        "rva": "0xC592630"
+      },
+      {
+        "name": "OBPEJCBBPKB",
+        "index": 408957,
+        "rva": "0xC592680"
+      },
+      {
+        "name": "OEGPAJNBIHL",
+        "index": 408958,
+        "rva": "0xC5926A0"
+      },
+      {
+        "name": "IPDKLLOPMKJ",
+        "index": 408959,
+        "rva": "0xC5927F0"
+      },
+      {
+        "name": "HMLEHFGBODG",
+        "index": 408960,
+        "rva": "0xC592810"
+      },
+      {
+        "name": "LPIPJIBBHBA",
+        "index": 408961,
+        "rva": "0xC592860"
+      },
+      {
+        "name": "JKOMMIIPNAH",
+        "index": 408962,
+        "rva": "0xC592920"
+      },
+      {
+        "name": "GGPKCEPNEDK",
+        "index": 408963,
+        "rva": "0xC592A60"
+      },
+      {
+        "name": "BJGPDKDMFAL",
+        "index": 408964,
+        "rva": "0xC592AC0"
+      },
+      {
+        "name": "DDGHHIDEIIK",
+        "index": 408965,
+        "rva": "0xC592AF0"
+      },
+      {
+        "name": "JEGCJEEIPDI",
+        "index": 408966,
+        "rva": "0xC592B60"
+      },
+      {
+        "name": "BFAPHJBEALA",
+        "index": 408967,
+        "rva": "0xC592B80"
+      },
+      {
+        "name": "GOIELIBGJKK",
+        "index": 408968,
+        "rva": "0xC592CA0"
+      },
+      {
+        "name": "PINLBJGMBKB",
+        "index": 408969,
+        "rva": "0xC592CF0"
+      },
+      {
+        "name": "LBMOOENELBB",
+        "index": 408970,
+        "rva": "0xC592DC0"
+      },
+      {
+        "name": "INMEPONHFMH",
+        "index": 408971,
+        "rva": "0xC592EB0"
+      },
+      {
+        "name": "NNMILEDFKNI",
+        "index": 408972,
+        "rva": "0xC593030"
+      },
+      {
+        "name": "EENBAHKMMKH",
+        "index": 408973,
+        "rva": "0xC593AD0"
+      },
+      {
+        "name": "FAFBAHCECKB",
+        "index": 408974,
+        "rva": "0xC593AF0"
+      },
+      {
+        "name": "NPHJMMCNKNO",
+        "index": 408975,
+        "rva": "0xC593B10"
+      },
+      {
+        "name": "OAGPMHCGJLP",
+        "index": 408976,
+        "rva": "0xC593B30"
+      },
+      {
+        "name": "FNGLBBEJBEP",
+        "index": 408977,
+        "rva": "0xC593ED0"
+      },
+      {
+        "name": "JEEBAKENDNG",
+        "index": 408978,
+        "rva": "0xC593F90"
+      },
+      {
+        "name": "NJKMHHHLHKG",
+        "index": 408979,
+        "rva": "0xC594120"
+      },
+      {
+        "name": "JBKHGFAPOPL",
+        "index": 408980,
+        "rva": "0xC594140"
+      },
+      {
+        "name": "PJIFLDELDGO",
+        "index": 408981,
+        "rva": "0xC594300"
+      },
+      {
+        "name": "NPJPEEGDPAH",
+        "index": 408982,
+        "rva": "0xC594360"
+      },
+      {
+        "name": "JNPPKKAKOHM",
+        "index": 408983,
+        "rva": "0xC594390"
+      },
+      {
+        "name": "HFPPMLJNKNK",
+        "index": 408984,
+        "rva": "0xC5943B0"
+      },
+      {
+        "name": "LLPHONBILKH",
+        "index": 408985,
+        "rva": "0xC5944E0"
+      },
+      {
+        "name": "FDEFKBIDGCP",
+        "index": 408986,
+        "rva": "0xC594880"
+      },
+      {
+        "name": "NIAHNBKKDOI",
+        "index": 408987,
+        "rva": "0xC5948B0"
+      },
+      {
+        "name": "GOMNJLNJNLG",
+        "index": 408988,
+        "rva": "0xC5948D0"
+      },
+      {
+        "name": "GFOBMFJEIPG",
+        "index": 408989,
+        "rva": "0xC5949F0"
+      },
+      {
+        "name": "ABMHKLNAEHH",
+        "index": 408990,
+        "rva": "0xC594A10"
+      },
+      {
+        "name": "FAOBGPOJJBP",
+        "index": 408991,
+        "rva": "0xC594AA0"
+      },
+      {
+        "name": "MNGOHNDBCNK",
+        "index": 408992,
+        "rva": "0xC594B70"
+      },
+      {
+        "name": "PKJBBGNNMFP",
+        "index": 408993,
+        "rva": "0xC594BA0"
+      },
+      {
+        "name": "LCOOOKHEPAJ",
+        "index": 408994,
+        "rva": "0xC594BD0"
+      },
+      {
+        "name": "LCFJGIFDIKB",
+        "index": 408995,
+        "rva": "0xC594C80"
+      },
+      {
+        "name": "ENDCHECFANF",
+        "index": 408996,
+        "rva": "0xC594CA0"
+      },
+      {
+        "name": "BGLHFGJMMPC",
+        "index": 408997,
+        "rva": "0xC594CC0"
+      },
+      {
+        "name": "AAJBDECNNDK",
+        "index": 408998,
+        "rva": "0xC594CF0"
+      },
+      {
+        "name": "FFIDOMMEAMO",
+        "index": 408999,
+        "rva": "0xC594D10"
+      },
+      {
+        "name": "OHFOGEDCNKC",
+        "index": 409000,
+        "rva": "0xC594D70"
+      },
+      {
+        "name": "EDBOMFMFFKO",
+        "index": 409001,
+        "rva": "0xC594DB0"
+      },
+      {
+        "name": "OEMKHCHNEEI",
+        "index": 409002,
+        "rva": "0xC59A900"
+      },
+      {
+        "name": "GLGEJDKPKKJ",
+        "index": 409003,
+        "rva": "0xC59A930"
+      },
+      {
+        "name": "AIKKPOAGKEP",
+        "index": 409004,
+        "rva": "0xC59AA10"
+      },
+      {
+        "name": "JNHDEDHEEHL",
+        "index": 409005,
+        "rva": "0xC59AA30"
+      },
+      {
+        "name": "EIJECLNPNBO",
+        "index": 409006,
+        "rva": "0xC59AA80"
+      },
+      {
+        "name": "IPOPLIDHCJN",
+        "index": 409007,
+        "rva": "0xC59AAA0"
+      },
+      {
+        "name": "MHFHLNEILGN",
+        "index": 409008,
+        "rva": "0xC59AAC0"
+      },
+      {
+        "name": "DLPGJGGOCEM",
+        "index": 409009,
+        "rva": "0xC59AAE0"
+      },
+      {
+        "name": "BMFOEBKFGGG",
+        "index": 409010,
+        "rva": "0xC59AB00"
+      },
+      {
+        "name": "LKJBFCCKGHK",
+        "index": 409011,
+        "rva": "0xC59ADA0"
+      },
+      {
+        "name": "PLBFEDNNMKN",
+        "index": 409012,
+        "rva": "0xC59ADC0"
+      },
+      {
+        "name": "MGCHKCDDEOC",
+        "index": 409013,
+        "rva": "0xC59ADF0"
+      },
+      {
+        "name": "ACCKOLHOEMP",
+        "index": 409014,
+        "rva": "0xC59AE10"
+      },
+      {
+        "name": "AHOMEAHFHCK",
+        "index": 409015,
+        "rva": "0xC59AF20"
+      },
+      {
+        "name": "PFBMMFJJLOI",
+        "index": 409016,
+        "rva": "0xC59B0B0"
+      },
+      {
+        "name": "KHJNAONCPII",
+        "index": 409017,
+        "rva": "0xC59B0D0"
+      },
+      {
+        "name": "EAOMPGEJLGO",
+        "index": 409018,
+        "rva": "0xC59B120"
+      },
+      {
+        "name": "FINFMKHBKFD",
+        "index": 409019,
+        "rva": "0xC59B140"
+      },
+      {
+        "name": "MIJMHMCMBAN",
+        "index": 409020,
+        "rva": "0xC59B280"
+      },
+      {
+        "name": "DBCNCCNABFI",
+        "index": 409021,
+        "rva": "0xC59B2A0"
+      },
+      {
+        "name": "OEIJICGLAAB",
+        "index": 409022,
+        "rva": "0xC59B2D0"
+      },
+      {
+        "name": "OEIKCAEAGIH",
+        "index": 409023,
+        "rva": "0xC59B340"
+      },
+      {
+        "name": "GAKDLNALJAH",
+        "index": 409024,
+        "rva": "0xC59B560"
+      },
+      {
+        "name": "JHDFOGHHANF",
+        "index": 409025,
+        "rva": "0xC59B580"
+      },
+      {
+        "name": "OJKGPBKPCBO",
+        "index": 409026,
+        "rva": "0xC59B5A0"
+      },
+      {
+        "name": "FOPBIPKOCIG",
+        "index": 409027,
+        "rva": "0xC59B5C0"
+      },
+      {
+        "name": "IECGJFOAIIG",
+        "index": 409028,
+        "rva": "0xC59B690"
+      },
+      {
+        "name": "COBELJFBIMB",
+        "index": 409029,
+        "rva": "0xC59B820"
+      },
+      {
+        "name": "GIBMOEDJCHN",
+        "index": 409030,
+        "rva": "0xC59B850"
+      },
+      {
+        "name": "PCAKJBHEGBP",
+        "index": 409031,
+        "rva": "0xC59C250"
+      },
+      {
+        "name": "NODOJIIOAIJ",
+        "index": 409032,
+        "rva": "0xC59C270"
+      },
+      {
+        "name": "JOLIJHCAJOK",
+        "index": 409033,
+        "rva": "0xC59C290"
+      },
+      {
+        "name": "HCMFGENEGLG",
+        "index": 409034,
+        "rva": "0xC59C2E0"
+      },
+      {
+        "name": "DNJBKJGBGDK",
+        "index": 409035,
+        "rva": "0xC59C4C0"
+      },
+      {
+        "name": "MGEJJNBCIKD",
+        "index": 409036,
+        "rva": "0xC59C8C0"
+      },
+      {
+        "name": "BCJNLGHMCCD",
+        "index": 409037,
+        "rva": "0xC59C9C0"
+      },
+      {
+        "name": "GELAFKDINEA",
+        "index": 409038,
+        "rva": "0xC59CAA0"
+      },
+      {
+        "name": "INJADDDNONN",
+        "index": 409039,
+        "rva": "0xC59CBD0"
+      },
+      {
+        "name": "LKNLJOGDKOC",
+        "index": 409040,
+        "rva": "0xC59CC10"
+      },
+      {
+        "name": "HEIEAIEDEIF",
+        "index": 409041,
+        "rva": "0xC59CC30"
+      },
+      {
+        "name": "BJDLPBPJAFI",
+        "index": 409042,
+        "rva": "0xC59CC80"
+      },
+      {
+        "name": "NLIAAKKNHNE",
+        "index": 409043,
+        "rva": "0xC59CCA0"
+      },
+      {
+        "name": "KLNDNKAPGLO",
+        "index": 409044,
+        "rva": "0xC59CCC0"
+      },
+      {
+        "name": "HHLECLLDAOI",
+        "index": 409045,
+        "rva": "0xC59CD30"
+      },
+      {
+        "name": "HOJDCPNEODH",
+        "index": 409046,
+        "rva": "0xC59CD60"
+      },
+      {
+        "name": "LJNCMLCOKMO",
+        "index": 409047,
+        "rva": "0xC59CD80"
+      },
+      {
+        "name": "BDNLDLJJPFH",
+        "index": 409048,
+        "rva": "0xC59CDA0"
+      },
+      {
+        "name": "OJDPLIGJLDO",
+        "index": 409049,
+        "rva": "0xC59CDD0"
+      },
+      {
+        "name": "JIODHFPOMFE",
+        "index": 409050,
+        "rva": "0xC59CDF0"
+      },
+      {
+        "name": "OLFJIDCNLEG",
+        "index": 409051,
+        "rva": "0xC59D010"
+      },
+      {
+        "name": "LBBJPJFOKBC",
+        "index": 409052,
+        "rva": "0xC59D310"
+      },
+      {
+        "name": "NKCIPJEGNEC",
+        "index": 409053,
+        "rva": "0xC59D330"
+      },
+      {
+        "name": "OAPIPLGKNAP",
+        "index": 409054,
+        "rva": "0xC59D450"
+      },
+      {
+        "name": "EEKAKBAFFMO",
+        "index": 409055,
+        "rva": "0xC59D470"
+      },
+      {
+        "name": "INOPFIGCBKK",
+        "index": 409056,
+        "rva": "0xC59D4A0"
+      },
+      {
+        "name": "OFIGIABBDBI",
+        "index": 409057,
+        "rva": "0xC59D500"
+      },
+      {
+        "name": "CFNMHLEJPKH",
+        "index": 409058,
+        "rva": "0xC59D520"
+      },
+      {
+        "name": "BOPNKMCOOFI",
+        "index": 409059,
+        "rva": "0xC59D540"
+      },
+      {
+        "name": "HMGLNAJHMKE",
+        "index": 409060,
+        "rva": "0xC59D560"
+      },
+      {
+        "name": "HPPNJMIHCHO",
+        "index": 409061,
+        "rva": "0xC59D690"
+      },
+      {
+        "name": "OHHPEKMBINI",
+        "index": 409062,
+        "rva": "0xC59D6B0"
+      },
+      {
+        "name": "JBLHEKGDEJM",
+        "index": 409063,
+        "rva": "0xC59D6D0"
+      },
+      {
+        "name": "DLEKKJPPICI",
+        "index": 409064,
+        "rva": "0xC59D6F0"
+      },
+      {
+        "name": "BLKOBBCHFMG",
+        "index": 409065,
+        "rva": "0xC59D710"
+      },
+      {
+        "name": "FJENMAHIHKN",
+        "index": 409066,
+        "rva": "0xC59D730"
+      },
+      {
+        "name": "MBAMIBHMPAA",
+        "index": 409067,
+        "rva": "0xC59D8A0"
+      },
+      {
+        "name": "IBFOANOPLGB",
+        "index": 409068,
+        "rva": "0xC59D8C0"
+      },
+      {
+        "name": "PAMHGGNCGJL",
+        "index": 409069,
+        "rva": "0xC59D980"
+      },
+      {
+        "name": "NEBOBNFAKOI",
+        "index": 409070,
+        "rva": "0xC59D9B0"
+      },
+      {
+        "name": "IFBKEKMAPJH",
+        "index": 409071,
+        "rva": "0xC59DF20"
+      },
+      {
+        "name": "AKLDNNOPGHA",
+        "index": 409072,
+        "rva": "0xC59E120"
+      },
+      {
+        "name": "CPFDEEJMIHG",
+        "index": 409073,
+        "rva": "0xC59E3A0"
+      },
+      {
+        "name": "JNGMLCLAOLF",
+        "index": 409074,
+        "rva": "0xC59E3D0"
+      },
+      {
+        "name": "EAKFPHJJJDF",
+        "index": 409075,
+        "rva": "0xC59E400"
+      },
+      {
+        "name": "PGGJLCCCAFI",
+        "index": 409076,
+        "rva": "0xC59E420"
+      },
+      {
+        "name": "IEOBKBBCOOE",
+        "index": 409077,
+        "rva": "0xC59E490"
+      },
+      {
+        "name": "LEMMCKFEIJG",
+        "index": 409078,
+        "rva": "0xC59E520"
+      },
+      {
+        "name": "HEDAELEEEKN",
+        "index": 409079,
+        "rva": "0xC59E540"
+      },
+      {
+        "name": "LGPIJIMHGNC",
+        "index": 409080,
+        "rva": "0xC59E560"
+      },
+      {
+        "name": "PEGAGJIEEHB",
+        "index": 409081,
+        "rva": "0xC59E870"
+      },
+      {
+        "name": "IMCENHOGMGE",
+        "index": 409082,
+        "rva": "0xC59E890"
+      },
+      {
+        "name": "LJEPBMFIHDL",
+        "index": 409083,
+        "rva": "0xC59E930"
+      },
+      {
+        "name": "PMFPFBKFAHO",
+        "index": 409084,
+        "rva": "0xC59E950"
+      },
+      {
+        "name": "IDHIAJMEEJE",
+        "index": 409085,
+        "rva": "0xC59E9A0"
+      },
+      {
+        "name": "JLLEDLKDHNL",
+        "index": 409086,
+        "rva": "0xC59EBC0"
+      },
+      {
+        "name": "LCABNJHKLMH",
+        "index": 409087,
+        "rva": "0xC59EDA0"
+      },
+      {
+        "name": "GCMLCFLMMAO",
+        "index": 409088,
+        "rva": "0xC59EDC0"
+      },
+      {
+        "name": "CBLFNGJDIIF",
+        "index": 409089,
+        "rva": "0xC59EDE0"
+      },
+      {
+        "name": "KDKHDNEFKDE",
+        "index": 409090,
+        "rva": "0xC59EE00"
+      },
+      {
+        "name": "NIFPKKBEMID",
+        "index": 409091,
+        "rva": "0xC59EFE0"
+      },
+      {
+        "name": "INBAHDGFPML",
+        "index": 409092,
+        "rva": "0xC59F000"
+      },
+      {
+        "name": "DLKFBAMOFBG",
+        "index": 409093,
+        "rva": "0xC59F260"
+      },
+      {
+        "name": "EJEOJHMPEMM",
+        "index": 409094,
+        "rva": "0xC59F310"
+      },
+      {
+        "name": "HKNBKBJODJO",
+        "index": 409095,
+        "rva": "0xC59F3C0"
+      },
+      {
+        "name": "IDHKFBCCBJH",
+        "index": 409096,
+        "rva": "0xC59F3E0"
+      },
+      {
+        "name": "AIAKDAEMEPH",
+        "index": 409097,
+        "rva": "0xC59F430"
+      },
+      {
+        "name": "DJJFLKIEIAP",
+        "index": 409098,
+        "rva": "0xC59F450"
+      },
+      {
+        "name": "FBFILLPJHHC",
+        "index": 409099,
+        "rva": "0xC59F480"
+      },
+      {
+        "name": "DJGMMONPGPP",
+        "index": 409100,
+        "rva": "0xC59F590"
+      },
+      {
+        "name": "IALBPHBAKDO",
+        "index": 409101,
+        "rva": "0xC59F680"
+      },
+      {
+        "name": "LKOLCILNBBP",
+        "index": 409102,
+        "rva": "0xC5A0550"
+      },
+      {
+        "name": "BJCOPGGCMNO",
+        "index": 409103,
+        "rva": "0xC5A0570"
+      },
+      {
+        "name": "JNMBNAMLPLD",
+        "index": 409104,
+        "rva": "0xC5A05D0"
+      },
+      {
+        "name": "OOFEHHLCCLF",
+        "index": 409105,
+        "rva": "0xC5A06C0"
+      },
+      {
+        "name": "MJLKICDECKM",
+        "index": 409106,
+        "rva": "0xC5A0710"
+      },
+      {
+        "name": "PHDCCAGKKEB",
+        "index": 409107,
+        "rva": "0xC5A0730"
+      },
+      {
+        "name": "EEDIKDEPFLF",
+        "index": 409108,
+        "rva": "0xC5A0750"
+      },
+      {
+        "name": "ILJMDOBELJN",
+        "index": 409109,
+        "rva": "0xC5A0780"
+      },
+      {
+        "name": "NGKAPHEJLFD",
+        "index": 409110,
+        "rva": "0xC5A07A0"
+      },
+      {
+        "name": "IIGCCKLLLEK",
+        "index": 409111,
+        "rva": "0xC5A07C0"
+      },
+      {
+        "name": "PAAMHNAGHIM",
+        "index": 409112,
+        "rva": "0xC5A07E0"
+      },
+      {
+        "name": "PGHKDDAAFAO",
+        "index": 409113,
+        "rva": "0xC5A0800"
+      },
+      {
+        "name": "BACJEKCBHFE",
+        "index": 409114,
+        "rva": "0xC5A0820"
+      },
+      {
+        "name": "EJLNIFIPDKC",
+        "index": 409115,
+        "rva": "0xC5A0840"
+      },
+      {
+        "name": "CNEEHJBOBCA",
+        "index": 409116,
+        "rva": "0xC5A0AE0"
+      },
+      {
+        "name": "GIAHHFIMPAL",
+        "index": 409117,
+        "rva": "0xC5A0B20"
+      },
+      {
+        "name": "HHKNANJCKEJ",
+        "index": 409118,
+        "rva": "0xC5A0B40"
+      },
+      {
+        "name": "JPGKJLOHCGI",
+        "index": 409119,
+        "rva": "0xC5A0B60"
+      },
+      {
+        "name": "KFLLOEFONBC",
+        "index": 409120,
+        "rva": "0xC5A0C00"
+      },
+      {
+        "name": "MDEMOAJGMEK",
+        "index": 409121,
+        "rva": "0xC5A0C20"
+      },
+      {
+        "name": "LBPJAOFKBLF",
+        "index": 409122,
+        "rva": "0xC5A0C40"
+      },
+      {
+        "name": "LJBLPGOEPGK",
+        "index": 409123,
+        "rva": "0xC5A0C60"
+      },
+      {
+        "name": "LPCAIOPMCOO",
+        "index": 409124,
+        "rva": "0xC5A0F70"
+      },
+      {
+        "name": "LDHIABFKDLO",
+        "index": 409125,
+        "rva": "0xC5A0FA0"
+      },
+      {
+        "name": "FHHPAPHBEPP",
+        "index": 409126,
+        "rva": "0xC5A0FD0"
+      },
+      {
+        "name": "KBMBDLFHJJD",
+        "index": 409127,
+        "rva": "0xC5A1000"
+      },
+      {
+        "name": "KGJEMNCNNMJ",
+        "index": 409128,
+        "rva": "0xC5A1020"
+      },
+      {
+        "name": "KCAOELBEDFP",
+        "index": 409129,
+        "rva": "0xC5A10A0"
+      },
+      {
+        "name": "GGDNIFFAIGD",
+        "index": 409130,
+        "rva": "0xC5A12C0"
+      },
+      {
+        "name": "FFBPNOMBCJD",
+        "index": 409131,
+        "rva": "0xC5A12E0"
+      },
+      {
+        "name": "MJPJDOLBMJB",
+        "index": 409132,
+        "rva": "0xC5A1710"
+      },
+      {
+        "name": "KBKJOGEHBDC",
+        "index": 409133,
+        "rva": "0xC5A1800"
+      },
+      {
+        "name": "CNBJGIDOPLE",
+        "index": 409134,
+        "rva": "0xC5A1820"
+      },
+      {
+        "name": "HJDMAFLJCJH",
+        "index": 409135,
+        "rva": "0xC5A18B0"
+      },
+      {
+        "name": "GNALNKHFPDJ",
+        "index": 409136,
+        "rva": "0xC5A1910"
+      },
+      {
+        "name": "EBHBFFFONFI",
+        "index": 409137,
+        "rva": "0xC5A19B0"
+      },
+      {
+        "name": "PIALIIKNMKK",
+        "index": 409138,
+        "rva": "0xC5A1A70"
+      },
+      {
+        "name": "GPBJOFJAIHN",
+        "index": 409139,
+        "rva": "0xC5A1AF0"
+      },
+      {
+        "name": "NOOOFMMFAGE",
+        "index": 409140,
+        "rva": "0xC5A1B10"
+      },
+      {
+        "name": "MLNOOJOIGJA",
+        "index": 409141,
+        "rva": "0xC5A1BE0"
+      },
+      {
+        "name": "MMALNKBCCEJ",
+        "index": 409142,
+        "rva": "0xC5A1C70"
+      },
+      {
+        "name": "KEPOBOHFMKJ",
+        "index": 409143,
+        "rva": "0xC5A1CA0"
+      },
+      {
+        "name": "AADCJFJDGFA",
+        "index": 409144,
+        "rva": "0xC5A1CC0"
+      },
+      {
+        "name": "HGJOOHEDHOM",
+        "index": 409145,
+        "rva": "0xC5A1F20"
+      },
+      {
+        "name": "EPKHLMDDNKC",
+        "index": 409146,
+        "rva": "0xC5A1F40"
+      },
+      {
+        "name": "IBLMIDGNMNK",
+        "index": 409147,
+        "rva": "0xC5A1F60"
+      },
+      {
+        "name": "ICJOENNOHAG",
+        "index": 409148,
+        "rva": "0xC5A1F90"
+      },
+      {
+        "name": "NCNNKDGJJPF",
+        "index": 409149,
+        "rva": "0xC5A1FC0"
+      },
+      {
+        "name": "PALDMEFGGPD",
+        "index": 409150,
+        "rva": "0xC5A2060"
+      },
+      {
+        "name": "ONAHFJCNMIP",
+        "index": 409151,
+        "rva": "0xC5A2110"
+      },
+      {
+        "name": "OIBPHEMAJJC",
+        "index": 409152,
+        "rva": "0xC5A2130"
+      },
+      {
+        "name": "BIPOJNCCLAI",
+        "index": 409153,
+        "rva": "0xC5A2150"
+      },
+      {
+        "name": "PDEJJBPCLLB",
+        "index": 409154,
+        "rva": "0xC5A2370"
+      },
+      {
+        "name": "LCHKPOPFIBJ",
+        "index": 409155,
+        "rva": "0xC5A2390"
+      },
+      {
+        "name": "OFDIMGIOCMI",
+        "index": 409156,
+        "rva": "0xC5A2500"
+      },
+      {
+        "name": "PJOALHAOPNG",
+        "index": 409157,
+        "rva": "0xC5A2520"
+      },
+      {
+        "name": "HEGAKKBCEME",
+        "index": 409158,
+        "rva": "0xC5A27E0"
+      },
+      {
+        "name": "DDGBHJJIDEC",
+        "index": 409159,
+        "rva": "0xC5A2810"
+      },
+      {
+        "name": "LHEPGKKJKGA",
+        "index": 409160,
+        "rva": "0xC5A28D0"
+      },
+      {
+        "name": "GANIOMLEJEP",
+        "index": 409161,
+        "rva": "0xC5A28F0"
+      },
+      {
+        "name": "ACIDJIBEFEH",
+        "index": 409162,
+        "rva": "0xC5A2930"
+      },
+      {
+        "name": "AIMHLHBKBBF",
+        "index": 409163,
+        "rva": "0xC5A2960"
+      },
+      {
+        "name": "GFMMCNKOPAM",
+        "index": 409164,
+        "rva": "0xC5A2980"
+      },
+      {
+        "name": "ABFODBGDOHG",
+        "index": 409165,
+        "rva": "0xC5A7FC0"
+      },
+      {
+        "name": "AKOHNEDALJI",
+        "index": 409166,
+        "rva": "0xC5A7FE0"
+      },
+      {
+        "name": "NPLDNNPCDOI",
+        "index": 409167,
+        "rva": "0xC5A8000"
+      },
+      {
+        "name": "OMMDKKGDCGC",
+        "index": 409168,
+        "rva": "0xC5A8020"
+      },
+      {
+        "name": "HEBAGGEJHEK",
+        "index": 409169,
+        "rva": "0xC5A8040"
+      },
+      {
+        "name": "OKLJAFFHJAB",
+        "index": 409170,
+        "rva": "0xC5A8060"
+      },
+      {
+        "name": "MJCMNGPBHDB",
+        "index": 409171,
+        "rva": "0xC5A80B0"
+      },
+      {
+        "name": "BOHCNOHEBBA",
+        "index": 409172,
+        "rva": "0xC5A81F0"
+      },
+      {
+        "name": "OCABMDBIKOK",
+        "index": 409173,
+        "rva": "0xC5A8280"
+      },
+      {
+        "name": "GEAGOLDBEMA",
+        "index": 409174,
+        "rva": "0xC5A82B0"
+      },
+      {
+        "name": "FBPDFBOICPM",
+        "index": 409175,
+        "rva": "0xC5A82D0"
+      },
+      {
+        "name": "HOIIFPABMJM",
+        "index": 409176,
+        "rva": "0xC5A82F0"
+      },
+      {
+        "name": "CECHHKKBLGK",
+        "index": 409177,
+        "rva": "0xC5A8340"
+      },
+      {
+        "name": "FHOLGDMFAND",
+        "index": 409178,
+        "rva": "0xC5A8390"
+      },
+      {
+        "name": "HNOEOMLCHCA",
+        "index": 409179,
+        "rva": "0xC5A83C0"
+      },
+      {
+        "name": "EDDFICJEPHN",
+        "index": 409180,
+        "rva": "0xC5A8410"
+      },
+      {
+        "name": "ACEJLLKJKAL",
+        "index": 409181,
+        "rva": "0xC5A8430"
+      },
+      {
+        "name": "KMHBGCNKCAF",
+        "index": 409182,
+        "rva": "0xC5A8450"
+      },
+      {
+        "name": "MMNNFNCNGEB",
+        "index": 409183,
+        "rva": "0xC5A8560"
+      },
+      {
+        "name": "MMJCLILMDIH",
+        "index": 409184,
+        "rva": "0xC5A86A0"
+      },
+      {
+        "name": "GKJFBHABEOI",
+        "index": 409185,
+        "rva": "0xC5A8710"
+      },
+      {
+        "name": "LDNNGLGJCID",
+        "index": 409186,
+        "rva": "0xC5A8730"
+      },
+      {
+        "name": "EDIFGIMNJJL",
+        "index": 409187,
+        "rva": "0xC5A9610"
+      },
+      {
+        "name": "GKIPNDBAMOF",
+        "index": 409188,
+        "rva": "0xC5A96E0"
+      },
+      {
+        "name": "BFODMJKAMOH",
+        "index": 409189,
+        "rva": "0xC5A9750"
+      },
+      {
+        "name": "CECIAELKAOC",
+        "index": 409190,
+        "rva": "0xC5A9770"
+      }
+    ]
+  },
+  "originalParentClass": {
+    "obfuscatedType": "IJNOFJEOMBD",
+    "typeDefinitionIndex": 22426,
+    "nativeReaderRva": "0xEE66B20",
+    "originalFields": [
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113728,
+        "name": "GLLMLBFHOAG",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510278
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113729,
+        "name": "OALJGKDNOEK",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510279
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113730,
+        "name": "OFBEHFMDECH",
+        "memberType": "CCPCOHEPGHC",
+        "runtimeTypeIndex": 510280
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113731,
+        "name": "DLOLFMHMGBP",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510281
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113732,
+        "name": "PBICPDIGLLE",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510282
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113733,
+        "name": "HALNPNMJJAN",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510283
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113734,
+        "name": "LNMLHKKJNFP",
+        "memberType": "kind_0x15",
+        "runtimeTypeIndex": 510284
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113735,
+        "name": "FDMMOEKIOOP",
+        "memberType": "MHKHHKDDJNI",
+        "runtimeTypeIndex": 476833
+      },
+      {
+        "originalTypeName": "IJNOFJEOMBD",
+        "typeDefinitionIndex": 22426,
+        "index": 113736,
+        "name": "EODFOKINOME",
+        "memberType": "MHKHHKDDJNI",
+        "runtimeTypeIndex": 476833
+      }
+    ]
+  },
+  "claims": {
+    "originalNativeArrayElementByteDiscriminatorAndDynamicFactoryProven": true,
+    "originalNativeFactoryHas31JumpCasesProven": true,
+    "originalVirtualElementReadSlot0xF8Proven": true,
+    "eachNumericCaseConcreteIL2CPPClassResolved": false,
+    "originalScenePointFileConsumerLinked": false,
+    "sourceScenePointArrayCountFullyDecodedWithoutLoaderAssumptions": false,
+    "originalPointElementsFullyConsumed": false,
+    "chestGadgetInstanceCoordinatesRecovered": false,
+    "chestLevelSemanticsRecovered": false,
+    "serverClientChestPlacementOwnershipProven": false
+  },
+  "cautions": [
+    "The factory's 31-case jump table occupies the final 124 bytes of the bounded method window; those bytes are data and excluded from code-instruction count.",
+    "The first indirect call at 0xAD230BB initializes an allocated array/list object; source-only evidence does not resolve its runtime function pointer.",
+    "The native 0xAD233BE method call uses vtable offset 0xF8. Concrete class identity and its field decoder remain unverified.",
+    "Numeric subtype case integers and code-referenced class slots have no verified gameplay semantic meaning.",
+    "A proven generic reader and its factory do not prove that an original scene*_point resource is passed to that reader.",
+    "No AstaPS, historical server Lua, community JSON or reward table data are used."
+  ]
+}
