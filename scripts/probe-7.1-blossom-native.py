@@ -57,13 +57,35 @@ def main():
             if int(record["cmd_id"]) in (112,6743,20484,29702,23101):
                 for ins in instructions[:60]:
                     print("  DISASM",ins["rva"],ins["op"],ins["args"],flush=True)
+    # Independently recovered original-client receiver class. These typed
+    # methods are C#-style handlers for the three co-list instances and
+    # associated scene/owner blossom notifications. Preserve exact bytes.
+    receiver_sites={
+        "handler-6743":(0xC78C930,0x150),
+        "handler-20484":(0xC790C00,0x260),
+        "handler-23101":(0xC78D030,0x300),
+        "handler-6993":(0xC78FA10,0x120),
+        "handler-24698":(0xC792020,0x260),
+    }
+    receiver=[]
+    with PEImage(args.exe) as pe:
+        for label,(rva,size) in receiver_sites.items():
+            code=pe.read_rva(rva,size)
+            instructions=[{"rva":f"0x{ins.address-pe.image_base:X}",
+                 "op":ins.mnemonic,"args":ins.op_str,"bytes":bytes(ins.bytes).hex()}
+                 for ins in md.disasm(code,pe.image_base+rva)]
+            receiver.append({"label":label,"method_rva":f"0x{rva:X}",
+                "window_size":size,"instructions":instructions})
+            print("RECEIVER",label,"rva",f"0x{rva:X}","instructions",len(instructions),flush=True)
+            for ins in instructions[:125]:
+                print("  RECEIVER_DISASM",ins["rva"],ins["op"],ins["args"],flush=True)
     result={"sample":PROFILE_71.identity,"exe_sha256":exe_sha,"metadata_sha256":meta_sha,
         "source":"original Global 7.1 IL2CPP executable; no semantic opcode assertions",
         "leads":[{"cmd_id":k,"type_name":v["type_name"],
                   "type_definition_index":v["type_definition_index"],
                   "type_slot_rva":v["type_slot_rva"],"get_cmd_id_rva":v["get_cmd_id_rva"]}
                  for k,v in sorted(registry.items())],
-        "methods":records}
+        "methods":records,"receiver_methods":receiver}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,indent=2)+"\n")
     print("REPORT",args.output,"method_count",len(records),flush=True)
