@@ -29,6 +29,7 @@ jobs:
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            --scene-assets versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json \
             --prior versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-native-xor-reader-evidence.json \
             --output work/original-71-scene-point-reader-callers.json
       - uses: actions/upload-artifact@v7
