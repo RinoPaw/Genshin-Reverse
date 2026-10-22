@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_7_1_WORLD_AREA_DESIGN_INDEX_MEMBERSHIP__SCENE_LEVEL_UNPROVEN",
+  "client": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "indexRawSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+  "worldAreaBlock": "00/24230448.blk",
+  "sourceBlockSha256": "71fbe2d10404655fa20e5d612daf5fa2f2336c1d6250ae209b722c894169aff7",
+  "scene3RawSha256": "e66d6ec832bed734e824714d345961715b01edbdce50f6115b07983ec205eda9",
+  "exportedFiles": 167673,
+  "exportedRawBytes": 415672040,
+  "worldAreaIndexControls": [
+    {
+      "hash": "0x0C934D1C2C",
+      "export": "0c934d1c"
+    },
+    {
+      "hash": "0x3DF7CDEF37",
+      "export": "3df7cdef"
+    },
+    {
+      "hash": "0x524D1352E3",
+      "export": "524d1352"
+    },
+    {
+      "hash": "0xE7CDA5DCD8",
+      "export": "e7cda5dc"
+    },
+    {
+      "hash": "0x42CE680831",
+      "export": "42ce6808"
+    },
+    {
+      "hash": "0x6403CC75D7",
+      "export": "6403cc75"
+    },
+    {
+      "hash": "0x374D588B9F",
+      "export": "374d588b"
+    },
+    {
+      "hash": "0xBD6FAA4801",
+      "export": "bd6faa48"
+    },
+    {
+      "hash": "0xF0D16079B5",
+      "export": "f0d16079"
+    },
+    {
+      "hash": "0x8A14D94C67",
+      "export": "8a14d94c"
+    },
+    {
+      "hash": "0xFE22AFA92B",
+      "export": "fe22afa9"
+    },
+    {
+      "hash": "0x2214991689",
+      "export": "22149916"
+    },
+    {
+      "hash": "0xE0BF65B84E",
+      "export": "e0bf65b8"
+    }
+  ],
+  "coverage": {
+    "indexHashCounts": {
+      "ambiguousStems32": 6,
+      "otherBlockHashRows40": 79400,
+      "targetBlockExportStems32": 167673,
+      "targetBlockHashRows40": 167673
+    },
+    "exportGroups": {
+      "ambiguousStemIncludingTargetBlockFiles": 6,
+      "ambiguousStemIncludingTargetBlockRawBytes": 2392,
+      "uniqueStemMappedToTargetBlockFiles": 167667,
+      "uniqueStemMappedToTargetBlockRawBytes": 415669648
+    },
+    "examples": {
+      "ambiguousStemIncludingTargetBlock": [
+        {
+          "file": "1e3e745b.dat",
+          "size": 48,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "57622372.dat",
+          "size": 8,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "70dd3b38.dat",
+          "size": 1372,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "79e12bdb.dat",
+          "size": 8,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "84312f56.dat",
+          "size": 440,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "c6fbf8b7.dat",
+          "size": 516,
+          "index40BitRows": 2,
+          "rowsMappedToTarget": 1
+        }
+      ],
+      "uniqueStemMappedToTargetBlock": [
+        {
+          "file": "00000bbd.dat",
+          "size": 52,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "00007311.dat",
+          "size": 15072,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0000a964.dat",
+          "size": 84,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0000ad62.dat",
+          "size": 60,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0001ae67.dat",
+          "size": 220,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0001f8ad.dat",
+          "size": 8,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "00028bee.dat",
+          "size": 152,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0003a40d.dat",
+          "size": 14852,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "0004259d.dat",
+          "size": 44,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        },
+        {
+          "file": "000455ae.dat",
+          "size": 8,
+          "index40BitRows": 1,
+          "rowsMappedToTarget": 1
+        }
+      ]
+    }
+  },
+  "rawSizes": {
+    "bins": {
+      "1024to4095": 25184,
+      "256to1023": 29378,
+      "4096to65535": 18270,
+      "64to255": 43952,
+      "65536plus": 541,
+      "8to63": 50348
+    },
+    "minimum": 8,
+    "median": 168,
+    "maximum": 7926584
+  },
+  "limits": [
+    "Original 40-bit index hash is truncated to 32 bits in Raw exporter filenames. Collisions remain ambiguous.",
+    "This original design index does not enumerate every original client asset namespace or block.",
+    "Hash membership alone identifies neither resource semantic paths nor original scene Gadget records.",
+    "No original scene-instance level, reward grade, drop table or probability is established.",
+    "No old private-server scene Lua, community JSON or LootCSS values were used."
+  ],
+  "evidence": {
+    "sourceRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39723102117",
+    "sourceCommit": "33e6db2b21499931f0e755f49fee094012929bff",
+    "artifactId": 12402225678,
+    "artifactArchiveDigest": "sha256:86c6b624b15e6324f11c147ff15e2f629a11465716f47356d83f97160dca5d3f",
+    "originalSourceStatus": "verified source-gated original 7.1 client export",
+    "sourceArtifactJsonSha256": null
+  }
+}
