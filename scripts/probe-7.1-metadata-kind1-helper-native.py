@@ -21,6 +21,8 @@ HELPER_RVA=0x524E80
 BOUND_RVA=0x525D40
 INIT_CALL_RVA=0x523647
 WINDOW=BOUND_RVA-HELPER_RVA
+HELPER_FLOW_END_RVA=0x524F30
+HELPER_FLOW_BYTES=HELPER_FLOW_END_RVA-HELPER_RVA
 ORIGINAL_INIT_WINDOW_SHA="d0157c1fab8626c3b28e880e600913841b57d898bef7c5033a7ecff74f30813e"
 
 
@@ -69,6 +71,42 @@ def inspect(exe:Path,prior:Path)->dict:
             for operand in ins.operands:
                 if operand.type==X86_OP_MEM and operand.mem.base==X86_REG_RIP:
                     rip_refs.append({**row,"nativeReferencedRva":f"0x{rva+ins.size+operand.mem.disp:X}"})
+        exact={int(x["rva"],16):x for x in instructions}
+        witnesses={
+          0x524E94:("cmp","ecx, -1"),
+          0x524E99:("mov","rax, qword ptr [rip + 0x55b0430]"),
+          0x524EA0:("movsxd","rdi, ecx"),
+          0x524EA3:("mov","rsi, qword ptr [rax + rdi*8]"),
+          0x524EA7:("test","rsi, rsi"),
+          0x524EAC:("mov","rax, qword ptr [rip + 0x55b03ed]"),
+          0x524EB3:("mov","rcx, rdi"),
+          0x524EB6:("shl","rcx, 4"),
+          0x524EBA:("add","rcx, qword ptr [rax + 0x48]"),
+          0x524EBE:("call",f"0x{pe.image_base+0x50D9C0:x}"),
+          0x524ECB:("test","byte ptr [rax + 0xc9], 0x10"),
+          0x524EF0:("mov","rcx, rsi"),
+          0x524EF3:("call",f"0x{pe.image_base+0x512DB0:x}"),
+          0x524F05:("mov","rax, qword ptr [rip + 0x55b03c4]"),
+          0x524F0C:("mov","qword ptr [rax + rdi*8], rsi"),
+          0x524F14:("mov","rax, rsi"),
+          0x524F1E:("ret",""),
+          0x524F1F:("mov","rax, qword ptr [rip + 0x55b03aa]"),
+          0x524F26:("mov","rsi, qword ptr [rax + rdi*8]"),
+          0x524F2A:("jmp",f"0x{pe.image_base+0x524F14:x}"),
+          0x524F30:("mov","qword ptr [rsp + 0x10], rdx"),
+        }
+        for address,(mnemonic,ops) in witnesses.items():
+            i=exact.get(address)
+            if not i or (i["mnemonic"],i["operands"])!=(mnemonic,ops):
+                raise ValueError(f"original kind1 native helper instruction drift at 0x{address:X}")
+        if exact[0x524F1E]["mnemonic"]!="ret" or any(
+             x["mnemonic"]=="call" for x in instructions
+             if 0x524F1F<=int(x["rva"],16)<HELPER_FLOW_END_RVA):
+            raise ValueError("source native kind1 resolver tail boundary changed")
+        helper_flow=pe.read_rva(HELPER_RVA,HELPER_FLOW_BYTES)
+        if len(helper_flow)!=HELPER_FLOW_BYTES:
+            raise ValueError("source original kind1 native core flow inaccessible")
+        original_flow=[x for x in instructions if int(x["rva"],16)<HELPER_FLOW_END_RVA]
         first=[r for r in instructions if int(r["rva"],16)<HELPER_RVA+0x250]
         return {
             "schemaVersion":1,
@@ -83,6 +121,28 @@ def inspect(exe:Path,prior:Path)->dict:
             "nativeWindowSizeBytes":WINDOW,
             "nativeWindowSha256":hashlib.sha256(blob).hexdigest(),
             "decodedInstructionCount":len(instructions),
+            "sourceOriginalKind1CoreFlow":{
+                "firstRva":f"0x{HELPER_RVA:X}",
+                "nextNativeCodeEntryRva":f"0x{HELPER_FLOW_END_RVA:X}",
+                "coreFlowSpanBytes":HELPER_FLOW_BYTES,
+                "coreFlowSha256":hashlib.sha256(helper_flow).hexdigest(),
+                "sourceOriginalCoreInstructions":original_flow,
+                "sourceVerifiedControlInstructionWitnesses":[exact[a] for a in witnesses],
+                "sourceArgumentKind":"original decoded runtime type source index passed in ECX",
+                "sourceCacheGlobalRva":"0x5AD52D0",
+                "sourceCacheLookupAndWriteIndexRegister":"rdi",
+                "sourceCacheEntryStrideBytes":8,
+                "sourceMetadataRegistrationGlobalRva":"0x5AD52A0",
+                "sourceMetadataIndexedRecordStrideBytes":16,
+                "sourceMetadataRecordTablePointerOffset":"0x48",
+                "sourceNativeClassMaterializationCalleeRva":"0x50D9C0",
+                "sourceNativeClassInitCheckByteOffset":"0xC9",
+                "sourcePostMaterializationInitCalleeRva":"0x512DB0",
+                "sourceReturnRva":"0x524F1E",
+                "sourceColdCacheReadBlockRva":"0x524F1F",
+                "sourceColdBlockTailJumpRva":"0x524F2A",
+                "sourceOriginalIl2CppTypeDefinitionIndexProven":False,
+            },
             "nativeReturnInstructions":returns,
             "nativeDirectCalls":direct_calls,
             "nativeIndirectCalls":indirect_calls,
@@ -117,6 +177,8 @@ def main():
          "nativeReturnInstructions":j["nativeReturnInstructions"],
          "nativeDirectCalls":j["nativeDirectCalls"],
          "nativeIndirectCalls":j["nativeIndirectCalls"],
+         "sourceOriginalKind1CoreFlow":{k:v for k,v in j["sourceOriginalKind1CoreFlow"].items() if k not in ("sourceOriginalCoreInstructions","sourceVerifiedControlInstructionWitnesses")},
+         "sourceControlWitnesses":j["sourceOriginalKind1CoreFlow"]["sourceVerifiedControlInstructionWitnesses"],
          "nativeRipRelativeReferences":j["nativeRipRelativeReferences"][:100],
          "nativeJumpInstructions":j["nativeJumpInstructions"][:120]},
        ensure_ascii=False,indent=2))
