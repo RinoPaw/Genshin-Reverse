@@ -39,7 +39,7 @@ KNOWN_FIELD_WRITE = ("mov", "dword ptr [r12 + 0x98], eax")
 
 def git_blob(path: Path) -> str:
     h = hashlib.sha1()
-    h.update(f"blob {path.stat().st_size}\\0".encode("ascii"))
+    h.update(f"blob {path.stat().st_size}\0".encode("ascii"))
     with path.open("rb") as source:
         for part in iter(lambda: source.read(1 << 20), b""):
             h.update(part)
@@ -205,7 +205,7 @@ def main() -> None:
     a = p.parse_args()
     result = investigate(a.exe, a.methods, a.fields)
     a.output.parent.mkdir(parents=True, exist_ok=True)
-    a.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    a.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("ORIGINAL_CMD27685_ELEMENT_FIELDS_BEGIN")
     print(json.dumps(result, ensure_ascii=False, indent=2))
     print("ORIGINAL_CMD27685_ELEMENT_FIELDS_END")
