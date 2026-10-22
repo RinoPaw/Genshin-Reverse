@@ -1,0 +1,37 @@
+name: One-shot exact Global 7.1 original metadata kind1 resolver
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-7.1-kind1-native-helper.yml'
+      - 'scripts/probe-7.1-metadata-kind1-helper-native.py'
+
+permissions:
+  contents: read
+
+jobs:
+  original-kind1-helper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install source-native disassembler
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch exact original Global 7.1 client
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Trace source 0x524E80 internal helper
+        run: |
+          python scripts/probe-7.1-metadata-kind1-helper-native.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --prior versions/7.1.0-global/analyses/progression/world/7.1-original-metadata-usage-native-kind-array-writes.json \
+            --output work/original71-kind1-helper-native.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original71-kind1-helper-native
+          path: work/original71-kind1-helper-native.json
+          retention-days: 7
+          if-no-files-found: error
