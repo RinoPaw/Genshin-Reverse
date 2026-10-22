@@ -128,6 +128,56 @@ def inspect(exe:Path,prior:Path)->dict:
               "nativePrefixInstructions":rows[:160],
               "boundedWindowIsExactMethodSizeProven":False,
             })
+        source_type_resolver=next(x for x in nested if x["sourceOriginalCalleeRva"]=="0x50D9C0")
+        type_rows={int(x["rva"],16):x for x in source_type_resolver["nativePrefixInstructions"]}
+        type_positive_controls={
+          0x50D9C9:("movsx","ecx, byte ptr [rcx + 0xa]"),
+          0x50D9CF:("dec","ecx"),
+          0x50D9D1:("cmp","ecx, 0x1d"),
+          0x50D9DA:("lea","rsi, [rip + 0x26f]"),
+          0x50D9E1:("movsxd","rcx, dword ptr [rsi + rcx*4]"),
+          0x50D9E5:("add","rcx, rsi"),
+          0x50D9E8:("jmp","rcx"),
+        }
+        for rva,(mnemonic,operands) in type_positive_controls.items():
+            row=type_rows.get(rva)
+            if row is None or (row["mnemonic"],row["operands"])!=(mnemonic,operands):
+                raise ValueError(f"source original 7.1 runtime type-kind resolver drift at 0x{rva:X}")
+        table_rva=0x50DC50
+        original_table=pe.read_rva(table_rva,30*4)
+        if len(original_table)!=30*4:
+            raise ValueError("original native IL2CPP type kind table not file-backed")
+        from struct import unpack_from
+        original_cases=[]
+        for index in range(30):
+            rel=unpack_from("<i",original_table,index*4)[0]
+            target=table_rva+rel
+            if not 0x50D9C0<=target<table_rva:
+                raise ValueError(f"original kind-dispatch target outside native body for {index+1}")
+            original_cases.append({
+              "originalRawRuntimeTypeKindByte":index+1,
+              "nativeRelativeJumpOffset":rel,
+              "originalNativeBranchRva":f"0x{target:X}",
+              "sourceNativeAlignedWithinPrefix":target in type_rows,
+              "originalSemanticIL2CPPTypeKindNameProven":False,
+            })
+        if not all(x["sourceNativeAlignedWithinPrefix"] for x in original_cases):
+            raise ValueError("source-original 30-way runtime type kind jump table instruction alignment drift")
+        type_kind_dispatch={
+            "originalResolverRva":"0x50D9C0",
+            "sourceWindowSha256":source_type_resolver["windowSha256"],
+            "originalTypeTagByteObjectOffset":"0xA",
+            "sourceKindByteSignExtension":True,
+            "sourceKindTagLowerBound":1,
+            "sourceKindTagUpperBound":30,
+            "sourceTypeCaseJumpTableRva":f"0x{table_rva:X}",
+            "sourceTypeCaseJumpTableSha256":hashlib.sha256(original_table).hexdigest(),
+            "sourceTypeCaseJumpTableBytesHex":original_table.hex(),
+            "originalTypeKindCases":original_cases,
+            "sourceKindDecodeControlInstructions":[type_rows[k] for k in type_positive_controls],
+            "originalSemanticIl2CppTypeKindLabelsProven":False,
+            "originalConcreteFactoryCase1Or14Proven":False,
+        }
         first=[r for r in instructions if int(r["rva"],16)<HELPER_RVA+0x250]
         return {
             "schemaVersion":1,
@@ -165,6 +215,7 @@ def inspect(exe:Path,prior:Path)->dict:
                 "sourceOriginalIl2CppTypeDefinitionIndexProven":False,
             },
             "originalDirectNativeTypeResolverSubcalls":nested,
+            "sourceOriginalRuntimeTypeKindDispatch":type_kind_dispatch,
             "nativeReturnInstructions":returns,
             "nativeDirectCalls":direct_calls,
             "nativeIndirectCalls":indirect_calls,
@@ -201,6 +252,7 @@ def main():
          "nativeIndirectCalls":j["nativeIndirectCalls"],
          "sourceOriginalKind1CoreFlow":{k:v for k,v in j["sourceOriginalKind1CoreFlow"].items() if k not in ("sourceOriginalCoreInstructions","sourceVerifiedControlInstructionWitnesses")},
          "originalDirectNativeTypeResolverSubcalls":j["originalDirectNativeTypeResolverSubcalls"],
+         "sourceOriginalRuntimeTypeKindDispatch":j["sourceOriginalRuntimeTypeKindDispatch"],
          "sourceControlWitnesses":j["sourceOriginalKind1CoreFlow"]["sourceVerifiedControlInstructionWitnesses"],
          "nativeRipRelativeReferences":j["nativeRipRelativeReferences"][:100],
          "nativeJumpInstructions":j["nativeJumpInstructions"][:120]},
