@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "status": "VERIFIED_ASTAPS_SOURCE_LEVEL_OWNERSHIP__ORIGINAL_71_INSTANCE_LEVEL_UNPROVEN",
+  "evidenceKind": "FORK_SOURCE_NOT_ORIGINAL_CLIENT",
+  "originalClientTarget": "7.1.0-global/windows-x64",
+  "originalClientExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "ownerRepo": "RinoPaw/AstaPS",
+  "snapshots": {
+    "upstreamMain": {
+      "commit": "dcf04369a356486a07be976b244b83d7208c3992",
+      "fileGitBlobs": {
+        "SceneObject": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneObject.java",
+          "sha1": "d15b16192382595fe3675dd7cfeb359c53a58667"
+        },
+        "SceneGadget": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneGadget.java",
+          "sha1": "cd0eb4713c364153a8947ecdb0a2517bbadf43c0"
+        },
+        "SceneGroup": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneGroup.java",
+          "sha1": "dcad300d86ea10569f1780042d54c05bcf887435"
+        },
+        "SceneScriptManager": {
+          "path": "src/main/java/emu/grasscutter/scripts/SceneScriptManager.java",
+          "sha1": "a32c79602d8792479b59289c71760548e06fab96"
+        },
+        "EntityGadget": {
+          "path": "src/main/java/emu/grasscutter/game/entity/EntityGadget.java",
+          "sha1": "79a538a6a593b6e67e22708dc90f918570554e26"
+        },
+        "PlayerProperty": {
+          "path": "src/main/java/emu/grasscutter/game/props/PlayerProperty.java",
+          "sha1": "b64a6c93634688906e42128f37bcab20df5e728d"
+        }
+      },
+      "verifiedAnchors": {
+        "sceneObjectDeclaresLevel": true,
+        "sceneGadgetInheritsSceneObject": true,
+        "sceneGroupUsesLuaFile": true,
+        "sceneGroupDeserializesGadgets": true,
+        "sceneScriptManagerAttachesOriginalObject": true,
+        "gadgetNetworkPropLevelId4001": true,
+        "gadgetNetworkLevelHardcodedOne": true,
+        "gadgetNetworkPropAttached": true
+      }
+    },
+    "rewardExperiment": {
+      "commit": "d6d8718442cf2c785bf1bd5b5950dbe59a1accbe",
+      "fileGitBlobs": {
+        "SceneObject": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneObject.java",
+          "sha1": "d15b16192382595fe3675dd7cfeb359c53a58667"
+        },
+        "SceneGadget": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneGadget.java",
+          "sha1": "f250378e914eae163733324e8be918f3a5fe3fa9"
+        },
+        "SceneGroup": {
+          "path": "src/main/java/emu/grasscutter/scripts/data/SceneGroup.java",
+          "sha1": "dcad300d86ea10569f1780042d54c05bcf887435"
+        },
+        "SceneScriptManager": {
+          "path": "src/main/java/emu/grasscutter/scripts/SceneScriptManager.java",
+          "sha1": "87a0238fd28c667803df4e85b710288e80d5cdd9"
+        },
+        "EntityGadget": {
+          "path": "src/main/java/emu/grasscutter/game/entity/EntityGadget.java",
+          "sha1": "94c20809e7699d3219fbacaf9210532f23524d29"
+        },
+        "PlayerProperty": {
+          "path": "src/main/java/emu/grasscutter/game/props/PlayerProperty.java",
+          "sha1": "b64a6c93634688906e42128f37bcab20df5e728d"
+        },
+        "WorldChestLootHelper": {
+          "path": "src/main/java/emu/grasscutter/game/entity/gadget/chest/WorldChestLootHelper.java",
+          "sha1": "bae74426492f8eacea73298185dba63a52790eea"
+        }
+      },
+      "verifiedAnchors": {
+        "sceneObjectDeclaresLevel": true,
+        "sceneGadgetInheritsSceneObject": true,
+        "sceneGroupUsesLuaFile": true,
+        "sceneGroupDeserializesGadgets": true,
+        "sceneScriptManagerAttachesOriginalObject": true,
+        "gadgetNetworkPropLevelId4001": true,
+        "gadgetNetworkLevelHardcodedOne": true,
+        "gadgetNetworkPropAttached": true,
+        "lootcssUsesSceneLevel": true,
+        "lootcssAddsLevelOnlyWhenMetaPresent": true
+      }
+    }
+  },
+  "sourceGraph": [
+    "Scene/<scene>/scene<scene>_group<group>.lua (AstaPS script loader)",
+    "SceneGroup.bindings['gadgets'] -> LuaSerializer.toList(SceneGadget.class, ...)",
+    "SceneGadget extends SceneObject -> inherited Java int level",
+    "SceneScriptManager.createGadget -> EntityGadget.setMetaGadget(g)",
+    "WorldChestLootHelper -> loot attribute level = meta.level, if metadata exists"
+  ],
+  "networkGraph": [
+    "EntityGadget.toProto -> SceneEntityInfo.propList",
+    "PlayerProperty.PROP_LEVEL numeric property ID 4001 (AstaPS constant)",
+    "ProtoHelper.newPropValue(PlayerProperty.PROP_LEVEL, 1) (both AstaPS snapshots)"
+  ],
+  "boundaries": {
+    "networkLevelEqualsSceneScriptLevelProven": false,
+    "originalClientSceneInstanceLevelFieldProven": false,
+    "originalOfficialServerChestLevelOwnershipProven": false,
+    "forkSceneObjectUnspecifiedJavaIntDefaultsToZero": true,
+    "forkLootLevelZeroCanBePassedWhenMetadataExists": true,
+    "clientNativeNetworkFieldIdentityProven": false,
+    "originalScenePlacementSourceProven": false
+  },
+  "nextProofGate": "Identify an original Global 7.1 scene-instance source or independently identify original packet/consumer fields and connect them to chest-specific level behavior; never equate a PROP_LEVEL value 1 with the server script instance level.",
+  "limits": [
+    "AstaPS Lua scene-group scripts and their schema belong to the private-server fork; they do not prove native official client or server asset provenance.",
+    "Source pinning confirms branch behavior, not how often actual scenes supply a nonzero level; resource distributions were not inspected.",
+    "A separate original-client native protocol field/consumer and original scene level owner remain unresolved.",
+    "No LootCSS reward grade, type, payout or probability is inferred or changed."
+  ]
+}
