@@ -53,6 +53,55 @@ def source_cases(path: Path) -> list[dict]:
     return cases
 
 
+def follow_source_unconditional_jumps(start: int, aligned: dict, image_base: int, owners: dict) -> dict:
+    """Trace source straight-line instructions plus *direct* unconditional jumps only."""
+    pc = start
+    seen = set()
+    steps = []
+    stop = None
+    for _ in range(48):
+        if pc in seen:
+            stop = "DIRECT_JUMP_CYCLE"
+            break
+        seen.add(pc)
+        x = aligned.get(pc)
+        if x is None:
+            stop = "OUTSIDE_ALIGNED_SOURCE_CODE"
+            break
+        target = None
+        if x.op_str.startswith("0x") and (
+            x.mnemonic == "call" or x.mnemonic.startswith("j")):
+            target = int(x.op_str, 16) - image_base
+        row = {"rva": f"0x{pc:X}", "mnemonic": x.mnemonic,
+               "operands": x.op_str, "bytes": bytes(x.bytes).hex()}
+        if target is not None:
+            row["directTargetRva"] = f"0x{target:X}"
+            row["exactOriginalMethodStartOwners"] = [
+                {"typeName": o["type_name"], "methodName": o["method_name"],
+                 "methodIndex": int(o["method_index"]),
+                 "typeDefinitionIndex": int(o["type_definition_index"])}
+                for o in owners.get(target, [])]
+        steps.append(row)
+        if x.mnemonic == "jmp":
+            if target is None:
+                stop = "INDIRECT_JUMP_UNRESOLVED"
+                break
+            pc = target
+        elif x.mnemonic.startswith("j"):
+            stop = "CONDITIONAL_BRANCH_BOTH_OUTCOMES_UNRESOLVED"
+            break
+        elif x.mnemonic.startswith("ret"):
+            stop = "SOURCE_RET"
+            break
+        else:
+            pc += x.size
+    else:
+        stop = "STEP_BOUND"
+    return {"sourceSteps": steps, "stopped": stop,
+            "nativeIndirectCallTargetsFollowed": False,
+            "sourceControlOnlyNotRuntimeProof": True}
+
+
 def inspect(exe: Path, methods: Path, factory: Path) -> dict:
     cases = source_cases(factory)
     if git_blob(methods) != METHODS_GIT_BLOB:
@@ -132,6 +181,8 @@ def inspect(exe: Path, methods: Path, factory: Path) -> dict:
                 "linearScanEndExclusiveRva": f"0x{next_case:X}",
                 "sourceCaseNativeInstructions": native,
                 "sourceCaseTransfers": transfers,
+                "sourceDirectJumpFollow": follow_source_unconditional_jumps(
+                    start, aligned, pe.image_base, owners),
                 "linearInstructionsAreRuntimeExecutedProven": False,
                 "sourceCaseConcreteTypeDefinitionProven": False,
                 "sourceVtablePlusF8MethodOwnerProven": False,
