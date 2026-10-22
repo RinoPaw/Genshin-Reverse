@@ -31,9 +31,18 @@ jobs:
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
             --output work/cmd27685-native-field2-callee.json
+      - name: Recover native JLDCJCKHJEM class fields and constructor
+        run: |
+          python scripts/probe-7.1-cmd27685-collector-owner.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            --output work/cmd27685-native-collector-owner.json
       - uses: actions/upload-artifact@v7
         with:
           name: exact-71-cmd27685-field2-callee
-          path: work/cmd27685-native-field2-callee.json
+          path: |
+            work/cmd27685-native-field2-callee.json
+            work/cmd27685-native-collector-owner.json
           retention-days: 7
           if-no-files-found: error
