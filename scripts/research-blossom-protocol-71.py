@@ -67,7 +67,28 @@ def scan():
         args=row.get("parameter_types","")
         if any('"' + name + '"' in args for name in candidate_names):
             inbound.append(row)
+    # Native client consumer whose one-parameter handlers include imported
+    # WorldOwnerBlossomScheduleInfoNotify / BlossomChestCreateNotify variants.
+    # Nearby owner methods are structural search leads only.
+    owner="CJEDOIPINHC"
+    neighbor=[r for r in records("metadata/methods.csv")
+              if r["type_name"]==owner]
+    map_by_type={r["type_name"]:r for r in native.values()}
+    control_by_id={c["cmd_id"]:c["semantic_name"] for c in records("registry/control-set.csv")}
+    print("OWNER_METHOD_NEIGHBORHOOD",owner,"total",len(neighbor),flush=True)
+    for row in neighbor:
+        try: idx=int(row["method_index"])
+        except ValueError:continue
+        if not 266535 <= idx <= 266630:continue
+        mapped=[]
+        for tn,native_item in map_by_type.items():
+            if '"' + tn + '"' in row.get("parameter_types",""):
+                mapped.append({"cmd_id":native_item["cmd_id"],"type":tn,
+                               "imported_hint":control_by_id.get(native_item["cmd_id"],"")})
+        print("  OWNER",json.dumps({"index":idx,"method":row["method_name"],
+              "rva":row["rva"],"params":row.get("parameter_types"),"ids":mapped}),flush=True)
     print("INBOUND_SIGNATURE_COUNTS",len(inbound),flush=True)
+
     for name in sorted(candidate_names):
         hits=[x for x in inbound if '"' + name + '"' in x.get("parameter_types","")]
         print("INBOUND_SIGNATURE_TYPE",name,"count",len(hits),flush=True)
