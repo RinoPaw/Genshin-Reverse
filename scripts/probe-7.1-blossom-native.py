@@ -12,7 +12,7 @@ from genshinre.nativeprofile import PROFILE_71
 from genshinre.sampleidentity import require_profile_exe, require_profile_metadata
 
 ROOT=Path("versions/7.1.0-global/windows-x64")
-LEAD_IDS=(112,6993,7051,23101,24698,29702)
+LEAD_IDS=(112,6743,6993,7051,20484,23101,24698,29702)
 PARSER_METHOD_NAMES=("NLGBJEEJDLG","NKFCABIOGLE","CopyFrom","AEGNNPENLNM","IENGFLPCLNM")
 def rows(path):
     with (ROOT/path).open(encoding="utf-8-sig",newline="") as f:
@@ -54,7 +54,7 @@ def main():
             print("METHOD",record["cmd_id"],record["type_name"],record["method_name"],
                 record["method_rva"],"instructions",len(instructions),"comparisons",
                 " | ".join(x["args"] for x in record["comparisons"][:22]),flush=True)
-            if int(record["cmd_id"]) in (112,29702,23101):
+            if int(record["cmd_id"]) in (112,6743,20484,29702,23101):
                 for ins in instructions[:60]:
                     print("  DISASM",ins["rva"],ins["op"],ins["args"],flush=True)
     result={"sample":PROFILE_71.identity,"exe_sha256":exe_sha,"metadata_sha256":meta_sha,
