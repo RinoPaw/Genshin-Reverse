@@ -23,7 +23,7 @@ class OriginalFactorySlotReferences(unittest.TestCase):
         self.assertEqual(cases[1]["nativeBranchRva"],"0xC591C94")
         self.assertEqual(cases[14]["nativeBranchRva"],"0xC591DF4")
         self.assertEqual(p.TARGET_CASES,(1,14))
-        self.assertEqual(len(p.PREFIXES),64)
+        self.assertEqual(len(p.PREFIXES),32)
 
     def test_pinned_method_index(self):
         with tempfile.TemporaryDirectory() as d:
