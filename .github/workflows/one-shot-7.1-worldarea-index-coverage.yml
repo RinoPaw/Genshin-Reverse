@@ -1,8 +1,8 @@
 name: One-shot original 7.1 WorldArea index/export coverage
 
 on:
-  push:
-    branches: [research/worldarea-index-coverage-71]
+  pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/one-shot-7.1-worldarea-index-coverage.yml'
 
