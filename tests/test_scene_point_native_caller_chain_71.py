@@ -31,7 +31,8 @@ class ScenePointNativeCallerTests(unittest.TestCase):
             csvpath=Path(tmp)/"methods.csv"
             csvpath.write_text("rva,type_name,type_definition_index,method_name,method_index,parameter_types\n"
                  "0xAD23000,NLDEPJEOJGC,63768,GMENPOPMKAA,514423,[]\n"
-                 "0xAD23010,other,1,foo,3,[]\n",encoding="utf-8")
+                 "0xAD23010,other,1,foo,3,[]\n"
+                 "0xEE66B20,IJNOFJEOMBD,22426,GMENPOPMKAA,171707,[]\n",encoding="utf-8")
             with patch.object(m,"git_blob",return_value=m.METHODS_GIT_BLOB):
                 starts,rows=m.validate_source(csvpath,PRIOR)
                 self.assertEqual(starts[0],m.TARGET)
@@ -44,6 +45,14 @@ class ScenePointNativeCallerTests(unittest.TestCase):
         j=json.loads(PRIOR.read_text(encoding="utf-8"))
         self.assertEqual(j["originalExeSha256"],m.PROFILE_71.exe_sha256)
         self.assertEqual(j["originalMethodsGitBlob"],m.METHODS_GIT_BLOB)
+
+
+    def test_original_parent_has_verified_call_site_anchor(self):
+        self.assertEqual(m.PARENT_RVA,0xEE66B20)
+        self.assertEqual(m.PARENT_CALL_RVA,0xEE66BF1)
+        self.assertEqual(m.PARENT_TYPE,"IJNOFJEOMBD")
+        self.assertEqual(m.PARENT_METHOD_INDEX,171707)
+        self.assertEqual(m.FIELDS_GIT_BLOB,"ae01d117f4d884e891a95d529a15302a68715b04")
 
 if __name__=="__main__":
     unittest.main()
