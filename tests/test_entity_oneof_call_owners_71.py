@@ -51,5 +51,39 @@ class OriginalOneofNativeTests(unittest.TestCase):
             self.assertNotIn(0xB43A301,x)
             self.assertEqual(x[0xB43A2A0][0]["originalTypeDefinitionIndex"],85506)
 
+
+    def test_source_verified_original_method_target_evidence(self):
+        report_path=(ROOT/"versions/7.1.0-global/analyses/progression/economy/"
+           "7.1-original-entity-variant-native-call-owners.json")
+        report=json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"],m.PROFILE_71.exe_sha256)
+        self.assertEqual(report["originalMethodMetadataGitBlob"],m.METHODS_BLOB)
+        self.assertEqual(report["originalSource"]["artifactId"],12403764170)
+        self.assertEqual(report["verification"]["parentReaderSha256"],m.PARENT_HASH)
+        self.assertEqual(report["verification"]["parentCopyFromSha256"],m.COPY_HASH)
+        self.assertEqual(report["verification"]["parentStaticInitializerSha256"],m.STATIC_HASH)
+        self.assertEqual({x["wireKeyCandidateHex"] for x in
+                          report["originalNativeCandidateProtobufTagComparisons"]},
+                         {"0x52","0x5A","0x62","0x6A"})
+        self.assertEqual({x["v"] for x in
+                          report["originalNativeDiscriminatorComparisons"]},
+                         {10,11,12,13})
+        self.assertEqual(report["windows"]["parentReader"]["decodedInstructionCount"],708)
+        self.assertEqual(report["windows"]["parentCopyFrom"]["decodedInstructionCount"],505)
+        self.assertEqual(report["windows"]["parentReader"]["exactRvaOwnerMatchedTransfers"],41)
+        parent_methods=report["windows"]["parentReader"]["distinctTargetsWithExactMetadata"]
+        owners={hit["originalTypeName"] for row in parent_methods
+                for hit in row["owners"]}
+        self.assertTrue({"KLCICGEAJGM","OFPGGBDNEAP","PIGADKBHAME"}.issubset(owners))
+        self.assertEqual(report["exactSourceChildMethodOwners"]["0x11B252C0"][0]["originalTypeName"],m.CHILD)
+        self.assertTrue(report["evidenceBoundary"]
+                        ["numericTagAndVariantSwitchObservationsSourceVerified"])
+        for key in ("originalTypedFieldDLOEKFLGJCGRuntimeOffsetVerified",
+                    "originalABOOLMJBDKEIndirectRuntimeDispatchTargetVerified",
+                    "originalABOOLMJBDKEFloatMeaningVerified",
+                    "originalSceneChestPlacementOriginVerified",
+                    "originalServerPacketDirectionVerified"):
+            self.assertFalse(report["evidenceBoundary"][key])
+
 if __name__=="__main__":
     unittest.main()
