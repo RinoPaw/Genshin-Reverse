@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Exact-sample native parser/serializer controls for imported blossom packet leads."""
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+from pathlib import Path
+from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+from genshinre.pe import PEImage
+from genshinre.nativeprofile import PROFILE_71
+from genshinre.sampleidentity import require_profile_exe, require_profile_metadata
+
+ROOT=Path("versions/7.1.0-global/windows-x64")
+LEAD_IDS=(112,6993,7051,23101,24698,29702)
+PARSER_METHOD_NAMES=("NLGBJEEJDLG","NKFCABIOGLE","CopyFrom","AEGNNPENLNM","IENGFLPCLNM")
+def rows(path):
+    with (ROOT/path).open(encoding="utf-8-sig",newline="") as f:
+        yield from csv.DictReader(f)
+def main():
+    p=argparse.ArgumentParser()
+    p.add_argument("--exe",type=Path,required=True)
+    p.add_argument("--metadata",type=Path,required=True)
+    p.add_argument("--output",type=Path,required=True)
+    args=p.parse_args()
+    exe_sha=require_profile_exe(args.exe,PROFILE_71)
+    meta_sha=require_profile_metadata(args.metadata,PROFILE_71)
+    registry={int(x["cmd_id"]):x for x in rows("registry/registry.csv") if int(x["cmd_id"]) in LEAD_IDS}
+    owners={r["type_name"]:int(r["cmd_id"]) for r in registry.values()}
+    methods=[r for r in rows("metadata/methods.csv") if r["type_name"] in owners]
+    md=Cs(CS_ARCH_X86,CS_MODE_64)
+    records=[]
+    with PEImage(args.exe) as pe:
+        for item in methods:
+            if item["method_name"] not in PARSER_METHOD_NAMES:continue
+            rva=int(item["rva"],0)
+            # Limit disassembly to the next candidate owner's native method where possible.
+            next_method=min((int(other["rva"],0) for other in methods
+                             if other["type_name"]==item["type_name"]
+                             and int(other["rva"],0)>rva),default=rva+0x450)
+            size=max(16,min(0x450,next_method-rva))
+            code=pe.read_rva(rva,size)
+            instructions=[]
+            for ins in md.disasm(code,pe.image_base+rva):
+                instructions.append({"rva":f"0x{ins.address-pe.image_base:X}",
+                    "op":ins.mnemonic,"args":ins.op_str,"bytes":bytes(ins.bytes).hex()})
+            iwords=[x for x in instructions if x["op"] in ("cmp","test","shl","shr","and","or","mov")]
+            record={"cmd_id":owners[item["type_name"]],"type_name":item["type_name"],
+                "method_name":item["method_name"],"method_rva":item["rva"],
+                "disassembly_size":size,"disassembled":len(instructions),
+                "comparisons":[x for x in instructions if x["op"] in ("cmp","test")][:55],
+                "first_instructions":instructions[:90]}
+            records.append(record)
+            print("METHOD",record["cmd_id"],record["type_name"],record["method_name"],
+                record["method_rva"],"instructions",len(instructions),"comparisons",
+                " | ".join(x["args"] for x in record["comparisons"][:22]),flush=True)
+            if int(record["cmd_id"]) in (112,29702,23101):
+                for ins in instructions[:60]:
+                    print("  DISASM",ins["rva"],ins["op"],ins["args"],flush=True)
+    result={"sample":PROFILE_71.identity,"exe_sha256":exe_sha,"metadata_sha256":meta_sha,
+        "source":"original Global 7.1 IL2CPP executable; no semantic opcode assertions",
+        "leads":[{"cmd_id":k,"type_name":v["type_name"],
+                  "type_definition_index":v["type_definition_index"],
+                  "type_slot_rva":v["type_slot_rva"],"get_cmd_id_rva":v["get_cmd_id_rva"]}
+                 for k,v in sorted(registry.items())],
+        "methods":records}
+    args.output.parent.mkdir(parents=True,exist_ok=True)
+    args.output.write_text(json.dumps(result,indent=2)+"\n")
+    print("REPORT",args.output,"method_count",len(records),flush=True)
+if __name__=="__main__":
+    main()

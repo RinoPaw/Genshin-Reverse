@@ -1,0 +1,36 @@
+name: Exact Global 7.1 blossom native probe
+on:
+  push:
+    branches: [research/blossom-marker-71]
+    paths:
+      - 'scripts/probe-7.1-blossom-native.py'
+      - '.github/workflows/probe-blossom-native-71.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install native probe dependencies
+        run: pip install -e . zstandard capstone
+      - name: Fetch and hash-check official 7.1 sample
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Disassemble original protocol parser controls
+        run: |
+          python scripts/probe-7.1-blossom-native.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --metadata inputs/7.1.0-global/global-metadata.dat \
+            --output work/blossom-native.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blossom-native-71
+          path: work/blossom-native.json
+          if-no-files-found: ignore
+          retention-days: 7
