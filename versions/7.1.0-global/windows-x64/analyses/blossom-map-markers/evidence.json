@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_BLOSSOM_SHARED_PACKET_LIST_AND_RECEIVER_VERIFIED__MAP_ICON_SEMANTICS_UNRESOLVED",
+  "sample": {
+    "game_version": "7.1.0",
+    "region": "global",
+    "platform": "windows-x64",
+    "hashes_ref": "../../hashes.json"
+  },
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "runs": [
+    {
+      "run": 39730444937,
+      "kind": "exact-exe proto parser disassembly"
+    },
+    {
+      "run": 39730866735,
+      "kind": "exact-exe packet consumer disassembly"
+    },
+    {
+      "run": 39731366291,
+      "kind": "exact-exe Il2CppType generic entry"
+    },
+    {
+      "run": 39730075346,
+      "kind": "metadata generic field census"
+    },
+    {
+      "run": 39732375659,
+      "kind": "native metadata callee parameter and 11-field element identity"
+    },
+    {
+      "run": 39732531097,
+      "kind": "exact EXE element protobuf parser disassembly"
+    }
+  ],
+  "packetIdentities": [
+    {
+      "cmdId": 112,
+      "originalType": "JBHJMLHMHAC",
+      "typeDefinitionIndex": 26479,
+      "fieldTag": "0x7A",
+      "fieldNumber": 15,
+      "getCmdIdRva": "0x112401A0",
+      "runtimeGenericInstanceIndex": 505695,
+      "semanticName": "UNRESOLVED"
+    },
+    {
+      "cmdId": 6743,
+      "originalType": "ABJOMOIIDHH",
+      "typeDefinitionIndex": 81959,
+      "fieldTag": "0x52",
+      "fieldNumber": 10,
+      "getCmdIdRva": "0x103DAB10",
+      "runtimeGenericInstanceIndex": 505695,
+      "consumerType": "CJEDOIPINHC",
+      "consumerMethod": "FHBJPLNKLLC",
+      "consumerRva": "0xC78C930",
+      "semanticName": "UNRESOLVED"
+    },
+    {
+      "cmdId": 20484,
+      "originalType": "GIIGDONJFPJ",
+      "typeDefinitionIndex": 20805,
+      "fieldTag": "0x72",
+      "fieldNumber": 14,
+      "getCmdIdRva": "0x740F250",
+      "runtimeGenericInstanceIndex": 505695,
+      "consumerType": "CJEDOIPINHC",
+      "consumerMethod": "KDLFMNEEKBG",
+      "consumerRva": "0xC790C00",
+      "semanticName": "UNRESOLVED"
+    }
+  ],
+  "commonListReceiver": {
+    "originalType": "CJEDOIPINHC",
+    "typeDefinitionIndex": 33719,
+    "methodName": "FOEKNCLMGDP",
+    "rva": "0xC78CA80",
+    "listFieldReferencesFrom": [
+      6743,
+      20484
+    ],
+    "elementOffsetsObserved": [
+      "0x20",
+      "0x24"
+    ],
+    "nativeGenericInstanceTypeArrayRva": "0x35D6010",
+    "nativeGenericInstanceBytes": "37f30100000000002100150000000000",
+    "genericInstanceRawData": "0x1F337",
+    "elementTypeVerified": true,
+    "mapIconDisplayVerified": false,
+    "originalElementType": "MFOACFDAOID",
+    "originalElementTypeDefinitionIndex": 13617
+  },
+  "importedServerControl": {
+    "messageName": "BlossomBriefInfoNotify",
+    "listFieldNumber": 13,
+    "nativeSemanticSource": false
+  },
+  "semanticMappingVerified": false,
+  "topic": "blossom-map-markers",
+  "state": "ACTIVE",
+  "questions": [
+    "Which packet messages share an original-client repeated generic field with the imported blossom list-response lead?",
+    "Which original receiver handles those messages, and does it use the same list-processing routine?",
+    "Which map-icon packet semantic names and nested field layouts remain unresolved?"
+  ],
+  "artifacts": [
+    "README.md",
+    "evidence.json"
+  ],
+  "next_steps": [
+    "Correlate the two native list consumers for CmdIds 6743 and 20484 with map/UI side effects and distinguish their notification timing.",
+    "Perform a controlled original 7.1 client test of the exact native repeated-list wire format, without promoting imported semantic message names.",
+    "Only then integrate the verified chosen packet route into AstaPS."
+  ],
+  "claims": [
+    {
+      "id": "three-identical-original-generic-fields",
+      "status": "CONFIRMED",
+      "statement": "Original types for CmdIds 112, 6743 and 20484 have identical genericinst runtime index 505695 in one list-like field; this is the complete set of such metadata-field occurrences.",
+      "evidence": [
+        {
+          "kind": "original-native-metadata",
+          "source": "../../metadata/fields.csv: fields 132555, 407637, 105871; https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730075346"
+        },
+        {
+          "kind": "original-executable-static",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39731366291: raw type-array entry RVA 0x35D6010"
+        }
+      ]
+    },
+    {
+      "id": "native-wire-tags",
+      "status": "CONFIRMED",
+      "statement": "The original protobuf readers for 6743, 20484 and 112 recognize wire tags 0x52, 0x72 and 0x7A, respectively, for their shared generic list field.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730444937: parse RVAs 0x103DAC90, 0x740F090, 0x112401E0"
+        }
+      ]
+    },
+    {
+      "id": "original-shared-client-receiver",
+      "status": "CONFIRMED",
+      "statement": "Original-client class CJEDOIPINHC methods with parameters 6743 and 20484 both invoke FOEKNCLMGDP at 0xC78CA80, which reads collection elements.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730866735: typed handler RVAs 0xC78C930 and 0xC790C00 and shared method 0xC78CA80"
+        },
+        {
+          "kind": "original-native-metadata",
+          "source": "../../metadata/methods.csv: method indices 266577, 266594, 266612"
+        }
+      ]
+    },
+    {
+      "id": "original-list-element-structure",
+      "status": "CONFIRMED",
+      "statement": "The common native list consumer passes MFOACFDAOID objects to factory RVA 0x109AA8F0; MFOACFDAOID TypeDef 13617 has 11 fields with parser tag numbers 1-7,10-12,14 and exactly matching scalar/embedded wire kinds.",
+      "evidence": [
+        {
+          "kind": "original-native-metadata",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732375659: method 576938 first argument type MFOACFDAOID and TypeDef 13617 metadata"
+        },
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732531097: reader RVA 0xFD90570 stores decoded fields at precise object offsets"
+        }
+      ]
+    },
+    {
+      "id": "native-semantic-identity",
+      "status": "UNRESOLVED",
+      "statement": "The identities of original list packets 6743 and 20484 are verified, but their semantic labels, exact map-icon UI outcome, and publish timing remain unresolved; the element wire schema is now verified.",
+      "evidence": [
+        {
+          "kind": "evidence-boundary",
+          "source": "README.md and original generic-instantiation pointer probe; no original runtime packet/UI observation"
+        }
+      ]
+    }
+  ],
+  "rejected_paths": [
+    {
+      "statement": "Reuse AstaPS field-13 BlossomBriefInfoNotify payload with guessed CmdId",
+      "reason": "Original related client parser fields are 10, 14, and 15; field 13 is imported server descriptor metadata and is insufficient to establish a valid original protocol packet.",
+      "evidence": [
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730444937"
+        },
+        {
+          "kind": "external-server-comparison",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39731131802"
+        }
+      ]
+    }
+  ],
+  "originalElement": {
+    "type": "MFOACFDAOID",
+    "typeDefinitionIndex": 13617,
+    "readerRva": "0xFD90570",
+    "factoryOwner": "MPPBDADDNPD",
+    "factoryMethod": "DIIBEOBJGLG",
+    "factoryRva": "0x109AA8F0",
+    "fieldTagsAndStorage": [
+      [
+        1,
+        "0x08",
+        "0x30",
+        "uint32"
+      ],
+      [
+        2,
+        "0x10",
+        "0x38",
+        "uint32"
+      ],
+      [
+        3,
+        "0x18",
+        "0x3C",
+        "uint32"
+      ],
+      [
+        4,
+        "0x20",
+        "0x34",
+        "uint32"
+      ],
+      [
+        5,
+        "0x28",
+        "0x44",
+        "uint32"
+      ],
+      [
+        6,
+        "0x30",
+        "0x2C",
+        "uint32"
+      ],
+      [
+        7,
+        "0x38",
+        "0x24",
+        "uint32"
+      ],
+      [
+        10,
+        "0x50",
+        "0x28",
+        "bool"
+      ],
+      [
+        11,
+        "0x58",
+        "0x20",
+        "uint32"
+      ],
+      [
+        12,
+        "0x60",
+        "0x40",
+        "uint32"
+      ],
+      [
+        14,
+        "0x72",
+        "0x18",
+        "nested-object"
+      ]
+    ],
+    "semanticFieldNamesVerified": false
+  }
+}
