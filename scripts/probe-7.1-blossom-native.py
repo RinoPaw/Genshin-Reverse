@@ -68,6 +68,23 @@ def main():
         "handler-6993":(0xC78FA10,0x120),
         "handler-24698":(0xC792020,0x260),
     }
+    from genshinre.typearray import decode_type_entry, is_valid_type_entry, ENTRY_SIZE
+    with PEImage(args.exe) as pe:
+        pointer=pe.read_rva(PROFILE_71.type_array_pointer_rva,8)
+        if len(pointer)!=8:raise ValueError("missing exact native type-array")
+        arr_va=int.from_bytes(pointer,"little")
+        for field_idx in (505695,526432):
+            type_rva=arr_va-pe.image_base+field_idx*ENTRY_SIZE
+            blob=pe.read_rva(type_rva,ENTRY_SIZE)
+            if len(blob)!=ENTRY_SIZE or not is_valid_type_entry(blob):
+                raise ValueError("broken exact field genericinst type")
+            rawptr=int.from_bytes(blob[:8],"little")
+            target=pe.read_rva(rawptr-pe.image_base,32) if rawptr>=pe.image_base else b""
+            print("ORIGINAL_GENERIC_INSTANCE",field_idx,
+                  "rva",f"0x{type_rva:X}","type",decode_type_entry(blob),
+                  "hex",blob.hex(),"data",f"0x{rawptr:X}",
+                  "data_file_backed",len(target)==32,
+                  "target_hex",target.hex() if len(target)==32 else "",flush=True)
     rva_targets={0xC78CA80,0x196411F0,0xC236080,0xFAA2010,0xC78C930,0xC790C00}
     matched_methods=[]
     with (ROOT/"metadata/methods.csv").open(encoding="utf-8-sig",newline="") as f:
