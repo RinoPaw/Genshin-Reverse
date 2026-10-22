@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/probe-7.1-cmd27685-element-class.yml'
       - 'scripts/probe-7.1-cmd27685-element-class-xrefs.py'
+      - 'tests/test_cmd27685_element_class_xrefs_71.py'
 
 permissions:
   contents: read
