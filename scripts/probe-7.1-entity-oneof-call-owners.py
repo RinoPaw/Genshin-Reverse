@@ -155,7 +155,7 @@ def tag_witnesses(rows:list[dict]) -> list[dict]:
 def discriminator_witnesses(rows:list[dict]) ->list[dict]:
     observations=[]
     for i,row in enumerate(rows):
-        m=re.fullmatch(r"cmp dword ptr \[r12 \+ 0x94\], (0x[0-9a-f]+|[0-9]+)",row["op"])
+        m=re.fullmatch(r"dword ptr \[r12 \+ 0x94\], (0x[0-9a-f]+|[0-9]+)",row["op"])
         if m:
             value=int(m.group(1),0)
             observations.append({
