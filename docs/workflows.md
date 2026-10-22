@@ -163,3 +163,7 @@ The short-lived [source audit run 39701296454](https://github.com/RinoPaw/Genshi
 ## Temporary original 7.1 CmdId 27685 native packet owner probe (issue #31)
 
 The source-pinned original Global 7.1 registry proves numeric CmdId 27685 ↔ obfuscated IL2CPP type `KIIKIELOHOG` (typeDef 65670). The temporary read-only workflow `probe-7.1-scene-entity-protocol.yml` verifies exact native metadata CSV Git blobs, extracts owner fields/methods and disassembles bounded original method prefixes. AstaPS calls that CmdId `SceneEntityAppearNotify`, but that semantic label and original scene-instance level are explicitly treated as hypotheses pending native payload/consumer evidence. Remove workflow after preserving bounded results and regression tests.
+
+## Temporary CmdId 27685 native handler parameter audit (issue #31)
+
+The one-shot read-only workflow `probe-7.1-cmd27685-handler-parameters.yml` analyzes the exact 7.1 original game EXE and metadata, recovers original method parameter runtime type indices, and cross-checks native known handler controls 22899/3064/20824. It records whether CmdId 27685 has a known owner handler and preserves original obfuscated source identities without assigning original scene level or S2C semantics by inference. Retire after storing bounded evidence and tests.
