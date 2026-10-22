@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_BLOSSOM_SHARED_PACKET_LIST_AND_RECEIVER_VERIFIED__MAP_ICON_SEMANTICS_UNRESOLVED",
+  "sample": "7.1.0-global/windows-x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "metadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "runs": [
+    {
+      "run": 39730444937,
+      "kind": "exact-exe proto parser disassembly"
+    },
+    {
+      "run": 39730866735,
+      "kind": "exact-exe packet consumer disassembly"
+    },
+    {
+      "run": 39731366291,
+      "kind": "exact-exe Il2CppType generic entry"
+    },
+    {
+      "run": 39730075346,
+      "kind": "metadata generic field census"
+    }
+  ],
+  "packetIdentities": [
+    {
+      "cmdId": 112,
+      "originalType": "JBHJMLHMHAC",
+      "typeDefinitionIndex": 26479,
+      "fieldTag": "0x7A",
+      "fieldNumber": 15,
+      "getCmdIdRva": "0x112401A0",
+      "runtimeGenericInstanceIndex": 505695,
+      "semanticName": "UNRESOLVED"
+    },
+    {
+      "cmdId": 6743,
+      "originalType": "ABJOMOIIDHH",
+      "typeDefinitionIndex": 81959,
+      "fieldTag": "0x52",
+      "fieldNumber": 10,
+      "getCmdIdRva": "0x103DAB10",
+      "runtimeGenericInstanceIndex": 505695,
+      "consumerType": "CJEDOIPINHC",
+      "consumerMethod": "FHBJPLNKLLC",
+      "consumerRva": "0xC78C930",
+      "semanticName": "UNRESOLVED"
+    },
+    {
+      "cmdId": 20484,
+      "originalType": "GIIGDONJFPJ",
+      "typeDefinitionIndex": 20805,
+      "fieldTag": "0x72",
+      "fieldNumber": 14,
+      "getCmdIdRva": "0x740F250",
+      "runtimeGenericInstanceIndex": 505695,
+      "consumerType": "CJEDOIPINHC",
+      "consumerMethod": "KDLFMNEEKBG",
+      "consumerRva": "0xC790C00",
+      "semanticName": "UNRESOLVED"
+    }
+  ],
+  "commonListReceiver": {
+    "originalType": "CJEDOIPINHC",
+    "typeDefinitionIndex": 33719,
+    "methodName": "FOEKNCLMGDP",
+    "rva": "0xC78CA80",
+    "listFieldReferencesFrom": [
+      6743,
+      20484
+    ],
+    "elementOffsetsObserved": [
+      "0x20",
+      "0x24"
+    ],
+    "nativeGenericInstanceTypeArrayRva": "0x35D6010",
+    "nativeGenericInstanceBytes": "37f30100000000002100150000000000",
+    "genericInstanceRawData": "0x1F337",
+    "elementTypeVerified": false,
+    "mapIconDisplayVerified": false
+  },
+  "importedServerControl": {
+    "messageName": "BlossomBriefInfoNotify",
+    "listFieldNumber": 13,
+    "nativeSemanticSource": false
+  },
+  "semanticMappingVerified": false
+}
