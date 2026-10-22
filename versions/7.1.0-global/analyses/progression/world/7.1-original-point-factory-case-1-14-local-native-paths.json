@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "status": "SOURCE_ORIGINAL_7_1_FACTORY_CASE_1_14_LOCAL_NATIVE_CODE__CLASS_AND_LOADER_UNVERIFIED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "originalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "sourceFactoryReport": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-array-element-factory-native-evidence.json",
+  "sourceNativeWindowSha256": "78a9930eef271eae79f9b4fdcc60a49e86ae95a8cc01d87181691c88fd365f06",
+  "sourceNativeFactoryRva": "0xC591C60",
+  "sourceNativeFactoryJumpTableRva": "0xC592094",
+  "caseSlices": [
+    {
+      "numericFactoryCase": 1,
+      "originalCaseBranchRva": "0xC591C94",
+      "originalClassSlotRva": "0x57C37B0",
+      "linearScanEndExclusiveRva": "0xC591CA0",
+      "sourceCaseNativeInstructions": [
+        {
+          "rva": "0xC591C94",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dce4eb]",
+          "bytes": "488b0d151b23f9"
+        },
+        {
+          "rva": "0xC591C9B",
+          "mnemonic": "jmp",
+          "operands": "0x14c591ddf",
+          "bytes": "e93f010000"
+        }
+      ],
+      "sourceCaseTransfers": [
+        {
+          "instruction": {
+            "rva": "0xC591C9B",
+            "mnemonic": "jmp",
+            "operands": "0x14c591ddf",
+            "bytes": "e93f010000"
+          },
+          "directTargetRva": "0xC591DDF",
+          "exactOriginalMethodStartOwners": []
+        }
+      ],
+      "sourceDirectJumpFollow": {
+        "sourceSteps": [
+          {
+            "rva": "0xC591C94",
+            "mnemonic": "mov",
+            "operands": "rcx, qword ptr [rip - 0x6dce4eb]",
+            "bytes": "488b0d151b23f9"
+          },
+          {
+            "rva": "0xC591C9B",
+            "mnemonic": "jmp",
+            "operands": "0x14c591ddf",
+            "bytes": "e93f010000",
+            "directTargetRva": "0xC591DDF",
+            "exactOriginalMethodStartOwners": []
+          },
+          {
+            "rva": "0xC591DDF",
+            "mnemonic": "call",
+            "operands": "0x140529a10",
+            "bytes": "e82c7cf9f3",
+            "directTargetRva": "0x529A10",
+            "exactOriginalMethodStartOwners": []
+          },
+          {
+            "rva": "0xC591DE4",
+            "mnemonic": "mov",
+            "operands": "rsi, rax",
+            "bytes": "4889c6"
+          },
+          {
+            "rva": "0xC591DE7",
+            "mnemonic": "mov",
+            "operands": "rcx, rax",
+            "bytes": "4889c1"
+          },
+          {
+            "rva": "0xC591DEA",
+            "mnemonic": "call",
+            "operands": "0x1538ba180",
+            "bytes": "e891833207",
+            "directTargetRva": "0x138BA180",
+            "exactOriginalMethodStartOwners": [
+              {
+                "typeName": "BHJILFMHGEE",
+                "methodName": ".ctor",
+                "methodIndex": 436907,
+                "typeDefinitionIndex": 54542
+              }
+            ]
+          },
+          {
+            "rva": "0xC591DEF",
+            "mnemonic": "jmp",
+            "operands": "0x14c592074",
+            "bytes": "e980020000",
+            "directTargetRva": "0xC592074",
+            "exactOriginalMethodStartOwners": []
+          },
+          {
+            "rva": "0xC592074",
+            "mnemonic": "mov",
+            "operands": "rax, rsi",
+            "bytes": "4889f0"
+          },
+          {
+            "rva": "0xC592077",
+            "mnemonic": "add",
+            "operands": "rsp, 0x20",
+            "bytes": "4883c420"
+          },
+          {
+            "rva": "0xC59207B",
+            "mnemonic": "pop",
+            "operands": "rsi",
+            "bytes": "5e"
+          },
+          {
+            "rva": "0xC59207C",
+            "mnemonic": "ret",
+            "operands": "",
+            "bytes": "c3"
+          }
+        ],
+        "stopped": "SOURCE_RET",
+        "nativeIndirectCallTargetsFollowed": false,
+        "sourceControlOnlyNotRuntimeProof": true
+      },
+      "linearInstructionsAreRuntimeExecutedProven": false,
+      "sourceCaseConcreteTypeDefinitionProven": false,
+      "sourceVtablePlusF8MethodOwnerProven": false
+    },
+    {
+      "numericFactoryCase": 14,
+      "originalCaseBranchRva": "0xC591DF4",
+      "originalClassSlotRva": "0x57C1970",
+      "linearScanEndExclusiveRva": "0xC591E10",
+      "sourceCaseNativeInstructions": [
+        {
+          "rva": "0xC591DF4",
+          "mnemonic": "mov",
+          "operands": "rcx, qword ptr [rip - 0x6dd048b]",
+          "bytes": "488b0d75fb22f9"
+        },
+        {
+          "rva": "0xC591DFB",
+          "mnemonic": "call",
+          "operands": "0x140529a10",
+          "bytes": "e8107cf9f3"
+        },
+        {
+          "rva": "0xC591E00",
+          "mnemonic": "mov",
+          "operands": "rsi, rax",
+          "bytes": "4889c6"
+        },
+        {
+          "rva": "0xC591E03",
+          "mnemonic": "mov",
+          "operands": "rcx, rax",
+          "bytes": "4889c1"
+        },
+        {
+          "rva": "0xC591E06",
+          "mnemonic": "call",
+          "operands": "0x148613310",
+          "bytes": "e8051508fc"
+        },
+        {
+          "rva": "0xC591E0B",
+          "mnemonic": "jmp",
+          "operands": "0x14c592074",
+          "bytes": "e964020000"
+        }
+      ],
+      "sourceCaseTransfers": [
+        {
+          "instruction": {
+            "rva": "0xC591DFB",
+            "mnemonic": "call",
+            "operands": "0x140529a10",
+            "bytes": "e8107cf9f3"
+          },
+          "directTargetRva": "0x529A10",
+          "exactOriginalMethodStartOwners": []
+        },
+        {
+          "instruction": {
+            "rva": "0xC591E06",
+            "mnemonic": "call",
+            "operands": "0x148613310",
+            "bytes": "e8051508fc"
+          },
+          "directTargetRva": "0x8613310",
+          "exactOriginalMethodStartOwners": [
+            {
+              "typeName": "NKJPPNFAEEF",
+              "methodName": ".ctor",
+              "methodIndex": 527282,
+              "typeDefinitionIndex": 65289
+            }
+          ]
+        },
+        {
+          "instruction": {
+            "rva": "0xC591E0B",
+            "mnemonic": "jmp",
+            "operands": "0x14c592074",
+            "bytes": "e964020000"
+          },
+          "directTargetRva": "0xC592074",
+          "exactOriginalMethodStartOwners": []
+        }
+      ],
+      "sourceDirectJumpFollow": {
+        "sourceSteps": [
+          {
+            "rva": "0xC591DF4",
+            "mnemonic": "mov",
+            "operands": "rcx, qword ptr [rip - 0x6dd048b]",
+            "bytes": "488b0d75fb22f9"
+          },
+          {
+            "rva": "0xC591DFB",
+            "mnemonic": "call",
+            "operands": "0x140529a10",
+            "bytes": "e8107cf9f3",
+            "directTargetRva": "0x529A10",
+            "exactOriginalMethodStartOwners": []
+          },
+          {
+            "rva": "0xC591E00",
+            "mnemonic": "mov",
+            "operands": "rsi, rax",
+            "bytes": "4889c6"
+          },
+          {
+            "rva": "0xC591E03",
+            "mnemonic": "mov",
+            "operands": "rcx, rax",
+            "bytes": "4889c1"
+          },
+          {
+            "rva": "0xC591E06",
+            "mnemonic": "call",
+            "operands": "0x148613310",
+            "bytes": "e8051508fc",
+            "directTargetRva": "0x8613310",
+            "exactOriginalMethodStartOwners": [
+              {
+                "typeName": "NKJPPNFAEEF",
+                "methodName": ".ctor",
+                "methodIndex": 527282,
+                "typeDefinitionIndex": 65289
+              }
+            ]
+          },
+          {
+            "rva": "0xC591E0B",
+            "mnemonic": "jmp",
+            "operands": "0x14c592074",
+            "bytes": "e964020000",
+            "directTargetRva": "0xC592074",
+            "exactOriginalMethodStartOwners": []
+          },
+          {
+            "rva": "0xC592074",
+            "mnemonic": "mov",
+            "operands": "rax, rsi",
+            "bytes": "4889f0"
+          },
+          {
+            "rva": "0xC592077",
+            "mnemonic": "add",
+            "operands": "rsp, 0x20",
+            "bytes": "4883c420"
+          },
+          {
+            "rva": "0xC59207B",
+            "mnemonic": "pop",
+            "operands": "rsi",
+            "bytes": "5e"
+          },
+          {
+            "rva": "0xC59207C",
+            "mnemonic": "ret",
+            "operands": "",
+            "bytes": "c3"
+          }
+        ],
+        "stopped": "SOURCE_RET",
+        "nativeIndirectCallTargetsFollowed": false,
+        "sourceControlOnlyNotRuntimeProof": true
+      },
+      "linearInstructionsAreRuntimeExecutedProven": false,
+      "sourceCaseConcreteTypeDefinitionProven": false,
+      "sourceVtablePlusF8MethodOwnerProven": false
+    }
+  ],
+  "unproven": [
+    "Factory case to concrete TypeDefinitionIndex",
+    "Factory case to vtable +0xF8 method",
+    "Original Scene/Point file path to native parser call",
+    "Original chest instance position or level",
+    "Client/server placement authority"
+  ],
+  "sourceOriginalRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39778014590",
+  "sourceOriginalRunHeadSha": "175287bbf2d2ce5eaa5f0cd2c124e420e05d551c",
+  "sourceOriginalArchiveArtifactId": 12424609665,
+  "sourceOriginalArchiveDigest": "sha256:70925d6d50effe99c0dd4a54b97fa1622aba908a0fedf95c1b81b39f0e1dbae1",
+  "sourceOriginalArchiveSize": 1830,
+  "originalRuntimeAllocatorFunctionSemanticsProven": false,
+  "originalClassSlotConcreteTypeDefinitionProven": false,
+  "originalScenePointFileLoaderOrInstancePlacementProven": false
+}
