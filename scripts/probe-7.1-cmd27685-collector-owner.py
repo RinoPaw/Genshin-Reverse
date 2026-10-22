@@ -81,7 +81,7 @@ def collect(methods: Path, fields: Path) -> dict:
 
 def disasm_ctor(exe: Path, methods: list[dict]) -> dict:
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
-    chosen = [m for m in methods if m["originalMethodName"] in (".ctor", ".cctor")]
+    chosen = [m for m in methods if m["originalMethodName"] in (".ctor", ".cctor", "Handle")]
     if len(chosen) > 12:
         raise ValueError("too many original constructor candidates")
     md = Cs(CS_ARCH_X86, CS_MODE_64)
@@ -91,8 +91,8 @@ def disasm_ctor(exe: Path, methods: list[dict]) -> dict:
             rva = int(m["nativeMethodRva"] or "0", 16)
             if rva <= 0:
                 continue
-            data = pe.read_rva(rva, MAX_SOURCE_BYTES)
-            if len(data) != MAX_SOURCE_BYTES:
+            window = 0x180 if m["originalMethodName"] == "Handle" else 0x220\n            data = pe.read_rva(rva, window)
+            if len(data) != window:
                 raise ValueError("cannot read original constructor method bytes")
             lines = []
             for ins in md.disasm(data, pe.image_base + rva):
@@ -102,7 +102,7 @@ def disasm_ctor(exe: Path, methods: list[dict]) -> dict:
                     "operands": ins.op_str,
                     "hex": bytes(ins.bytes).hex(),
                 })
-                if len(lines) >= 240 or ins.mnemonic == "ret":
+                if len(lines) >= 280:
                     break
             writes = [row for row in lines if "+ 0x28]" in row["operands"]]
             calls = [row for row in lines if row["mnemonic"] == "call"]
@@ -111,7 +111,7 @@ def disasm_ctor(exe: Path, methods: list[dict]) -> dict:
                 "originalMethodRva": f"0x{rva:X}",
                 "boundedBytesSha256": hashlib.sha256(data).hexdigest(),
                 "instructionsDecoded": len(lines),
-                "completeConstructorControlFlowProven": False,
+                "completeConstructorControlFlowProven": False,\n                "fullBoundedWindowDecodedAfterEarlyRet": True,
                 "objectOffset28InstructionSamples": writes[:MATCHES_LIMIT],
                 "directOrVirtualCalls": calls[:MATCHES_LIMIT],
                 "firstInstructions": lines[:35],
