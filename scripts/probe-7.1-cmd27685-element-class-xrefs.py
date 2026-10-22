@@ -42,8 +42,8 @@ ANCHORS = {
     },
 }
 LABELS = {"KIIKIELOHOG", "HCDGGIDOEFA", "HEOLIIGOCNH", "JLDCJCKHJEM"}
-MAX_MEMBER_ROWS = 100
-MAX_XREFS_PER_SLOT = 5000
+MAX_MEMBER_ROWS = 512
+MAX_XREFS_PER_SLOT = 200000
 
 
 def target_rva(entry: dict) -> int:
@@ -67,6 +67,7 @@ def check_xrefs(report: dict) -> dict:
         result[name] = {
             "sourceLoadRva": f"0x{anchor['instructionRva']:X}",
             "sourceStaticSlotRva": f"0x{t:X}",
+            "mightBeSharedStaticTablePointer": name == "messageStaticFieldsTypeInfo",
             "allAlignedRipReferences": len(rows),
             "originalOwnerTypeCounts": [
                 {"typeName": k[0], "typeDefinitionIndex": k[1], "xrefs": n}
