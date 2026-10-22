@@ -21,6 +21,7 @@ from pathlib import Path
 import re
 
 RESOURCE_COMMIT="85b81a691fcf3d9e8e7db50a8febc8f9043bc084"
+CURRENT_RESOURCE_COMMIT="c0213668889ed05cbeb86660f424c3daf18bfacd"
 SCANNER_COMMIT="e2541630f5ae4d4c95b81f7440293d3419a776d1"
 SCANNER_BLOB="6ed19ab829c31cac762f5da6132fd44b8900350a"
 EXPECTED_LUA_FILES=41110
@@ -96,8 +97,8 @@ def pinned_scanner(scanner_path:Path):
 
 
 def audit(resources:Path,scanner_path:Path,*,commit:str)->dict:
-    if commit!=RESOURCE_COMMIT:
-        raise ValueError("historical resource source commit mismatched")
+    if commit not in (RESOURCE_COMMIT,CURRENT_RESOURCE_COMMIT):
+        raise ValueError("not an authenticated pinned server resource source commit")
     scanner=pinned_scanner(scanner_path)
     excel=resources/"ExcelBinOutput/GadgetExcelConfigData.json"
     chest_ids=scanner.chest_types(json.loads(excel.read_text(encoding="utf-8-sig")))
@@ -147,15 +148,17 @@ def audit(resources:Path,scanner_path:Path,*,commit:str)->dict:
                     "sourceGroup":source,
                     "explicitLevel":number if scope=="explicit" else None,
                 })
-    if counts["luaFiles"]!=EXPECTED_LUA_FILES or counts["chestCandidates"]!=EXPECTED_HISTORICAL_CHESTS or counts["excludedBoss"]!=EXPECTED_EXCLUDED_BOSS:
+    if commit==RESOURCE_COMMIT and (counts["luaFiles"]!=EXPECTED_LUA_FILES or counts["chestCandidates"]!=EXPECTED_HISTORICAL_CHESTS or counts["excludedBoss"]!=EXPECTED_EXCLUDED_BOSS):
         raise ValueError(f"historical source census failed pinned controls: {dict(counts)}")
+    if not counts["luaFiles"] or not counts["chestCandidates"]:
+        raise ValueError("empty original source-snapshot controls")
     if counts["defaultJavaZero"]+counts["explicitZero"]+counts["explicitNonzero"]!=counts["chestCandidates"]:
         raise ValueError("level classification did not account for every candidate")
     return {
       "schemaVersion":1,
-      "status":"HISTORICAL_ASTAPS_SCENE_LEVEL_COVERAGE__NOT_ORIGINAL_7_1_INSTANCES",
+      "status":("HISTORICAL_ASTAPS_SCENE_LEVEL_COVERAGE__NOT_ORIGINAL_7_1_INSTANCES" if commit==RESOURCE_COMMIT else "CURRENT_UPSTREAM_ASTAPS_SCENE_LEVEL_COVERAGE__NOT_ORIGINAL_7_1_INSTANCES"),
       "source":{
-         "repository":"MeChen618/AstaPS-Resource","commit":RESOURCE_COMMIT,
+         "repository":"MeChen618/AstaPS-Resource","commit":commit,
          "scannerRepository":"RinoPaw/AstaPS","scannerCommit":SCANNER_COMMIT,
          "scannerGitBlob":SCANNER_BLOB,
          "classifier":"community GadgetExcel Chest type; historical resource only",
@@ -169,7 +172,7 @@ def audit(resources:Path,scanner_path:Path,*,commit:str)->dict:
       "originalGlobal71ClientInstanceLevelVerified":False,
       "originalOfficialServerSceneOwnershipVerified":False,
       "limits":[
-        "This is a static historical AstaPS server resource snapshot; source pinning is not official Global 7.1 resource authentication.",
+        "This is a static pinned AstaPS server resource snapshot; source pinning is not official Global 7.1 resource authentication.",
         "Selection uses a public-copy GadgetExcel Chest label to match the exact historical 14,084-candidate census, not native source Gadget categories.",
         "Only direct numeric level assignments on the Lua gadget object are counted; nested fields and strings are excluded.",
         "A missing Lua level becomes 0 in the current fork's Java SceneObject, but actual server game behavior/reward effects require separate tests.",

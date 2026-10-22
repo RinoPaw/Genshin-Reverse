@@ -51,6 +51,7 @@ class HistoricalChestLevel(unittest.TestCase):
     def test_no_original_authority_from_historical_source(self):
         self.assertEqual(mod.RESOURCE_COMMIT,"85b81a691fcf3d9e8e7db50a8febc8f9043bc084")
         self.assertEqual(mod.EXPECTED_HISTORICAL_CHESTS,14084)
+        self.assertEqual(mod.CURRENT_RESOURCE_COMMIT,"c0213668889ed05cbeb86660f424c3daf18bfacd")
 
 if __name__=="__main__":
     unittest.main()

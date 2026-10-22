@@ -1,0 +1,52 @@
+name: Audit current upstream AstaPS chest scene levels
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-7.1-current-scene-chest-levels.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-71-current-scene-level-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  current:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Checkout pinned current AstaPS-Resource main with sparse source
+        shell: bash
+        run: |
+          git init work/resources
+          git -C work/resources remote add origin https://github.com/MeChen618/AstaPS-Resource.git
+          git -C work/resources sparse-checkout init --no-cone
+          printf '/Scripts/Scene/**\n/ExcelBinOutput/GadgetExcelConfigData.json\n' > work/resources/.git/info/sparse-checkout
+          git -C work/resources fetch --depth 1 --filter=blob:none origin c0213668889ed05cbeb86660f424c3daf18bfacd
+          git -C work/resources checkout --detach FETCH_HEAD
+          test "$(git -C work/resources rev-parse HEAD)" = c0213668889ed05cbeb86660f424c3daf18bfacd
+      - name: Recover the immutable existing AstaPS scene scanner
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 \
+            https://raw.githubusercontent.com/RinoPaw/AstaPS/e2541630f5ae4d4c95b81f7440293d3419a776d1/tools/audit_chest_scene_exceptions.py \
+            --output work/pinned-chest-scanner.py
+      - name: Verify upstream-main scene chest levels
+        run: |
+          python scripts/audit-7.1-historical-scene-chest-levels.py \
+            --resources work/resources \
+            --scanner work/pinned-chest-scanner.py \
+            --resource-commit c0213668889ed05cbeb86660f424c3daf18bfacd \
+            --output work/current-chest-scene-levels.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: current-chest-scene-level-coverage
+          path: work/current-chest-scene-levels.json
+          retention-days: 7
+          if-no-files-found: error
