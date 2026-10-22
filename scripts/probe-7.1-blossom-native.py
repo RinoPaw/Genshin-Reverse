@@ -61,6 +61,7 @@ def main():
     # methods are C#-style handlers for the three co-list instances and
     # associated scene/owner blossom notifications. Preserve exact bytes.
     receiver_sites={
+        "native-blossom-element-parser":(0xFD90570,0x490),
         "shared-list-handler":(0xC78CA80,0x570),
         "handler-6743":(0xC78C930,0x150),
         "handler-20484":(0xC790C00,0x260),
@@ -103,7 +104,7 @@ def main():
             receiver.append({"label":label,"method_rva":f"0x{rva:X}",
                 "window_size":size,"instructions":instructions})
             print("RECEIVER",label,"rva",f"0x{rva:X}","instructions",len(instructions),flush=True)
-            for ins in instructions[:125]:
+            for ins in instructions[:500 if label=="native-blossom-element-parser" else 125]:
                 print("  RECEIVER_DISASM",ins["rva"],ins["op"],ins["args"],flush=True)
     result={"sample":PROFILE_71.identity,"exe_sha256":exe_sha,"metadata_sha256":meta_sha,
         "source":"original Global 7.1 IL2CPP executable; no semantic opcode assertions",
