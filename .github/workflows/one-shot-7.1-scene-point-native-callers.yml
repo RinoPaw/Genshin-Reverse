@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/one-shot-7.1-scene-point-native-callers.yml'
+      - 'scripts/probe-7.1-scene-point-native-caller-chain.py'
 
 permissions:
   contents: read
@@ -27,6 +28,7 @@ jobs:
           python scripts/probe-7.1-scene-point-native-caller-chain.py \
             --exe inputs/7.1.0-global/GenshinImpact.exe \
             --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
             --prior versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-native-xor-reader-evidence.json \
             --output work/original-71-scene-point-reader-callers.json
       - uses: actions/upload-artifact@v7
