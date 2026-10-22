@@ -1,0 +1,1774 @@
+{
+  "schemaVersion": 1,
+  "status": "ORIGINAL_GLOBAL_7_1_CMD27685_ELEMENT_NATIVE_FIELDS_AND_READER_COMPARISONS__PLACEMENT_OWNER_UNRESOLVED",
+  "originalClient": "7.1.0-global/windows-x64",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "originalMetadataSha256": "05ae04d7a91b91cc880217a56b0b01f3e67f845b06e894216654ec5d160e0da0",
+  "canonicalFieldsGitBlob": "ae01d117f4d884e891a95d529a15302a68715b04",
+  "canonicalMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "elementTypeDefinitionIndex": 85506,
+  "elementTypeObfuscatedName": "KFOLLNPEMHH",
+  "metadata": {
+    "elementFields": [
+      {
+        "originalFieldIndex": 423355,
+        "originalObfuscatedToken": "GJMPBKGIMJK",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 423356,
+        "originalObfuscatedToken": "APKBNAIMIBA",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 423357,
+        "originalObfuscatedToken": "BKGBHEHILGO",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 477025
+      },
+      {
+        "originalFieldIndex": 423358,
+        "originalObfuscatedToken": "HCLKOOGDGDG",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 423359,
+        "originalObfuscatedToken": "BLNACPFHBCO",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 423360,
+        "originalObfuscatedToken": "LLKILNDFMEM",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 423361,
+        "originalObfuscatedToken": "HGKDOBLIBDL",
+        "originalType": "OLKGPHDNDJN",
+        "originalRuntimeTypeIndex": 505901
+      },
+      {
+        "originalFieldIndex": 423362,
+        "originalObfuscatedToken": "OIDIICDHGFO",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 669336
+      },
+      {
+        "originalFieldIndex": 423363,
+        "originalObfuscatedToken": "HNLOKHHCFBG",
+        "originalType": "object",
+        "originalRuntimeTypeIndex": 439279
+      },
+      {
+        "originalFieldIndex": 423364,
+        "originalObfuscatedToken": "LCNJGHKEEPB",
+        "originalType": "BCJBOKPPPNF",
+        "originalRuntimeTypeIndex": 491444
+      },
+      {
+        "originalFieldIndex": 423365,
+        "originalObfuscatedToken": "PHOILAPAFPM",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 477028
+      },
+      {
+        "originalFieldIndex": 423366,
+        "originalObfuscatedToken": "IBFPOAGLLMB",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 669337
+      },
+      {
+        "originalFieldIndex": 423367,
+        "originalObfuscatedToken": "HDGFDBHMBNL",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 515104
+      },
+      {
+        "originalFieldIndex": 423368,
+        "originalObfuscatedToken": "AFOMIMJGNKC",
+        "originalType": "EBIEHMDCNHC",
+        "originalRuntimeTypeIndex": 669338
+      },
+      {
+        "originalFieldIndex": 423369,
+        "originalObfuscatedToken": "CIBPMMIONCG",
+        "originalType": "string",
+        "originalRuntimeTypeIndex": 439041
+      },
+      {
+        "originalFieldIndex": 423370,
+        "originalObfuscatedToken": "EEPBFNBHCFH",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 669339
+      },
+      {
+        "originalFieldIndex": 423371,
+        "originalObfuscatedToken": "DLOEKFLGJCG",
+        "originalType": "ABOOLMJBDKE",
+        "originalRuntimeTypeIndex": 540168
+      },
+      {
+        "originalFieldIndex": 423372,
+        "originalObfuscatedToken": "POPIIAMMFPB",
+        "originalType": "GNAGFIAGDCJ",
+        "originalRuntimeTypeIndex": 486123
+      },
+      {
+        "originalFieldIndex": 423373,
+        "originalObfuscatedToken": "BCLJMKBJDNO",
+        "originalType": "GFJKKPHAAHE",
+        "originalRuntimeTypeIndex": 597717
+      },
+      {
+        "originalFieldIndex": 423374,
+        "originalObfuscatedToken": "GCKNBMJIKFK",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 482199
+      },
+      {
+        "originalFieldIndex": 423375,
+        "originalObfuscatedToken": "CEDELGPANFB",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      },
+      {
+        "originalFieldIndex": 423376,
+        "originalObfuscatedToken": "IODFKNMMJNI",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      },
+      {
+        "originalFieldIndex": 423377,
+        "originalObfuscatedToken": "KMJHEIEFENN",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      },
+      {
+        "originalFieldIndex": 423378,
+        "originalObfuscatedToken": "DNBPGFPHDNL",
+        "originalType": "ILHAPCILAMJ",
+        "originalRuntimeTypeIndex": 669340
+      },
+      {
+        "originalFieldIndex": 423379,
+        "originalObfuscatedToken": "HLHCLCHFIDK",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      },
+      {
+        "originalFieldIndex": 423380,
+        "originalObfuscatedToken": "IICOJFCOCEO",
+        "originalType": "FLPBAANDGOJ",
+        "originalRuntimeTypeIndex": 669341
+      },
+      {
+        "originalFieldIndex": 423381,
+        "originalObfuscatedToken": "EEJCBPOHBFA",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      }
+    ],
+    "elementMethods": [
+      {
+        "originalMethodIndex": 705936,
+        "originalName": ".ctor",
+        "originalRva": "0xB439E00",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705937,
+        "originalName": ".cctor",
+        "originalRva": "0xB439EF0",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705938,
+        "originalName": "KCLBBFDAMDF",
+        "originalRva": "0xB439DC0",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705939,
+        "originalName": "NLGBJEEJDLG",
+        "originalRva": "0xB43A2A0",
+        "originalParameterTypes": "[\"IFEDIKGINNK\"]"
+      },
+      {
+        "originalMethodIndex": 705940,
+        "originalName": "HKFIBILBMDF",
+        "originalRva": "0xB43AF70",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705941,
+        "originalName": "CBEMJLDCMIF",
+        "originalRva": "0xB43B260",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705942,
+        "originalName": "GAJAHPHOEIA",
+        "originalRva": "0xB43B460",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705943,
+        "originalName": "IENGFLPCLNM",
+        "originalRva": "0xB43B4A0",
+        "originalParameterTypes": "[\"EIBJNHDPEMB\"]"
+      },
+      {
+        "originalMethodIndex": 705944,
+        "originalName": "EFDIILCHLIL",
+        "originalRva": "0xB43CCE0",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705945,
+        "originalName": "MAHCGMKBKDB",
+        "originalRva": "0xB43B140",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705946,
+        "originalName": "EBAAKGIEFHO",
+        "originalRva": "0xB43CD00",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705947,
+        "originalName": "NKFCABIOGLE",
+        "originalRva": "0xB43D4C0",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705948,
+        "originalName": "CopyFrom",
+        "originalRva": "0xB43D570",
+        "originalParameterTypes": "[\"KFOLLNPEMHH\"]"
+      },
+      {
+        "originalMethodIndex": 705949,
+        "originalName": "IKFOKMCBPCD",
+        "originalRva": "0xB43DD60",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705950,
+        "originalName": "KMPFPAPHKGP",
+        "originalRva": "0xB43E0D0",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705951,
+        "originalName": "GLHHEIJMBGM",
+        "originalRva": "0xB43B380",
+        "originalParameterTypes": "[]"
+      },
+      {
+        "originalMethodIndex": 705952,
+        "originalName": "BNHMFHMIDBL",
+        "originalRva": "0xB43E440",
+        "originalParameterTypes": "[\"bool\"]"
+      }
+    ],
+    "messageFields": [
+      {
+        "originalFieldIndex": 326637,
+        "originalObfuscatedToken": "JAEBKJILOPB",
+        "originalType": "HCDGGIDOEFA",
+        "originalRuntimeTypeIndex": 476748
+      },
+      {
+        "originalFieldIndex": 326638,
+        "originalObfuscatedToken": "GEPFILACKKP",
+        "originalType": "kind_0x15",
+        "originalRuntimeTypeIndex": 547328
+      },
+      {
+        "originalFieldIndex": 326639,
+        "originalObfuscatedToken": "DNKHNFBIDHJ",
+        "originalType": "HEOLIIGOCNH",
+        "originalRuntimeTypeIndex": 528886
+      },
+      {
+        "originalFieldIndex": 326640,
+        "originalObfuscatedToken": "JCNANNABFLE",
+        "originalType": "uint32",
+        "originalRuntimeTypeIndex": 439246
+      }
+    ],
+    "containerFields": [
+      {
+        "originalFieldIndex": 256755,
+        "originalObfuscatedToken": "KCJJAPPLFKA",
+        "originalType": "KFOLLNPEMHH",
+        "originalRuntimeTypeIndex": 496940
+      }
+    ],
+    "elementOriginalTypeHistogram": {
+      "ABOOLMJBDKE": 1,
+      "BCJBOKPPPNF": 1,
+      "EBIEHMDCNHC": 1,
+      "FLPBAANDGOJ": 1,
+      "GFJKKPHAAHE": 1,
+      "GNAGFIAGDCJ": 1,
+      "HCDGGIDOEFA": 5,
+      "ILHAPCILAMJ": 1,
+      "OLKGPHDNDJN": 1,
+      "kind_0x15": 7,
+      "object": 1,
+      "string": 1,
+      "uint32": 5
+    }
+  },
+  "originalNativeReader": {
+    "readerRva": "0xB43A2A0",
+    "readerMethodIndex": 705939,
+    "readerWindowBytes": 3280,
+    "readerWindowSha256": "b9daf495a99150725dcadff1d6ba717e9a6edf1461b764ebd13b7f3905eb0c9e",
+    "disassembledInstructions": 708,
+    "verifiedNativeField2": {
+      "protobufWireKey": "0x10",
+      "fieldNumber": 2,
+      "wireType": 0,
+      "objectOffset": "0x98",
+      "comparisonRva": "0xB43A328",
+      "readerCallRva": "0xB43A33D",
+      "storeRva": "0xB43A342",
+      "nativeSemanticName": null
+    },
+    "scalarComparisonCandidates": [
+      {
+        "rva": "0xB43A308",
+        "immediate": 99,
+        "wireFieldNumberIfKey": 12,
+        "wireTypeIfKey": 3,
+        "originalOpcode": "83f863",
+        "context": [
+          {
+            "rva": "0xB43A300",
+            "mnemonic": "test",
+            "operands": "eax, eax",
+            "opcode": "85c0"
+          },
+          {
+            "rva": "0xB43A302",
+            "mnemonic": "je",
+            "operands": "0x14b43aee4",
+            "opcode": "0f84dc0b0000"
+          },
+          {
+            "rva": "0xB43A308",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x63",
+            "opcode": "83f863"
+          },
+          {
+            "rva": "0xB43A30B",
+            "mnemonic": "jae",
+            "operands": "0x14b43a350",
+            "opcode": "7343"
+          },
+          {
+            "rva": "0xB43A30D",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x2a",
+            "opcode": "83f82a"
+          },
+          {
+            "rva": "0xB43A310",
+            "mnemonic": "ja",
+            "operands": "0x14b43a3b0",
+            "opcode": "0f879a000000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A30D",
+        "immediate": 42,
+        "wireFieldNumberIfKey": 5,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f82a",
+        "context": [
+          {
+            "rva": "0xB43A308",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x63",
+            "opcode": "83f863"
+          },
+          {
+            "rva": "0xB43A30B",
+            "mnemonic": "jae",
+            "operands": "0x14b43a350",
+            "opcode": "7343"
+          },
+          {
+            "rva": "0xB43A30D",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x2a",
+            "opcode": "83f82a"
+          },
+          {
+            "rva": "0xB43A310",
+            "mnemonic": "ja",
+            "operands": "0x14b43a3b0",
+            "opcode": "0f879a000000"
+          },
+          {
+            "rva": "0xB43A316",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x10",
+            "opcode": "83f810"
+          },
+          {
+            "rva": "0xB43A319",
+            "mnemonic": "ja",
+            "operands": "0x14b43a473",
+            "opcode": "0f8754010000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A316",
+        "immediate": 16,
+        "wireFieldNumberIfKey": 2,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "83f810",
+        "context": [
+          {
+            "rva": "0xB43A30D",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x2a",
+            "opcode": "83f82a"
+          },
+          {
+            "rva": "0xB43A310",
+            "mnemonic": "ja",
+            "operands": "0x14b43a3b0",
+            "opcode": "0f879a000000"
+          },
+          {
+            "rva": "0xB43A316",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x10",
+            "opcode": "83f810"
+          },
+          {
+            "rva": "0xB43A319",
+            "mnemonic": "ja",
+            "operands": "0x14b43a473",
+            "opcode": "0f8754010000"
+          },
+          {
+            "rva": "0xB43A31F",
+            "mnemonic": "cmp",
+            "operands": "eax, 8",
+            "opcode": "83f808"
+          },
+          {
+            "rva": "0xB43A322",
+            "mnemonic": "je",
+            "operands": "0x14b43a65c",
+            "opcode": "0f8434030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A31F",
+        "immediate": 8,
+        "wireFieldNumberIfKey": 1,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "83f808",
+        "context": [
+          {
+            "rva": "0xB43A316",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x10",
+            "opcode": "83f810"
+          },
+          {
+            "rva": "0xB43A319",
+            "mnemonic": "ja",
+            "operands": "0x14b43a473",
+            "opcode": "0f8754010000"
+          },
+          {
+            "rva": "0xB43A31F",
+            "mnemonic": "cmp",
+            "operands": "eax, 8",
+            "opcode": "83f808"
+          },
+          {
+            "rva": "0xB43A322",
+            "mnemonic": "je",
+            "operands": "0x14b43a65c",
+            "opcode": "0f8434030000"
+          },
+          {
+            "rva": "0xB43A328",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x10",
+            "opcode": "83f810"
+          },
+          {
+            "rva": "0xB43A32B",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "75c3"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A328",
+        "immediate": 16,
+        "wireFieldNumberIfKey": 2,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "83f810",
+        "context": [
+          {
+            "rva": "0xB43A31F",
+            "mnemonic": "cmp",
+            "operands": "eax, 8",
+            "opcode": "83f808"
+          },
+          {
+            "rva": "0xB43A322",
+            "mnemonic": "je",
+            "operands": "0x14b43a65c",
+            "opcode": "0f8434030000"
+          },
+          {
+            "rva": "0xB43A328",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x10",
+            "opcode": "83f810"
+          },
+          {
+            "rva": "0xB43A32B",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "75c3"
+          },
+          {
+            "rva": "0xB43A32D",
+            "mnemonic": "cmp",
+            "operands": "byte ptr [rip - 0x5d4fb5f], 0",
+            "opcode": "803da1042bfa00"
+          },
+          {
+            "rva": "0xB43A334",
+            "mnemonic": "jne",
+            "operands": "0x14b43ad49",
+            "opcode": "0f850f0a0000"
+          }
+        ],
+        "provenOriginalWireKey": true
+      },
+      {
+        "rva": "0xB43A350",
+        "immediate": 170,
+        "wireFieldNumberIfKey": 21,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3daa000000",
+        "context": [
+          {
+            "rva": "0xB43A34A",
+            "mnemonic": "jmp",
+            "operands": "0x14b43a2f8",
+            "opcode": "ebac"
+          },
+          {
+            "rva": "0xB43A34C",
+            "mnemonic": "nop",
+            "operands": "dword ptr [rax]",
+            "opcode": "0f1f4000"
+          },
+          {
+            "rva": "0xB43A350",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xaa",
+            "opcode": "3daa000000"
+          },
+          {
+            "rva": "0xB43A355",
+            "mnemonic": "ja",
+            "operands": "0x14b43a410",
+            "opcode": "0f87b5000000"
+          },
+          {
+            "rva": "0xB43A35B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x90",
+            "opcode": "3d90000000"
+          },
+          {
+            "rva": "0xB43A360",
+            "mnemonic": "ja",
+            "operands": "0x14b43a4ca",
+            "opcode": "0f8764010000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A35B",
+        "immediate": 144,
+        "wireFieldNumberIfKey": 18,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "3d90000000",
+        "context": [
+          {
+            "rva": "0xB43A350",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xaa",
+            "opcode": "3daa000000"
+          },
+          {
+            "rva": "0xB43A355",
+            "mnemonic": "ja",
+            "operands": "0x14b43a410",
+            "opcode": "0f87b5000000"
+          },
+          {
+            "rva": "0xB43A35B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x90",
+            "opcode": "3d90000000"
+          },
+          {
+            "rva": "0xB43A360",
+            "mnemonic": "ja",
+            "operands": "0x14b43a4ca",
+            "opcode": "0f8764010000"
+          },
+          {
+            "rva": "0xB43A366",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x6a",
+            "opcode": "83f86a"
+          },
+          {
+            "rva": "0xB43A369",
+            "mnemonic": "je",
+            "operands": "0x14b43a67e",
+            "opcode": "0f840f030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A366",
+        "immediate": 106,
+        "wireFieldNumberIfKey": 13,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f86a",
+        "context": [
+          {
+            "rva": "0xB43A35B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x90",
+            "opcode": "3d90000000"
+          },
+          {
+            "rva": "0xB43A360",
+            "mnemonic": "ja",
+            "operands": "0x14b43a4ca",
+            "opcode": "0f8764010000"
+          },
+          {
+            "rva": "0xB43A366",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x6a",
+            "opcode": "83f86a"
+          },
+          {
+            "rva": "0xB43A369",
+            "mnemonic": "je",
+            "operands": "0x14b43a67e",
+            "opcode": "0f840f030000"
+          },
+          {
+            "rva": "0xB43A36F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x88",
+            "opcode": "3d88000000"
+          },
+          {
+            "rva": "0xB43A374",
+            "mnemonic": "je",
+            "operands": "0x14b43a700",
+            "opcode": "0f8486030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A36F",
+        "immediate": 136,
+        "wireFieldNumberIfKey": 17,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "3d88000000",
+        "context": [
+          {
+            "rva": "0xB43A366",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x6a",
+            "opcode": "83f86a"
+          },
+          {
+            "rva": "0xB43A369",
+            "mnemonic": "je",
+            "operands": "0x14b43a67e",
+            "opcode": "0f840f030000"
+          },
+          {
+            "rva": "0xB43A36F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x88",
+            "opcode": "3d88000000"
+          },
+          {
+            "rva": "0xB43A374",
+            "mnemonic": "je",
+            "operands": "0x14b43a700",
+            "opcode": "0f8486030000"
+          },
+          {
+            "rva": "0xB43A37A",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x90",
+            "opcode": "3d90000000"
+          },
+          {
+            "rva": "0xB43A37F",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f856bffffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A37A",
+        "immediate": 144,
+        "wireFieldNumberIfKey": 18,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "3d90000000",
+        "context": [
+          {
+            "rva": "0xB43A36F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x88",
+            "opcode": "3d88000000"
+          },
+          {
+            "rva": "0xB43A374",
+            "mnemonic": "je",
+            "operands": "0x14b43a700",
+            "opcode": "0f8486030000"
+          },
+          {
+            "rva": "0xB43A37A",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x90",
+            "opcode": "3d90000000"
+          },
+          {
+            "rva": "0xB43A37F",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f856bffffff"
+          },
+          {
+            "rva": "0xB43A385",
+            "mnemonic": "cmp",
+            "operands": "byte ptr [rip - 0x5d4fbb7], 0",
+            "opcode": "803d49042bfa00"
+          },
+          {
+            "rva": "0xB43A38C",
+            "mnemonic": "jne",
+            "operands": "0x14b43adaf",
+            "opcode": "0f851d0a0000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A3B0",
+        "immediate": 74,
+        "wireFieldNumberIfKey": 9,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f84a",
+        "context": [
+          {
+            "rva": "0xB43A3A2",
+            "mnemonic": "jmp",
+            "operands": "0x14b43a2f8",
+            "opcode": "e951ffffff"
+          },
+          {
+            "rva": "0xB43A3A7",
+            "mnemonic": "nop",
+            "operands": "word ptr [rax + rax]",
+            "opcode": "660f1f840000000000"
+          },
+          {
+            "rva": "0xB43A3B0",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x4a",
+            "opcode": "83f84a"
+          },
+          {
+            "rva": "0xB43A3B3",
+            "mnemonic": "ja",
+            "operands": "0x14b43a522",
+            "opcode": "0f8769010000"
+          },
+          {
+            "rva": "0xB43A3B9",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x32",
+            "opcode": "83f832"
+          },
+          {
+            "rva": "0xB43A3BC",
+            "mnemonic": "je",
+            "operands": "0x14b43a722",
+            "opcode": "0f8460030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A3B9",
+        "immediate": 50,
+        "wireFieldNumberIfKey": 6,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f832",
+        "context": [
+          {
+            "rva": "0xB43A3B0",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x4a",
+            "opcode": "83f84a"
+          },
+          {
+            "rva": "0xB43A3B3",
+            "mnemonic": "ja",
+            "operands": "0x14b43a522",
+            "opcode": "0f8769010000"
+          },
+          {
+            "rva": "0xB43A3B9",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x32",
+            "opcode": "83f832"
+          },
+          {
+            "rva": "0xB43A3BC",
+            "mnemonic": "je",
+            "operands": "0x14b43a722",
+            "opcode": "0f8460030000"
+          },
+          {
+            "rva": "0xB43A3C2",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x38",
+            "opcode": "83f838"
+          },
+          {
+            "rva": "0xB43A3C5",
+            "mnemonic": "je",
+            "operands": "0x14b43a75e",
+            "opcode": "0f8493030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A3C2",
+        "immediate": 56,
+        "wireFieldNumberIfKey": 7,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "83f838",
+        "context": [
+          {
+            "rva": "0xB43A3B9",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x32",
+            "opcode": "83f832"
+          },
+          {
+            "rva": "0xB43A3BC",
+            "mnemonic": "je",
+            "operands": "0x14b43a722",
+            "opcode": "0f8460030000"
+          },
+          {
+            "rva": "0xB43A3C2",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x38",
+            "opcode": "83f838"
+          },
+          {
+            "rva": "0xB43A3C5",
+            "mnemonic": "je",
+            "operands": "0x14b43a75e",
+            "opcode": "0f8493030000"
+          },
+          {
+            "rva": "0xB43A3CB",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x4a",
+            "opcode": "83f84a"
+          },
+          {
+            "rva": "0xB43A3CE",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f851cffffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A3CB",
+        "immediate": 74,
+        "wireFieldNumberIfKey": 9,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f84a",
+        "context": [
+          {
+            "rva": "0xB43A3C2",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x38",
+            "opcode": "83f838"
+          },
+          {
+            "rva": "0xB43A3C5",
+            "mnemonic": "je",
+            "operands": "0x14b43a75e",
+            "opcode": "0f8493030000"
+          },
+          {
+            "rva": "0xB43A3CB",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x4a",
+            "opcode": "83f84a"
+          },
+          {
+            "rva": "0xB43A3CE",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f851cffffff"
+          },
+          {
+            "rva": "0xB43A3D4",
+            "mnemonic": "mov",
+            "operands": "rdi, qword ptr [r12 + 0x48]",
+            "opcode": "498b7c2448"
+          },
+          {
+            "rva": "0xB43A3D9",
+            "mnemonic": "mov",
+            "operands": "rcx, qword ptr [rip - 0x5c68ab8]",
+            "opcode": "488b0d487539fa"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A410",
+        "immediate": 194,
+        "wireFieldNumberIfKey": 24,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3dc2000000",
+        "context": [
+          {
+            "rva": "0xB43A404",
+            "mnemonic": "mov",
+            "operands": "r9, qword ptr [rip - 0x5b6e053]",
+            "opcode": "4c8b0dad1f49fa"
+          },
+          {
+            "rva": "0xB43A40B",
+            "mnemonic": "jmp",
+            "operands": "0x14b43a8bd",
+            "opcode": "e9ad040000"
+          },
+          {
+            "rva": "0xB43A410",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xc2",
+            "opcode": "3dc2000000"
+          },
+          {
+            "rva": "0xB43A415",
+            "mnemonic": "ja",
+            "operands": "0x14b43a604",
+            "opcode": "0f87e9010000"
+          },
+          {
+            "rva": "0xB43A41B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xb2",
+            "opcode": "3db2000000"
+          },
+          {
+            "rva": "0xB43A420",
+            "mnemonic": "je",
+            "operands": "0x14b43a780",
+            "opcode": "0f845a030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A41B",
+        "immediate": 178,
+        "wireFieldNumberIfKey": 22,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3db2000000",
+        "context": [
+          {
+            "rva": "0xB43A410",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xc2",
+            "opcode": "3dc2000000"
+          },
+          {
+            "rva": "0xB43A415",
+            "mnemonic": "ja",
+            "operands": "0x14b43a604",
+            "opcode": "0f87e9010000"
+          },
+          {
+            "rva": "0xB43A41B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xb2",
+            "opcode": "3db2000000"
+          },
+          {
+            "rva": "0xB43A420",
+            "mnemonic": "je",
+            "operands": "0x14b43a780",
+            "opcode": "0f845a030000"
+          },
+          {
+            "rva": "0xB43A426",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xba",
+            "opcode": "3dba000000"
+          },
+          {
+            "rva": "0xB43A42B",
+            "mnemonic": "je",
+            "operands": "0x14b43a7c7",
+            "opcode": "0f8496030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A426",
+        "immediate": 186,
+        "wireFieldNumberIfKey": 23,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3dba000000",
+        "context": [
+          {
+            "rva": "0xB43A41B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xb2",
+            "opcode": "3db2000000"
+          },
+          {
+            "rva": "0xB43A420",
+            "mnemonic": "je",
+            "operands": "0x14b43a780",
+            "opcode": "0f845a030000"
+          },
+          {
+            "rva": "0xB43A426",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xba",
+            "opcode": "3dba000000"
+          },
+          {
+            "rva": "0xB43A42B",
+            "mnemonic": "je",
+            "operands": "0x14b43a7c7",
+            "opcode": "0f8496030000"
+          },
+          {
+            "rva": "0xB43A431",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xc2",
+            "opcode": "3dc2000000"
+          },
+          {
+            "rva": "0xB43A436",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85b4feffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A431",
+        "immediate": 194,
+        "wireFieldNumberIfKey": 24,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3dc2000000",
+        "context": [
+          {
+            "rva": "0xB43A426",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xba",
+            "opcode": "3dba000000"
+          },
+          {
+            "rva": "0xB43A42B",
+            "mnemonic": "je",
+            "operands": "0x14b43a7c7",
+            "opcode": "0f8496030000"
+          },
+          {
+            "rva": "0xB43A431",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xc2",
+            "opcode": "3dc2000000"
+          },
+          {
+            "rva": "0xB43A436",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85b4feffff"
+          },
+          {
+            "rva": "0xB43A43C",
+            "mnemonic": "mov",
+            "operands": "rbx, qword ptr [r12 + 0x30]",
+            "opcode": "498b5c2430"
+          },
+          {
+            "rva": "0xB43A441",
+            "mnemonic": "test",
+            "operands": "rbx, rbx",
+            "opcode": "4885db"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A473",
+        "immediate": 26,
+        "wireFieldNumberIfKey": 3,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f81a",
+        "context": [
+          {
+            "rva": "0xB43A469",
+            "mnemonic": "mov",
+            "operands": "qword ptr [r12 + 0x30], rax",
+            "opcode": "4989442430"
+          },
+          {
+            "rva": "0xB43A46E",
+            "mnemonic": "jmp",
+            "operands": "0x14b43ad39",
+            "opcode": "e9c6080000"
+          },
+          {
+            "rva": "0xB43A473",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x1a",
+            "opcode": "83f81a"
+          },
+          {
+            "rva": "0xB43A476",
+            "mnemonic": "je",
+            "operands": "0x14b43a806",
+            "opcode": "0f848a030000"
+          },
+          {
+            "rva": "0xB43A47C",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x22",
+            "opcode": "83f822"
+          },
+          {
+            "rva": "0xB43A47F",
+            "mnemonic": "je",
+            "operands": "0x14b43a818",
+            "opcode": "0f8493030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A47C",
+        "immediate": 34,
+        "wireFieldNumberIfKey": 4,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f822",
+        "context": [
+          {
+            "rva": "0xB43A473",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x1a",
+            "opcode": "83f81a"
+          },
+          {
+            "rva": "0xB43A476",
+            "mnemonic": "je",
+            "operands": "0x14b43a806",
+            "opcode": "0f848a030000"
+          },
+          {
+            "rva": "0xB43A47C",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x22",
+            "opcode": "83f822"
+          },
+          {
+            "rva": "0xB43A47F",
+            "mnemonic": "je",
+            "operands": "0x14b43a818",
+            "opcode": "0f8493030000"
+          },
+          {
+            "rva": "0xB43A485",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x2a",
+            "opcode": "83f82a"
+          },
+          {
+            "rva": "0xB43A488",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f8562feffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A485",
+        "immediate": 42,
+        "wireFieldNumberIfKey": 5,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f82a",
+        "context": [
+          {
+            "rva": "0xB43A47C",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x22",
+            "opcode": "83f822"
+          },
+          {
+            "rva": "0xB43A47F",
+            "mnemonic": "je",
+            "operands": "0x14b43a818",
+            "opcode": "0f8493030000"
+          },
+          {
+            "rva": "0xB43A485",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x2a",
+            "opcode": "83f82a"
+          },
+          {
+            "rva": "0xB43A488",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f8562feffff"
+          },
+          {
+            "rva": "0xB43A48E",
+            "mnemonic": "mov",
+            "operands": "rdi, qword ptr [r12 + 0x40]",
+            "opcode": "498b7c2440"
+          },
+          {
+            "rva": "0xB43A493",
+            "mnemonic": "mov",
+            "operands": "rcx, qword ptr [rip - 0x5c68b72]",
+            "opcode": "488b0d8e7439fa"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A4CA",
+        "immediate": 154,
+        "wireFieldNumberIfKey": 19,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3d9a000000",
+        "context": [
+          {
+            "rva": "0xB43A4BE",
+            "mnemonic": "mov",
+            "operands": "r9, qword ptr [rip - 0x5b0ffed]",
+            "opcode": "4c8b0d13004ffa"
+          },
+          {
+            "rva": "0xB43A4C5",
+            "mnemonic": "jmp",
+            "operands": "0x14b43a8bd",
+            "opcode": "e9f3030000"
+          },
+          {
+            "rva": "0xB43A4CA",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x9a",
+            "opcode": "3d9a000000"
+          },
+          {
+            "rva": "0xB43A4CF",
+            "mnemonic": "je",
+            "operands": "0x14b43a84f",
+            "opcode": "0f847a030000"
+          },
+          {
+            "rva": "0xB43A4D5",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xa2",
+            "opcode": "3da2000000"
+          },
+          {
+            "rva": "0xB43A4DA",
+            "mnemonic": "je",
+            "operands": "0x14b43a886",
+            "opcode": "0f84a6030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A4D5",
+        "immediate": 162,
+        "wireFieldNumberIfKey": 20,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3da2000000",
+        "context": [
+          {
+            "rva": "0xB43A4CA",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x9a",
+            "opcode": "3d9a000000"
+          },
+          {
+            "rva": "0xB43A4CF",
+            "mnemonic": "je",
+            "operands": "0x14b43a84f",
+            "opcode": "0f847a030000"
+          },
+          {
+            "rva": "0xB43A4D5",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xa2",
+            "opcode": "3da2000000"
+          },
+          {
+            "rva": "0xB43A4DA",
+            "mnemonic": "je",
+            "operands": "0x14b43a886",
+            "opcode": "0f84a6030000"
+          },
+          {
+            "rva": "0xB43A4E0",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xaa",
+            "opcode": "3daa000000"
+          },
+          {
+            "rva": "0xB43A4E5",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f8505feffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A4E0",
+        "immediate": 170,
+        "wireFieldNumberIfKey": 21,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3daa000000",
+        "context": [
+          {
+            "rva": "0xB43A4D5",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xa2",
+            "opcode": "3da2000000"
+          },
+          {
+            "rva": "0xB43A4DA",
+            "mnemonic": "je",
+            "operands": "0x14b43a886",
+            "opcode": "0f84a6030000"
+          },
+          {
+            "rva": "0xB43A4E0",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xaa",
+            "opcode": "3daa000000"
+          },
+          {
+            "rva": "0xB43A4E5",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f8505feffff"
+          },
+          {
+            "rva": "0xB43A4EB",
+            "mnemonic": "mov",
+            "operands": "rbx, qword ptr [r12 + 0x50]",
+            "opcode": "498b5c2450"
+          },
+          {
+            "rva": "0xB43A4F0",
+            "mnemonic": "test",
+            "operands": "rbx, rbx",
+            "opcode": "4885db"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A522",
+        "immediate": 82,
+        "wireFieldNumberIfKey": 10,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f852",
+        "context": [
+          {
+            "rva": "0xB43A518",
+            "mnemonic": "mov",
+            "operands": "qword ptr [r12 + 0x50], rax",
+            "opcode": "4989442450"
+          },
+          {
+            "rva": "0xB43A51D",
+            "mnemonic": "jmp",
+            "operands": "0x14b43ad39",
+            "opcode": "e917080000"
+          },
+          {
+            "rva": "0xB43A522",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x52",
+            "opcode": "83f852"
+          },
+          {
+            "rva": "0xB43A525",
+            "mnemonic": "je",
+            "operands": "0x14b43a8cd",
+            "opcode": "0f84a2030000"
+          },
+          {
+            "rva": "0xB43A52B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x5a",
+            "opcode": "83f85a"
+          },
+          {
+            "rva": "0xB43A52E",
+            "mnemonic": "je",
+            "operands": "0x14b43a94c",
+            "opcode": "0f8418040000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A52B",
+        "immediate": 90,
+        "wireFieldNumberIfKey": 11,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f85a",
+        "context": [
+          {
+            "rva": "0xB43A522",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x52",
+            "opcode": "83f852"
+          },
+          {
+            "rva": "0xB43A525",
+            "mnemonic": "je",
+            "operands": "0x14b43a8cd",
+            "opcode": "0f84a2030000"
+          },
+          {
+            "rva": "0xB43A52B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x5a",
+            "opcode": "83f85a"
+          },
+          {
+            "rva": "0xB43A52E",
+            "mnemonic": "je",
+            "operands": "0x14b43a94c",
+            "opcode": "0f8418040000"
+          },
+          {
+            "rva": "0xB43A534",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x62",
+            "opcode": "83f862"
+          },
+          {
+            "rva": "0xB43A537",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85b3fdffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A534",
+        "immediate": 98,
+        "wireFieldNumberIfKey": 12,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "83f862",
+        "context": [
+          {
+            "rva": "0xB43A52B",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x5a",
+            "opcode": "83f85a"
+          },
+          {
+            "rva": "0xB43A52E",
+            "mnemonic": "je",
+            "operands": "0x14b43a94c",
+            "opcode": "0f8418040000"
+          },
+          {
+            "rva": "0xB43A534",
+            "mnemonic": "cmp",
+            "operands": "eax, 0x62",
+            "opcode": "83f862"
+          },
+          {
+            "rva": "0xB43A537",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85b3fdffff"
+          },
+          {
+            "rva": "0xB43A53D",
+            "mnemonic": "mov",
+            "operands": "rdi, qword ptr [rip - 0x5c87e54]",
+            "opcode": "488b3dac8137fa"
+          },
+          {
+            "rva": "0xB43A544",
+            "mnemonic": "cmp",
+            "operands": "dword ptr [rip - 0x5cb52e7], 0",
+            "opcode": "833d19ad34fa00"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A604",
+        "immediate": 202,
+        "wireFieldNumberIfKey": 25,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3dca000000",
+        "context": [
+          {
+            "rva": "0xB43A5FA",
+            "mnemonic": "mov",
+            "operands": "eax, 0xc",
+            "opcode": "b80c000000"
+          },
+          {
+            "rva": "0xB43A5FF",
+            "mnemonic": "jmp",
+            "operands": "0x14b43a9c9",
+            "opcode": "e9c5030000"
+          },
+          {
+            "rva": "0xB43A604",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xca",
+            "opcode": "3dca000000"
+          },
+          {
+            "rva": "0xB43A609",
+            "mnemonic": "je",
+            "operands": "0x14b43a9d9",
+            "opcode": "0f84ca030000"
+          },
+          {
+            "rva": "0xB43A60F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xd0",
+            "opcode": "3dd0000000"
+          },
+          {
+            "rva": "0xB43A614",
+            "mnemonic": "je",
+            "operands": "0x14b43aa10",
+            "opcode": "0f84f6030000"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A60F",
+        "immediate": 208,
+        "wireFieldNumberIfKey": 26,
+        "wireTypeIfKey": 0,
+        "originalOpcode": "3dd0000000",
+        "context": [
+          {
+            "rva": "0xB43A604",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xca",
+            "opcode": "3dca000000"
+          },
+          {
+            "rva": "0xB43A609",
+            "mnemonic": "je",
+            "operands": "0x14b43a9d9",
+            "opcode": "0f84ca030000"
+          },
+          {
+            "rva": "0xB43A60F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xd0",
+            "opcode": "3dd0000000"
+          },
+          {
+            "rva": "0xB43A614",
+            "mnemonic": "je",
+            "operands": "0x14b43aa10",
+            "opcode": "0f84f6030000"
+          },
+          {
+            "rva": "0xB43A61A",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xda",
+            "opcode": "3dda000000"
+          },
+          {
+            "rva": "0xB43A61F",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85cbfcffff"
+          }
+        ],
+        "provenOriginalWireKey": false
+      },
+      {
+        "rva": "0xB43A61A",
+        "immediate": 218,
+        "wireFieldNumberIfKey": 27,
+        "wireTypeIfKey": 2,
+        "originalOpcode": "3dda000000",
+        "context": [
+          {
+            "rva": "0xB43A60F",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xd0",
+            "opcode": "3dd0000000"
+          },
+          {
+            "rva": "0xB43A614",
+            "mnemonic": "je",
+            "operands": "0x14b43aa10",
+            "opcode": "0f84f6030000"
+          },
+          {
+            "rva": "0xB43A61A",
+            "mnemonic": "cmp",
+            "operands": "eax, 0xda",
+            "opcode": "3dda000000"
+          },
+          {
+            "rva": "0xB43A61F",
+            "mnemonic": "jne",
+            "operands": "0x14b43a2f0",
+            "opcode": "0f85cbfcffff"
+          },
+          {
+            "rva": "0xB43A625",
+            "mnemonic": "mov",
+            "operands": "rbx, qword ptr [r12 + 0x68]",
+            "opcode": "498b5c2468"
+          },
+          {
+            "rva": "0xB43A62A",
+            "mnemonic": "test",
+            "operands": "rbx, rbx",
+            "opcode": "4885db"
+          }
+        ],
+        "provenOriginalWireKey": false
+      }
+    ],
+    "distinctPotentialTagNumbers": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "confirmedWireFieldNumbers": [
+      2
+    ],
+    "otherPotentialTagNumbersRemainUnverified": true
+  },
+  "originalSceneChestPlacementSourceProven": false,
+  "originalSceneLevelProven": false,
+  "originalPacketDirectionProven": false,
+  "limitations": [
+    "All listed obfuscated field tokens and type labels derive from original Global 7.1 metadata; semantic names remain unresolved.",
+    "Only native reader tag comparison 0x10, matched scalar call and field +0x98 store have independently verified protobuf semantics.",
+    "All other native scalar comparisons are candidates. Some may be flags, lengths, other value checks or unrelated branches.",
+    "A network message containing entity fields does not establish that static scene placements are absent from local client assets.",
+    "No AstaPS Lua, public proto, LootCSS, community JSON or reward field was used to label the source."
+  ],
+  "evidence": {
+    "originalVerifiedRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39724766898",
+    "originalSourceCommit": "38f8651e1deab4059652cbbb5e891a4a9404c3f0",
+    "artifactId": 12402756811,
+    "artifactArchiveDigest": "sha256:a8b38de551ad78d0466c10a03c7d0924c8d10f1a4b24394a6049c70a70ad2b7b"
+  }
+}
