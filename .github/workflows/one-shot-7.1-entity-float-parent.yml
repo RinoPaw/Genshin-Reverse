@@ -1,0 +1,37 @@
+name: One-shot original 7.1 entity float-parent trace
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-7.1-entity-float-parent.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-parent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install original native reader tools
+        run: python -m pip install -e . capstone zstandard
+      - name: Fetch source-authenticated Global 7.1 client
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Trace original parent and float child native readers
+        run: |
+          python scripts/probe-7.1-entity-float-parent.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --element versions/7.1.0-global/analyses/progression/economy/7.1-original-cmd27685-element-metadata-reader-census.json \
+            --nested versions/7.1.0-global/analyses/progression/economy/7.1-original-scene-entity-nested-native-type-evidence.json \
+            --output work/original-71-entity-float-parent-native.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-entity-float-parent-native
+          path: work/original-71-entity-float-parent-native.json
+          retention-days: 7
+          if-no-files-found: error
