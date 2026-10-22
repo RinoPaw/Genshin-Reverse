@@ -18,10 +18,10 @@ class NativeUnityObjects(unittest.TestCase):
     def test_types_count_only_actual_exported_files(self):
         with TemporaryDirectory() as tmp:
             root=Path(tmp)
-            (root/"TextAsset").mkdir()
-            (root/"TextAsset"/"SceneTarget.dat").write_bytes(b"ok")
-            (root/"MiHoYoBinData").mkdir()
-            (root/"MiHoYoBinData"/"name.dat").write_bytes(b"test")
+            (root/"TextAsset"/"TextAsset").mkdir(parents=True)
+            (root/"TextAsset"/"TextAsset"/"SceneTarget.dat").write_bytes(b"ok")
+            (root/"MiHoYoBinData"/"MiHoYoBinData").mkdir(parents=True)
+            (root/"MiHoYoBinData"/"MiHoYoBinData"/"name.dat").write_bytes(b"test")
             c=m.files_per_type(root)
             self.assertEqual(c["TextAsset"]["totalRawExports"],1)
             self.assertEqual(c["TextAsset"]["filenameMatchCount"],1)

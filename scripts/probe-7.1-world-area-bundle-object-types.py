@@ -59,7 +59,7 @@ def verify_manifest_and_fetch(source:Path,workers:int=8)->dict:
 def files_per_type(directory:Path)->dict:
     result={}
     for typ in CLASS_TYPES:
-        folder=directory/typ
+        folder=directory/typ/typ
         files=sorted((p for p in folder.rglob("*") if p.is_file()),key=lambda x:str(x)) if folder.is_dir() else []
         tokens=("scene","group","gadget","chest","script","level")
         selected=[str(file.relative_to(directory)) for file in files
@@ -73,12 +73,13 @@ def files_per_type(directory:Path)->dict:
 
 def audit(block:Path,cli_dll:Path,export:Path,block_source:dict)->dict:
     export.mkdir(parents=True,exist_ok=True)
-    subprocess.run(["dotnet",str(cli_dll),str(block),str(export),
-                    "--game","GI","--types",",".join(CLASS_TYPES),
-                    "--export_type","Raw","--logger_flags","Error"],check=True)
-    positive=export/"MiHoYoBinData"/SCENE3_STEM
+    for typ in CLASS_TYPES:
+        subprocess.run(["dotnet",str(cli_dll),str(block),str(export/typ),
+                        "--game","GI","--types",typ,
+                        "--export_type","Raw","--logger_flags","Error"],check=True)
+    positive=export/"MiHoYoBinData"/"MiHoYoBinData"/SCENE3_STEM
     if not positive.is_file():
-        raise ValueError("source-backed original scene3 WorldArea asset is absent from raw export")
+        raise ValueError("source-backed original scene3 WorldArea asset absent from raw export; export file samples: "+str([str(p.relative_to(export)) for p in sorted(export.rglob("*")) if p.is_file()][:20]))
     raw=positive.read_bytes()
     if hashlib.sha256(raw).hexdigest()!=SCENE3_RAW_SHA:
         raise ValueError("source-backed original scene3 WorldArea raw SHA-256 mismatch")

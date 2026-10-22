@@ -3,7 +3,7 @@ name: Original 7.1 WorldArea Unity asset object types
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/probe-7.1-world-area-bundle-objects.yml']
+    paths: ['.github/workflows/probe-7.1-world-area-bundle-objects.yml', 'scripts/probe-7.1-world-area-bundle-object-types.py']
 
 permissions:
   contents: read
