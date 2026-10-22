@@ -36,10 +36,6 @@ ANCHORS = {
         "instructionRva": 0xC16BF96, "endRva": 0xC16BF9D,
         "ripDisplacement": -0x693EB0D, "load": "mov",
     },
-    "messageStaticFieldsTypeInfo": {
-        "instructionRva": 0xC16BFC1, "endRva": 0xC16BFC8,
-        "ripDisplacement": -0x69E8DE0, "load": "mov",
-    },
 }
 LABELS = {"KIIKIELOHOG", "HCDGGIDOEFA", "HEOLIIGOCNH", "JLDCJCKHJEM"}
 MAX_MEMBER_ROWS = 512
@@ -120,6 +116,8 @@ def run(exe:Path, methods:Path, fields:Path)->dict:
         "msgNativeType":"KIIKIELOHOG",
         "msgTypeDefinitionIndex":65670,
         "typeInfoSlotXrefs":check_xrefs(xref),
+        "excludedSharedStaticFieldsSlotRva":"0x57831E8",
+        "excludedSharedStaticFieldsReason":"This metadata static-fields global is referenced more than 200,000 times; it does not constrain the repeated element class.",
         "associatedOriginalMetadataTypes":member_types(methods,fields),
         "limitations":[
             "All pointer slots are backed by original source RIP-relative aligned instructions from native .ctor/.cctor.",

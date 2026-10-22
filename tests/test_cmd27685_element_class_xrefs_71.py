@@ -25,7 +25,7 @@ class OriginalXrefs(unittest.TestCase):
                 "access":"read","mnemonic":"mov",
                 "instruction_hex":"488b0500000000","caller_methods":[]}]
         result=m.check_xrefs(report)
-        self.assertEqual(len(result),5)
+        self.assertEqual(len(result),4)
         self.assertTrue(all(not x["actualRuntimeIl2CppClassIdentityVerified"]
                             for x in result.values()))
         report["matches"]["0x57D1928"]=[]
