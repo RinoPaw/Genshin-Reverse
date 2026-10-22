@@ -1,6 +1,6 @@
 # Global 7.1 ley-line outcrop marker packet investigation
 
-Status: **original-client protocol identities and shared receiver proven; semantic packet names, wire element semantics, and map-icon behavior not yet proven.**
+Status: **original-client protocol identities and shared receiver proven; semantic packet names and map-icon behavior not yet proven.**
 
 ## Source
 
@@ -15,6 +15,8 @@ Reproduction:
 - [Pinned-executable metadata and parser disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730444937).
 - [Pinned-executable blossom receiver disassembly](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39730866735).
 - [Original generic-instantiation type-array bytes](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39731366291).
+- [Original list-element type and factory parameter metadata](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732375659).
+- [Exact original list-element protobuf reader](https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732531097).
 - `scripts/research-blossom-protocol-71.py`, `scripts/probe-7.1-blossom-native.py`.
 - `../../registry/registry.csv`, `../../registry/registry-slot-xrefs.csv`,
   `../../metadata/fields.csv`, `../../metadata/methods.csv`.
@@ -39,6 +41,44 @@ The original runtime type-array entry at RVA `0x35D6010` is
 `37f30100000000002100150000000000`; its raw data value is
 `0x1F337` (127799). This is **not** a proven generic-class registration
 index or an identified protobuf element type.
+
+## Original repeated element and its wire schema
+
+The shared list is passed by the common native consumer at RVA
+`0xC78CA80` to `MPPBDADDNPD.DIIBEOBJGLG` at RVA `0x109AA8F0`
+with the element in argument register RDX. The exact-client method
+metadata identifies that first parameter as `MFOACFDAOID`
+(**TypeDef 13617**), which independently owns 11 native fields and
+a protobuf reader `NLGBJEEJDLG` at RVA `0xFD90570`.
+
+Disassembly of the original `MFOACFDAOID` reader establishes the
+following wire-tag → IL2CPP instance-offset table:
+
+| Protobuf field number | Wire tag | Native field storage |
+| ---: | --- | --- |
+| 1 | `0x08` | `+0x30`, uint32 |
+| 2 | `0x10` | `+0x38`, uint32 |
+| 3 | `0x18` | `+0x3C`, uint32 |
+| 4 | `0x20` | `+0x34`, uint32 |
+| 5 | `0x28` | `+0x44`, uint32 |
+| 6 | `0x30` | `+0x2C`, uint32 |
+| 7 | `0x38` | `+0x24`, uint32 |
+| 10 | `0x50` | `+0x28`, bool |
+| 11 | `0x58` | `+0x20`, uint32 |
+| 12 | `0x60` | `+0x40`, uint32 |
+| 14 | `0x72` | `+0x18`, referenced nested object |
+
+The original types are one obfuscated nested class
+(`BFOCIOJCBGN`), nine uint32 values and one bool. These wire
+numbers and types **exactly agree** with the separately examined
+AstaPS `BlossomBriefInfo` descriptor; that structural agreement
+does not authenticate the imported semantic field names. The original
+list consumer explicitly reads `MFOACFDAOID` offsets `+0x20`
+(field 11) and `+0x24` (field 7) during its map/object lookup.
+
+The previously unknown element class is therefore identified from
+**original method signatures and reader instructions**, without
+decoding the protected generic-class registration.
 
 ## Exact client receiver relationships
 
@@ -77,19 +117,19 @@ other semantic spellings from AstaPS are imported comparison controls,
 
 ## Open questions and boundaries
 
-1. The original generic instance's *element class* is not established.
-   The raw value `0x1F337` is not file-backed as a pointer in the
-   sampled EXE; protected generic registration needs independent proof.
+1. The generic-instantiation registration index still lacks a verified
+   native registration layout. Its element class is **independently proven**
+   by the called native factory parameter and element parser.
 2. Neither native class 6743 nor 20484 has been proven to correspond to
    the imported names `BlossomBriefInfoNotify` or
    `WorldOwnerBlossomBriefInfoNotify`.
 3. Client code that ultimately draws a world-map icon has not yet been
    traced end-to-end. The shared list receiver proves an update route
    into this client subsystem, but **does not establish on-screen output**.
-4. The inner repeated element's native protobuf field numbers, server
-   publish timing, and whether either packet alone is sufficient remain
-   unresolved. Do not patch AstaPS with fabricated semantics or merely
-   send both unconfirmed candidates.
+4. Inner protobuf field numbers and wire types are now verified. The
+   original semantic field names, server publish timing, and whether
+   either packet alone is sufficient remain unresolved. A controlled
+   original-client test of one identified list packet is the next gate.
 
 **Promotion rule:** retain both CmdIds as native-verified identities
 with unresolved semantic labels. Promote only after the receiver's

@@ -25,6 +25,14 @@
     {
       "run": 39730075346,
       "kind": "metadata generic field census"
+    },
+    {
+      "run": 39732375659,
+      "kind": "native metadata callee parameter and 11-field element identity"
+    },
+    {
+      "run": 39732531097,
+      "kind": "exact EXE element protobuf parser disassembly"
     }
   ],
   "packetIdentities": [
@@ -81,8 +89,10 @@
     "nativeGenericInstanceTypeArrayRva": "0x35D6010",
     "nativeGenericInstanceBytes": "37f30100000000002100150000000000",
     "genericInstanceRawData": "0x1F337",
-    "elementTypeVerified": false,
-    "mapIconDisplayVerified": false
+    "elementTypeVerified": true,
+    "mapIconDisplayVerified": false,
+    "originalElementType": "MFOACFDAOID",
+    "originalElementTypeDefinitionIndex": 13617
   },
   "importedServerControl": {
     "messageName": "BlossomBriefInfoNotify",
@@ -102,9 +112,9 @@
     "evidence.json"
   ],
   "next_steps": [
-    "Resolve original genericinst element identity for runtime index 505695 and validate its complete protobuf fields.",
-    "Trace the shared native consumer into world-map UI drawing and distinguish the 6743/20484 update semantics.",
-    "Only then implement the source-proven payload/opcode in AstaPS and verify in a 7.1 client."
+    "Correlate the two native list consumers for CmdIds 6743 and 20484 with map/UI side effects and distinguish their notification timing.",
+    "Perform a controlled original 7.1 client test of the exact native repeated-list wire format, without promoting imported semantic message names.",
+    "Only then integrate the verified chosen packet route into AstaPS."
   ],
   "claims": [
     {
@@ -149,9 +159,24 @@
       ]
     },
     {
+      "id": "original-list-element-structure",
+      "status": "CONFIRMED",
+      "statement": "The common native list consumer passes MFOACFDAOID objects to factory RVA 0x109AA8F0; MFOACFDAOID TypeDef 13617 has 11 fields with parser tag numbers 1-7,10-12,14 and exactly matching scalar/embedded wire kinds.",
+      "evidence": [
+        {
+          "kind": "original-native-metadata",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732375659: method 576938 first argument type MFOACFDAOID and TypeDef 13617 metadata"
+        },
+        {
+          "kind": "original-executable-disassembly",
+          "source": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/39732531097: reader RVA 0xFD90570 stores decoded fields at precise object offsets"
+        }
+      ]
+    },
+    {
       "id": "native-semantic-identity",
       "status": "UNRESOLVED",
-      "statement": "Neither CmdId 6743 nor CmdId 20484 has a verified original-client semantic packet name, confirmed inner element layout, or end-to-end map-icon rendering result.",
+      "statement": "The identities of original list packets 6743 and 20484 are verified, but their semantic labels, exact map-icon UI outcome, and publish timing remain unresolved; the element wire schema is now verified.",
       "evidence": [
         {
           "kind": "evidence-boundary",
@@ -175,5 +200,82 @@
         }
       ]
     }
-  ]
+  ],
+  "originalElement": {
+    "type": "MFOACFDAOID",
+    "typeDefinitionIndex": 13617,
+    "readerRva": "0xFD90570",
+    "factoryOwner": "MPPBDADDNPD",
+    "factoryMethod": "DIIBEOBJGLG",
+    "factoryRva": "0x109AA8F0",
+    "fieldTagsAndStorage": [
+      [
+        1,
+        "0x08",
+        "0x30",
+        "uint32"
+      ],
+      [
+        2,
+        "0x10",
+        "0x38",
+        "uint32"
+      ],
+      [
+        3,
+        "0x18",
+        "0x3C",
+        "uint32"
+      ],
+      [
+        4,
+        "0x20",
+        "0x34",
+        "uint32"
+      ],
+      [
+        5,
+        "0x28",
+        "0x44",
+        "uint32"
+      ],
+      [
+        6,
+        "0x30",
+        "0x2C",
+        "uint32"
+      ],
+      [
+        7,
+        "0x38",
+        "0x24",
+        "uint32"
+      ],
+      [
+        10,
+        "0x50",
+        "0x28",
+        "bool"
+      ],
+      [
+        11,
+        "0x58",
+        "0x20",
+        "uint32"
+      ],
+      [
+        12,
+        "0x60",
+        "0x40",
+        "uint32"
+      ],
+      [
+        14,
+        "0x72",
+        "0x18",
+        "nested-object"
+      ]
+    ],
+    "semanticFieldNamesVerified": false
+  }
 }
