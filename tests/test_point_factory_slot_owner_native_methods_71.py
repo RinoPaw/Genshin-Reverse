@@ -37,5 +37,41 @@ class OriginalFactorySlotOwnerNativeMethods(unittest.TestCase):
                     p.validate_sources(fake,ROOT/p.SOURCE_REPORT)
 
 
+
+    def test_original_method_windows_and_runtime_unbacked_class_slots(self):
+        evidence=(ROOT/"versions/7.1.0-global/analyses/progression/world/"
+                  "7.1-original-point-factory-class-slot-runtime-checks.json")
+        report=json.loads(evidence.read_text(encoding="utf-8"))
+        self.assertEqual(report["originalExeSha256"],p.PROFILE_71.exe_sha256)
+        self.assertEqual(report["originalMethodsGitBlob"],p.METHODS_BLOB)
+        self.assertEqual(report["sourceRunArtifactId"],12413260323)
+        rows=report["originalMethodWindows"]
+        self.assertEqual(len(rows),3)
+        self.assertEqual([x["originalDeclaringTypeName"] for x in rows],
+                         ["OAGPJFNDNNG","BFLGIHGLPBF","NDPMDLJEOLG"])
+        self.assertEqual([x["originalDecodedInstructionCount"] for x in rows],
+                         [239,132,370])
+        self.assertEqual([x["originalNativeWindowSha256"] for x in rows],
+                         ["f47dfc35e1bc65bcf1ba9919bd4a0e181ed640dce07b64b8f998b766102a6775",
+                          "c3749fdc218f02d9431b77c19e75951816986052cce57c1df1fa395ea4e746e1",
+                          "eca3756ec42511bee71cf1a13305028d1e17799663e3309e4cbcb93a27d767d1"])
+        self.assertEqual([len(x["sourceOriginalClassSlotLoadWitnesses"]) for x in rows],
+                         [2,1,1])
+        for row in rows:
+            self.assertFalse(row["originalSlotClassIdentityProven"])
+            self.assertTrue(all(not x["classSlotIsKnownToContainThisOriginalDeclaringType"]
+                                for x in row["sourceOriginalClassSlotLoadWitnesses"]))
+        slots=report["originalDirectNativeGlobalSlotWriteAudit"]
+        self.assertEqual([slots[str(k)]["originalStaticClassSlotRva"] for k in (1,14)],
+                         ["0x57C37B0","0x57C1970"])
+        for row in slots.values():
+            self.assertEqual(row["sourcePESection"],".data")
+            self.assertFalse(row["sourceSlotFileBackedQword"])
+            self.assertIsNone(row["sourceStaticSlotBytes"])
+            self.assertEqual(row["originalVerifiedAlignedNativeRipStores"],0)
+            self.assertFalse(row["originalConcreteTypeDefinitionIndexProven"])
+        for key in report["unresolved"].values():
+            self.assertFalse(key)
+
 if __name__=="__main__":
     unittest.main()
