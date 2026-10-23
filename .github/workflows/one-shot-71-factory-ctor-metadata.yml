@@ -1,0 +1,40 @@
+name: One-shot original 7.1 factory ctor owner metadata
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-71-factory-ctor-metadata.yml'
+      - 'scripts/probe-7.1-point-factory-ctor-type-declarations.py'
+
+permissions:
+  contents: read
+
+jobs:
+  original-ctor-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install original source auditor
+        run: python -m pip install -e . zstandard
+      - name: Fetch exact Global 7.1 original exe and metadata
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Verify original constructor class declarations
+        run: |
+          python scripts/probe-7.1-point-factory-ctor-type-declarations.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --metadata inputs/7.1.0-global/global-metadata.dat \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --fields versions/7.1.0-global/windows-x64/metadata/fields.csv \
+            --prior versions/7.1.0-global/analyses/progression/world/7.1-original-point-factory-case-1-14-local-native-paths.json \
+            --output work/7.1-original-factory-ctor-owner-metadata.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-factory-ctor-owner-metadata
+          path: work/7.1-original-factory-ctor-owner-metadata.json
+          retention-days: 7
+          if-no-files-found: error
