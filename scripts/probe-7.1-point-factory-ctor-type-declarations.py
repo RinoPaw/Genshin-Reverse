@@ -81,6 +81,8 @@ def analyze(exe: Path, metadata: Path, methods: Path, fields: Path, prior: Path)
     for _, (name, _, _, _, _) in TARGETS.items():
         all_methods[name] = select_rows(methods, name, 500)
         all_fields[name] = select_rows(fields, name, 500)
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+    md = Cs(CS_ARCH_X86, CS_MODE_64)
     result = []
     with PEImage(exe) as pe:
         for case, (name, typedef, ctor_index, ctor_rva, slot) in TARGETS.items():
@@ -96,6 +98,45 @@ def analyze(exe: Path, metadata: Path, methods: Path, fields: Path, prior: Path)
             native = pe.read_rva(ctor_rva, NATIVE_PREFIX_BYTES)
             if len(native) != NATIVE_PREFIX_BYTES:
                 raise ValueError("original native constructor is not file-backed")
+            # Authenticate one original native reader method declaration, and
+            # bound its window by the next distinct declared native method RVA.
+            reader = [x for x in methods_for_type
+                      if x["method_name"] == "GMENPOPMKAA"]
+            if len(reader) != 1:
+                raise ValueError("original case constructor owner has no unique reader declaration")
+            reader_rva = int(reader[0]["rva"], 0)
+            following = sorted(int(x["rva"], 0) for x in methods_for_type
+                               if int(x["rva"], 0) > reader_rva)
+            if not following or not 0 < following[0] - reader_rva <= 0x5000:
+                raise ValueError("native reader's following source method boundary unavailable")
+            reader_window = pe.read_rva(reader_rva, following[0] - reader_rva)
+            if len(reader_window) != following[0] - reader_rva:
+                raise ValueError("original native reader window not file backed")
+            native_instructions = list(md.disasm(reader_window, pe.image_base+reader_rva))
+            if not native_instructions:
+                raise ValueError("source native reader method cannot be disassembled")
+            def op(ins):
+                return {"rva":f"0x{ins.address-pe.image_base:X}",
+                        "mnemonic":ins.mnemonic,"operands":ins.op_str,
+                        "bytes":bytes(ins.bytes).hex()}
+            native_reader = {
+                "sourceOriginalMethod": "GMENPOPMKAA",
+                "sourceOriginalMethodIndex": int(reader[0]["method_index"]),
+                "sourceOriginalMethodRva": f"0x{reader_rva:X}",
+                "sourceNextDeclaredMethodRva": f"0x{following[0]:X}",
+                "sourceWindowBytes": len(reader_window),
+                "sourceWindowSha256": hashlib.sha256(reader_window).hexdigest(),
+                "sourceDisassemblyDecodedLinearInstructions": len(native_instructions),
+                "sourceFirstNativeInstructions": [op(x) for x in native_instructions[:75]],
+                "sourceNativeMovssInstructions": [op(x) for x in native_instructions
+                    if x.mnemonic in ("movss", "movsd")][:80],
+                "sourceNativeCalls": [op(x) for x in native_instructions
+                    if x.mnemonic == "call"][:100],
+                "sourceReturnCandidates": [op(x) for x in native_instructions
+                    if x.mnemonic == "ret"][:30],
+                "sourceReaderVtableSlotF8MappingProven": False,
+                "sourceNativeLinearDisassemblyIsRuntimeExecutedProven": False,
+            }
             # This is a bounded prefix only; do not claim it is the entire method.
             result.append({
                 "originalFactoryNumericCase": case,
@@ -114,6 +155,7 @@ def analyze(exe: Path, metadata: Path, methods: Path, fields: Path, prior: Path)
                 "sourceGMENPOPMKAADeclarations": [
                     x for x in methods_for_type if x["method_name"] == "GMENPOPMKAA"
                 ],
+                "sourceOriginalGMENPOPMKAANativeMethod": native_reader,
                 "nativeVtablePlusF8TargetConfirmed": False,
                 "nativeClassSlotToConcreteTypeProven": False,
             })
