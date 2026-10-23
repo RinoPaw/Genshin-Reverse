@@ -52,8 +52,8 @@ def provenance(previous: Path, array: Path) -> dict:
             "operands":"0x1538b9390","bytes":"e8225f2a0b"}):
         raise ValueError("source native factory-to-one-arg-reader direct calls drift")
     methods=a["originalArrayNativeReader"]["originalClassMethods"]
-    expected={(ONE_ARG_METHOD_INDEX,ONE_ARG_RVA,["FNIAHJGHFAK"]),
-              (TWO_ARG_METHOD_INDEX,TWO_ARG_RVA,["FNIAHJGHFAK","kind_0x15"])}
+    expected={(ONE_ARG_METHOD_INDEX,ONE_ARG_RVA,("FNIAHJGHFAK",)),
+              (TWO_ARG_METHOD_INDEX,TWO_ARG_RVA,("FNIAHJGHFAK","kind_0x15"))}
     observed=set()
     for item in methods:
         if item["rva"] not in ("0xAD22310","0xAD23000"):
