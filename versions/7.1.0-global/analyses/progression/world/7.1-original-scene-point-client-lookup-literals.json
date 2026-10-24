@@ -1,0 +1,444 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_GLOBAL_7_1_SCENE_POINT_NATIVE_LOOKUP_LITERAL_CENSUS__LOADER_UNVERIFIED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "sourceDesignIndexSha256": "fe1e1ce970e3aa72e764b0894d94a684b7a49edc9f3ae6a32c4d7f38d8a64712",
+  "sourceOriginalScenes": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json",
+  "sourceOriginalParentNativeReader": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-mask-native-callchain.json",
+  "sourceOriginalReaderRva": "0xEE66B20",
+  "sourceOriginalFactoryCallRva": "0xAD233A5",
+  "originalExecutableSectionsExamined": [
+    {
+      "section": ".text",
+      "sourceRva": "0x1000",
+      "sourceBytes": 35294208,
+      "executableSection": true
+    },
+    {
+      "section": ".rdata",
+      "sourceRva": "0x21AA000",
+      "sourceBytes": 53512192,
+      "executableSection": false
+    },
+    {
+      "section": ".data",
+      "sourceRva": "0x54B3000",
+      "sourceBytes": 1555456,
+      "executableSection": false
+    },
+    {
+      "section": ".pdata",
+      "sourceRva": "0x5E73000",
+      "sourceBytes": 14127616,
+      "executableSection": false
+    },
+    {
+      "section": ".00cfg",
+      "sourceRva": "0x6BED000",
+      "sourceBytes": 512,
+      "executableSection": false
+    },
+    {
+      "section": ".retplne",
+      "sourceRva": "0x6BEE000",
+      "sourceBytes": 512,
+      "executableSection": false
+    },
+    {
+      "section": ".tls",
+      "sourceRva": "0x6BEF000",
+      "sourceBytes": 7168,
+      "executableSection": false
+    },
+    {
+      "section": ".voltbl",
+      "sourceRva": "0x6BF1000",
+      "sourceBytes": 512,
+      "executableSection": false
+    },
+    {
+      "section": "_RDATA",
+      "sourceRva": "0x6BF2000",
+      "sourceBytes": 70144,
+      "executableSection": false
+    },
+    {
+      "section": "il2cpp",
+      "sourceRva": "0x6C04000",
+      "sourceBytes": 320472576,
+      "executableSection": true
+    },
+    {
+      "section": ".upx0",
+      "sourceRva": "0x19DA5000",
+      "sourceBytes": 15280128,
+      "executableSection": true
+    },
+    {
+      "section": ".reloc",
+      "sourceRva": "0x1AC38000",
+      "sourceBytes": 3357696,
+      "executableSection": false
+    },
+    {
+      "section": ".rsrc",
+      "sourceRva": "0x1AF6C000",
+      "sourceBytes": 567296,
+      "executableSection": false
+    }
+  ],
+  "sceneRows": [
+    {
+      "sceneId": 3,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene3_point",
+      "exactOriginalIndexNameHash": "0xBC3AE3E1FD",
+      "sourceOriginalSampleBytes": 152283,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 4,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene4_point",
+      "exactOriginalIndexNameHash": "0xC1D9519DA6",
+      "sourceOriginalSampleBytes": 3113,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 5,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene5_point",
+      "exactOriginalIndexNameHash": "0x78F87DEBBA",
+      "sourceOriginalSampleBytes": 1846,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 6,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene6_point",
+      "exactOriginalIndexNameHash": "0x7D38A1C094",
+      "sourceOriginalSampleBytes": 1256,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 7,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene7_point",
+      "exactOriginalIndexNameHash": "0x34B04226EA",
+      "sourceOriginalSampleBytes": 906,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 9,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene9_point",
+      "exactOriginalIndexNameHash": "0x200B45B7A9",
+      "sourceOriginalSampleBytes": 6279,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 10,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene10_point",
+      "exactOriginalIndexNameHash": "0x7AE8ABE87F",
+      "sourceOriginalSampleBytes": 1550,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 11,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene11_point",
+      "exactOriginalIndexNameHash": "0xE20770EB0D",
+      "sourceOriginalSampleBytes": 2286,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 100,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene100_point",
+      "exactOriginalIndexNameHash": "0x84AB819D04",
+      "sourceOriginalSampleBytes": 2545,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 101,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene101_point",
+      "exactOriginalIndexNameHash": "0xFFD2057F1B",
+      "sourceOriginalSampleBytes": 1665,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 1,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [
+          {
+            "rva": "0x67FB5E4",
+            "section": ".pdata",
+            "executableSection": false,
+            "needleHex": "1b7f05d2",
+            "surroundingHex": "c87e77ab662255f61b7f05d2019e7d2de06ffa26"
+          }
+        ],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 102,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene102_point",
+      "exactOriginalIndexNameHash": "0x1B47AA784E",
+      "sourceOriginalSampleBytes": 4754,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 103,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene103_point",
+      "exactOriginalIndexNameHash": "0x4252BA4D1E",
+      "sourceOriginalSampleBytes": 4572,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    },
+    {
+      "sceneId": 51195,
+      "originalPath": "Data/_BinOutput/Scene/Point/scene51195_point",
+      "exactOriginalIndexNameHash": "0x95ABE95FE0",
+      "sourceOriginalSampleBytes": 42,
+      "literalHitCountByForm": {
+        "nameHash40LittleEndian5": 0,
+        "nameHashZeroExtendedQword8": 0,
+        "nameHashLow32LittleEndian4": 0,
+        "exactPathAscii": 0,
+        "exactPathUTF16LE": 0,
+        "exactFilenameAscii": 0,
+        "exactFilenameUTF16LE": 0
+      },
+      "sourceOriginalLiteralMatches": {
+        "nameHash40LittleEndian5": [],
+        "nameHashZeroExtendedQword8": [],
+        "nameHashLow32LittleEndian4": [],
+        "exactPathAscii": [],
+        "exactPathUTF16LE": [],
+        "exactFilenameAscii": [],
+        "exactFilenameUTF16LE": []
+      },
+      "originalScenePointAssetLoaderMethodResolved": false
+    }
+  ],
+  "sharedPathSubstringLiteralMatches": {
+    "sharedPointPathPrefixAscii": [],
+    "sharedPointPathPrefixUTF16LE": []
+  },
+  "originalResourcePathHashToRuntimeLookupLinkProven": false,
+  "originalScenePointLoaderToNativeReaderLinkProven": false,
+  "originalChestGadgetPositionsOrLevelProven": false,
+  "limits": [
+    "Exact PE byte-substring hits cannot establish instruction alignment, runtime hash use, or a file-to-parser call.",
+    "The 4-byte low fragment is especially prone to accidental byte-pattern matches.",
+    "Zero matches prove only absence of the exact listed literal encodings in the scanned image-backed sections.",
+    "Client code may construct or hash strings at runtime, store them compressed, encrypt strings, or access assets via another layer.",
+    "The source original Scene/Point payloads have no authenticated Gadget/chest position or level schema."
+  ],
+  "sourceOriginalVerificationRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/40051744134",
+  "sourceOriginalRunHeadSha": "a811660829f8e7ecb2ec8d25ad470278487a68b9",
+  "sourceOriginalArtifactId": 12543416964,
+  "sourceOriginalArtifactDigest": "sha256:d42d938a548f82db4c606e4a66ec79b57fcd14f1502274fe4dc93995f78e0386",
+  "sourceOriginalArtifactSizeBytes": 2004
+}
