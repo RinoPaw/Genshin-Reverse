@@ -1,0 +1,1118 @@
+{
+  "schemaVersion": 1,
+  "status": "EXACT_ORIGINAL_7_1_POINT_READER_PARENT_AND_HELPER_REVERSE_E8_CALL_CENSUS__ASSET_LOADER_UNVERIFIED",
+  "originalExeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "sourceMethodsGitBlob": "a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
+  "sourceParentNativeProof": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-mask-native-callchain.json",
+  "sourceFactoryHelperNativeProof": "versions/7.1.0-global/analyses/progression/world/7.1-original-point-factory-14-1-nldep-direct-reader-chain.json",
+  "sourceOriginalCallCensus": {
+    "parent_candidate_scene_point_reader": {
+      "originalTargetRva": "0xEE66B20",
+      "originalTargetOwner": "IJNOFJEOMBD",
+      "originalTargetMethodIndex": 171707,
+      "rawE8ShapedCandidateCount": 2,
+      "originalAlignedDeclaredMethodCallCount": 2,
+      "originalCallerCandidates": [
+        {
+          "candidateCallSiteRva": "0xEE67087",
+          "sourceOriginalCallBytes": "e894faffff",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xEE67070",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "IJNOFJEOMBD",
+              "methodName": "OHPBNHHCBLB",
+              "methodIndex": 171709,
+              "typeDefinitionIndex": 22426,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "248eaf487fd9ededbabe5707ef14413c4b3858e500f316829fb4b3f218056c60",
+          "sourceNativePrefixBytes": 28,
+          "sourceNativeContext": [
+            {
+              "rva": "0xEE67070",
+              "op": "push rbp",
+              "bytes": "55"
+            },
+            {
+              "rva": "0xEE67071",
+              "op": "sub rsp, 0x40",
+              "bytes": "4883ec40"
+            },
+            {
+              "rva": "0xEE67075",
+              "op": "lea rbp, [rsp + 0x40]",
+              "bytes": "488d6c2440"
+            },
+            {
+              "rva": "0xEE6707A",
+              "op": "mov qword ptr [rbp - 0x10], 0xfffffffffffffffe",
+              "bytes": "48c745f0feffffff"
+            },
+            {
+              "rva": "0xEE67082",
+              "op": "mov al, 1",
+              "bytes": "b001"
+            },
+            {
+              "rva": "0xEE67084",
+              "op": "mov dword ptr [rbp - 0x14], eax",
+              "bytes": "8945ec"
+            },
+            {
+              "rva": "0xEE67087",
+              "op": "call 0x14ee66b20",
+              "bytes": "e894faffff"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0xF04F4B5",
+          "sourceOriginalCallBytes": "e86676e1ff",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xF04F350",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "KLLNGCPBLMM",
+              "methodName": "NPBDNMOKJPE",
+              "methodIndex": 616020,
+              "typeDefinitionIndex": 74397,
+              "parameterTypes": "[\"uint32\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "c102f503ce85d16eb753fe4c54b8ac52c1c142265a61b9c61a8894c8a3090c9c",
+          "sourceNativePrefixBytes": 362,
+          "sourceNativeContext": [
+            {
+              "rva": "0xF04F4A0",
+              "op": "or esi, ebx",
+              "bytes": "09de"
+            },
+            {
+              "rva": "0xF04F4A2",
+              "op": "xor esi, dword ptr [rip - 0x98c43a8]",
+              "bytes": "333558bc73f6"
+            },
+            {
+              "rva": "0xF04F4A8",
+              "op": "mov dword ptr [rax + 0x4c], esi",
+              "bytes": "89704c"
+            },
+            {
+              "rva": "0xF04F4AB",
+              "op": "mov qword ptr [rbp - 0x18], rax",
+              "bytes": "488945e8"
+            },
+            {
+              "rva": "0xF04F4AF",
+              "op": "mov rcx, rax",
+              "bytes": "4889c1"
+            },
+            {
+              "rva": "0xF04F4B2",
+              "op": "mov rdx, r14",
+              "bytes": "4c89f2"
+            },
+            {
+              "rva": "0xF04F4B5",
+              "op": "call 0x14ee66b20",
+              "bytes": "e86676e1ff"
+            }
+          ]
+        }
+      ]
+    },
+    "intermediate_source_byte_reader": {
+      "originalTargetRva": "0x12498FE0",
+      "originalTargetOwner": "CCPCOHEPGHC",
+      "originalTargetMethodIndex": 173227,
+      "rawE8ShapedCandidateCount": 1,
+      "originalAlignedDeclaredMethodCallCount": 1,
+      "originalCallerCandidates": [
+        {
+          "candidateCallSiteRva": "0xEE66BD6",
+          "sourceOriginalCallBytes": "e805246303",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xEE66B20",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "IJNOFJEOMBD",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 171707,
+              "typeDefinitionIndex": 22426,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "6270d8a1d31399d56e527eb9867b853bd83424f76feb5e65f8f05fe64ad8e192",
+          "sourceNativePrefixBytes": 187,
+          "sourceNativeContext": [
+            {
+              "rva": "0xEE66BBE",
+              "op": "call 0x140529a10",
+              "bytes": "e84d2e6cf1"
+            },
+            {
+              "rva": "0xEE66BC3",
+              "op": "mov qword ptr [r14 + 0x20], rax",
+              "bytes": "49894620"
+            },
+            {
+              "rva": "0xEE66BC7",
+              "op": "test rax, rax",
+              "bytes": "4885c0"
+            },
+            {
+              "rva": "0xEE66BCA",
+              "op": "je 0x14ee66e77",
+              "bytes": "0f84a7020000"
+            },
+            {
+              "rva": "0xEE66BD0",
+              "op": "mov rcx, rax",
+              "bytes": "4889c1"
+            },
+            {
+              "rva": "0xEE66BD3",
+              "op": "mov rdx, rdi",
+              "bytes": "4889fa"
+            },
+            {
+              "rva": "0xEE66BD6",
+              "op": "call 0x152498fe0",
+              "bytes": "e805246303"
+            }
+          ]
+        }
+      ]
+    },
+    "nldep_one_arg_reader": {
+      "originalTargetRva": "0xAD22310",
+      "originalTargetOwner": "NLDEPJEOJGC",
+      "originalTargetMethodIndex": 514422,
+      "rawE8ShapedCandidateCount": 12,
+      "originalAlignedDeclaredMethodCallCount": 12,
+      "originalCallerCandidates": [
+        {
+          "candidateCallSiteRva": "0xBFEDF83",
+          "sourceOriginalCallBytes": "e88843d3fe",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xBFEDF60",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "JCPGFFBDJBD",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 244712,
+              "typeDefinitionIndex": 31168,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "55c08e7353e40ada809936149a817467614e7f7d089acf257c148430c7242262",
+          "sourceNativePrefixBytes": 40,
+          "sourceNativeContext": [
+            {
+              "rva": "0xBFEDF6B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0xBFEDF6C",
+              "op": "sub rsp, 0x78",
+              "bytes": "4883ec78"
+            },
+            {
+              "rva": "0xBFEDF70",
+              "op": "lea rbp, [rsp + 0x70]",
+              "bytes": "488d6c2470"
+            },
+            {
+              "rva": "0xBFEDF75",
+              "op": "mov qword ptr [rbp], 0xfffffffffffffffe",
+              "bytes": "48c74500feffffff"
+            },
+            {
+              "rva": "0xBFEDF7D",
+              "op": "mov r12, rdx",
+              "bytes": "4989d4"
+            },
+            {
+              "rva": "0xBFEDF80",
+              "op": "mov r15, rcx",
+              "bytes": "4989cf"
+            },
+            {
+              "rva": "0xBFEDF83",
+              "op": "call 0x14ad22310",
+              "bytes": "e88843d3fe"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0xE3D646D",
+          "sourceOriginalCallBytes": "e89ebe94fc",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xE3D6460",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "KLKMMEJFBDC",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 424586,
+              "typeDefinitionIndex": 53082,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "f039a62c02c4cf5db43081798a6d750b8a2a2736fc2f71da59a5364bb34a4485",
+          "sourceNativePrefixBytes": 18,
+          "sourceNativeContext": [
+            {
+              "rva": "0xE3D6460",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0xE3D6461",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0xE3D6462",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0xE3D6463",
+              "op": "sub rsp, 0x30",
+              "bytes": "4883ec30"
+            },
+            {
+              "rva": "0xE3D6467",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0xE3D646A",
+              "op": "mov rbx, rcx",
+              "bytes": "4889cb"
+            },
+            {
+              "rva": "0xE3D646D",
+              "op": "call 0x14ad22310",
+              "bytes": "e89ebe94fc"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x10268A4F",
+          "sourceOriginalCallBytes": "e8bc98abfa",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x10268A40",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "CPKNFPOIAPH",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 169614,
+              "typeDefinitionIndex": 22167,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "df61bf9abb73565691845a7587e64f8726979124246b76d32ae328dbf47cac0e",
+          "sourceNativePrefixBytes": 20,
+          "sourceNativeContext": [
+            {
+              "rva": "0x10268A42",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0x10268A43",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x10268A44",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x10268A45",
+              "op": "sub rsp, 0x28",
+              "bytes": "4883ec28"
+            },
+            {
+              "rva": "0x10268A49",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x10268A4C",
+              "op": "mov r14, rcx",
+              "bytes": "4989ce"
+            },
+            {
+              "rva": "0x10268A4F",
+              "op": "call 0x14ad22310",
+              "bytes": "e8bc98abfa"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x1049051D",
+          "sourceOriginalCallBytes": "e8ee1d89fa",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x10490510",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "FNKDILEIEEO",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 542681,
+              "typeDefinitionIndex": 67266,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "adbc20d2beed58b3f49c1bc6cbb65b15e90220bf1674634aa1299e48256b92d2",
+          "sourceNativePrefixBytes": 18,
+          "sourceNativeContext": [
+            {
+              "rva": "0x10490510",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0x10490511",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x10490512",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x10490513",
+              "op": "sub rsp, 0x20",
+              "bytes": "4883ec20"
+            },
+            {
+              "rva": "0x10490517",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x1049051A",
+              "op": "mov rsi, rcx",
+              "bytes": "4889ce"
+            },
+            {
+              "rva": "0x1049051D",
+              "op": "call 0x14ad22310",
+              "bytes": "e8ee1d89fa"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x104C4AD9",
+          "sourceOriginalCallBytes": "e832d885fa",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x104C4AB0",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "GENHLJIPFFM",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 188390,
+              "typeDefinitionIndex": 24527,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "9879801e70f095a93d081a16e7abbb596fb4863d434bfb606b02292476e31da8",
+          "sourceNativePrefixBytes": 46,
+          "sourceNativeContext": [
+            {
+              "rva": "0x104C4ABB",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x104C4ABC",
+              "op": "sub rsp, 0x88",
+              "bytes": "4881ec88000000"
+            },
+            {
+              "rva": "0x104C4AC3",
+              "op": "lea rbp, [rsp + 0x80]",
+              "bytes": "488dac2480000000"
+            },
+            {
+              "rva": "0x104C4ACB",
+              "op": "mov qword ptr [rbp], 0xfffffffffffffffe",
+              "bytes": "48c74500feffffff"
+            },
+            {
+              "rva": "0x104C4AD3",
+              "op": "mov r12, rdx",
+              "bytes": "4989d4"
+            },
+            {
+              "rva": "0x104C4AD6",
+              "op": "mov r15, rcx",
+              "bytes": "4989cf"
+            },
+            {
+              "rva": "0x104C4AD9",
+              "op": "call 0x14ad22310",
+              "bytes": "e832d885fa"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x108AFCA6",
+          "sourceOriginalCallBytes": "e8652647fa",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x108AFC90",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "LLAENFGPFDI",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 493534,
+              "typeDefinitionIndex": 61329,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "0e16212fd21e7a523e86cbb6e078e6e7cee78c6cfda6ce105719bde3f0ea550c",
+          "sourceNativePrefixBytes": 27,
+          "sourceNativeContext": [
+            {
+              "rva": "0x108AFC99",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x108AFC9A",
+              "op": "push rbp",
+              "bytes": "55"
+            },
+            {
+              "rva": "0x108AFC9B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x108AFC9C",
+              "op": "sub rsp, 0x38",
+              "bytes": "4883ec38"
+            },
+            {
+              "rva": "0x108AFCA0",
+              "op": "mov rsi, rdx",
+              "bytes": "4889d6"
+            },
+            {
+              "rva": "0x108AFCA3",
+              "op": "mov rbx, rcx",
+              "bytes": "4889cb"
+            },
+            {
+              "rva": "0x108AFCA6",
+              "op": "call 0x14ad22310",
+              "bytes": "e8652647fa"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x10FAC8CC",
+          "sourceOriginalCallBytes": "e83f5ad7f9",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x10FAC8C0",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "AIEKKMCCLLN",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 490126,
+              "typeDefinitionIndex": 60896,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "4959a6f1292096248c4484f0ab22ab331604b32936a53f5fd72fe6e4908c797e",
+          "sourceNativePrefixBytes": 17,
+          "sourceNativeContext": [
+            {
+              "rva": "0x10FAC8C0",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0x10FAC8C1",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x10FAC8C2",
+              "op": "sub rsp, 0x28",
+              "bytes": "4883ec28"
+            },
+            {
+              "rva": "0x10FAC8C6",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x10FAC8C9",
+              "op": "mov rsi, rcx",
+              "bytes": "4889ce"
+            },
+            {
+              "rva": "0x10FAC8CC",
+              "op": "call 0x14ad22310",
+              "bytes": "e83f5ad7f9"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x1151A5CA",
+          "sourceOriginalCallBytes": "e8417d80f9",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x1151A5A0",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "MIHANLAPNKP",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 602580,
+              "typeDefinitionIndex": 72707,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "9c2011d969bc714b2de534173176c37ac184f877b5850bc4c2a5746609191adb",
+          "sourceNativePrefixBytes": 47,
+          "sourceNativeContext": [
+            {
+              "rva": "0x1151A5AB",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x1151A5AC",
+              "op": "sub rsp, 0xb8",
+              "bytes": "4881ecb8000000"
+            },
+            {
+              "rva": "0x1151A5B3",
+              "op": "lea rbp, [rsp + 0x80]",
+              "bytes": "488dac2480000000"
+            },
+            {
+              "rva": "0x1151A5BB",
+              "op": "mov qword ptr [rbp + 0x30], 0xfffffffffffffffe",
+              "bytes": "48c74530feffffff"
+            },
+            {
+              "rva": "0x1151A5C3",
+              "op": "mov rsi, rdx",
+              "bytes": "4889d6"
+            },
+            {
+              "rva": "0x1151A5C6",
+              "op": "mov qword ptr [rbp + 8], rcx",
+              "bytes": "48894d08"
+            },
+            {
+              "rva": "0x1151A5CA",
+              "op": "call 0x14ad22310",
+              "bytes": "e8417d80f9"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x1195DF4D",
+          "sourceOriginalCallBytes": "e8be433cf9",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x1195DF40",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "CJBPADIAIFL",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 276310,
+              "typeDefinitionIndex": 34931,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "684a2ac9685e59af7d8bf42c453634ebe873433f642d2de39370fdf7832e0cfe",
+          "sourceNativePrefixBytes": 18,
+          "sourceNativeContext": [
+            {
+              "rva": "0x1195DF40",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0x1195DF41",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x1195DF42",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x1195DF43",
+              "op": "sub rsp, 0x30",
+              "bytes": "4883ec30"
+            },
+            {
+              "rva": "0x1195DF47",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x1195DF4A",
+              "op": "mov rsi, rcx",
+              "bytes": "4889ce"
+            },
+            {
+              "rva": "0x1195DF4D",
+              "op": "call 0x14ad22310",
+              "bytes": "e8be433cf9"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x11A377B6",
+          "sourceOriginalCallBytes": "e855ab2ef9",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x11A377A0",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "DLMGIOABAKF",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 528707,
+              "typeDefinitionIndex": 65418,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "bd22bd7e4b604cf913503a51068dba8459e305be6f461c2bc1cbc9a7c089993b",
+          "sourceNativePrefixBytes": 27,
+          "sourceNativeContext": [
+            {
+              "rva": "0x11A377A9",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x11A377AA",
+              "op": "push rbp",
+              "bytes": "55"
+            },
+            {
+              "rva": "0x11A377AB",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x11A377AC",
+              "op": "sub rsp, 0x38",
+              "bytes": "4883ec38"
+            },
+            {
+              "rva": "0x11A377B0",
+              "op": "mov rsi, rdx",
+              "bytes": "4889d6"
+            },
+            {
+              "rva": "0x11A377B3",
+              "op": "mov r14, rcx",
+              "bytes": "4989ce"
+            },
+            {
+              "rva": "0x11A377B6",
+              "op": "call 0x14ad22310",
+              "bytes": "e855ab2ef9"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x120D674F",
+          "sourceOriginalCallBytes": "e8bcbbc4f8",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x120D6740",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "MGEMLHDIOGB",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 340847,
+              "typeDefinitionIndex": 42916,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "159ff95544b6e2f1d986ff01a2c658251b4f31a57c53b7bfaeaf309a418035cc",
+          "sourceNativePrefixBytes": 20,
+          "sourceNativeContext": [
+            {
+              "rva": "0x120D6742",
+              "op": "push rsi",
+              "bytes": "56"
+            },
+            {
+              "rva": "0x120D6743",
+              "op": "push rdi",
+              "bytes": "57"
+            },
+            {
+              "rva": "0x120D6744",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x120D6745",
+              "op": "sub rsp, 0x38",
+              "bytes": "4883ec38"
+            },
+            {
+              "rva": "0x120D6749",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x120D674C",
+              "op": "mov r14, rcx",
+              "bytes": "4989ce"
+            },
+            {
+              "rva": "0x120D674F",
+              "op": "call 0x14ad22310",
+              "bytes": "e8bcbbc4f8"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x138B93B9",
+          "sourceOriginalCallBytes": "e8528f46f7",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x138B9390",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "BHJILFMHGEE",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 436910,
+              "typeDefinitionIndex": 54542,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "8c64d58e432e648d73bbbafa489569c732f78ecc5fa2f5ee18c2e1b681cd170b",
+          "sourceNativePrefixBytes": 46,
+          "sourceNativeContext": [
+            {
+              "rva": "0x138B939B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x138B939C",
+              "op": "sub rsp, 0xa8",
+              "bytes": "4881eca8000000"
+            },
+            {
+              "rva": "0x138B93A3",
+              "op": "lea rbp, [rsp + 0x80]",
+              "bytes": "488dac2480000000"
+            },
+            {
+              "rva": "0x138B93AB",
+              "op": "mov qword ptr [rbp + 0x20], 0xfffffffffffffffe",
+              "bytes": "48c74520feffffff"
+            },
+            {
+              "rva": "0x138B93B3",
+              "op": "mov rdi, rdx",
+              "bytes": "4889d7"
+            },
+            {
+              "rva": "0x138B93B6",
+              "op": "mov r13, rcx",
+              "bytes": "4989cd"
+            },
+            {
+              "rva": "0x138B93B9",
+              "op": "call 0x14ad22310",
+              "bytes": "e8528f46f7"
+            }
+          ]
+        }
+      ]
+    },
+    "nldep_two_arg_reader": {
+      "originalTargetRva": "0xAD23000",
+      "originalTargetOwner": "NLDEPJEOJGC",
+      "originalTargetMethodIndex": 514423,
+      "rawE8ShapedCandidateCount": 1,
+      "originalAlignedDeclaredMethodCallCount": 1,
+      "originalCallerCandidates": [
+        {
+          "candidateCallSiteRva": "0xEE66BF1",
+          "sourceOriginalCallBytes": "e80ac4ebfb",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0xEE66B20",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "IJNOFJEOMBD",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 171707,
+              "typeDefinitionIndex": 22426,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "f13a9f477ddb05c65f5bf70e81e3fdde6fbb59ff70299cc3be479a839ab1a31f",
+          "sourceNativePrefixBytes": 214,
+          "sourceNativeContext": [
+            {
+              "rva": "0xEE66BD6",
+              "op": "call 0x152498fe0",
+              "bytes": "e805246303"
+            },
+            {
+              "rva": "0xEE66BDB",
+              "op": "lea rax, [r14 + 0x30]",
+              "bytes": "498d4630"
+            },
+            {
+              "rva": "0xEE66BDF",
+              "op": "test ebx, 0x4000",
+              "bytes": "f7c300400000"
+            },
+            {
+              "rva": "0xEE66BE5",
+              "op": "je 0x14ee66d24",
+              "bytes": "0f8439010000"
+            },
+            {
+              "rva": "0xEE66BEB",
+              "op": "mov rcx, rdi",
+              "bytes": "4889f9"
+            },
+            {
+              "rva": "0xEE66BEE",
+              "op": "mov rdx, rax",
+              "bytes": "4889c2"
+            },
+            {
+              "rva": "0xEE66BF1",
+              "op": "call 0x14ad23000",
+              "bytes": "e80ac4ebfb"
+            }
+          ]
+        }
+      ]
+    },
+    "factory_case_1_owner_reader": {
+      "originalTargetRva": "0x138B9390",
+      "originalTargetOwner": "BHJILFMHGEE",
+      "originalTargetMethodIndex": 436910,
+      "rawE8ShapedCandidateCount": 3,
+      "originalAlignedDeclaredMethodCallCount": 3,
+      "originalCallerCandidates": [
+        {
+          "candidateCallSiteRva": "0x8613469",
+          "sourceOriginalCallBytes": "e8225f2a0b",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x8613440",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "NKJPPNFAEEF",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 527284,
+              "typeDefinitionIndex": 65289,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "2fc2bc4f3dac3e11b6332931796803591441fe4120e743226e832b570abe1939",
+          "sourceNativePrefixBytes": 46,
+          "sourceNativeContext": [
+            {
+              "rva": "0x861344B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x861344C",
+              "op": "sub rsp, 0xa8",
+              "bytes": "4881eca8000000"
+            },
+            {
+              "rva": "0x8613453",
+              "op": "lea rbp, [rsp + 0x80]",
+              "bytes": "488dac2480000000"
+            },
+            {
+              "rva": "0x861345B",
+              "op": "mov qword ptr [rbp + 0x20], 0xfffffffffffffffe",
+              "bytes": "48c74520feffffff"
+            },
+            {
+              "rva": "0x8613463",
+              "op": "mov r12, rdx",
+              "bytes": "4989d4"
+            },
+            {
+              "rva": "0x8613466",
+              "op": "mov r15, rcx",
+              "bytes": "4989cf"
+            },
+            {
+              "rva": "0x8613469",
+              "op": "call 0x1538b9390",
+              "bytes": "e8225f2a0b"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x8F92223",
+          "sourceOriginalCallBytes": "e86871920a",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x8F92200",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "KCLOMFJNGIA",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 550982,
+              "typeDefinitionIndex": 68326,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "3bd68ee2388eb9c2f26f876897f856192cbc18b4dd6de0ad24d15ec9d52f0e06",
+          "sourceNativePrefixBytes": 40,
+          "sourceNativeContext": [
+            {
+              "rva": "0x8F9220B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x8F9220C",
+              "op": "sub rsp, 0x78",
+              "bytes": "4883ec78"
+            },
+            {
+              "rva": "0x8F92210",
+              "op": "lea rbp, [rsp + 0x70]",
+              "bytes": "488d6c2470"
+            },
+            {
+              "rva": "0x8F92215",
+              "op": "mov qword ptr [rbp], 0xfffffffffffffffe",
+              "bytes": "48c74500feffffff"
+            },
+            {
+              "rva": "0x8F9221D",
+              "op": "mov r15, rdx",
+              "bytes": "4989d7"
+            },
+            {
+              "rva": "0x8F92220",
+              "op": "mov r14, rcx",
+              "bytes": "4989ce"
+            },
+            {
+              "rva": "0x8F92223",
+              "op": "call 0x1538b9390",
+              "bytes": "e86871920a"
+            }
+          ]
+        },
+        {
+          "candidateCallSiteRva": "0x14092339",
+          "sourceOriginalCallBytes": "e8527082ff",
+          "sourcePESection": "il2cpp",
+          "aligned": true,
+          "exactOriginalCallerStartRva": "0x14092310",
+          "sourceOriginalCallerOwner": [
+            {
+              "typeName": "FCMFBNFCCFG",
+              "methodName": "GMENPOPMKAA",
+              "methodIndex": 144129,
+              "typeDefinitionIndex": 18941,
+              "parameterTypes": "[\"FNIAHJGHFAK\"]"
+            }
+          ],
+          "sourceNativePrefixSha256": "7625c69061cd1436ecacf8dfd889d1353997fa08e826d4dcd55b6dd2a0a73a07",
+          "sourceNativePrefixBytes": 46,
+          "sourceNativeContext": [
+            {
+              "rva": "0x1409231B",
+              "op": "push rbx",
+              "bytes": "53"
+            },
+            {
+              "rva": "0x1409231C",
+              "op": "sub rsp, 0x88",
+              "bytes": "4881ec88000000"
+            },
+            {
+              "rva": "0x14092323",
+              "op": "lea rbp, [rsp + 0x80]",
+              "bytes": "488dac2480000000"
+            },
+            {
+              "rva": "0x1409232B",
+              "op": "mov qword ptr [rbp], 0xfffffffffffffffe",
+              "bytes": "48c74500feffffff"
+            },
+            {
+              "rva": "0x14092333",
+              "op": "mov r13, rdx",
+              "bytes": "4989d5"
+            },
+            {
+              "rva": "0x14092336",
+              "op": "mov rdi, rcx",
+              "bytes": "4889cf"
+            },
+            {
+              "rva": "0x14092339",
+              "op": "call 0x1538b9390",
+              "bytes": "e8527082ff"
+            }
+          ]
+        }
+      ]
+    },
+    "factory_case_14_owner_reader": {
+      "originalTargetRva": "0x8613440",
+      "originalTargetOwner": "NKJPPNFAEEF",
+      "originalTargetMethodIndex": 527284,
+      "rawE8ShapedCandidateCount": 0,
+      "originalAlignedDeclaredMethodCallCount": 0,
+      "originalCallerCandidates": []
+    }
+  },
+  "sourceOriginalReaderToScenePointAssetLoaderProven": false,
+  "sourceOriginalChestCoordinatesOrLevelProven": false,
+  "limits": [
+    "Raw source E8-shaped candidate bytes are not calls until they align from the original metadata-declared method start.",
+    "The reader can be invoked through a virtual slot, reflection or a generated delegate; absent direct E8 calls do not prove no callers.",
+    "An aligned call is a source-code edge, not authenticated Scene/Point resource bytes or scene-instance semantics.",
+    "Native caller prefix decoding is bounded and a method body can contain branches not linearized by Capstone."
+  ],
+  "sourceOriginalVerificationRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/40052262087",
+  "sourceOriginalRunHeadSha": "47a3bda853b755aea1f1a18eda935273cf5094a4",
+  "sourceOriginalArtifactId": 12544031937,
+  "sourceOriginalArtifactDigest": "sha256:b386f4403d4b76821d05d016ddd344c4218cc5dc7f9512dd65030b70ccb074fc",
+  "sourceOriginalArtifactSizeBytes": 4821,
+  "priorParentNativeCensusFalseNegativeCorrected": true,
+  "priorParentNativeCensusFalseNegativeReason": "The older probe verified source parent CALL candidates against constant TARGET=0xAD23000 instead of parent RVA=0xEE66B20."
+}
