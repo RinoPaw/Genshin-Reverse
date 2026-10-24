@@ -328,19 +328,52 @@
     "fileBackedNestedReaderPointerHolderCount": 1,
     "nestedReaderPointerHoldersWithSimpleCodeRefs": 0,
     "toParentE8ShapedByteCandidates": 2,
-    "toParentVerifiedAlignedCalls": 0,
+    "toParentVerifiedAlignedCalls": 2,
     "toParentCandidateOutcomes": [
       {
         "rva": "0xEE67087",
-        "status": "NO_ALIGNED_E8_IN_ORIGINAL_METHOD",
-        "aligned": false
+        "status": "EXACT_NATIVE_ALIGNED_DIRECT_CALL",
+        "aligned": true,
+        "callerStartRva": "0xEE67070",
+        "callerOwner": [
+          {
+            "typeName": "IJNOFJEOMBD",
+            "methodName": "OHPBNHHCBLB",
+            "methodIndex": 171709,
+            "typeDefinitionIndex": 22426,
+            "parameterTypes": "[\"FNIAHJGHFAK\"]"
+          }
+        ],
+        "sourceMachineBytes": "e894faffff",
+        "sourceNativePrefixSha256": "248eaf487fd9ededbabe5707ef14413c4b3858e500f316829fb4b3f218056c60"
       },
       {
         "rva": "0xF04F4B5",
-        "status": "NO_ALIGNED_E8_IN_ORIGINAL_METHOD",
-        "aligned": false
+        "status": "EXACT_NATIVE_ALIGNED_DIRECT_CALL",
+        "aligned": true,
+        "callerStartRva": "0xF04F350",
+        "callerOwner": [
+          {
+            "typeName": "KLLNGCPBLMM",
+            "methodName": "NPBDNMOKJPE",
+            "methodIndex": 616020,
+            "typeDefinitionIndex": 74397,
+            "parameterTypes": "[\"uint32\"]"
+          }
+        ],
+        "sourceMachineBytes": "e86676e1ff",
+        "sourceNativePrefixSha256": "c102f503ce85d16eb753fe4c54b8ac52c1c142265a61b9c61a8894c8a3090c9c"
       }
-    ]
+    ],
+    "correction": {
+      "originalRunProducedFalseNegative": true,
+      "issue": "The original alignment verifier compared CALL targets against nested reader 0xAD23000 for parent 0xEE66B20 xrefs.",
+      "correctedByOriginalRun": "https://github.com/RinoPaw/Genshin-Reverse/actions/runs/40052262087",
+      "sourceCorrectedNativeRva": "0xEE66B20",
+      "sourceOriginalCorrectedEvidence": "versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-reader-reverse-native-callers.json",
+      "originalUncorrectedResult": "toParentVerifiedAlignedCalls=0, both classified NO_ALIGNED_E8_IN_ORIGINAL_METHOD",
+      "originalEvidenceRecheckedBySeparateSHA256VerifiedClient": true
+    }
   },
   "claims": {
     "originalNestedArrayReaderDirectCallerProven": true,

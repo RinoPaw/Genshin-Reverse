@@ -110,7 +110,11 @@ class ScenePointNativeCallerTests(unittest.TestCase):
         self.assertEqual(direct["toNestedArrayVerifiedAlignedCalls"],1)
         self.assertEqual(direct["fileBackedNestedReaderPointerHolderCount"],1)
         self.assertEqual(direct["toParentE8ShapedByteCandidates"],2)
-        self.assertEqual(direct["toParentVerifiedAlignedCalls"],0)
+        self.assertEqual(direct["toParentVerifiedAlignedCalls"],2)
+        self.assertEqual([x["rva"] for x in direct["toParentCandidateOutcomes"]],
+                         ["0xEE67087","0xF04F4B5"])
+        self.assertTrue(all(x["aligned"] for x in direct["toParentCandidateOutcomes"]))
+        self.assertTrue(direct["correction"]["originalRunProducedFalseNegative"])
         self.assertTrue(report["claims"]["originalNestedArrayReaderDirectCallerProven"])
         self.assertTrue(report["claims"]["originalParentMaskAndNestedConditionalCallProven"])
         for key in ("originalHelperConsumesExactlyOneByteForCBProven",

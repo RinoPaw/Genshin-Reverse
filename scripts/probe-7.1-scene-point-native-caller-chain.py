@@ -74,7 +74,7 @@ def validate_source(methods: Path, prior: Path) -> tuple[list[int], dict]:
 
 
 def verify_direct_call_alignment(pe: PEImage, starts: list[int],
-                                 metadata: dict, call: dict) -> dict:
+                                 metadata: dict, call: dict, *, target_rva: int = TARGET) -> dict:
     """Decode from authenticated metadata method start, no guessed call alignment."""
     from bisect import bisect_right
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64
@@ -100,7 +100,7 @@ def verify_direct_call_alignment(pe: PEImage, starts: list[int],
     matching = [x for x in ins if x.address - pe.image_base == site and
                 x.mnemonic == "call" and len(x.bytes) == 5 and
                 bytes(x.bytes).hex() == call["instruction_hex"] and
-                x.op_str.lower() == f"0x{pe.image_base + TARGET:x}"]
+                x.op_str.lower() == f"0x{pe.image_base + target_rva:x}"]
     if not matching:
         return {"callRva":call["instruction_rva"], "alignedNativeCall":False,
                 "status":"NO_ALIGNED_E8_IN_ORIGINAL_METHOD",
@@ -314,7 +314,7 @@ def investigate(exe: Path, methods: Path, prior: Path, fields: Path, scene_asset
         if len(raw_calls)>MAX_MATCHES or len(parents)>MAX_MATCHES:
             raise ValueError("too many original native direct-call candidates")
         witnesses = [verify_direct_call_alignment(pe, starts, metadata, r) for r in raw_calls]
-        parent_callers = [verify_direct_call_alignment(pe, starts, metadata, r) for r in parents]
+        parent_callers = [verify_direct_call_alignment(pe, starts, metadata, r, target_rva=PARENT_RVA) for r in parents]
         outer = inspect_parent_native_method(pe, starts, metadata)
         precursor = inspect_precursor_native(pe, starts, metadata)
 
