@@ -1,0 +1,37 @@
+name: One-shot original Global 7.1 Scene Point lookup literal audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-71-scene-point-lookup.yml'
+      - 'scripts/probe-7.1-scene-point-native-lookup-literals.py'
+
+permissions:
+  contents: read
+
+jobs:
+  lookup-literals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . zstandard
+      - name: Fetch exact original Global 7.1 executable
+        run: bash scripts/fetch-7.1-samples.sh --output inputs/7.1.0-global --python python
+      - name: Source-verify 13 original Scene Point path/hash native literal families
+        run: |
+          python scripts/probe-7.1-scene-point-native-lookup-literals.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --scenes versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-source-payload-census.json \
+            --reader versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-mask-native-callchain.json \
+            --output work/7.1-original-scene-point-lookup-literals.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: original-71-scene-point-lookup-literals
+          path: work/7.1-original-scene-point-lookup-literals.json
+          retention-days: 7
+          if-no-files-found: error
