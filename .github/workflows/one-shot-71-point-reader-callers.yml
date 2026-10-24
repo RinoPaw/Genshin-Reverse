@@ -35,9 +35,18 @@ jobs:
           echo ORIGINAL_71_READER_REVERSE_CALLS_FULL_BEGIN
           cat work/7.1-original-point-reader-reverse-callers.json
           echo ORIGINAL_71_READER_REVERSE_CALLS_FULL_END
+      - name: Trace original parent consumer native method and upstream E8 callers
+        run: |
+          python scripts/probe-7.1-scene-point-parent-native-consumer.py \
+            --exe inputs/7.1.0-global/GenshinImpact.exe \
+            --methods versions/7.1.0-global/windows-x64/metadata/methods.csv \
+            --prior versions/7.1.0-global/analyses/progression/world/7.1-original-scene-point-parent-reader-reverse-native-callers.json \
+            --output work/7.1-original-point-parent-consumer-native.json
       - uses: actions/upload-artifact@v7
         with:
           name: original-71-point-reader-reverse-native-callers
-          path: work/7.1-original-point-reader-reverse-callers.json
+          path: |
+            work/7.1-original-point-reader-reverse-callers.json
+            work/7.1-original-point-parent-consumer-native.json
           retention-days: 7
           if-no-files-found: error
