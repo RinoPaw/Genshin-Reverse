@@ -139,7 +139,7 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
         "originalExeSha256":PROFILE_71.exe_sha256,
         "originalMetadataSha256":PROFILE_71.metadata_sha256,
         "originalMethodsGitBlob":"a9c106a7fdd5fe97ad204d6f4641c1e2c8d5433a",
-        "sourcePreviousOriginalInputMethodProof":str(prior.relative_to(ROOT)),
+        "sourcePreviousOriginalInputMethodProof":str(prior),
         "sourceOriginalCalleePaths":result,
         "originalScenePoint13IndexedAssetsConnectedToNativeLoader":False,
         "originalWorldChestPlacementOrInstanceLevelProven":False,
