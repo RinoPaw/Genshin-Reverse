@@ -43,7 +43,7 @@ MAX_DECLARED_METHOD=0x20000
 
 def git_blob(p:Path)->str:
     h=hashlib.sha1()
-    h.update(f"blob {p.stat().st_size}\\0".encode("ascii"))
+    h.update(f"blob {p.stat().st_size}\0".encode("ascii"))
     with p.open("rb") as f:
         for b in iter(lambda:f.read(1048576),b""):h.update(b)
     return h.hexdigest()
@@ -158,7 +158,7 @@ def main():
     a=p.parse_args()
     d=inspect(a.exe,a.methods,a.prior)
     a.output.parent.mkdir(parents=True,exist_ok=True)
-    a.output.write_text(json.dumps(d,indent=2,ensure_ascii=False)+"\\n",encoding="utf-8")
+    a.output.write_text(json.dumps(d,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("ORIGINAL_71_PARENT_LOADER_CALLEES_BEGIN")
     print(json.dumps(d,ensure_ascii=False,indent=2))
     print("ORIGINAL_71_PARENT_LOADER_CALLEES_END")
