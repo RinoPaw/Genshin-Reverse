@@ -13,8 +13,6 @@ import importlib.util
 import json
 from pathlib import Path
 
-from capstone import Cs,CS_ARCH_X86,CS_MODE_64
-from capstone.x86 import X86_OP_IMM
 from genshinre.callxref import _load_method_starts
 from genshinre.nativeprofile import PROFILE_71
 from genshinre.pe import PEImage
@@ -78,6 +76,8 @@ def inspect(exe:Path,methods:Path,prior:Path)->dict:
         raise ValueError("source original 7.1 generated methods.csv Git blob changed")
     require_sha256(exe,PROFILE_71.exe_sha256,label="exact original Global 7.1 EXE")
     starts,method_by=_load_method_starts(methods)
+    from capstone import Cs,CS_ARCH_X86,CS_MODE_64
+    from capstone.x86 import X86_OP_IMM
     md=Cs(CS_ARCH_X86,CS_MODE_64);md.detail=True
     with PEImage(exe) as pe:
         for owner,addr in OWNER_RVAS.items():
