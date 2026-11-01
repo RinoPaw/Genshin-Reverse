@@ -68,3 +68,49 @@ python -m unittest tests.test_worldmesh -v
 
 No original source meshes, binaries, full vertex buffers, or user-local file
 paths are published in the repository.
+
+## Original 7.1 sector placement and collider metadata
+
+A second exact-client probe traced world-instance transform ownership through the
+original IL2CPP executable and its pinned metadata. Results live in
+[`7.1-native-sector-transform-and-collider-schema.json`](7.1-native-sector-transform-and-collider-schema.json).
+The script `scripts/probe-7.1-world-sector-native.py` verifies the original
+`GenshinImpact.exe` hash, the original native type-array anchor and the
+metadata CSV fields before producing its result.
+
+- `MoleMole.Config.SECTR_StreamObjectSerialize` (type-definition index
+  **58901**) declares `_gameObjectPathHash: uint64`,
+  `_position`, `_rotation`, `_scale`, each with native type
+  `NFFDDFHHDHG` (type-definition index **57495**).
+- `NFFDDFHHDHG` declares `_x`, `_y`, `_z` as float32. The exact
+  executable's Il2CppType array entry **476832** independently resolves to
+  this value-type definition. These are native vector components; rotation
+  units and any scene/parent transform are not yet established.
+- `SECTR_LODFinInfo` (71958) declares `colliderPathHash` and
+  `simpleColliderPathHash`, both uint64. This provides original-client
+  names for a collider-asset binding to investigate.
+- `SECTR_SceneSplitterConfig` (16791) declares `colliderLayerConfig`,
+  `colliderLayerSceneWhiteList`, and `colliderInOffsetSectorBlackList`.
+  `SECTR_GlobalConfig` (55978) declares `keyColliderLayers`;
+  `SECTR_StreamingProfile` (79550) declares `colliderLoadRadius`.
+- `MoleMole.Config.SectorBinData` (60723) declares a `datas` generic-instance
+  field. Its generic argument and stored payload remain undecoded.
+  `SECTR_AllBigWorld` (78003) carries `sectorPath`, `sectorSize`
+  and `loadedSectors`.
+
+These source fields establish an original sector system that represents
+object transforms and collider asset identifiers. **There is no verified
+instance placement or collider-enabled state yet.** Neither local mesh
+raycasts nor names containing `_Col` should be used as world heights.
+
+Reproduce against the exact Global 7.1 executable and checked-in metadata:
+
+```text
+python scripts/probe-7.1-world-sector-native.py --exe <original-7.1-exe> --metadata-dir versions/7.1.0-global/windows-x64/metadata --output versions/7.1.0-global/analyses/world/7.1-native-sector-transform-and-collider-schema.json --check
+python -m unittest tests.test_world_sector_71 -v
+```
+
+**Next gate:** locate the corresponding original serialized sector data and
+decode real object records with `_gameObjectPathHash`, placement coordinates,
+and collider-asset identities. Only then transform the already verified mesh
+triangles into scene coordinates and validate world-space raycast controls.

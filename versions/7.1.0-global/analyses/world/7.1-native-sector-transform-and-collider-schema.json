@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact Global 7.1 Windows x64",
+  "nativeExecutable": {
+    "sha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "vectorTypeIndex": 476832,
+    "vectorTypeKind": "valuetype",
+    "vectorTypeDefinitionIndex": 57495
+  },
+  "metadataCsvSha256": {
+    "types.csv": "463482d96c15438e29a1cc43692fda53c346aa05749cbbfac02432c388e0ac08",
+    "fields.csv": "4e10b9be67f877363e3ee7658835d2daa17715c57ef15b8eb4dfb2ce92a00c7c",
+    "methods.csv": "cf17d1830c33295fffb78928308a48eb64b2e343d3fcc4f9f16a627fac349aa8"
+  },
+  "owners": [
+    {
+      "typeDefinitionIndex": 16791,
+      "namespace": "",
+      "typeName": "SECTR_SceneSplitterConfig",
+      "fieldCount": 22,
+      "methods": [],
+      "fields": [
+        {
+          "index": 83768,
+          "name": "colliderLayerConfig",
+          "type": "SECTR_LayerConfig",
+          "typeIndex": 491702
+        },
+        {
+          "index": 83774,
+          "name": "colliderLayerSceneWhiteList",
+          "type": "kind_0x15",
+          "typeIndex": 452349
+        },
+        {
+          "index": 83778,
+          "name": "colliderInOffsetSectorBlackList",
+          "type": "kind_0x15",
+          "typeIndex": 452349
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 53867,
+      "namespace": "",
+      "typeName": "SECTR_FinMap",
+      "fieldCount": 2,
+      "methods": [],
+      "fields": [
+        {
+          "index": 267727,
+          "name": "voFinInfos",
+          "type": "kind_0x15",
+          "typeIndex": 589035
+        },
+        {
+          "index": 267728,
+          "name": "lodFinInfos",
+          "type": "kind_0x15",
+          "typeIndex": 592558
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 55978,
+      "namespace": "",
+      "typeName": "SECTR_GlobalConfig",
+      "fieldCount": 10,
+      "methods": [],
+      "fields": [
+        {
+          "index": 278406,
+          "name": "keyColliderLayers",
+          "type": "kind_0x15",
+          "typeIndex": 452349
+        },
+        {
+          "index": 278407,
+          "name": "keyRenderLayers",
+          "type": "kind_0x15",
+          "typeIndex": 452349
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 57495,
+      "namespace": "",
+      "typeName": "NFFDDFHHDHG",
+      "fieldCount": 4,
+      "methods": [
+        {
+          "name": "Read",
+          "rva": "0x13C59D40"
+        },
+        {
+          "name": "Write",
+          "rva": "0x13C59EA0"
+        },
+        {
+          "name": "Read",
+          "rva": "0x13C59DF0"
+        },
+        {
+          "name": "Write",
+          "rva": "0x13C59F50"
+        }
+      ],
+      "fields": [
+        {
+          "index": 286523,
+          "name": "_x",
+          "type": "float32",
+          "typeIndex": 442931
+        },
+        {
+          "index": 286524,
+          "name": "_y",
+          "type": "float32",
+          "typeIndex": 442931
+        },
+        {
+          "index": 286525,
+          "name": "_z",
+          "type": "float32",
+          "typeIndex": 442931
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 57654,
+      "namespace": "MoleMole",
+      "typeName": "SECTR_LayerConfig",
+      "fieldCount": 15,
+      "methods": [],
+      "fields": [
+        {
+          "index": 287207,
+          "name": "layerName",
+          "type": "string",
+          "typeIndex": 439118
+        },
+        {
+          "index": 287208,
+          "name": "sectorSize",
+          "type": "SECTR_LayerSizeType",
+          "typeIndex": 602141
+        },
+        {
+          "index": 287209,
+          "name": "sectorHeight",
+          "type": "SECTR_LayerSizeType",
+          "typeIndex": 602141
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 58901,
+      "namespace": "MoleMole.Config",
+      "typeName": "SECTR_StreamObjectSerialize",
+      "fieldCount": 7,
+      "methods": [
+        {
+          "name": "set_position",
+          "rva": "0x12DA02C0"
+        },
+        {
+          "name": "set_scale",
+          "rva": "0x12DA02D0"
+        },
+        {
+          "name": "set_rotation",
+          "rva": "0x12DA0300"
+        }
+      ],
+      "fields": [
+        {
+          "index": 293190,
+          "name": "_gameObjectPathHash",
+          "type": "uint64",
+          "typeIndex": 439908
+        },
+        {
+          "index": 293193,
+          "name": "_position",
+          "type": "NFFDDFHHDHG",
+          "typeIndex": 476832
+        },
+        {
+          "index": 293194,
+          "name": "_rotation",
+          "type": "NFFDDFHHDHG",
+          "typeIndex": 476832
+        },
+        {
+          "index": 293195,
+          "name": "_scale",
+          "type": "NFFDDFHHDHG",
+          "typeIndex": 476832
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 60723,
+      "namespace": "MoleMole.Config",
+      "typeName": "SectorBinData",
+      "fieldCount": 1,
+      "methods": [],
+      "fields": [
+        {
+          "index": 301767,
+          "name": "datas",
+          "type": "kind_0x15",
+          "typeIndex": 609791
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 63117,
+      "namespace": "MoleMole",
+      "typeName": "SECTR_StreamerRoot",
+      "fieldCount": 7,
+      "methods": [],
+      "fields": [
+        {
+          "index": 313530,
+          "name": "configName",
+          "type": "string",
+          "typeIndex": 439118
+        },
+        {
+          "index": 313531,
+          "name": "worldName",
+          "type": "string",
+          "typeIndex": 439118
+        },
+        {
+          "index": 313533,
+          "name": "SectorNameList",
+          "type": "kind_0x15",
+          "typeIndex": 452349
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 71958,
+      "namespace": "",
+      "typeName": "SECTR_LODFinInfo",
+      "fieldCount": 9,
+      "methods": [
+        {
+          "name": "GetSortedLodInfos",
+          "rva": "0x943DDF0"
+        }
+      ],
+      "fields": [
+        {
+          "index": 357958,
+          "name": "colliderPathHash",
+          "type": "uint64",
+          "typeIndex": 440619
+        },
+        {
+          "index": 357959,
+          "name": "simpleColliderPathHash",
+          "type": "uint64",
+          "typeIndex": 440619
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 78003,
+      "namespace": "",
+      "typeName": "SECTR_AllBigWorld",
+      "fieldCount": 12,
+      "methods": [],
+      "fields": [
+        {
+          "index": 387237,
+          "name": "sectorPath",
+          "type": "string",
+          "typeIndex": 439907
+        },
+        {
+          "index": 387241,
+          "name": "sectorSize",
+          "type": "int32",
+          "typeIndex": 439016
+        },
+        {
+          "index": 387242,
+          "name": "loadedSectors",
+          "type": "kind_0x15",
+          "typeIndex": 439048
+        }
+      ]
+    },
+    {
+      "typeDefinitionIndex": 79550,
+      "namespace": "",
+      "typeName": "SECTR_StreamingProfile",
+      "fieldCount": 39,
+      "methods": [],
+      "fields": [
+        {
+          "index": 396099,
+          "name": "colliderLoadRadius",
+          "type": "float32",
+          "typeIndex": 440614
+        }
+      ]
+    }
+  ],
+  "evidence": {
+    "serializedWorldObjectTransforms": "CONFIRMED_NATIVE_FIELDS",
+    "colliderLayerConfiguration": "CONFIRMED_NATIVE_FIELDS",
+    "colliderAssetHashes": "CONFIRMED_NATIVE_FIELDS",
+    "sectorInstancesOrPlacementPayload": "UNRESOLVED",
+    "meshCollisionBindings": "UNRESOLVED",
+    "safeServerWorldHeightQuery": false,
+    "limit": "Field declarations and native type-anchor are evidence of serialized schema, not decoded sector instances or collision enabled states."
+  }
+}
