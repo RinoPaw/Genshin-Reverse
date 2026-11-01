@@ -18,9 +18,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from genshinre.assetindex import parse_asset_index
+from genshinre.nativeprofile import PROFILE_71
 from genshinre.worldmesh import WorldMesh
 
-EXE_SHA = "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d"
+EXE_SHA = PROFILE_71.exe_sha256
 RESOURCE_INDEX_SHA = "24270a3c5b5388407d85ef0b20d91ea6808ba30c564071d378d4f23cb30ab3e6"
 BLOCK_SHA = "95254088da900edd3b13aac6a6be1f0077e4160d6280075de3eeeb25a3c50ddb"
 EXPORTER_ARCHIVE_SHA = "c94eddbe3fe46c5c400d050591a46eb297d71ededc8c2376d685c988774ed110"
