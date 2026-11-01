@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact Global 7.1 Windows x64",
+  "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+  "exporter": {
+    "repo": "EIHRTeam/AnimeStudio",
+    "release": "v1.0.0-CI",
+    "windowsArchiveSha256": "c94eddbe3fe46c5c400d050591a46eb297d71ededc8c2376d685c988774ed110",
+    "flags": "--game GI --types MonoBehaviour:Both --names ^SECTR_StreamerRoot$ --export_type Raw"
+  },
+  "verifiedRootCount": 7,
+  "roots": [
+    {
+      "blockId": "00809146",
+      "blockSha256": "e3a30035239e4bb4d43045e4905d86f0e8d61e61a81709bb8e9c1cbd17b2abe6",
+      "monoBehaviourExportRawSha256": "1960df72239f7c14c1ae3f32816b0060dffe3fe0f5a0412bdcf2d215430de8db",
+      "monoBehaviourExportRawSize": 108,
+      "game_object_path_id": 2840116787480899486,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "DungeonConfigNew",
+      "world_name": "BW_BirdPinball",
+      "manual_load": false,
+      "sectors": [
+        "BW_BirdPinball_0_0"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "02888851",
+      "blockSha256": "ce2196d8ad7f224dffac77c2cde82baeafef01f5c787b3370742ec0fce376697",
+      "monoBehaviourExportRawSha256": "5ea5c42680d57c3105f6b4dafa80bbb12d6ddcef43f13f6180996392035c5205",
+      "monoBehaviourExportRawSize": 236,
+      "game_object_path_id": -6254133359501085178,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "DungeonConfig",
+      "world_name": "BW_ActivityPacMan_01",
+      "manual_load": false,
+      "sectors": [
+        "BW_ActivityPacMan_01_-1_-1",
+        "BW_ActivityPacMan_01_0_0",
+        "BW_ActivityPacMan_01_0_-1",
+        "Area_LevelPacMan01a_City",
+        "Area_LevelPacMan01b_City"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "03531956",
+      "blockSha256": "6786581c81002d3de9c2df7282c7a9971de300f710b56ef030892bb34b1ffba6",
+      "monoBehaviourExportRawSha256": "9f5daa57e5a2a0ca53e5a98eecb50415fad1672fca49a154d0c3a4cc001107c3",
+      "monoBehaviourExportRawSize": 308,
+      "game_object_path_id": 4712591967254545193,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "DungeonConfig",
+      "world_name": "BW_Custom_Edit01",
+      "manual_load": true,
+      "sectors": [
+        "Area_LevelUgcEdit01d_City",
+        "Area_LevelUgcEdit01f_City",
+        "Area_LevelUgcEdit01a_City",
+        "Area_LevelUgcEdit01e_City",
+        "Area_LevelUgcEdit01b_City",
+        "Area_LevelUgcEdit01c_City",
+        "Area_LevelUgcEdit01g_City"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "07711412",
+      "blockSha256": "4d69a9bcb7219e64ef4c3fd15a0f4b0436c9a1bacc41ed954609514a5f03c170",
+      "monoBehaviourExportRawSha256": "f15e697ad3e34f89f742134ed56582ae9756a11e57a61727de755b6f9be16125",
+      "monoBehaviourExportRawSize": 108,
+      "game_object_path_id": -1301982300154930255,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "DungeonConfigNew",
+      "world_name": "BW_Act_Lantern02",
+      "manual_load": false,
+      "sectors": [
+        "BW_Act_Lantern02_0_0"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "07752668",
+      "blockSha256": "0a3ab5b2d16abb235d1ddb32cffd25de015559cbcf1df8a31b18d83e74e35900",
+      "monoBehaviourExportRawSha256": "60fa2c9587957ce6742dfcd9183a73fc998f32d7bc560558f18c8fac27aa27ab",
+      "monoBehaviourExportRawSize": 216,
+      "game_object_path_id": 8993386644768578053,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "UgcHallConfig",
+      "world_name": "BW_Private_Witch",
+      "manual_load": false,
+      "sectors": [
+        "BW_Private_Witch_0_0",
+        "BW_Private_Witch_-1_0",
+        "BW_Private_Witch_0_-1",
+        "BW_Private_Witch_1_-1",
+        "BW_Private_Witch_1_0"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "12278082",
+      "blockSha256": "cd3ca665a5ba4d883476bf441d2f786a923ece7455e10ff397b0cbbb951ea6c4",
+      "monoBehaviourExportRawSha256": "2302e32d6853982de0d9a7b6366e64f5e4cf42c9e2e37a2a87568a527e4fdec1",
+      "monoBehaviourExportRawSize": 108,
+      "game_object_path_id": -6977411835938171050,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "UgcHallConfig",
+      "world_name": "BW_Private_Drxg",
+      "manual_load": false,
+      "sectors": [
+        "BW_Private_Drxg_0_0"
+      ],
+      "blacklisted_sectors": []
+    },
+    {
+      "blockId": "15523354",
+      "blockSha256": "369330d009abea1e4df0d3f4356ecbdae0f1c981b45e08123e2016527a88f0ab",
+      "monoBehaviourExportRawSha256": "e0c17ef34558b9e434b5332ab9291e082700f159cbdfe3bfe104de1dcf34f289",
+      "monoBehaviourExportRawSize": 148,
+      "game_object_path_id": 9118084621622498140,
+      "script_path_id": 2590479077817537426,
+      "enabled": true,
+      "config_name": "DungeonConfig",
+      "world_name": "BW_Combat_Fd_Studio",
+      "manual_load": false,
+      "sectors": [
+        "BW_Combat_Fd_Studio_0_-1",
+        "BW_Combat_Fd_Studio_-1_-1"
+      ],
+      "blacklisted_sectors": []
+    }
+  ],
+  "limits": {
+    "sourceSectorNameLists": "VERIFIED_ORIGINAL_SERIALIZED_BYTES",
+    "scene3MondstadtInstancePosition": "UNRESOLVED",
+    "originalSectorObjectTransforms": "UNRESOLVED",
+    "originalColliderBindings": "UNRESOLVED",
+    "safeServerRaycastEnabled": false
+  }
+}

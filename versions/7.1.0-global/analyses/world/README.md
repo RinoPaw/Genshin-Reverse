@@ -114,3 +114,45 @@ python -m unittest tests.test_world_sector_71 -v
 decode real object records with `_gameObjectPathHash`, placement coordinates,
 and collider-asset identities. Only then transform the already verified mesh
 triangles into scene coordinates and validate world-space raycast controls.
+
+## Verified serialized SECTR_StreamerRoot assets
+
+The native sector ownership above has now been linked to **actual original
+`Blb3` serialized bytes**. Seven independently SHA-256-checked Global 7.1
+source blocks export `SECTR_StreamerRoot` MonoBehaviour objects with the
+pinned AnimeStudio CLI. Our strict binary reader consumes each exported
+component in full (including Unity pointer fields, string lengths, padding,
+boolean loading mode, sector lists and blacklists):
+
+| Original block | Original `worldName` | `configName` | Sector names |
+| --- | --- | --- | ---: |
+| `00/00809146.blk` | `BW_BirdPinball` | `DungeonConfigNew` | 1 |
+| `00/02888851.blk` | `BW_ActivityPacMan_01` | `DungeonConfig` | 5 |
+| `00/03531956.blk` | `BW_Custom_Edit01` | `DungeonConfig` | 7 |
+| `00/07711412.blk` | `BW_Act_Lantern02` | `DungeonConfigNew` | 1 |
+| `00/07752668.blk` | `BW_Private_Witch` | `UgcHallConfig` | 5 |
+| `00/12278082.blk` | `BW_Private_Drxg` | `UgcHallConfig` | 1 |
+| `00/15523354.blk` | `BW_Combat_Fd_Studio` | `DungeonConfig` | 2 |
+
+For instance, the exact original `BW_ActivityPacMan_01` root lists the
+`BW_ActivityPacMan_01_-1_-1`, `BW_ActivityPacMan_01_0_0` and
+`BW_ActivityPacMan_01_0_-1` sectors, as well as two `Area_LevelPacMan`
+city-sector names. The UGC editing root enables `manualLoadSector`;
+the other six checked examples do not.
+
+See [the original-byte evidence](7.1-native-serialized-sector-roots.json)
+for each source-block hash, raw-object hash, source pointer and complete
+decoded names. The raw MonoBehaviour binaries remain local to the client;
+none are committed. Use `genshinre.sectorroot71.parse_sector_root` or run:
+
+```text
+AnimeStudio.CLI.exe <original-block> <raw-output> --game GI --types MonoBehaviour:Both --names "^SECTR_StreamerRoot$" --export_type Raw
+python scripts/probe-7.1-original-sector-roots.py --exe <original-7.1-exe> --blocks <original-block-group-00> --raw-exports <seven-export-folders> --output versions/7.1.0-global/analyses/world/7.1-native-serialized-sector-roots.json --check
+python -m unittest tests.test_sector_root_71 -v
+```
+
+This confirms native scene roots reference independently named sector chunks.
+The seven checked objects belong to activity/UGC scenes. **No checked root is
+evidence of the Scene 3 / Mondstadt terrain placement.** World-space
+transforms and enabled MeshCollider data remain the next gate before AstaPS
+can replace the fishhook height estimate with a real collision raycast.
