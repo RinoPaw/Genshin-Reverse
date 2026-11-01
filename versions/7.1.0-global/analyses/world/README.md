@@ -156,3 +156,44 @@ The seven checked objects belong to activity/UGC scenes. **No checked root is
 evidence of the Scene 3 / Mondstadt terrain placement.** World-space
 transforms and enabled MeshCollider data remain the next gate before AstaPS
 can replace the fishhook height estimate with a real collision raycast.
+
+## Exact original BigWorld root recovered
+
+The **Global 7.1 main-world root** has now been located in original
+`AssetBundles/blocks/00/05825684.blk`, SHA-256
+`fc66bf16a444b60580dccae900ef96c45795c0032ea6c76717d62ad6afed3ebe`.
+Pinned AnimeStudio v1.0.0-CI exports its `SECTR_StreamerRoot` component as
+27,784 raw bytes, SHA-256
+`829f92f3a0c8e2741e4d039dc8bed65eed2fd363a1297e1502321bbd155b62eb`.
+
+`genshinre.sectorroot71.parse_sector_root` fully consumes those **original
+serialized bytes** and returns:
+
+- `worldName = BigWorld`, `configName = BigWorldConfig`.
+- Exactly **1,292 distinct native sector names**, including **358**
+  `BigWorld_<gridX>_<gridY>` names, **584** names beginning `Area_` and
+  **119** beginning `Tunnel_`. Source order and all names are preserved in
+  [the machine-readable original evidence](7.1-original-bigworld-sector-root.json)
+  with a separate SHA-256 of the ordered list.
+- `manualLoadSector = false`, no named blacklisted sectors.
+
+One independently recovered `Mesh` bundle, original
+`00/07207014.blk`, contains models named
+`BigWorld_-1_14_TerrainMesh_JJH_ERR_59_Lod1` and `..._Lod2`.
+The original sector root contains the name `BigWorld_-1_14`.
+**This is verified literal-name correspondence only.** It does not prove
+which mesh is a collider, or how to place it in world space.
+
+Reproduce against the same authenticated original client:
+
+```text
+AnimeStudio.CLI.exe <original-05825684.blk> <output> --game GI --types MonoBehaviour:Both --names "^SECTR_StreamerRoot$" --export_type Raw
+python scripts/probe-7.1-original-bigworld-root.py --exe <original-7.1-exe> --root-block <original-05825684.blk> --root-raw <exported-SECTR_StreamerRoot.dat> --mesh-block <original-07207014.blk> --mesh-map <original-07207014-asset-map.json> --output versions/7.1.0-global/analyses/world/7.1-original-bigworld-sector-root.json --check
+python -m unittest tests.test_original_bigworld_root_71 -v
+```
+
+**Next evidence gate:** decode the actual world-sector instance container for
+at least one authenticated `BigWorld_<gridX>_<gridY>` entry, recover native
+model positions/rotations/scales and collider bindings, and validate absolute
+world heights against independent Scene 3 coordinates. Until that step the
+server fishhook world-height query cannot be source-verified.
