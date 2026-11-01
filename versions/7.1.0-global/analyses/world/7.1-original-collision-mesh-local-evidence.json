@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "target": "Genshin Impact 7.1.0 Global Windows x64",
+  "source": {
+    "exeSha256": "08a3086d5f3fe695f01dab61efa42e442006b18e5e475b2520df356f6a073b7d",
+    "resourceIndexRawSha256": "24270a3c5b5388407d85ef0b20d91ea6808ba30c564071d378d4f23cb30ab3e6",
+    "block": "AssetBundles/blocks/00/00000890.blk",
+    "blockSha256": "95254088da900edd3b13aac6a6be1f0077e4160d6280075de3eeeb25a3c50ddb",
+    "originalContainerMagic": "426c6203",
+    "indexNameCount": 896771,
+    "indexBlockCount": 1447
+  },
+  "exporter": {
+    "project": "EIHRTeam/AnimeStudio",
+    "release": "v1.0.0-CI",
+    "archive": "AnimeStudio.CLI-1.0.0-CI-win-x64.zip",
+    "archiveSha256": "c94eddbe3fe46c5c400d050591a46eb297d71ededc8c2376d685c988774ed110"
+  },
+  "meshAssetMapSha256": "b05594a0b4a1196209da612ef9ec4760771d7a43cfd99e68fdbff8e749f7318e",
+  "meshAssetCount": 101,
+  "collisionNamedCandidateCount": 17,
+  "candidates": [
+    {
+      "name": "Level_Ndkl_Prop_Deer_A_04_Col",
+      "originalPathId": -5436810838401713224,
+      "exportedObjSha256": "a124c00cdd66f35e65d53469146a207e631ff96b6a130b43ab13bf834876bba7",
+      "vertexCount": 1135,
+      "triangleCount": 2235,
+      "localBoundsMin": [
+        -4.898374,
+        -6.037455,
+        -2.17973
+      ],
+      "localBoundsMax": [
+        5.354066,
+        6.108379,
+        4.608114
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Moon_A_01_Col",
+      "originalPathId": 8555161441268195073,
+      "exportedObjSha256": "8c91e769ad7a5e6bb24c3dc4012e2138e8aacf30654c4ba53e09e7f469218883",
+      "vertexCount": 82,
+      "triangleCount": 160,
+      "localBoundsMin": [
+        -3.128211,
+        0.0,
+        -0.947485
+      ],
+      "localBoundsMax": [
+        3.128213,
+        6.272006,
+        0.947481
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Ornaments_A_01A_Col",
+      "originalPathId": -440561442154327955,
+      "exportedObjSha256": "67f85fffeb12e692f7f4f5d6d07eef7c5563529472bc9e13c6f0ce5bf0599cec",
+      "vertexCount": 117,
+      "triangleCount": 230,
+      "localBoundsMin": [
+        -1.042542,
+        -0.021611,
+        -0.538964
+      ],
+      "localBoundsMax": [
+        1.048174,
+        1.610967,
+        0.526189
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Ornaments_A_02_Col",
+      "originalPathId": 1703534804923452846,
+      "exportedObjSha256": "340d9c7695856ff70b6d7adedf64f58c075cb27fe23e567ff317dc3aed54630e",
+      "vertexCount": 53,
+      "triangleCount": 83,
+      "localBoundsMin": [
+        -0.59976,
+        0.583473,
+        -0.369059
+      ],
+      "localBoundsMax": [
+        0.684622,
+        1.083718,
+        0.322781
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Ornaments_A_03_Col",
+      "originalPathId": 8323926377978273954,
+      "exportedObjSha256": "411875c1c2d5e811dcd50eacc3c6fdb22d65216084c26a312acd3c5fab26d00b",
+      "vertexCount": 162,
+      "triangleCount": 296,
+      "localBoundsMin": [
+        -1.042542,
+        -0.021611,
+        -0.538964
+      ],
+      "localBoundsMax": [
+        1.048174,
+        1.610967,
+        0.526189
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Pedestal_A_01A_Col",
+      "originalPathId": -4256179085453124679,
+      "exportedObjSha256": "92a647373cfb41f51abcc09acad5c18070adb0f71be01ab4e9b6ebad02362dcf",
+      "vertexCount": 104,
+      "triangleCount": 184,
+      "localBoundsMin": [
+        -0.909282,
+        -0.000367,
+        -0.909282
+      ],
+      "localBoundsMax": [
+        0.909282,
+        1.362979,
+        0.909282
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Prop_Pedestal_A_01_Col",
+      "originalPathId": 1026914583007101906,
+      "exportedObjSha256": "af5dc7a320c926d34712f4912871a2e12b05e1583f907192732f45efa970499f",
+      "vertexCount": 289,
+      "triangleCount": 538,
+      "localBoundsMin": [
+        -0.94872,
+        -0.000367,
+        -0.909282
+      ],
+      "localBoundsMax": [
+        0.94872,
+        1.870814,
+        0.909282
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Far_Rattan_A_06_Col",
+      "originalPathId": -9027848649357482753,
+      "exportedObjSha256": "3e040c15f77af0c8e467c184357664a5cf31791b3b3ff3d04ad7f77794659885",
+      "vertexCount": 1938,
+      "triangleCount": 3830,
+      "localBoundsMin": [
+        -31.23258,
+        -24.067495,
+        -6.734238
+      ],
+      "localBoundsMax": [
+        31.229095,
+        23.995564,
+        6.819423
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_01_Col",
+      "originalPathId": 5629359184579087052,
+      "exportedObjSha256": "ca062c8ba0fcdd4ff5fedaca9986b0ec527319638a465789249c0128727ccce6",
+      "vertexCount": 311,
+      "triangleCount": 572,
+      "localBoundsMin": [
+        -0.761852,
+        -0.008921,
+        -0.540228
+      ],
+      "localBoundsMax": [
+        0.765884,
+        4.2821,
+        0.485116
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_02_Col",
+      "originalPathId": -3255023208147551989,
+      "exportedObjSha256": "b0bc58d9181ab3ef9a2125ff530d584dad57767ad9ff4d916efadbe7facf2cdc",
+      "vertexCount": 603,
+      "triangleCount": 1063,
+      "localBoundsMin": [
+        -2.138671,
+        1e-06,
+        -1.411306
+      ],
+      "localBoundsMax": [
+        2.240059,
+        8.207318,
+        1.464867
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_03A_Col",
+      "originalPathId": 5625128989604348992,
+      "exportedObjSha256": "1ef00906dd3d28d0d23f685549186f7858e1e088e240c88b2d25d0aef12a0376",
+      "vertexCount": 510,
+      "triangleCount": 970,
+      "localBoundsMin": [
+        -4.818223,
+        -6.693457,
+        -3.998953
+      ],
+      "localBoundsMax": [
+        3.892452,
+        5.389158,
+        0.758942
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_03_Col",
+      "originalPathId": 2844965892404175577,
+      "exportedObjSha256": "51e5065b250312829c6b92ebbe63d25858fbf0801d3976269ea42eb0a98fe3a6",
+      "vertexCount": 520,
+      "triangleCount": 970,
+      "localBoundsMin": [
+        -3.892445,
+        -6.693443,
+        -3.998985
+      ],
+      "localBoundsMax": [
+        4.81823,
+        5.389173,
+        0.758907
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_04_Col",
+      "originalPathId": 5299222214019145283,
+      "exportedObjSha256": "411c527b474372a3ad5a4942b392778eefd83b8b1c96e6de07a1f1c9253a81ca",
+      "vertexCount": 1130,
+      "triangleCount": 2099,
+      "localBoundsMin": [
+        -5.758359,
+        -9.818832,
+        -3.977259
+      ],
+      "localBoundsMax": [
+        13.990937,
+        10.316393,
+        2.785932
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_07B_Col",
+      "originalPathId": -2877189235207288172,
+      "exportedObjSha256": "a3efce5bc1c921ddeca70f01e6c2dcd1a94204d1b834acd79cd64412f31c0961",
+      "vertexCount": 464,
+      "triangleCount": 918,
+      "localBoundsMin": [
+        -12.976786,
+        -1.372772,
+        -1.262707
+      ],
+      "localBoundsMax": [
+        4.942368,
+        8.479113,
+        7.533734
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_07C_Col",
+      "originalPathId": -1959910710387114105,
+      "exportedObjSha256": "14a5d2f5b96049ab9692edaaa9ce1052e1cb38248dbd54d5b688e28858514ef6",
+      "vertexCount": 331,
+      "triangleCount": 652,
+      "localBoundsMin": [
+        -2.953933,
+        -0.653624,
+        -3.85969
+      ],
+      "localBoundsMax": [
+        6.288353,
+        3.82388,
+        5.251749
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Rattan_A_07D_Col",
+      "originalPathId": -9183209811193100648,
+      "exportedObjSha256": "d43eaa753d9143437333aab655c2fe81504db45baeb6527c130a2aed8ce3f7be",
+      "vertexCount": 587,
+      "triangleCount": 1134,
+      "localBoundsMin": [
+        -1.422228,
+        -0.836273,
+        -4.697308
+      ],
+      "localBoundsMax": [
+        6.68812,
+        5.279761,
+        3.110751
+      ]
+    },
+    {
+      "name": "Level_Ndkl_Tree_Shugan_A_01A_Col",
+      "originalPathId": 1712134387078228371,
+      "exportedObjSha256": "289e945eca33ac338d5db72ea9ccb48c0b1843dcc037af86983a764897cb5d92",
+      "vertexCount": 670,
+      "triangleCount": 1107,
+      "localBoundsMin": [
+        -7.313216,
+        -0.464772,
+        -7.656664
+      ],
+      "localBoundsMax": [
+        7.072073,
+        3.785698,
+        7.528716
+      ]
+    }
+  ],
+  "status": {
+    "sourceMeshGeometry": "VERIFIED",
+    "collisionLayerBinding": "UNRESOLVED",
+    "worldInstanceTransforms": "UNRESOLVED",
+    "serverWorldRaycastReady": false,
+    "notes": [
+      "The _Col suffix is a source-verified name, not proof of an enabled MeshCollider.",
+      "OBJ vertices are prefab-local; the original world-instance transform is not recovered.",
+      "Neither game meshes nor reconstructed vertex data are committed to Git."
+    ]
+  },
+  "additionalOriginalSamples": {
+    "terrainMesh": {
+      "sourceBlock": "AssetBundles/blocks/00/07207014.blk",
+      "sourceBlockSha256": "01120b2bb6cf1b81de7bbd27f68309279f2ddd01064aa8cf56807def71a8c68c",
+      "mesh": "BigWorld_-1_14_TerrainMesh_JJH_ERR_59_Lod1",
+      "objSha256": "ec22e736d6862fdb224b72183169c95c5ff0ea36be66c3c20f7cc555cc952b4f",
+      "vertexCount": 230,
+      "triangleCount": 363,
+      "localBoundsMin": [
+        -20.0,
+        -17.186668,
+        -48.0
+      ],
+      "localBoundsMax": [
+        18.0,
+        -2.998306,
+        52.0
+      ],
+      "localRayAtOriginY": -12.561386
+    },
+    "flatColNamedWaterTile": {
+      "sourceBlock": "AssetBundles/blocks/00/00809146.blk",
+      "sourceBlockSha256": "e3a30035239e4bb4d43045e4905d86f0e8d61e61a81709bb8e9c1cbd17b2abe6",
+      "mesh": "Level_NodKrai_LongPVP_4_0_0_Magma_1752853806_Sub0_IgnoreWaterTile_Col",
+      "objSha256": "4c3ce39467560b45f446ebce01964d51cf68c0e2db33542fc37cfbc50f0e4792",
+      "vertexCount": 53,
+      "triangleCount": 51,
+      "localBoundsMin": [
+        -47.744873,
+        0.0,
+        -45.726105
+      ],
+      "localBoundsMax": [
+        47.73993,
+        0.0,
+        45.72583
+      ],
+      "localRayAtOriginY": 0.0
+    }
+  }
+}
